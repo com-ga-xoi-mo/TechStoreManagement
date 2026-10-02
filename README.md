@@ -7,9 +7,13 @@
 ---
 
 ## 1. Tên đồ án & Loại cửa hàng (Domain)
-- **Tên dự án:** *(Cập nhật tên ứng dụng của nhóm, ví dụ: SmartRetail / CoffeeFlow / TechStore Manager)*
-- **Loại hình cửa hàng (Domain):** *(Cập nhật mô hình kinh doanh nhóm chọn, ví dụ: Chuỗi Cửa Hàng Cà Phê & Đồ Uống / Siêu Thị Mini / Cửa Hàng Thiết Bị Công Nghệ /...)*
-- **Lý do chọn Domain:** Phù hợp với năng lực, có quy trình nghiệp vụ rõ ràng, đủ độ phức tạp để phân bổ đều cho 6 thành viên.
+- **Tên dự án:** **TechStore Management System**
+- **Loại hình cửa hàng (Domain):** **Chuỗi Cửa Hàng Bán Lẻ Thiết Bị Công Nghệ & Phụ Kiện** *(Tương tự mô hình CellphoneS, FPT Shop, GearVN)*
+- **Lý do chọn Domain:** 
+  - Đảm bảo độ phức tạp chuẩn mực: Quản lý thiết bị giá trị cao theo số **Serial / IMEI** duy nhất kèm thời hạn bảo hành; quản lý phụ kiện theo số lượng tồn kho.
+  - Sử dụng thuộc tính cấu hình phần cứng động (Dynamic Hardware Specs via PostgreSQL JSONB).
+  - Có đầy đủ bài toán thực tế: POS bán hàng, giải quyết race-condition khi trừ tồn kho, phân quyền RBAC 4 vai trò và tích hợp AI Agent thông minh.
+  - Chi tiết đánh giá công nghệ & kế hoạch: Xem [Báo Cáo Công Nghệ (TECH_REPORT.md)](docs/TECH_REPORT.md), [Lộ Trình Triển Khai (ROADMAP.md)](docs/ROADMAP.md) [Tài Liệu Kiến Trúc & Thư Mục (ARCHITECTURE.md)](docs/ARCHITECTURE.md) và [Kế Hoạch Milestone 1 (MILESTONE_1_PLAN.md)](docs/MILESTONE_1_PLAN.md).
 
 ---
 
@@ -64,19 +68,20 @@ GIAI ĐOẠN CUỐI KỲ:
 ---
 
 ## 5. Công nghệ sử dụng
-- **Client (Desktop App):** C# / .NET (WPF / WinForms / Avalonia UI)
-- **Backend API:** ASP.NET Core Web API (.NET 8 / .NET 9)
-- **Database:** Microsoft SQL Server / PostgreSQL / MySQL
-- **ORM / Data Access:** Entity Framework Core / Dapper
-- **AI Integration:** OpenAI API / Gemini API / Claude API (Function Calling)
-- **Testing & Tools:** xUnit / NUnit, Postman, Git
+- **Client (Desktop App):** **Uno Platform** (.NET 10 + WinUI 3 XAML - Hỗ trợ cả macOS và Windows)
+- **Backend API:** **ASP.NET Core Web API** (.NET 10, Clean Architecture, Swagger)
+- **Database:** **PostgreSQL 16+** (Chạy native hoặc Docker)
+- **ORM / Data Access:** **Entity Framework Core** (`Npgsql.EntityFrameworkCore.PostgreSQL`)
+- **Authentication & RBAC:** **JWT Bearer Token** + Role-based Authorization
+- **AI Integration:** **Google Gemini API** (Gemini 2.5 Flash / Tool Calling nội bộ)
+- **Testing & Tools:** **xUnit**, **FluentAssertions**, **WebApplicationFactory**, **Postman**, **Git**
 
 ---
 
 ## 6. Hướng dẫn cài đặt và chạy chương trình
 
 ### Yêu cầu môi trường
-- .NET SDK (8.0 trở lên)
+- .NET SDK (10.0 trở lên)
 - Hệ quản trị CSDL: SQL Server / PostgreSQL
 - IDE: Visual Studio 2022 / JetBrains Rider / VS Code
 
@@ -133,12 +138,14 @@ GIAI ĐOẠN CUỐI KỲ:
 ---
 
 ## 9. Danh sách thành viên nhóm (Team 6 thành viên)
+*Nhóm áp dụng mô hình Modern Engineering (DevOps/Agile), cả 6 thành viên đều là Kỹ sư Phần mềm trực tiếp phát triển tính năng và tự viết Unit/Integration Tests cho module của mình.
+Quy trình phát triển theo 2 giai đoạn: Giai đoạn 1 cả 6 thành viên cùng xây dựng các phân hệ thuộc Admin Portal; Giai đoạn 2 tách riêng thành hệ thống Đa vai trò (RBAC) và bổ sung nghiệp vụ chuyên sâu.*
 
-| STT | Họ và tên | MSSV | Vai trò chính trong dự án | % Đóng góp |
-| :---: | :--- | :---: | :--- | :---: |
-| 1 | **Nguyễn Bảo An** *(Nhóm trưởng)* | **23120207** | Kiến trúc hệ thống, Quản lý dự án, Backend API | 100% |
-| 2 | *(Thành viên 2)* | `MSSV_02` | Thiết kế CSDL, Data Seeding, Backend Services | 100% |
-| 3 | *(Thành viên 3)* | `MSSV_03` | Phát triển Client UI (Giao diện bán hàng & Dashboard) | 100% |
-| 4 | *(Thành viên 4)* | `MSSV_04` | Phát triển Client UI (Quản lý sản phẩm, kho, đơn hàng) | 100% |
-| 5 | *(Thành viên 5)* | `MSSV_05` | Xác thực & Phân quyền (Auth/RBAC), Tích hợp AI Assistant | 100% |
-| 6 | *(Thành viên 6)* | `MSSV_06` | Đảm bảo chất lượng, Viết Test Cases & Automated Testing | 100% |
+| STT | Họ và tên | MSSV | Vai trò kỹ thuật chính trong dự án | % Đóng góp |
+| :---: | :--- | :--- | :--- | :---: |
+| 1 | **Nguyễn Bảo An** *(Nhóm trưởng)* | **23120207** | **System Architect & Admin Lead:** Quản trị Hệ thống, Tài khoản Nhân sự, Đổi trả thiết bị, Kiến trúc hệ thống | 100% |
+| 2 | *(Thành viên 2)* | `MSSV_02` | **Backend & Database:** Schema PostgreSQL, EF Core Migrations, Seeding 20+ SP công nghệ | 100% |
+| 3 | *(Thành viên 3)* | `MSSV_03` | **Warehouse & Concurrency:** Nghiệp vụ Kho, Phiếu nhập NCC, Serial/IMEI, Khóa Race-Condition | 100% |
+| 4 | *(Thành viên 4)* | `MSSV_04` | **Orders & Sales POS Engine:** Tạo & Quản lý Đơn hàng (Admin), Phân hệ POS Bán hàng tại quầy & VietQR (Cuối kỳ) | 100% |
+| 5 | *(Thành viên 5)* | `MSSV_05` | **Customers & BI Analytics:** API Khách hàng, Tích điểm thành viên, Dashboard Báo cáo Doanh thu | 100% |
+| 6 | *(Thành viên 6)* | `MSSV_06` | **Security & AI Agent:** Xác thực JWT, Middleware RBAC 4 Roles, Tích hợp Gemini Tool Calling | 100% |

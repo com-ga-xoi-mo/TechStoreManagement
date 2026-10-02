@@ -84,7 +84,7 @@ GIAI ĐOẠN CUỐI KỲ:
 1. **Clone repository:**
    ```bash
    git clone <URL_REPO>
-   cd UDQL2-2026
+   cd SalesManagement
    ```
 2. **Cấu hình Database & API:**
    - Xem mục [7. Cấu hình Database & API Server](#7-cấu-hình-database--api-server).

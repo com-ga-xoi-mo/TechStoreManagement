@@ -12,6 +12,10 @@
 *.suo
 *.userprefs
 
+.agents
+.omp
+.opencode
+
 ## Build results
 [Dd]ebug/
 [Rr]elease/

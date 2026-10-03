@@ -50,3 +50,8 @@ info.txt
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+## CLI / Runtime local artifacts
+.local/
+Library/
+

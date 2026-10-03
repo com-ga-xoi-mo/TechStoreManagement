@@ -1,0 +1,49 @@
+<Page x:Class="TechStore.Client.MainPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:local="using:TechStore.Client"
+      Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <NavigationView x:Name="NavView"
+                    PaneTitle="TechStore System"
+                    IsBackButtonVisible="Collapsed"
+                    IsSettingsVisible="True">
+        <NavigationView.MenuItems>
+            <NavigationViewItem Content="Dashboard" Tag="Dashboard" Icon="Home" IsSelected="True" />
+            <NavigationViewItem Content="Sản phẩm (Catalog)" Tag="Catalog" Icon="Shop" />
+            <NavigationViewItem Content="Kho hàng &amp; IMEI (Inventory)" Tag="Inventory" Icon="AllApps" />
+            <NavigationViewItem Content="Bán hàng (POS)" Tag="POS" Icon="Shop" />
+            <NavigationViewItem Content="Đơn hàng (Orders)" Tag="Orders" Icon="Document" />
+            <NavigationViewItem Content="Khách hàng (Customers)" Tag="Customers" Icon="Contact" />
+            <NavigationViewItem Content="Tài khoản &amp; AI (Identity)" Tag="Identity" Icon="Admin" />
+        </NavigationView.MenuItems>
+
+        <Frame x:Name="ContentFrame">
+            <Grid Padding="32">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="TechStore Management System"
+                               FontSize="28"
+                               FontWeight="Bold" />
+                    <TextBlock Text="Hệ thống Quản lý và Bán hàng Chuỗi Thiết bị Công nghệ (UDQL2 - 2026)"
+                               FontSize="16"
+                               Opacity="0.8" />
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="20"
+                            Margin="0,16,0,0">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Khung Điều Hướng Ứng Dụng (Shell Navigation Ready)"
+                                       FontWeight="SemiBold"
+                                       FontSize="16" />
+                            <TextBlock Text="• Nền tảng: Uno Platform WinUI 3 (Hỗ trợ macOS Skia &amp; Windows Native)" />
+                            <TextBlock Text="• Backend: ASP.NET Core 10 Web API + EF Core Npgsql" />
+                            <TextBlock Text="• CSDL: PostgreSQL 16 (docker-compose up -d)" />
+                            <TextBlock Text="• Phân quyền RBAC: Admin, Manager, Sales Staff, Warehouse" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Frame>
+    </NavigationView>
+</Page>

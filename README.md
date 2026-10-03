@@ -1,151 +1,113 @@
-# ĐỒ ÁN ỨNG DỤNG QUẢN LÝ VÀ BÁN HÀNG (UDQL2 - 2026)
+# TechStore Management System
 
-> **Môn học:** Ứng dụng Quản lý 2 / Lập trình Desktop  
-> **Lớp / Khóa:** 2026  
-> **Hình thức:** Đồ án nhóm (Team 6 thành viên - Được quyền tự chọn Domain kinh doanh)  
-
----
-
-## 1. Tên đồ án & Loại cửa hàng (Domain)
-- **Tên dự án:** **TechStore Management System**
-- **Loại hình cửa hàng (Domain):** **Chuỗi Cửa Hàng Bán Lẻ Thiết Bị Công Nghệ & Phụ Kiện** *(Tương tự mô hình CellphoneS, FPT Shop, GearVN)*
-- **Lý do chọn Domain:** 
-  - Đảm bảo độ phức tạp chuẩn mực: Quản lý thiết bị giá trị cao theo số **Serial / IMEI** duy nhất kèm thời hạn bảo hành; quản lý phụ kiện theo số lượng tồn kho.
-  - Sử dụng thuộc tính cấu hình phần cứng động (Dynamic Hardware Specs via PostgreSQL JSONB).
-  - Có đầy đủ bài toán thực tế: POS bán hàng, giải quyết race-condition khi trừ tồn kho, phân quyền RBAC 4 vai trò và tích hợp AI Agent thông minh.
-  - Chi tiết đánh giá công nghệ & kế hoạch: Xem [Báo Cáo Công Nghệ (TECH_REPORT.md)](docs/TECH_REPORT.md), [Lộ Trình Triển Khai (ROADMAP.md)](docs/ROADMAP.md) [Tài Liệu Kiến Trúc & Thư Mục (ARCHITECTURE.md)](docs/ARCHITECTURE.md) và [Kế Hoạch Milestone 1 (MILESTONE_1_PLAN.md)](docs/MILESTONE_1_PLAN.md).
+> **Hệ thống Quản lý và Bán hàng Chuỗi Cửa hàng Thiết bị Công nghệ & Phụ kiện**  
+> Môn học: Ứng dụng Quản lý 2 / Lập trình Desktop (Khóa 2026)
 
 ---
 
-## 2. Mô tả tổng quan về ứng dụng
-Hệ thống phần mềm quản lý và bán hàng phục vụ hoạt động vận hành thường nhật của cửa hàng. Hệ thống hỗ trợ xử lý nghiệp vụ bán hàng tại quầy (POS), quản lý danh mục sản phẩm, theo dõi khách hàng thân thiết, quản lý xuất nhập tồn kho, tổng hợp báo cáo doanh thu tài chính theo thời gian thực và tích hợp trợ lý AI thông minh hỗ trợ ra quyết định.
+## 1. Tổng quan Dự án (Project Overview)
 
----
+### Giới thiệu
+**TechStore Management System** là hệ thống phần mềm quản lý và bán hàng toàn diện, phục vụ hoạt động vận hành thường nhật của chuỗi cửa hàng bán lẻ thiết bị công nghệ (điện thoại, laptop, phụ kiện). Hệ thống giải quyết các bài toán nghiệp vụ thực tế như:
+- **Bán hàng tại quầy (POS):** Lập đơn nhanh chóng, quét mã vạch/Serial, thanh toán tiền mặt & sinh mã VietQR.
+- **Quản lý danh mục & sản phẩm:** Quản lý cấu hình thông số kỹ thuật động qua PostgreSQL JSONB.
+- **Quản lý kho & Serial/IMEI:** Theo dõi từng thiết bị giá trị cao theo số Serial/IMEI duy nhất, tình trạng bảo hành và khóa chống bán âm kho (concurrency).
+- **Khách hàng & Doanh thu:** Quản lý hội viên, tích điểm thưởng VIP và dashboard thống kê tài chính thời gian thực.
+- **Phân quyền & Trợ lý AI:** Phân quyền 4 vai trò (Admin, Manager, Sales Staff, Warehouse Staff) và tích hợp AI Agent hỗ trợ tra cứu thông minh.
 
-## 3. Danh sách các chức năng chính
-
-### Giai đoạn 1: Báo cáo tiến độ (Giữa kỳ)
-- [ ] **Quản lý sản phẩm (CRUD):** Thêm, sửa, xóa, xem chi tiết, tìm kiếm và lọc sản phẩm.
-- [ ] **Quản lý danh mục:** Phân loại sản phẩm theo danh mục phù hợp với domain.
-- [ ] **Quản lý khách hàng:** Lưu trữ thông tin khách hàng, số điện thoại, lịch sử mua hàng.
-- [ ] **Lập và quản lý đơn hàng:** Tạo đơn bán hàng, chọn sản phẩm, tính tiền, lưu đơn vào cơ sở dữ liệu.
-- [ ] **Theo dõi trạng thái đơn hàng:** Quản lý các trạng thái đơn (Mới tạo, Đang xử lý, Hoàn thành, Hủy).
-- [ ] **Báo cáo thống kê cơ bản:** Thống kê tổng số lượng sản phẩm, doanh thu tổng hợp.
-- [ ] **Kết nối Database Server:** Đọc/ghi dữ liệu trực tiếp lên Database Server ổn định.
-
-### Giai đoạn 2: Báo cáo nghiệm thu (Cuối kỳ)
-- [ ] **Kiến trúc đa tầng (API-First):** Client hoàn toàn không kết nối trực tiếp DB, mọi thao tác thông qua RESTful API Server.
-- [ ] **Authentication:** Đăng nhập, đăng xuất, cấp phát Token bảo mật (JWT).
-- [ ] **Role-Based Access Control (RBAC):** Phân quyền chặt chẽ các vai trò (Admin, Manager, Sales Staff, Warehouse Staff) được kiểm tra tại Server.
-- [ ] **Nghiệp vụ nâng cao:** 
-  - Quản lý kho, cảnh báo tồn kho tối thiểu.
-  - Quản lý khuyến mãi, chiết khấu, tích điểm thành viên.
-  - Xử lý đồng thời (concurrency) và Transaction an toàn khi tạo đơn hàng.
-- [ ] **Tích hợp Trợ lý AI (AI Integration):**
-  - AI phân tích doanh thu & dự báo hàng tồn kho cho Quản lý.
-  - AI tư vấn gợi ý sản phẩm phù hợp ngân sách & sở thích cho Nhân viên bán hàng.
-  - Tool/Function calling kết nối với API nội bộ, tuân thủ đúng quyền RBAC.
-- [ ] **Kiểm thử chất lượng:** Bộ test case chức năng, test case biên, kiểm thử API Postman và Automated Tests.
-
----
-
-## 4. Kiến trúc hệ thống
+### Kiến trúc Hệ thống
+Dự án được xây dựng theo mô hình **3-Tier API-First Modern Architecture**:
 
 ```text
-GIAI ĐOẠN GIỮA KỲ:
-[ Client App (Admin UI) ] ──────────────> [ Database Server ]
-
-GIAI ĐOẠN CUỐI KỲ:
-[ Client App (Multi-Role UI) ]
-            │
-            ▼ (HTTPS / RESTful API + JWT)
-   [ Backend API Server ] ──────────────> [ Database Server ]
-            ▲
-            │ (Tool Calling / Function Calling)
-    [ AI Assistant / LLM ]
+┌────────────────────────────────────────────────────────────────────────┐
+│                   FRONTEND: UNO PLATFORM (WINUI 3)                     │
+│   • Multi-platform Desktop: Windows 11 Native & macOS (Skia Desktop)   │
+│   • Mô hình giao diện: Feature-First MVVM (CommunityToolkit.Mvvm)      │
+│   • Kết nối Backend: RESTful API (JSON) + JWT Bearer                   │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ HTTPS / RESTful API
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                   BACKEND: ASP.NET CORE 10 WEB API                     │
+│   • Cấu trúc Modular: Catalog, Inventory, Orders, Customers, Identity  │
+│   • Bảo mật & Phân quyền: Middleware JWT & RBAC 4 Roles                │
+│   • Xử lý nghiệp vụ, ACID Transaction & Khóa Concurrency (FOR UPDATE)  │
+│   • Tài liệu API: OpenAPI / Swagger UI                                 │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ EF Core 10 (Npgsql)
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        DATABASE: POSTGRESQL 16                         │
+│   • Chạy qua Docker Container đồng nhất cho toàn bộ đội ngũ            │
+│   • Hỗ trợ cột thông số phần cứng linh hoạt JSONB                      │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-## 5. Công nghệ sử dụng
-- **Client (Desktop App):** **Uno Platform** (.NET 10 + WinUI 3 XAML - Hỗ trợ cả macOS và Windows)
-- **Backend API:** **ASP.NET Core Web API** (.NET 10, Clean Architecture, Swagger)
-- **Database:** **PostgreSQL 16+** (Chạy native hoặc Docker)
-- **ORM / Data Access:** **Entity Framework Core** (`Npgsql.EntityFrameworkCore.PostgreSQL`)
-- **Authentication & RBAC:** **JWT Bearer Token** + Role-based Authorization
-- **AI Integration:** **Google Gemini API** (Gemini 2.5 Flash / Tool Calling nội bộ)
-- **Testing & Tools:** **xUnit**, **FluentAssertions**, **WebApplicationFactory**, **Postman**, **Git**
+### Công nghệ sử dụng
+- **Backend API:** ASP.NET Core 10 Web API, Entity Framework Core 10 (`Npgsql.EntityFrameworkCore.PostgreSQL`), Swagger/OpenAPI.
+- **Frontend App:** Uno Platform 6.7 (.NET 10, WinUI 3 XAML, Skia Desktop Engine cho macOS/Linux và Windows App SDK cho Windows).
+- **Database:** PostgreSQL 16 (triển khai qua Docker Compose).
+- **Kiểm thử tự động:** xUnit, FluentAssertions, Coverlet.
+- **Quản lý mã nguồn:** Git, GitHub CLI (`gh`).
 
 ---
 
-## 6. Hướng dẫn cài đặt và chạy chương trình
+## 2. Hướng dẫn Cài đặt và Chạy Dự án (How to Run)
 
 ### Yêu cầu môi trường
-- .NET SDK (10.0 trở lên)
-- Hệ quản trị CSDL: SQL Server / PostgreSQL
-- IDE: Visual Studio 2022 / JetBrains Rider / VS Code
-
-### Các bước khởi chạy
-1. **Clone repository:**
-   ```bash
-   git clone <URL_REPO>
-   cd SalesManagement
-   ```
-2. **Cấu hình Database & API:**
-   - Xem mục [7. Cấu hình Database & API Server](#7-cấu-hình-database--api-server).
-3. **Chạy Database Migration & Seed Data:**
-   ```bash
-   # (Cập nhật lệnh tương ứng của nhóm)
-   ```
-4. **Khởi chạy API Server:**
-   ```bash
-   dotnet run --project src/Server
-   ```
-5. **Khởi chạy Client App:**
-   ```bash
-   dotnet run --project src/Client
-   ```
+- [.NET SDK 10.0](https://dotnet.microsoft.com/download) trở lên
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (dùng để chạy PostgreSQL 16)
+- IDE khuyến nghị: Visual Studio 2022 (v17.12+) / JetBrains Rider / Visual Studio Code (kèm C# Dev Kit)
 
 ---
 
-## 7. Cấu hình Database & API Server
-- Tạo file `appsettings.Development.json` hoặc file `.env` (tuyệt đối không commit file chứa mật khẩu lên git).
-- Cung cấp file mẫu `appsettings.example.json`:
-  ```json
-  {
-    "ConnectionStrings": {
-      "DefaultConnection": "Server=localhost;Database=UDQL2_DB;User Id=sa;Password=YourSecurePassword;TrustServerCertificate=True;"
-    },
-    "Jwt": {
-      "Secret": "YourSuperSecretKeyWithAtLeast32CharactersLong",
-      "Issuer": "UDQL2Server",
-      "Audience": "UDQL2Client"
-    }
-  }
+### Các bước khởi chạy từng bước
+
+#### Bước 1: Clone mã nguồn
+```bash
+git clone https://github.com/com-ga-xoi-mo/TechStoreManagement.git
+cd TechStoreManagement
+git checkout dev
+```
+
+#### Bước 2: Khởi động Cơ sở Dữ liệu PostgreSQL
+Đảm bảo **Docker Desktop** đang chạy, sau đó mở terminal tại thư mục gốc dự án và thực thi:
+```bash
+docker compose up -d
+```
+> Database PostgreSQL 16 sẽ tự động được khởi tạo tại cổng `5432` với cấu hình:
+> - **Host:** `localhost:5432`
+> - **Database:** `techstore_db`
+> - **Username:** `techstore_user`
+> - **Password:** `TechStorePassword123!`
+
+#### Bước 3: Khởi chạy Backend API Server
+Mở terminal và chạy lệnh:
+```bash
+dotnet run --project backend
+```
+- API Server sẽ khởi động tại: `http://localhost:5000` (hoặc cổng hiển thị trên console).
+- Mở trình duyệt truy cập: **`http://localhost:5000`** để xem giao diện **Swagger UI** và thử nghiệm các API (như `/api/health`).
+
+#### Bước 4: Khởi chạy Frontend Desktop App
+Mở một cửa sổ terminal mới và chạy:
+
+- **Trên macOS / Linux (Skia Desktop):**
+  ```bash
+  dotnet run --project frontend/TechStore.Client -f net10.0-desktop
   ```
 
----
+- **Trên Windows (Native WinUI 3):**
+  ```bash
+  dotnet run --project frontend/TechStore.Client -f net10.0-windows10.0.26100
+  ```
 
-## 8. Danh sách tài khoản demo (Kiểm thử phân quyền)
-
-| Vai trò | Tên đăng nhập | Mật khẩu mẫu | Quyền hạn chính |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin` | `Admin@123` | Quản trị toàn hệ thống, cấu hình người dùng |
-| **Manager** | `manager` | `Manager@123` | Xem báo cáo doanh thu, duyệt kế hoạch |
-| **Sales Staff**| `staff` | `Staff@123` | Bán hàng, tạo đơn hàng, tra cứu sản phẩm |
-| **Warehouse** | `warehouse` | `Warehouse@123` | Quản lý kho, nhập/xuất tồn kho |
+Ứng dụng Desktop sẽ hiển thị giao diện Fluent Design kèm thanh điều hướng (NavigationView) kết nối với hệ thống.
 
 ---
 
-## 9. Danh sách thành viên nhóm (Team 6 thành viên)
-*Nhóm áp dụng mô hình Modern Engineering (DevOps/Agile), cả 6 thành viên đều là Kỹ sư Phần mềm trực tiếp phát triển tính năng và tự viết Unit/Integration Tests cho module của mình.
-Quy trình phát triển theo 2 giai đoạn: Giai đoạn 1 cả 6 thành viên cùng xây dựng các phân hệ thuộc Admin Portal; Giai đoạn 2 tách riêng thành hệ thống Đa vai trò (RBAC) và bổ sung nghiệp vụ chuyên sâu.*
-
-| STT | Họ và tên | MSSV | Vai trò kỹ thuật chính trong dự án | % Đóng góp |
-| :---: | :--- | :--- | :--- | :---: |
-| 1 | **Nguyễn Bảo An** *(Nhóm trưởng)* | **23120207** | **System Architect & Admin Lead:** Quản trị Hệ thống, Tài khoản Nhân sự, Đổi trả thiết bị, Kiến trúc hệ thống | 100% |
-| 2 | *(Thành viên 2)* | `MSSV_02` | **Backend & Database:** Schema PostgreSQL, EF Core Migrations, Seeding 20+ SP công nghệ | 100% |
-| 3 | *(Thành viên 3)* | `MSSV_03` | **Warehouse & Concurrency:** Nghiệp vụ Kho, Phiếu nhập NCC, Serial/IMEI, Khóa Race-Condition | 100% |
-| 4 | *(Thành viên 4)* | `MSSV_04` | **Orders & Sales POS Engine:** Tạo & Quản lý Đơn hàng (Admin), Phân hệ POS Bán hàng tại quầy & VietQR (Cuối kỳ) | 100% |
-| 5 | *(Thành viên 5)* | `MSSV_05` | **Customers & BI Analytics:** API Khách hàng, Tích điểm thành viên, Dashboard Báo cáo Doanh thu | 100% |
-| 6 | *(Thành viên 6)* | `MSSV_06` | **Security & AI Agent:** Xác thực JWT, Middleware RBAC 4 Roles, Tích hợp Gemini Tool Calling | 100% |
+### Chạy Kiểm thử Tự động (Automated Tests)
+Để chạy toàn bộ bộ kiểm thử tự động của dự án:
+```bash
+dotnet test TechStore.sln
+```

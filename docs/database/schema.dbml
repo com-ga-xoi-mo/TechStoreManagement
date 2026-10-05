@@ -443,7 +443,8 @@ Table vouchers {
 
   indexes {
     code [unique, name: 'idx_vouchers_code']
-    code [name: 'idx_vouchers_active', note: 'Supabase Best Practice: Partial index WHERE is_active = true AND expires_at > now()']
+    // PostgreSQL forbids now() in an index predicate (not IMMUTABLE); check expires_at in the query instead.
+    (is_active, expires_at) [name: 'idx_vouchers_active', note: 'Partial index WHERE is_active = true; filter expires_at > now() at query time']
   }
 
   Note: 'Promotional discount vouchers and store promotional campaigns'
@@ -547,7 +548,7 @@ Table user_roles {
 Table refresh_tokens {
   id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   user_id uuid [not null, note: 'FK -> users.id (ON DELETE CASCADE)']
-  token text [not null, unique, note: 'Cryptographically secure refresh token string']
+  token_hash text [not null, unique, note: 'SHA-256 hash of the refresh token; the raw token is only returned to the client once']
   expires_at timestamptz [not null, note: 'UTC token expiration']
   is_revoked boolean [not null, default: false, note: 'Revocation flag']
   created_at timestamptz [not null, default: `now()`]
@@ -555,8 +556,8 @@ Table refresh_tokens {
 
   indexes {
     user_id [name: 'idx_refresh_tokens_user_id', note: 'FK index']
-    token [unique, name: 'idx_refresh_tokens_token']
-    (user_id, token) [name: 'idx_refresh_tokens_active', note: 'Supabase Best Practice: Partial index WHERE is_revoked = false']
+    token_hash [unique, name: 'idx_refresh_tokens_token_hash']
+    (user_id, token_hash) [name: 'idx_refresh_tokens_active', note: 'Supabase Best Practice: Partial index WHERE is_revoked = false']
   }
 
   Note: 'JWT authentication refresh tokens with revocation support'

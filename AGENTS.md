@@ -3,7 +3,7 @@
 ## Project Overview
 TechStore Management System is an enterprise retail POS (Point of Sale) and inventory management platform tailored for high-value technology hardware and accessories (smartphones, laptops, components). It is architected to handle:
 - In-store POS barcode/IMEI scanning, checkout, and dynamic VietQR banking transfer generation.
-- Serial/IMEI lifecycle tracking (`InStock`, `Sold`, `UnderWarranty`) with warranty activation upon order settlement.
+- Serial/IMEI lifecycle tracking (`InStock`, `Sold`, `UnderRepair`, `Defective`; warranty is derived from warranty dates) with warranty activation upon order settlement.
 - Schema-less device specifications (CPU, RAM, GPU, Battery) persisted via PostgreSQL `JSONB` columns without schema migrations.
 - Strict concurrency control preventing overselling via database row locks (`FOR UPDATE`) in ACID transactions.
 - Customer VIP tier points accrual, discount vouchers, and sales/profit analytics dashboards.

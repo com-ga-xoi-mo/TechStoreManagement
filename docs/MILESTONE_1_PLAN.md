@@ -40,7 +40,7 @@
 ---
 
 ### [Dev 6] Thiết kế CSDL Module Tài khoản & Viết Data Seeder Tự động (Identity & Seeding)
-* **Nội dung công việc:** Thiết kế thực thể `User`, `Role` (Admin, Manager, Staff, Warehouse) trong `backend/Identity/`; chuẩn bị dữ liệu $\ge 20$ sản phẩm công nghệ thực tế kèm specs và viết module `DataSeeder.cs` tự động nạp toàn bộ dữ liệu mẫu vào PostgreSQL khi API khởi động lần đầu.
+* **Nội dung công việc:** Thiết kế thực thể `User`, `Role` (Admin, Manager, SalesStaff, WarehouseStaff) trong `backend/Identity/`; chuẩn bị dữ liệu $\ge 20$ sản phẩm công nghệ thực tế kèm specs và viết module `DataSeeder.cs` tự động nạp toàn bộ dữ liệu mẫu vào PostgreSQL khi API khởi động lần đầu.
 * **Kết quả bàn giao:** Schema tài khoản người dùng và hệ thống tự động seed dữ liệu demo hoàn chỉnh.
 
 ---

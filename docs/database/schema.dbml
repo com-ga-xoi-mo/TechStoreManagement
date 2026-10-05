@@ -28,7 +28,8 @@ Enum order_status {
   Processing  [note: 'Payment received, order items being picked/packaged']
   Completed   [note: 'Order successfully settled and fulfilled']
   Cancelled   [note: 'Order cancelled before settlement']
-  Refunded    [note: 'Order returned and payment refunded']
+  PartiallyRefunded [note: 'Some items or part of the payment have been refunded; remaining sale is retained']
+  Refunded    [note: 'Order fully returned/refunded; backend derives this from cumulative returns and refunds']
 }
 
 Enum payment_method {
@@ -81,7 +82,7 @@ Enum pos_session_status {
 }
 
 Enum vietqr_status {
-  Pending    [note: 'VietQR dynamic code generated, awaiting bank webhook']
+  Pending    [note: 'VietQR generated; awaiting verified manual confirmation or bank webhook']
   Confirmed  [note: 'Bank transfer confirmed, payment settled']
   Failed     [note: 'Transaction failed or rejected']
   Expired    [note: 'Payment QR expired (timeout reached)']
@@ -341,6 +342,7 @@ Table serial_imeis {
     product_id [name: 'idx_serial_imeis_product_id', note: 'FK index']
     variant_id [name: 'idx_serial_imeis_variant_id', note: 'FK index']
     purchase_order_id [name: 'idx_serial_imeis_po_id', note: 'FK index']
+    (id, product_id) [unique, name: 'uq_serial_imeis_id_product', note: 'Target key for the order item device/product composite FK']
     serial_number [unique, name: 'idx_serial_imeis_serial', note: 'Unique serial constraint where not null']
     imei [unique, name: 'idx_serial_imeis_imei', note: 'Unique IMEI constraint where not null']
     (product_id, status) [name: 'idx_serial_imeis_instock', note: 'Supabase Best Practice: Partial index WHERE status = "InStock" for fast POS scanning']
@@ -367,13 +369,14 @@ Table orders {
   pos_session_id uuid [null, note: 'FK -> pos_sessions.id: Active counter shift register']
   status order_status [not null, default: 'Pending']
   payment_method payment_method [not null, default: 'Cash']
-  subtotal "numeric(18, 2)" [not null, note: 'CHECK subtotal >= 0: Total item prices before discount']
-  discount_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK discount_amount >= 0: Voucher or VIP discount']
+  subtotal "numeric(18, 2)" [not null, note: 'CHECK subtotal >= 0: SUM(order_items.total_price), after line discounts and before order discount and tax']
+  discount_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK discount_amount >= 0: Order-level voucher/VIP discount only; backend requires discount_amount <= subtotal']
   tax_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK tax_amount >= 0: VAT amount']
-  total_amount "numeric(18, 2)" [not null, note: 'CHECK total_amount >= 0: Final payable amount']
+  total_amount "numeric(18, 2)" [not null, note: 'CHECK total_amount >= 0: subtotal - discount_amount + tax_amount; backend calculates all totals']
   voucher_id uuid [null, note: 'FK -> vouchers.id: Applied coupon discount']
   notes text [null, note: 'Customer requests or cashier notes']
-  completed_at timestamptz [null, note: 'Timestamp when payment was settled and warranty activated']
+  paid_at timestamptz [null, note: 'Time full payment was verified; set once when entering Processing or directly Completed']
+  completed_at timestamptz [null, note: 'Time goods were fulfilled and warranty activated; may be later than paid_at']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [null]
 
@@ -387,7 +390,14 @@ Table orders {
     created_at [name: 'idx_orders_created_at', note: 'Accelerates sales date range reports']
   }
 
-  Note: 'Retail POS and online customer sales orders'
+  Note: '''
+    Retail sales with one full payment method per order. Backend recalculates totals from line snapshots and freezes items, method and totals after payment.
+    POS payment requires an Open session owned by cashier_user_id. Record paid_at and shift sales once on verified payment, including direct Pending -> Completed checkout.
+    Backend must lock the order, selected devices and stock rows in a transaction. Before accepting payment, verify/reserve stock and devices; paid Processing orders retain reservations until fulfillment.
+    On fulfillment, require one allocated device per serial-tracked line, validate its product and variant (including NULL equality), release its reservation, deduct stock, mark the device Sold, write Sale movements and activate warranty atomically.
+    Retries must not repeat payment, stock movements, voucher consumption or loyalty changes. Rejected/cancelled unpaid checkouts release reservations. Paid orders use the refund flow.
+    Paid orders and their lines must not be deleted or edited by backend; returns preserve the original sale amounts and snapshots. PartiallyRefunded and Refunded retain paid_at and completed_at.
+  '''
 }
 
 Table order_items {
@@ -395,11 +405,14 @@ Table order_items {
   order_id uuid [not null, note: 'FK -> orders.id (ON DELETE CASCADE)']
   product_id uuid [not null, note: 'FK -> products.id']
   variant_id uuid [null, note: 'FK -> product_variants.id']
-  serial_imei_id uuid [null, note: 'FK -> serial_imeis.id (Allocated device unit)']
+  serial_imei_id uuid [null, note: 'Allocated device; composite FK also enforces product match. Backend enforces exact variant match, including NULL, and availability']
   product_name text [not null, note: 'Historical snapshot of product title at purchase']
+  variant_name text [null, note: 'Historical variant title; NULL only for a product without variants']
+  sku text [not null, note: 'Historical SKU: variant SKU when selected, otherwise product SKU']
   unit_price "numeric(18, 2)" [not null, note: 'CHECK unit_price >= 0: Price at purchase moment']
-  quantity integer [not null, default: 1, note: 'CHECK quantity > 0: Typically 1 for serial-tracked items']
-  discount_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK discount_amount >= 0']
+  unit_cost "numeric(18, 2)" [null, note: 'Historical cost per unit; backend requires a nonnegative value at fulfillment and never recalculates completed sales from current product cost']
+  quantity integer [not null, default: 1, note: 'CHECK quantity > 0: Serial-tracked products use one unit per line, including drafts; non-tracked products may use multiple units']
+  discount_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK discount_amount >= 0: Total discount for this entire line, not per unit; must not exceed unit_price * quantity']
   total_price "numeric(18, 2)" [not null, note: 'CHECK total_price >= 0: (unit_price * quantity) - discount']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [null]
@@ -409,19 +422,34 @@ Table order_items {
     product_id [name: 'idx_order_items_product_id', note: 'FK index']
     variant_id [name: 'idx_order_items_variant_id', note: 'FK index']
     serial_imei_id [name: 'idx_order_items_serial_imei_id', note: 'FK index: device warranty verification']
+    (id, order_id) [unique, name: 'uq_order_items_id_order', note: 'Target key ensuring a returned line belongs to its order']
+    (order_id, serial_imei_id) [unique, name: 'uq_order_items_order_serial', note: 'A device appears once per order; NULL permits multiple non-tracked or unallocated lines. Resale in another order remains possible']
   }
 
-  Note: 'Individual order lines with linkage to specific sold Serial/IMEI devices'
+  checks {
+    `serial_imei_id IS NULL OR quantity = 1` [name: 'chk_order_items_serial_single_unit']
+  }
+
+  Note: '''
+    Backend checks products.is_serial_tracked: tracked products have quantity = 1 and require a device before fulfillment; non-tracked products always have serial_imei_id = NULL.
+    A draft may omit its device. The device/product FK does not compare nullable variants: backend must compare device.variant_id IS NOT DISTINCT FROM order_items.variant_id and prevent simultaneous allocation across orders using device locks.
+    Snapshot product_name, variant_name and sku before payment. At fulfillment snapshot unit_cost using the agreed Inventory costing policy: source PO line for a tracked device; the selected stock valuation method for non-tracked goods.
+    Reports use stored unit_cost, never the mutable products.cost_price. Inventory costing policy must be agreed with Dev 3 before implementing non-tracked goods valuation.
+  '''
 }
 
 Table order_returns {
   id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   order_id uuid [not null, note: 'FK -> orders.id']
-  order_item_id uuid [not null, note: 'FK -> order_items.id']
+  order_item_id uuid [not null, note: 'Composite FK with order_id ensures this line belongs to the returned order']
   processed_by_user_id uuid [not null, note: 'FK -> users.id']
+  quantity integer [not null, note: 'CHECK quantity > 0: Units returned in this operation; cumulative returned quantity must not exceed the sold line quantity']
   reason text [not null, note: 'Return/refund justification (Defective, Customer remorse)']
   refund_amount "numeric(18, 2)" [not null, note: 'CHECK refund_amount >= 0']
-  is_restocked boolean [not null, default: false, note: 'True if returned item is inspected and put back into inventory']
+  refund_method payment_method [not null, note: 'Actual refund channel; may differ from the original sale method']
+  refund_pos_session_id uuid [null, note: 'FK -> pos_sessions.id: Shift that actually paid the refund, not the original sale shift; required by backend for cash refunds']
+  refunded_at timestamptz [not null, note: 'Time the refund was actually completed; do not insert pending refund requests here']
+  is_restocked boolean [not null, default: false, note: 'All quantity units on this return record have been inspected and put back into sellable stock']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [null]
 
@@ -429,9 +457,16 @@ Table order_returns {
     order_id [name: 'idx_order_returns_order_id', note: 'FK index']
     order_item_id [name: 'idx_order_returns_item_id', note: 'FK index']
     processed_by_user_id [name: 'idx_order_returns_user_id', note: 'FK index']
+    refund_pos_session_id [name: 'idx_order_returns_refund_session_id', note: 'FK index: cash refunds paid during a shift']
+    refunded_at [name: 'idx_order_returns_refunded_at', note: 'Refund reporting by actual payout time']
   }
 
-  Note: 'Post-purchase returns, device warranties, and cashier refund tracking'
+  Note: '''
+    Completed returns/refunds, not repair check-ins. Backend locks the order and line, limits cumulative returned quantity and refund amount, and accounts for allocated order discounts and tax when calculating refunds.
+    Each record has one restocking outcome for its full quantity; split into separate records if only some returned units are sellable. Restock exactly once with inventory_movements in the same transaction; serial-tracked returns identify the device through order_items.
+    Cash refunds require an Open refund_pos_session owned by processed_by_user_id. Derive PartiallyRefunded/Refunded from cumulative returns and refunds; never change the original sale totals.
+    Deduplicate refund requests before paying out; external refunds require provider idempotency/reconciliation before recording success. Repair and warranty eligibility remain separate from a return/refund.
+  '''
 }
 
 // ============================================================================
@@ -506,8 +541,9 @@ Table pos_sessions {
   cashier_user_id uuid [not null, note: 'FK -> users.id: Cashier who operated shift']
   opening_balance "numeric(18, 2)" [not null, default: 0, note: 'CHECK opening_balance >= 0: Drawer initial cash']
   closing_balance "numeric(18, 2)" [null, note: 'Counted physical cash at shift close']
-  cash_sales_total "numeric(18, 2)" [not null, default: 0, note: 'Total cash received during shift']
-  vietqr_sales_total "numeric(18, 2)" [not null, default: 0, note: 'Total VietQR bank transfer during shift']
+  cash_sales_total "numeric(18, 2)" [not null, default: 0, note: 'Sum of fully paid Cash order totals credited to this shift, before refunds; excludes customer cash tendered then returned as change']
+  vietqr_sales_total "numeric(18, 2)" [not null, default: 0, note: 'Sum of fully paid VietQr order totals credited to this shift, before refunds']
+  card_sales_total "numeric(18, 2)" [not null, default: 0, note: 'Sum of fully paid Card order totals credited to this shift, before refunds']
   status pos_session_status [not null, default: 'Open']
   opened_at timestamptz [not null, default: `now()`, note: 'Shift start timestamp']
   closed_at timestamptz [null, note: 'Shift end timestamp']
@@ -520,7 +556,16 @@ Table pos_sessions {
     opened_at [name: 'idx_pos_sessions_opened_at']
   }
 
-  Note: 'Cash register shift management and drawer reconciliation'
+  // PostgreSQL migration requirement, not an ordinary DBML unique index:
+  // CREATE UNIQUE INDEX uq_pos_sessions_cashier_open ON pos_sessions (cashier_user_id) WHERE status = 'Open';
+  Note: '''
+    One Open shift per cashier; the migration must create the partial unique index documented above. Backend validates session ownership and Open status for each payment/refund, locking the session against concurrent closure.
+    Expected closing cash = opening_balance + cash_sales_total - SUM(order_returns.refund_amount where refund_pos_session_id = this session and refund_method = Cash).
+    closing_balance is the actual counted cash; discrepancy = closing_balance - expected closing cash. VietQR/Card receipts and refunds do not affect physical cash.
+    Sales totals include paid orders even when subsequently refunded; refunds are subtracted separately using the payout shift. Derive totals from orders with paid_at, and update cached totals once in the payment transaction.
+    Resolve or explicitly transfer pending unpaid checkouts before closing. A late bank notification after closure requires reconciliation, not a silent change to closed shift totals.
+    MVP has no other cash deposits/withdrawals during a shift. Such operations need a separate cash ledger if later supported.
+  '''
 }
 
 Table vietqr_transactions {
@@ -528,12 +573,16 @@ Table vietqr_transactions {
   order_id uuid [not null, note: 'FK -> orders.id']
   pos_session_id uuid [null, note: 'FK -> pos_sessions.id']
   transaction_code text [not null, unique, note: 'Bank transfer memo / code (e.g., TS20261003)']
+  provider text [null, note: 'Bank/payment integration identifier; required together with provider_transaction_id for an automated confirmation']
+  provider_transaction_id text [null, note: 'Actual incoming transfer ID assigned by the provider, distinct from the generated transfer memo']
   bank_bin text [not null, note: 'Bank National ID / BIN (e.g., 970422 for MBBank, 970415 for VietinBank)']
   bank_account_number text [not null, note: 'Store receiver bank account']
   amount "numeric(18, 2)" [not null, note: 'CHECK amount > 0: Exact payable order amount']
   qr_content text [not null, note: 'Raw EMVCo VietQR string generated for customer display']
   status vietqr_status [not null, default: 'Pending']
-  confirmed_at timestamptz [null, note: 'Webhook notification settlement timestamp']
+  expires_at timestamptz [not null, note: 'Application payment request deadline; expiry does not prevent a customer from making a late bank transfer']
+  confirmed_at timestamptz [null, note: 'Time payment was verified, manually or through a verified provider notification']
+  confirmed_by_user_id uuid [null, note: 'FK -> users.id: Required by backend for manual confirmation; NULL for automated provider confirmation']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [null]
 
@@ -541,10 +590,28 @@ Table vietqr_transactions {
     order_id [name: 'idx_vietqr_tx_order_id', note: 'FK index']
     pos_session_id [name: 'idx_vietqr_tx_session_id', note: 'FK index']
     transaction_code [unique, name: 'idx_vietqr_tx_code']
+    (provider, provider_transaction_id) [unique, name: 'uq_vietqr_provider_transaction', note: 'Prevent assigning the same provider transfer to multiple payment requests']
+    confirmed_by_user_id [name: 'idx_vietqr_tx_confirmed_by', note: 'FK index: manual payment confirmation audit']
     status [name: 'idx_vietqr_tx_status']
+    expires_at [name: 'idx_vietqr_tx_expires_at', note: 'Find expired pending requests']
   }
 
-  Note: 'Dynamic VietQR payment requests and automated webhook reconciliations'
+  checks {
+    `(provider IS NULL) = (provider_transaction_id IS NULL)` [name: 'chk_vietqr_provider_reference_pair']
+    `expires_at > created_at` [name: 'chk_vietqr_expiry_after_creation']
+    `(status = 'Confirmed' AND confirmed_at IS NOT NULL AND (confirmed_by_user_id IS NOT NULL OR provider_transaction_id IS NOT NULL)) OR (status <> 'Confirmed' AND confirmed_at IS NULL AND confirmed_by_user_id IS NULL)` [name: 'chk_vietqr_confirmation_evidence']
+  }
+
+  // PostgreSQL migration requirement, not an ordinary DBML unique index:
+  // CREATE UNIQUE INDEX uq_vietqr_confirmed_order ON vietqr_transactions (order_id) WHERE status = 'Confirmed';
+  Note: '''
+    Creating a QR does not confirm payment. Backend verifies the actual credited amount, receiver account and transfer reference; provider notifications must be authenticated, deduplicated and processed under an order lock.
+    A manual confirmation records confirmed_by_user_id; an automated confirmation records provider and provider_transaction_id. Both record confirmed_at. Keep confirmation evidence immutable.
+    One full successful payment per order. The migration must create the partial unique index above; backend also rejects confirmation if orders.paid_at is already set, including payment by Cash/Card.
+    Payment must match the frozen order total and VietQr method; pos_session_id must match the order session including NULL. Expire obsolete pending requests when an unpaid order changes and generate a new request.
+    Confirm the request, set orders.paid_at and update shift totals once in one transaction. Fulfillment uses the atomic Inventory flow documented on orders.
+    Expired, mismatched, duplicate or late transfers require reconciliation/refund; never automatically fulfill twice or discard evidence of money received. Detailed provider event logging belongs to the payment integration implementation.
+  '''
 }
 
 // ============================================================================
@@ -644,22 +711,24 @@ Ref: serial_imeis.purchase_order_id > purchase_orders.id [delete: set null]
 // Orders Relationships
 Ref: orders.customer_id > customers.id [delete: set null]
 Ref: orders.cashier_user_id > users.id [delete: restrict]
-Ref: orders.pos_session_id > pos_sessions.id [delete: set null]
+Ref: orders.pos_session_id > pos_sessions.id [delete: restrict]
 Ref: orders.voucher_id > vouchers.id [delete: set null]
 Ref: order_items.order_id > orders.id [delete: cascade]
 Ref: order_items.product_id > products.id [delete: restrict]
 Ref: order_items.(variant_id, product_id) > product_variants.(id, product_id) [delete: restrict]
-Ref: order_items.serial_imei_id > serial_imeis.id [delete: set null]
+Ref: order_items.(serial_imei_id, product_id) > serial_imeis.(id, product_id) [delete: restrict]
 Ref: order_returns.order_id > orders.id [delete: restrict]
-Ref: order_returns.order_item_id > order_items.id [delete: restrict]
+Ref: order_returns.(order_item_id, order_id) > order_items.(id, order_id) [delete: restrict]
 Ref: order_returns.processed_by_user_id > users.id [delete: restrict]
+Ref: order_returns.refund_pos_session_id > pos_sessions.id [delete: restrict]
 
 // Customers & Sales Relationships
 Ref: customer_loyalty_points.customer_id > customers.id [delete: cascade]
 Ref: customer_loyalty_points.order_id > orders.id [delete: set null]
 Ref: pos_sessions.cashier_user_id > users.id [delete: restrict]
 Ref: vietqr_transactions.order_id > orders.id [delete: restrict]
-Ref: vietqr_transactions.pos_session_id > pos_sessions.id [delete: set null]
+Ref: vietqr_transactions.pos_session_id > pos_sessions.id [delete: restrict]
+Ref: vietqr_transactions.confirmed_by_user_id > users.id [delete: restrict]
 
 // Identity Relationships
 Ref: user_roles.user_id > users.id [delete: cascade]

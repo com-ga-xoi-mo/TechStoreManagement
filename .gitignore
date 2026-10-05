@@ -59,3 +59,7 @@ Thumbs.db
 .local/
 Library/
 
+## Database diagram visual state (dbdiagram.io local layout)
+schema.dbdiagram
+*.dbdiagram
+

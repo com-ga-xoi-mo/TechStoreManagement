@@ -3,7 +3,7 @@
 ## Project Overview
 TechStore Management System is an enterprise retail POS (Point of Sale) and inventory management platform tailored for high-value technology hardware and accessories (smartphones, laptops, components). It is architected to handle:
 - In-store POS barcode/IMEI scanning, checkout, and dynamic VietQR banking transfer generation.
-- Serial/IMEI lifecycle tracking (`InStock`, `Sold`, `UnderRepair`, `Defective`; warranty is derived from warranty dates) with warranty activation upon order settlement.
+- Serial/IMEI lifecycle tracking (`InStock`, `Reserved`, `Sold`, `Returned`, `UnderRepair`, `Defective`; warranty is derived from warranty dates) with warranty activation upon order settlement.
 - Schema-less device specifications (CPU, RAM, GPU, Battery) persisted via PostgreSQL `JSONB` columns without schema migrations.
 - Strict concurrency control preventing overselling via database row locks (`FOR UPDATE`) in ACID transactions.
 - Customer VIP tier points accrual, discount vouchers, and sales/profit analytics dashboards.
@@ -43,7 +43,7 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 
 ### 2. Key Modules
 - **`backend/Catalog/`**: Product categories, variants, and dynamic hardware specifications stored in JSONB columns (`ICatalogService`, `ProductsController`).
-- **`backend/Inventory/`**: Stock counts, supplier purchases, unique Serial/IMEI lifecycle states, and pessimistic row-locking (`IInventoryService`, `InventoryController`).
+- **`backend/Inventory/`**: Stock counts, append-only movement audit ledger (`inventory_movements`), supplier purchases, unique Serial/IMEI lifecycle states (`InStock`, `Reserved`, `Sold`, `Returned`, `UnderRepair`, `Defective`), composite foreign keys, and pessimistic row-locking (`IInventoryService`, `InventoryController`).
 - **`backend/Orders/`**: Order processing, sold IMEI linkage, order status lifecycle, returns, and refunds (`IOrderService`, `OrdersController`).
 - **`backend/Customers/`**: Customer profiles, loyalty point accrual, discount vouchers, and revenue analytics (`ICustomerService`, `AnalyticsService`, `CustomersController`).
 - **`backend/Sales/`**: POS counter register, cashier cart calculation, and dynamic VietQR generation (`IPosService`, `VietQrService`, `SalesController`).
@@ -209,7 +209,17 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter "FullyQu
   ```
 - Database configurations must use EF Core **Fluent API** classes implementing `IEntityTypeConfiguration<T>` placed inside a `Configurations/` subfolder within each module. `AppDbContext` auto-scans them via `modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);`.
 - Avoid data annotations for schema configuration (`[Table]`, `[Column]`); reserve annotations strictly for input validation attributes (`[Required]`, `[StringLength]`).
-
+- **PostgreSQL 16 & Supabase Best Practices (Strict Enforcement via `docs/database/schema.dbml`):**
+  - **100% Foreign Key Indexing:** Every foreign key column across all 21 tables MUST have an explicit B-tree index to eliminate sequential scans and prevent table locks during cascade validations (`idx_<table>_<col>`).
+  - **Composite Foreign Keys:** Enforce `(variant_id, product_id)` referencing `product_variants(id, product_id)` on `inventory_stocks`, `purchase_order_items`, `serial_imeis`, and `order_items`. `product_variants` defines unique index `uq_product_variants_id_product` on `(id, product_id)`.
+  - **PostgreSQL 16 `UNIQUE NULLS NOT DISTINCT`:** Enforce single balance row on `inventory_stocks(product_id, variant_id)` and single line per PO on `purchase_order_items(purchase_order_id, product_id, variant_id)` using `.AreNullsDistinct(false)`.
+  - **JSONB Hardware Specs Indexing:** GIN index configured with `jsonb_path_ops` on `specs` column in `products` and `product_variants` for fast containment queries (`@>`). Flat JSON contract with snake_case keys; effective specs = `product.specs || variant.specs`.
+  - **Strict Types:** All temporal columns use UTC `timestamptz`; all monetary amounts use `numeric(18, 2)`. Identifiers use lowercase `snake_case`.
+  - **Partial Indexes:** High-selectivity operational indexes:
+    - `serial_imeis`: `(product_id, status)` WHERE `status = 'InStock'` for POS scanning.
+    - `vouchers`: `(is_active, expires_at)` WHERE `is_active = true` (filter `expires_at > now()` at query time as `now()` is not immutable).
+    - `refresh_tokens`: `(user_id, token_hash)` WHERE `is_revoked = false` (`token_hash` stores SHA-256 hash).
+  - **Anti-Overselling & Balance Invariants:** Database check constraints `quantity >= 0`, `reserved_quantity >= 0`, `reserved_quantity <= quantity`. Physical stock changes audited via append-only `inventory_movements` ledger (`quantity_change <> 0`, `quantity_after >= 0`). For serial-tracked products (`is_serial_tracked = true`), `quantity` must equal `COUNT(serial_imeis WHERE status IN ('InStock', 'Reserved'))`.
 ### 4. Concurrency & Anti-Overselling Pattern
 - Inventory operations affecting stock quantities or assigning Serial/IMEIs must wrap mutations inside an explicit ACID transaction with row-level locks:
   ```csharp

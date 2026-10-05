@@ -98,10 +98,29 @@ Enum role_type {
 // 2. CATALOG MODULE
 // ============================================================================
 
+// Catalog business rules (cross-row rules are documented here, not enforced by CHECK):
+// - A product without variants is bought/sold directly with variant_id = NULL.
+//   Once variants exist, new stock/order lines must select a variant, even if all
+//   variants are inactive. Reconcile existing product-level stock before this transition.
+// - Products with variants use their SKU as a model lookup code and have no barcode;
+//   each sellable variant owns its SKU, optional barcode and selling price.
+// - SKU and non-null barcode values must be unique across BOTH Catalog tables.
+//   The indexes below enforce uniqueness within each table only; cross-table
+//   uniqueness requires serialized validation or database triggers on writes.
+// - Specs are flat JSON objects with lowercase snake_case keys and consistent units:
+//   cpu: string, ram_gb: number, storage_gb: number, battery_mah: number, color: string.
+//   New keys are allowed. JSON null values are not part of the specs contract.
+//   Effective specs = product.specs || variant.specs (variant wins per top-level key).
+//   An absent variant key inherits the product value; filtering uses effective specs.
+// - Selling requires an active product and, when selected, an active variant.
+//   Use is_active to retire records; hard deletion is only for unused records.
+// - Category parent changes must reject ancestor cycles atomically; the CHECK
+//   below rejects direct self-parenting only.
+
 Table categories {
-  id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID v7 / UUID)']
+  id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   name text [not null, note: 'Category name (e.g., Smartphones, Laptops, Accessories)']
-  slug text [not null, unique, note: 'URL-friendly unique slug']
+  slug text [not null, note: 'URL-friendly unique slug; lowercase and trimmed']
   description text [null, note: 'Detailed description of product category']
   parent_id uuid [null, note: 'Self-referencing FK for sub-categories; backend must reject self-parenting and ancestor cycles']
   is_active boolean [not null, default: true, note: 'Soft status flag']
@@ -113,6 +132,12 @@ Table categories {
     slug [unique, name: 'idx_categories_slug']
   }
 
+  checks {
+    `BTRIM(name) <> ''` [name: 'chk_categories_name_not_blank']
+    `slug <> '' AND slug = LOWER(BTRIM(slug))` [name: 'chk_categories_slug_normalized']
+    `parent_id IS NULL OR parent_id <> id` [name: 'chk_categories_not_self_parent']
+  }
+
   Note: 'Product taxonomy hierarchy supporting nested categories'
 }
 
@@ -120,14 +145,14 @@ Table products {
   id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   category_id uuid [not null, note: 'FK -> categories.id']
   name text [not null, note: 'Product commercial name (e.g., iPhone 15 Pro Max)']
-  sku text [not null, unique, note: 'Stock Keeping Unit unique code']
-  barcode text [null, note: 'Retail barcode (EAN-13 / UPC)']
+  sku text [not null, note: 'Uppercase trimmed code; direct-sale SKU without variants, model lookup code otherwise']
+  barcode text [null, note: 'Unique retail barcode for a product without variants; NULL when variants exist; preserve leading zeros']
   brand text [not null, note: 'Manufacturer brand (Apple, Asus, Dell, Samsung)']
-  base_price "numeric(18, 2)" [not null, note: 'CHECK base_price >= 0: Default retail price (VND)']
-  cost_price "numeric(18, 2)" [not null, note: 'CHECK cost_price >= 0: Standard procurement cost']
+  base_price numeric(18,2) [not null, note: 'Direct-sale price without variants; reference price otherwise. Variant sales use product_variants.price (VND)']
+  cost_price numeric(18,2) [not null, note: 'Standard reference procurement cost; actual receipt costs belong to purchase_order_items.unit_cost']
   description text [null, note: 'Marketing overview and specifications summary']
   image_url text [null, note: 'CDN image URL']
-  specs jsonb [not null, default: `'{}'`, note: 'Dynamic hardware specs (CPU, RAM, GPU, Battery, Screen)']
+  specs jsonb [not null, default: `'{}'::jsonb`, note: 'Shared hardware specs object; see Catalog key, type and inheritance rules']
   is_serial_tracked boolean [not null, default: true, note: 'True if every device unit has unique Serial/IMEI']
   is_active boolean [not null, default: true, note: 'Active in catalog']
   created_at timestamptz [not null, default: `now()`, note: 'UTC creation timestamp']
@@ -136,8 +161,18 @@ Table products {
   indexes {
     category_id [name: 'idx_products_category_id', note: 'FK index: accelerates category filtering']
     sku [unique, name: 'idx_products_sku']
-    barcode [name: 'idx_products_barcode', note: 'Accelerates barcode scanner lookup']
-    specs [type: gin, name: 'idx_products_specs_gin', note: 'Supabase Best Practice: GIN index with jsonb_path_ops for @> queries']
+    barcode [unique, name: 'idx_products_barcode', note: 'Unique non-null barcode within products; cross-table uniqueness follows Catalog rules']
+    specs [type: gin, name: 'idx_products_specs_gin', note: 'GIN with jsonb_path_ops for @> queries; configure operator class explicitly in PostgreSQL']
+  }
+
+  checks {
+    `BTRIM(name) <> ''` [name: 'chk_products_name_not_blank']
+    `BTRIM(brand) <> ''` [name: 'chk_products_brand_not_blank']
+    `sku <> '' AND sku = UPPER(BTRIM(sku))` [name: 'chk_products_sku_normalized']
+    `barcode IS NULL OR (barcode <> '' AND barcode = BTRIM(barcode))` [name: 'chk_products_barcode_not_blank']
+    `base_price >= 0` [name: 'chk_products_base_price_non_negative']
+    `cost_price >= 0` [name: 'chk_products_cost_price_non_negative']
+    `jsonb_typeof(specs) = 'object'` [name: 'chk_products_specs_object']
   }
 
   Note: 'Core hardware catalog with dynamic specifications stored in JSONB'
@@ -147,9 +182,10 @@ Table product_variants {
   id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   product_id uuid [not null, note: 'FK -> products.id']
   variant_name text [not null, note: 'Variant descriptor (e.g., Space Black 256GB)']
-  sku text [not null, unique, note: 'Variant-specific unique SKU']
-  price "numeric(18, 2)" [not null, note: 'CHECK price >= 0: Selling price for this variant']
-  specs jsonb [not null, default: `'{}'`, note: 'Variant-specific overrides (Color, Storage, RAM)']
+  sku text [not null, note: 'Uppercase trimmed sellable SKU; follows cross-table uniqueness rules']
+  barcode text [null, note: 'Unique retail barcode identifying this exact variant; preserve leading zeros']
+  price numeric(18,2) [not null, note: 'Selling price for this exact variant (VND)']
+  specs jsonb [not null, default: `'{}'::jsonb`, note: 'Top-level overrides of product specs; absent keys inherit; JSON null values are disallowed by the Catalog contract']
   is_active boolean [not null, default: true]
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [null]
@@ -157,7 +193,17 @@ Table product_variants {
   indexes {
     product_id [name: 'idx_product_variants_product_id', note: 'FK index: fast product variant retrieval']
     sku [unique, name: 'idx_product_variants_sku']
+    barcode [unique, name: 'idx_product_variants_barcode', note: 'Unique non-null barcode within variants; cross-table uniqueness follows Catalog rules']
+    specs [type: gin, name: 'idx_product_variants_specs_gin', note: 'GIN with jsonb_path_ops for @> queries; configure operator class explicitly in PostgreSQL']
     (id, product_id) [unique, name: 'uq_product_variants_id_product', note: 'Referenced by composite FKs to ensure the variant belongs to the selected product']
+  }
+
+  checks {
+    `BTRIM(variant_name) <> ''` [name: 'chk_product_variants_name_not_blank']
+    `sku <> '' AND sku = UPPER(BTRIM(sku))` [name: 'chk_product_variants_sku_normalized']
+    `barcode IS NULL OR (barcode <> '' AND barcode = BTRIM(barcode))` [name: 'chk_product_variants_barcode_not_blank']
+    `price >= 0` [name: 'chk_product_variants_price_non_negative']
+    `jsonb_typeof(specs) = 'object'` [name: 'chk_product_variants_specs_object']
   }
 
   Note: 'SKU variants for hardware options (Storage capacity, colorways)'

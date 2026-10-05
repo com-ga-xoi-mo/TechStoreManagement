@@ -371,7 +371,7 @@ Table order_items {
   id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   order_id uuid [not null, note: 'FK -> orders.id (ON DELETE CASCADE)']
   product_id uuid [not null, note: 'FK -> products.id']
-  variant_id uuid [null, note: 'FK -> product_variants.id (NULL for standalone products)']
+  variant_id uuid [null, note: 'FK -> product_variants.id']
   serial_imei_id uuid [null, note: 'FK -> serial_imeis.id (Allocated device unit)']
   product_name text [not null, note: 'Historical snapshot of product title at purchase']
   unit_price "numeric(18, 2)" [not null, note: 'CHECK unit_price >= 0: Price at purchase moment']

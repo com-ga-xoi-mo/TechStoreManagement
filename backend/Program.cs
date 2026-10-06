@@ -14,6 +14,9 @@ if (!string.IsNullOrEmpty(connectionString))
         options.UseNpgsql(connectionString));
 }
 
+// Data Seeder registration
+builder.Services.AddScoped<IDataSeeder, DataSeeder>();
+
 // Swagger / OpenAPI documentation
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -27,8 +30,28 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "TechStore API v1");
-        options.RoutePrefix = string.Empty; // Swagger UI at root URL (http://localhost:5000/)
+        options.RoutePrefix = string.Empty; // Swagger UI at root URL
     });
+
+    // Auto-migrate and seed database in Development
+    using var scope = app.Services.CreateScope();
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var dbContext = services.GetRequiredService<AppDbContext>();
+        logger.LogInformation("Applying pending database migrations...");
+        await dbContext.Database.MigrateAsync();
+
+        var seeder = services.GetRequiredService<IDataSeeder>();
+        logger.LogInformation("Seeding baseline database records...");
+        await seeder.SeedAsync();
+        logger.LogInformation("Database migration and seeding completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+    }
 }
 
 app.UseHttpsRedirection();

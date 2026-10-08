@@ -10,7 +10,7 @@ Internal refactor only — the three `product-catalog` endpoints keep the same r
 
 - **Unit of Work (new, `backend/Common/Data/`)**: `IUnitOfWork`, `UnitOfWork` and `DuplicateKeyException` exactly as specified in `repository-unit-of-work-convention` design D3/D4; registered Scoped. Committed separately for review by Dev 1 (owner of `Common`).
 - **Catalog repositories (new, `backend/Catalog/Repositories/`)**:
-  - `IProductRepository` / `ProductRepository`: `SearchAsync(ProductSearchCriteria)`, `GetWithVariantsAsync(id)`, `FindExistingSkusAsync(skusLower)`, `Add(product)`; returns entities, never DTOs or `IQueryable`, never saves. All SQL currently in `ProductService.SearchAsync` moves here unchanged in behavior.
+  - `IProductRepository` / `ProductRepository`: `SearchAsync(ProductSearchCriteria)`, `GetWithVariantsAsync(id)`, `FindExistingSkusAsync(skus)`, `Add(product)`; returns entities, never DTOs or `IQueryable`, never saves. All SQL currently in `ProductService.SearchAsync` moves here unchanged in behavior.
   - `ProductSearchCriteria` record and `ProductSortField` enum carrying already-validated search values.
   - `ICategoryRepository` / `CategoryRepository` **minimal**: only `GetByIdAsync`, created by Dev 2 so Catalog can check categories through a repository; Dev 3 owns and extends it.
 - **`ProductService`**: depends on `IProductRepository`, `ICategoryRepository`, `IUnitOfWork` only; keeps validation, spec/sort/price parsing, paging normalization and entity→DTO mapping; maps `DuplicateKeyException` to the existing conflict result. `IProductService`, result records, `ProductsController`, shared DTOs/requests are untouched.

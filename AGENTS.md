@@ -42,7 +42,7 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 > **Cardinal Rule:** The frontend client **never** connects directly to the database. All interactions must pass through ASP.NET Core REST endpoints secured by JWT Bearer tokens and role policies.
 
 ### 2. Key Modules
-- **`backend/Catalog/`**: Product categories, variants, and dynamic hardware specifications stored in JSONB columns (`ICatalogService`, `ProductsController`).
+- **`backend/Catalog/`**: Product categories, variants, and dynamic hardware specifications stored in JSONB columns (`IProductService`, `ICategoryService`, `ProductsController`, `CategoriesController`).
 - **`backend/Inventory/`**: Stock counts, append-only movement audit ledger (`inventory_movements`), supplier purchases, unique Serial/IMEI lifecycle states (`InStock`, `Reserved`, `Sold`, `Returned`, `UnderRepair`, `Defective`), composite foreign keys, and pessimistic row-locking (`IInventoryService`, `InventoryController`).
 - **`backend/Orders/`**: Order processing, sold IMEI linkage, order status lifecycle, returns, and refunds (`IOrderService`, `OrdersController`).
 - **`backend/Customers/`**: Customer profiles, loyalty point accrual, discount vouchers, and revenue analytics (`ICustomerService`, `AnalyticsService`, `CustomersController`).
@@ -189,7 +189,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter "FullyQu
 | Element | Convention | Example |
 | :--- | :--- | :--- |
 | Classes / Structs / Records | PascalCase | `ProductVariant`, `OrderService`, `AppDbContext` |
-| Interfaces | `I` + PascalCase | `ICatalogService`, `IInventoryService`, `INavigationService` |
+| Interfaces | `I` + PascalCase | `IProductService`, `IInventoryService`, `INavigationService` |
 | Methods | PascalCase + `Async` suffix if asynchronous | `GetByIdAsync`, `StockInAsync`, `ProcessPaymentAsync` |
 | Private Readonly Fields | `_` + camelCase | `_dbContext`, `_logger`, `_catalogService` |
 | DTOs | PascalCase + `Dto` suffix | `ProductDto`, `OrderItemDto`, `CustomerDto` |
@@ -238,7 +238,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter "FullyQu
 
 ### 6. Dependency Injection Pattern
 - Backend services are registered in `backend/Program.cs` or module service collection extensions:
-  - **Scoped**: Domain services (`ICatalogService`), DbContext (`AppDbContext`), unit-of-work services.
+  - **Scoped**: Domain services (`IProductService`), DbContext (`AppDbContext`), unit-of-work services.
   - **Singleton**: Stateless utility services, token issuers (`JwtService`), configuration wrappers.
   - **Transient**: Lightweight, state-free handlers or short-lived operations.
 - Frontend services are registered in `frontend/TechStore.Client/App.xaml.cs`:

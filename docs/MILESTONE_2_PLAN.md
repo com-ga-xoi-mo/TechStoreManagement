@@ -292,7 +292,7 @@ Cả nhóm phối hợp thực hiện kiểm tra kịch bản nghiệp vụ th�
 #### 2. Xây dựng Bộ Kiểm thử Tự động Ánh xạ 1:1 theo Use Cases (Automated Tests)
 Mỗi kỹ sư phụ trách viết bộ test tự động trong `tests/Backend.UnitTests/`:
 - **Dev 1 (Feature 1):** `AuthServiceTests.cs` — Test `UC-AUTH-01` đăng nhập đúng cấp token, sai mật khẩu trả 401; test `UC-AUTH-02`, `UC-AUTH-03` profile & logout; `StoreSettingsTests.cs` — Test `UC-STORE-01`, `UC-STORE-02` lưu cấu hình hợp lệ.
-- **Dev 2 (Feature 2):** `CatalogServiceTests.cs` — Test `UC-PROD-01` lọc JSONB specs containment; test `UC-PROD-03` chặn giá âm và trùng SKU; test `UC-PROD-05` soft-delete khi đã có giao dịch.
+- **Dev 2 (Feature 2):** `ProductServiceTests.cs` — Test `UC-PROD-01` lọc JSONB specs containment; test `UC-PROD-03` chặn giá âm và trùng SKU; test `UC-PROD-05` soft-delete khi đã có giao dịch.
 - **Dev 3 (Feature 3):** `CategoryServiceTests.cs` & `InventoryServiceTests.cs` — Test `UC-CAT-03` chặn vòng lặp cha-con; test `UC-CAT-04` chặn xóa danh mục có SP; test `UC-INV-02` ghi sổ `OpeningBalance`; test `UC-IMEI-02` regex IMEI 15 số và chống trùng.
 - **Dev 4 (Feature 4):** `OrderServiceTests.cs` — Test `UC-ORD-01` tính tiền tổng cộng chính xác; test không cho chọn IMEI đã bán; test `UC-ORD-04` chuyển trạng thái cập nhật đúng IMEI `Sold` hoặc `InStock`.
 - **Dev 5 (Feature 5):** `CustomerServiceTests.cs` — Test `UC-CUST-03` chặn trùng số điện thoại; test `UC-CUST-01` tìm kiếm nhanh theo tên/SĐT; test `UC-CUST-05` lấy đúng lịch sử đơn hàng; test `UC-CUST-06` vô hiệu hóa/xóa an toàn.

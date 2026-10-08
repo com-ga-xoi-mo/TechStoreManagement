@@ -69,8 +69,9 @@ backend/
 ├── Catalog/                           # Quản lý Sản phẩm, Danh mục & Thông số kỹ thuật
 │   ├── Entities/                      # Product, Category, ProductVariant
 │   ├── Configurations/                # Fluent API Configurations (IEntityTypeConfiguration<T>)
-│   ├── Services/                      # ICatalogService, CatalogService
-│   └── ProductsController.cs          # API CRUD, tìm kiếm, lọc theo thông số (JSONB)
+│   ├── Services/                      # IProductService, ProductService (Dev 2) & ICategoryService, CategoryService (Dev 3)
+│   ├── ProductsController.cs          # API Quản lý sản phẩm, tìm kiếm & lọc specs JSONB (Dev 2)
+│   └── CategoriesController.cs        # API Cây danh mục phân cấp cha - con (Dev 3)
 │
 ├── Inventory/                         # Quản lý Kho, Serial/IMEI, Nhập kho & Khóa Concurrency
 │   ├── Entities/                      # InventoryStock, InventoryMovement, Supplier, PurchaseOrder, PurchaseOrderItem, SerialImei

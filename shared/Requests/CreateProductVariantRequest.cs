@@ -9,5 +9,4 @@ public class CreateProductVariantRequest
     public string? Barcode { get; set; }
     public decimal? Price { get; set; }
     public Dictionary<string, JsonElement>? Specs { get; set; }
-    public bool? IsActive { get; set; }
 }

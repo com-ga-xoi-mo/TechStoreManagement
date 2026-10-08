@@ -29,6 +29,14 @@ Accept: application/json
 GET {{host}}/api/products?brand=apple
 Accept: application/json
 
+### 6a. Search Products - Filter by Brand Wildcard '%' (200 OK with 0 items)
+GET {{host}}/api/products?brand=%25
+Accept: application/json
+
+### 6b. Search Products - Filter by Brand Wildcard 'a_ple' (200 OK with 0 items)
+GET {{host}}/api/products?brand=a_ple
+Accept: application/json
+
 ### 7. Search Products - Filter by Category Laptops (200 OK)
 GET {{host}}/api/products?categoryId={{findMacbook.response.body.$.items[0].categoryId}}
 Accept: application/json

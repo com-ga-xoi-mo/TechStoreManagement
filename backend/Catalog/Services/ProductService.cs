@@ -165,8 +165,8 @@ public class ProductService : IProductService
         // 6. Brand filter
         if (!string.IsNullOrWhiteSpace(request.Brand))
         {
-            var brandTrimmed = request.Brand.Trim();
-            query = query.Where(p => EF.Functions.ILike(p.Brand, brandTrimmed));
+            var brandEscaped = EscapeLikePattern(request.Brand.Trim());
+            query = query.Where(p => EF.Functions.ILike(p.Brand, brandEscaped));
         }
 
         // 7. Category filter
@@ -305,7 +305,7 @@ public class ProductService : IProductService
             ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
             Specs = prodSpecsJson,
             IsSerialTracked = request.IsSerialTracked ?? true,
-            IsActive = request.IsActive ?? true,
+            IsActive = true,
             CreatedAt = now,
             UpdatedAt = null
         };
@@ -326,7 +326,7 @@ public class ProductService : IProductService
                     Barcode = string.IsNullOrWhiteSpace(vReq.Barcode) ? null : vReq.Barcode.Trim(),
                     Price = vReq.Price!.Value,
                     Specs = vSpecsJson,
-                    IsActive = vReq.IsActive ?? true,
+                    IsActive = true,
                     CreatedAt = now,
                     UpdatedAt = null
                 };

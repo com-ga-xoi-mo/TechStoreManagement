@@ -54,6 +54,12 @@
 - [x] 7.4 Commit the code on `feat/catalog-product-api` as `feat(catalog): add product search, detail and create API` (without `.gitignore` and without `openspec/`); verify `git show --stat HEAD` lists no file under `openspec/`
 - [x] 7.5 After every task above is checked, commit the updated `openspec/changes/catalog-product-api/tasks.md` as `docs(openspec): update catalog-product-api task progress`; verify `git status --short` shows only the pre-existing `.gitignore` edit and `git log --oneline dev..HEAD` shows exactly four commits (planning artifacts, docs split, code, task progress)
 
+## 8. Follow-up fixes after review
+
+- [x] 8.1 Remove `IsActive` from `shared/Requests/CreateProductRequest.cs` and `shared/Requests/CreateProductVariantRequest.cs`, and always create products and variants with `IsActive = true` in `ProductService.CreateAsync` (out of scope for UC-PROD-03; toggling belongs to UC-PROD-04/05); verify `grep -n "IsActive" shared/Requests/Create*.cs` returns nothing and `dotnet build TechStore.sln` succeeds
+- [x] 8.2 Make the `brand` filter a case-insensitive exact match: escape the input with the existing `EscapeLikePattern` before `EF.Functions.ILike(p.Brand, ...)` in `ProductService.SearchAsync`; add `GET {{host}}/api/products?brand=%` and `?brand=a_ple` (both expected 200 with 0 items) to `backend/TechStore.Api.http`; verify manually that `brand=apple` still returns the 2 Apple products and both new requests return 0 items
+- [x] 8.3 Run `dotnet build TechStore.sln` and `dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj` (all pass), then commit on `feat/catalog-product-api` as `fix(catalog): exact brand filter and drop isActive from create request` (without `.gitignore`), including the updated `tasks.md`
+
 ## Workflow follow-up
 
 - Share the documentation commit (group 1) with Dev 3 before merging so `ICategoryService` / `CategoriesController` are implemented under those names.

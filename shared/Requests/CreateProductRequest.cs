@@ -15,6 +15,5 @@ public class CreateProductRequest
     public string? ImageUrl { get; set; }
     public Dictionary<string, JsonElement>? Specs { get; set; }
     public bool? IsSerialTracked { get; set; }
-    public bool? IsActive { get; set; }
     public List<CreateProductVariantRequest>? Variants { get; set; }
 }

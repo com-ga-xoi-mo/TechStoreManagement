@@ -42,23 +42,25 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 > **Cardinal Rule:** The frontend client **never** connects directly to the database. All interactions must pass through ASP.NET Core REST endpoints secured by JWT Bearer tokens and role policies.
 
 ### 2. Key Modules
-- **`backend/Catalog/`**: Product categories, variants, and dynamic hardware specifications stored in JSONB columns (`ICatalogService`, `ProductsController`).
-- **`backend/Inventory/`**: Stock counts, append-only movement audit ledger (`inventory_movements`), supplier purchases, unique Serial/IMEI lifecycle states (`InStock`, `Reserved`, `Sold`, `Returned`, `UnderRepair`, `Defective`), composite foreign keys, and pessimistic row-locking (`IInventoryService`, `InventoryController`).
-- **`backend/Orders/`**: Order processing, sold IMEI linkage, order status lifecycle, returns, and refunds (`IOrderService`, `OrdersController`).
-- **`backend/Customers/`**: Customer profiles, loyalty point accrual, discount vouchers, and revenue analytics (`ICustomerService`, `AnalyticsService`, `CustomersController`).
-- **`backend/Sales/`**: POS counter register, cashier cart calculation, and dynamic VietQR generation (`IPosService`, `VietQrService`, `SalesController`).
-- **`backend/Identity/`**: User credentials, refresh tokens, RBAC authorization, initial database seeding (`DataSeeder`), and Gemini AI service (`IAuthService`, `GeminiAiAgentService`, `AuthController`, `AiController`).
-- **`backend/Common/`**: Core infrastructure including `AppDbContext`, `BaseEntity`, and HTTP exception middleware.
+- **`backend/Catalog/`**: Product categories, variants, and dynamic hardware specifications stored in JSONB columns (`IProductService`, `ICategoryService`, `IProductRepository`, `ICategoryRepository`, `ProductsController`, `CategoriesController`).
+- **`backend/Inventory/`**: Stock counts, append-only movement audit ledger (`inventory_movements`), supplier purchases, unique Serial/IMEI lifecycle states (`InStock`, `Reserved`, `Sold`, `Returned`, `UnderRepair`, `Defective`), composite foreign keys, and pessimistic row-locking (`IInventoryService`, `IInventoryStockRepository`, `ISerialImeiRepository`, `IPurchaseOrderRepository`, `ISupplierRepository`, `InventoryController`).
+- **`backend/Orders/`**: Order processing, sold IMEI linkage, order status lifecycle, returns, and refunds (`IOrderService`, `IOrderRepository`, `OrdersController`).
+- **`backend/Customers/`**: Customer profiles, loyalty point accrual, discount vouchers, and revenue analytics (`ICustomerService`, `AnalyticsService`, `ICustomerRepository`, `IVoucherRepository`, `CustomersController`).
+- **`backend/Sales/`**: POS counter register, cashier cart calculation, and dynamic VietQR generation (`IPosService`, `VietQrService`, `IPosSessionRepository`, `IVietQrTransactionRepository`, `SalesController`).
+- **`backend/Identity/`**: User credentials, refresh tokens, RBAC authorization, initial database seeding (`DataSeeder`), and Gemini AI service (`IAuthService`, `GeminiAiAgentService`, `IUserRepository`, `IRefreshTokenRepository`, `AuthController`, `AiController`).
+- **`backend/Common/`**: Core infrastructure including `AppDbContext`, `IUnitOfWork` / `UnitOfWork` (saves and transactions), `DuplicateKeyException`, `BaseEntity`, and HTTP exception middleware.
+- **Data access rule**: in every module, services reach the database only through the module's repositories (`Repositories/`) and `IUnitOfWork`; see *Layering & Repository Pattern* below.
 - **`shared/`**: Common domain contracts consumed by backend, client, and tests (`DTOs/`, `Requests/`, `Enums/`).
 
 ### 3. Data Flow
 1. **User Interaction**: UI triggers an `{x:Bind}` event command on a ViewModel in `frontend/TechStore.Client/Features/<Feature>/`.
 2. **ViewModel Execution**: The ViewModel executes a command method decorated with `[RelayCommand]`, updates observable properties, and invokes an API client service in `frontend/TechStore.Client/Services/Api/`.
 3. **HTTP Transport**: Request is sent via `HttpClient` over HTTPS with an `Authorization: Bearer <token>` header to the ASP.NET Core API (`http://localhost:5176` or `https://localhost:7207`).
-4. **API Routing & RBAC**: Request reaches an `[ApiController]`, passes through JWT authentication and role authorization checks, then executes the corresponding domain service interface.
-5. **Business Logic & Concurrency**: The service opens an EF Core transaction, applies business logic (e.g. acquiring `FOR UPDATE` lock on inventory stock), and modifies state.
-6. **Data Persistence**: Changes are committed through `AppDbContext` to PostgreSQL 16.
-7. **Response**: Shared DTO response (from `shared/DTOs/`) is returned to the client and bound to UI components.
+4. **API Routing & RBAC**: Request reaches an `[ApiController]`, passes through JWT authentication and role authorization checks, then calls the corresponding domain service interface (controllers never call repositories).
+5. **Business Logic & Concurrency**: The service validates input and applies business rules. When the use case locks rows or writes more than once, it opens a transaction through `IUnitOfWork.BeginTransactionAsync`.
+6. **Data Access**: The service calls repository interfaces (`backend/<Module>/Repositories/`). Repositories are the only classes that use `AppDbContext`: they query, acquire row locks (`SELECT ... FOR UPDATE`) and stage changes, but never save.
+7. **Data Persistence**: The service calls `IUnitOfWork.SaveChangesAsync` (and `CommitAsync` when a transaction is open), which writes the staged changes to PostgreSQL 16.
+8. **Response**: The service maps entities to a shared DTO (from `shared/DTOs/`), which the controller returns to the client to be bound to UI components.
 
 ---
 
@@ -67,8 +69,10 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 ```
 SalesManagement/
 ├── backend/                       # ASP.NET Core 10 Web API modular monolith
+│   │                              # each module: Entities/, Configurations/, Repositories/, Services/, *Controller.cs
 │   ├── Catalog/                   # Products, categories, JSONB specs
-│   ├── Common/                    # DbContext, BaseEntity, Middlewares, DataSeeder
+│   ├── Common/                    # BaseEntity, Middlewares
+│   │   └── Data/                  # AppDbContext, IUnitOfWork/UnitOfWork, DuplicateKeyException, Migrations, DataSeeder
 │   ├── Customers/                 # Customers, loyalty points, analytics
 │   ├── Identity/                  # RBAC, JWT, Gemini AI integration
 │   ├── Inventory/                 # Stock, Serial/IMEI, supplier purchase orders
@@ -189,9 +193,10 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter "FullyQu
 | Element | Convention | Example |
 | :--- | :--- | :--- |
 | Classes / Structs / Records | PascalCase | `ProductVariant`, `OrderService`, `AppDbContext` |
-| Interfaces | `I` + PascalCase | `ICatalogService`, `IInventoryService`, `INavigationService` |
+| Interfaces | `I` + PascalCase | `IProductService`, `IInventoryService`, `INavigationService` |
 | Methods | PascalCase + `Async` suffix if asynchronous | `GetByIdAsync`, `StockInAsync`, `ProcessPaymentAsync` |
-| Private Readonly Fields | `_` + camelCase | `_dbContext`, `_logger`, `_catalogService` |
+| Repositories | `I<Aggregate>Repository` / `<Aggregate>Repository` in `Repositories/` | `IProductRepository`, `InventoryStockRepository` |
+| Private Readonly Fields | `_` + camelCase | `_productRepository`, `_unitOfWork`, `_logger` (`_dbContext` only inside repositories / `UnitOfWork`) |
 | DTOs | PascalCase + `Dto` suffix | `ProductDto`, `OrderItemDto`, `CustomerDto` |
 | Requests | PascalCase + `Request` suffix | `CreateProductRequest`, `StockInRequest` |
 | Enums & Members | PascalCase (Singular name) | `OrderStatus.Pending`, `RoleType.SalesStaff` |
@@ -220,15 +225,26 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter "FullyQu
     - `vouchers`: `(is_active, expires_at)` WHERE `is_active = true` (filter `expires_at > now()` at query time as `now()` is not immutable).
     - `refresh_tokens`: `(user_id, token_hash)` WHERE `is_revoked = false` (`token_hash` stores SHA-256 hash).
   - **Anti-Overselling & Balance Invariants:** Database check constraints `quantity >= 0`, `reserved_quantity >= 0`, `reserved_quantity <= quantity`. Physical stock changes audited via append-only `inventory_movements` ledger (`quantity_change <> 0`, `quantity_after >= 0`). For serial-tracked products (`is_serial_tracked = true`), `quantity` must equal `COUNT(serial_imeis WHERE status IN ('InStock', 'Reserved'))`.
+
 ### 4. Concurrency & Anti-Overselling Pattern
-- Inventory operations affecting stock quantities or assigning Serial/IMEIs must wrap mutations inside an explicit ACID transaction with row-level locks:
+- Inventory operations affecting stock quantities or assigning Serial/IMEIs must run inside an explicit ACID transaction with row-level locks. The **service** opens and closes the transaction through `IUnitOfWork`; the lock itself is a **repository** method (see section 9):
   ```csharp
-  await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-  // Execute SELECT ... FOR UPDATE or pessimistic lock mechanism
-  // Perform stock reduction and record allocation
-  await _dbContext.SaveChangesAsync(cancellationToken);
-  await transaction.CommitAsync(cancellationToken);
+  await _unitOfWork.BeginTransactionAsync(cancellationToken);
+  try
+  {
+      var stock = await _stockRepository.GetForUpdateAsync(productId, variantId, cancellationToken); // SELECT ... FOR UPDATE
+      // business rules in the service: check availability, change quantities, stage movement via repository
+      await _unitOfWork.SaveChangesAsync(cancellationToken);
+      await _unitOfWork.CommitAsync(cancellationToken);
+  }
+  catch
+  {
+      await _unitOfWork.RollbackAsync(cancellationToken);
+      throw;
+  }
   ```
+- Lock methods (`SELECT ... FOR UPDATE`) are only valid inside a transaction opened by the calling service; outside one the lock is released immediately.
+- The same precondition applies to repository methods using EF Core bulk operations (`ExecuteUpdateAsync`, `ExecuteDeleteAsync`) or raw write SQL: they run SQL immediately, bypassing the `ChangeTracker` and `SaveChanges`. Name or document them as direct writes (e.g. `MarkSoldAsync` — "executes immediately; call inside an `IUnitOfWork` transaction").
 
 ### 5. Asynchronous Programming Pattern
 - Use pure non-blocking `async`/`await` end-to-end.
@@ -238,7 +254,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter "FullyQu
 
 ### 6. Dependency Injection Pattern
 - Backend services are registered in `backend/Program.cs` or module service collection extensions:
-  - **Scoped**: Domain services (`ICatalogService`), DbContext (`AppDbContext`), unit-of-work services.
+  - **Scoped**: Domain services (`IProductService`), repositories (`IProductRepository`), `IUnitOfWork`, and DbContext (`AppDbContext`) — all share one `AppDbContext` per request, so `IUnitOfWork.SaveChangesAsync` persists what the repositories staged.
   - **Singleton**: Stateless utility services, token issuers (`JwtService`), configuration wrappers.
   - **Transient**: Lightweight, state-free handlers or short-lived operations.
 - Frontend services are registered in `frontend/TechStore.Client/App.xaml.cs`:
@@ -263,6 +279,23 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter "FullyQu
   - `404 Not Found`: Entity with specified ID does not exist.
   - `409 Conflict`: Concurrency conflict or inventory oversell collision.
   - `500 Internal Server Error`: Unhandled server exception.
+
+### 9. Layering & Repository Pattern
+- **Layer rule:** `Controller → Service → Repository → AppDbContext`.
+  - Controllers call services only.
+  - Services hold business rules, validation, orchestration and entity → DTO mapping. They depend only on repository interfaces and `IUnitOfWork`; they never inject `AppDbContext` or reference EF Core/Npgsql types.
+  - Repositories are the only classes that use `AppDbContext` (LINQ, `FromSql`, `EF.Functions`, `Include`, `AsNoTracking`).
+- **Repositories** live in `backend/<Module>/Repositories/` as `I<Aggregate>Repository` / `<Aggregate>Repository`, one per aggregate root (e.g. `IProductRepository` covers `Product` and its `ProductVariant`s).
+  - Methods express intent (`SearchAsync(criteria)`, `GetWithVariantsAsync(id)`, `FindExistingSkusAsync(skus)`, `Add(product)`, `GetForUpdateAsync(productId, variantId)`), not generic CRUD. No generic `IRepository<T>`.
+  - They return entities, entity lists, or `(IReadOnlyList<TEntity> Items, int TotalCount)` for paged queries — never DTOs and never `IQueryable`. Read-only methods use `AsNoTracking`; methods whose results the service will modify return tracked entities.
+  - Query inputs are module-internal criteria records with already-parsed values (e.g. `ProductSearchCriteria`), not `shared/Requests` contracts.
+  - Repositories stage changes (`Add`, `Remove`, edits on tracked entities) and **never** call `SaveChanges`, `BeginTransaction`, `Commit` or `Rollback`.
+- **Unit of Work:** `IUnitOfWork` / `UnitOfWork` in `backend/Common/Data/` wraps the request-scoped `AppDbContext`. It does not create its own transactions; it exposes EF Core's:
+  - `Task<int> SaveChangesAsync(CancellationToken)` — writes all staged changes; translates PostgreSQL unique violations (`23505`) into `DuplicateKeyException` (with `ConstraintName`), which services map to their conflict result (e.g. `409`).
+  - `Task BeginTransactionAsync(CancellationToken)` — throws if a transaction is already open (no nesting).
+  - `Task CommitAsync(CancellationToken)` / `Task RollbackAsync(CancellationToken)` — rollback also clears the `ChangeTracker`.
+- **The service owns the transaction boundary.** A use case that writes once (e.g. create product) only calls `SaveChangesAsync` (EF's implicit transaction is atomic). A use case that locks rows or saves more than once uses `BeginTransactionAsync` → repository calls → `SaveChangesAsync` → `CommitAsync`, and `RollbackAsync` on business failure or exception. Keep transactions short; never call external services (Gemini, VietQR) inside one.
+- **Cross-module access:** a service may call another module's repository interface for **reads** (e.g. Catalog checks a category through `ICategoryRepository`). Writes to another module's tables go through that module's service. Table ownership follows the TableGroups in `docs/database/schema.dbml`.
 
 ---
 
@@ -313,6 +346,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter "FullyQu
 ### 2. Testing Conventions
 - Structure tests using the **Arrange-Act-Assert (AAA)** pattern with clear comments indicating each phase.
 - Abstract entities must be tested via lightweight test doubles (e.g. `SampleEntity : BaseEntity`).
+- Backend services are unit-tested without a database by injecting hand-written fake repositories and a fake `IUnitOfWork` (e.g. a fake whose `SaveChangesAsync` throws `DuplicateKeyException` to exercise the `409` path). No mocking library is used. Repository behavior that depends on PostgreSQL (jsonb containment, `FOR UPDATE`, constraints) is verified manually or by integration tests.
 - ViewModels in `frontend/TechStore.Client/Features/` must remain completely decoupled from WinUI controls to enable headless unit testing in standard test runners without requiring a running UI thread.
 - Test files must mirror the target project's namespace and folder structure under `tests/`.
 - Ensure tests are idempotent and do not depend on execution order or persisted test state.

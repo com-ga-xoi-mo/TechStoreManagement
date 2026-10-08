@@ -30,5 +30,6 @@
 
 ## 4. Cấu trúc Thành phần Module
 - **`Configurations/`**: `CustomerConfiguration.cs`, `CustomerLoyaltyPointConfiguration.cs`, `VoucherConfiguration.cs`.
+- **`Repositories/`** (dự kiến): `ICustomerRepository` (`Customer` cùng `CustomerLoyaltyPoint`), `IVoucherRepository`.
 - **`Services/`**: `ICustomerService.cs`, `AnalyticsService.cs`.
-- **`Controllers/`**: `CustomersController.cs` (CRUD khách hàng, tra cứu hội viên, lịch sử điểm), `AnalyticsController.cs` (Báo cáo doanh thu, lợi nhuận, phân tích mua sắm).
+- **Controllers** (đặt tại thư mục gốc của module): `CustomersController.cs` (CRUD khách hàng, tra cứu hội viên, lịch sử điểm), `AnalyticsController.cs` (Báo cáo doanh thu, lợi nhuận, phân tích mua sắm).

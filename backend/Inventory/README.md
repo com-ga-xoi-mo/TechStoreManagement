@@ -41,5 +41,6 @@
 
 ## 4. Cấu trúc Thành phần Module
 - **`Configurations/`**: `InventoryStockConfiguration.cs`, `InventoryMovementConfiguration.cs`, `SupplierConfiguration.cs`, `PurchaseOrderConfiguration.cs`, `PurchaseOrderItemConfiguration.cs`, `SerialImeiConfiguration.cs`.
-- **`Services/`**: `IInventoryService.cs`, `InventoryService.cs` (Quản lý nhập hàng, chuyển trạng thái Serial/IMEI, khóa concurrency `FOR UPDATE`).
-- **`Controllers/`**: `InventoryController.cs` (API tra cứu tồn kho, lập phiếu nhập PO, quét danh sách IMEI).
+- **`Repositories/`** (dự kiến): `IInventoryStockRepository` (gồm `GetForUpdateAsync` - khóa dòng `SELECT ... FOR UPDATE`), `ISerialImeiRepository`, `IPurchaseOrderRepository`, `ISupplierRepository`. Method khóa dòng và method ghi trực tiếp (`ExecuteUpdateAsync`/`ExecuteDeleteAsync`) chỉ được gọi bên trong transaction mà service đã mở qua `IUnitOfWork`.
+- **`Services/`**: `IInventoryService.cs`, `InventoryService.cs` (Quản lý nhập hàng, chuyển trạng thái Serial/IMEI; mở transaction qua `IUnitOfWork` khi cần khóa `FOR UPDATE`).
+- **Controller** (đặt tại thư mục gốc của module): `InventoryController.cs` (API tra cứu tồn kho, lập phiếu nhập PO, quét danh sách IMEI).

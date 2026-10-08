@@ -34,8 +34,9 @@
 
 ## 4. Cấu trúc Thành phần Module
 - **`Configurations/`**: `UserConfiguration.cs`, `RoleConfiguration.cs`, `UserRoleConfiguration.cs`, `RefreshTokenConfiguration.cs`.
+- **`Repositories/`** (dự kiến): `IUserRepository` (`User` cùng `UserRole`), `IRefreshTokenRepository`.
 - **`Services/`**:
   - `IAuthService.cs`, `AuthService.cs`: Xử lý đăng nhập, cấp phát và thu hồi JWT / Refresh Token.
   - `JwtService.cs`: Ký và xác thực JWT Bearer Token chứa Claims vai trò.
   - `GeminiAiAgentService.cs`: Trợ lý AI tích hợp Google Gemini API với Tool/Function Calling tra cứu kho hàng thực tế, tuân thủ nghiêm ngặt phân quyền RBAC.
-- **`Controllers/`**: `AuthController.cs` (Đăng nhập, làm mới token, đổi mật khẩu), `AiController.cs` (Chatbot AI hỗ trợ bán hàng).
+- **Controllers** (đặt tại thư mục gốc của module): `AuthController.cs` (Đăng nhập, làm mới token, đổi mật khẩu), `AiController.cs` (Chatbot AI hỗ trợ bán hàng).

@@ -21,6 +21,7 @@
 │   • Phân rã phẳng thành các Modules độc lập (Catalog, Orders, Sales...)│
 │   • Bảo mật tập trung: Middleware JWT & RBAC 4 Roles                   │
 │   • Logic nghiệp vụ, Transaction & Khóa chống bán âm kho (FOR UPDATE)  │
+│   • Phân tầng: Controller -> Service -> Repository -> Unit of Work     │
 │   • Trợ lý AI: Google Gemini API Function Calling                      │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
@@ -62,37 +63,43 @@ Các module nghiệp vụ được tổ chức theo từng thư mục tính năn
 ```text
 backend/
 ├── Common/                            # Thành phần dùng chung nội bộ Server
-│   ├── Data/                          # AppDbContext (EF Core 10), Migrations, DataSeeder
+│   ├── Data/                          # AppDbContext (EF Core 10), IUnitOfWork/UnitOfWork (SaveChanges & Transaction), DuplicateKeyException, Migrations, DataSeeder
 │   ├── Entities/                      # BaseEntity (Id, CreatedAt, UpdatedAt)
 │   └── Middlewares/                   # ExceptionHandlerMiddleware, JwtMiddleware
 │
 ├── Catalog/                           # Quản lý Sản phẩm, Danh mục & Thông số kỹ thuật
 │   ├── Entities/                      # Product, Category, ProductVariant
 │   ├── Configurations/                # Fluent API Configurations (IEntityTypeConfiguration<T>)
-│   ├── Services/                      # ICatalogService, CatalogService
-│   └── ProductsController.cs          # API CRUD, tìm kiếm, lọc theo thông số (JSONB)
+│   ├── Repositories/                  # IProductRepository, ProductRepository (Dev 2) & ICategoryRepository, CategoryRepository (Dev 3)
+│   ├── Services/                      # IProductService, ProductService (Dev 2) & ICategoryService, CategoryService (Dev 3)
+│   ├── ProductsController.cs          # API Quản lý sản phẩm, tìm kiếm & lọc specs JSONB (Dev 2)
+│   └── CategoriesController.cs        # API Cây danh mục phân cấp cha - con (Dev 3)
 │
 ├── Inventory/                         # Quản lý Kho, Serial/IMEI, Nhập kho & Khóa Concurrency
 │   ├── Entities/                      # InventoryStock, InventoryMovement, Supplier, PurchaseOrder, PurchaseOrderItem, SerialImei
 │   ├── Configurations/                # Fluent API Configurations (Composite FKs, Check Constraints)
-│   ├── Services/                      # IInventoryService, InventoryService (Transaction FOR UPDATE)
+│   ├── Repositories/                  # IInventoryStockRepository (GetForUpdateAsync - FOR UPDATE), ISerialImeiRepository, IPurchaseOrderRepository, ISupplierRepository
+│   ├── Services/                      # IInventoryService, InventoryService (mở Transaction qua IUnitOfWork)
 │   └── InventoryController.cs         # API Tồn kho, nhập kho NCC, quản lý danh sách Serial/IMEI
 │
 ├── Sales/                             # Nghiệp vụ Bán hàng tại quầy (POS), Ca làm việc & VietQR
 │   ├── Entities/                      # PosSession, VietQrTransaction
 │   ├── Configurations/                # Fluent API Configurations
+│   ├── Repositories/                  # IPosSessionRepository, IVietQrTransactionRepository
 │   ├── Services/                      # IPosService, VietQrService
 │   └── SalesController.cs             # API Lập đơn tại quầy, tính tiền, ca thu ngân, sinh mã VietQR
 │
 ├── Orders/                            # Vòng đời Đơn hàng, Chi tiết món, Đổi trả & Hoàn tiền
 │   ├── Entities/                      # Order, OrderItem, OrderReturn
 │   ├── Configurations/                # Fluent API Configurations
+│   ├── Repositories/                  # IOrderRepository
 │   ├── Services/                      # IOrderService, ReturnRefundService
 │   └── OrdersController.cs            # API Danh sách đơn, đổi trạng thái, hủy/hoàn tiền
 │
 ├── Customers/                         # Quản lý Khách hàng, Tích điểm & Khuyến mãi Voucher
 │   ├── Entities/                      # Customer, CustomerLoyaltyPoint, Voucher
 │   ├── Configurations/                # Fluent API Configurations (Partial Index Voucher)
+│   ├── Repositories/                  # ICustomerRepository, IVoucherRepository
 │   ├── Services/                      # ICustomerService, AnalyticsService
 │   ├── CustomersController.cs         # API Khách hàng, tích điểm thành viên VIP
 │   └── AnalyticsController.cs         # API Dashboard báo cáo doanh thu & lợi nhuận
@@ -100,13 +107,47 @@ backend/
 ├── Identity/                          # Bảo mật, Phân quyền RBAC & Trợ lý AI
 │   ├── Entities/                      # User, Role, UserRole, RefreshToken
 │   ├── Configurations/                # Fluent API Configurations (Partial Index Token)
+│   ├── Repositories/                  # IUserRepository, IRefreshTokenRepository
 │   ├── Services/                      # IAuthService, JwtService, GeminiAiAgentService
 │   ├── AuthController.cs              # API Đăng nhập, đổi mật khẩu, phân quyền RBAC
 │   └── AiController.cs                # API Trợ lý AI (Function Calling tra cứu kho)
 │
 ├── appsettings.json
 ├── appsettings.Development.json
-└── Program.cs                         # Cấu hình DI, DbContext, JWT, Swagger
+└── Program.cs                         # Cấu hình DI (Services, Repositories, IUnitOfWork), DbContext, JWT, Swagger
+```
+
+#### 2.2.1. Phân tầng Backend: Controller → Service → Repository → Unit of Work
+Quy ước chung cho **mọi module** (chi tiết bằng tiếng Anh ở `AGENTS.md`, mục *Layering & Repository Pattern*):
+
+```text
++--------------------------------------------------------------------+
+| Controller   chỉ gọi Service; đổi kết quả sang HTTP 200/201/400/   |
+|              404/409                                               |
++------------------------------+-------------------------------------+
+                               v
++--------------------------------------------------------------------+
+| Service      luật nghiệp vụ, validate, map entity -> DTO           |
+|              LÀM CHỦ transaction; KHÔNG dùng AppDbContext/EF Core  |
++-----------------+-------------------------------+------------------+
+                  v                               v
++-------------------------------+   +--------------------------------+
+| Repository (theo aggregate)   |   | IUnitOfWork (Common/Data)      |
+|  - truy vấn, trả về ENTITY    |   |  - SaveChangesAsync            |
+|  - khoá dòng (FOR UPDATE)     |   |  - Begin/Commit/Rollback       |
+|  - ghi nhận Add/Remove/sửa    |   |  - 23505 -> DuplicateKey-      |
+|  - KHÔNG gọi SaveChanges      |   |    Exception                   |
++---------------+---------------+   +---------------+----------------+
+                +---------------+-------------------+
+                                v
+                AppDbContext (1 instance / request, Scoped)
+                                v
+                          PostgreSQL 16
+```
+
+- **Repository** đặt trong `backend/<Module>/Repositories/`, mỗi aggregate một repository (`IProductRepository` gồm `Product` và các `ProductVariant`). Method thể hiện ý định nghiệp vụ (`SearchAsync(criteria)`, `GetForUpdateAsync(...)`, `Add(...)`). Repository trả về entity, không trả DTO, không trả `IQueryable`, và không có `IRepository<T>` dùng chung. Đầu vào truy vấn là record criteria nội bộ đã được parse sẵn, không dùng thẳng class trong `shared/Requests`.
+- **IUnitOfWork** bọc transaction có sẵn của EF Core. Service gọi `SaveChangesAsync` để lưu mọi thay đổi mà các repository đã ghi nhận. Khi cần khoá dòng hoặc lưu nhiều lần, service gọi `BeginTransactionAsync` → repository → `SaveChangesAsync` → `CommitAsync`, và gọi `RollbackAsync` khi có lỗi.
+- **Truy cập chéo module:** service được gọi repository của module khác để **đọc**. Muốn **ghi** vào bảng của module khác thì phải đi qua service của module đó. Quyền sở hữu bảng theo các TableGroup trong `docs/database/schema.dbml`.
 
 ---
 
@@ -302,6 +343,10 @@ Hệ thống chuẩn hóa 10 kiểu liệt kê (Enum) định nghĩa toàn bộ 
    - Ràng buộc kiểm tra (Check Constraints): `quantity >= 0`, `reserved_quantity >= 0`, `reserved_quantity <= quantity`.
    - Số lượng thực tế có thể bán: `available = quantity - reserved_quantity`.
    - Khi giữ chỗ cho đơn đang thanh toán: Tăng `reserved_quantity` và đổi trạng thái IMEI sang `Reserved` trong transaction sử dụng khóa dòng `SELECT ... FOR UPDATE`.
+   - Phân vai (xem mục 2.2.1):
+     - **Service** mở transaction qua `IUnitOfWork.BeginTransactionAsync`, kiểm tra số lượng khả dụng, rồi `SaveChangesAsync` + `CommitAsync`. Khi có lỗi nghiệp vụ hoặc exception thì `RollbackAsync`.
+     - **Khóa dòng** là method của repository, ví dụ `IInventoryStockRepository.GetForUpdateAsync`. Method này chỉ có tác dụng **bên trong** transaction do service mở: gọi bên ngoài transaction thì khóa được nhả ngay.
+     - Method repository dùng `ExecuteUpdateAsync`/`ExecuteDeleteAsync` hoặc SQL ghi trực tiếp sẽ chạy SQL ngay, không chờ `SaveChanges`. Vì vậy chỉ được gọi trong transaction đó, và tên hoặc comment phải ghi rõ là ghi trực tiếp.
    - Bất biến với máy quản lý IMEI (`is_serial_tracked = true`): `inventory_stocks.quantity` phải luôn bằng `COUNT(serial_imeis WHERE status IN ('InStock', 'Reserved'))`.
 
 7. **Sổ Cái Biến Động Kho Bất Biến (Append-Only Audit Ledger `inventory_movements`):**

@@ -25,5 +25,6 @@
 
 ## 4. Cấu trúc Thành phần Module
 - **`Configurations/`**: `PosSessionConfiguration.cs`, `VietQrTransactionConfiguration.cs`.
+- **`Repositories/`** (dự kiến): `IPosSessionRepository`, `IVietQrTransactionRepository`.
 - **`Services/`**: `IPosService.cs`, `VietQrService.cs` (Sinh chuỗi EMVCo VietQR, đối soát webhook).
-- **`Controllers/`**: `SalesController.cs` (Mở/đóng ca thu ngân, sinh mã thanh toán, kiểm tra trạng thái thanh toán đơn hàng).
+- **Controller** (đặt tại thư mục gốc của module): `SalesController.cs` (Mở/đóng ca thu ngân, sinh mã thanh toán, kiểm tra trạng thái thanh toán đơn hàng).

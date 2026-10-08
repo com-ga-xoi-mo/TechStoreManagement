@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Catalog.Services;
 using TechStore.Api.Common.Data;
 
@@ -20,6 +21,10 @@ builder.Services.AddScoped<IDataSeeder, DataSeeder>();
 
 // Unit of Work registration
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Catalog Module repositories
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
 // Catalog Module services
 builder.Services.AddScoped<IProductService, ProductService>();

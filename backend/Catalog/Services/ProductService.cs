@@ -1,29 +1,20 @@
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
+using TechStore.Api.Catalog.Entities;
+using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Common.Data;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Api.Catalog.Services;
 
-public class ProductService : IProductService
+public class ProductService(
+    IProductRepository productRepository,
+    ICategoryRepository categoryRepository,
+    IUnitOfWork unitOfWork) : IProductService
 {
-    private readonly AppDbContext _dbContext;
-
-    public ProductService(AppDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var product = await _dbContext.Products
-            .AsNoTracking()
-            .Include(p => p.Category)
-            .Include(p => p.Variants)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-
+        var product = await productRepository.GetWithVariantsAsync(id, cancellationToken);
         if (product == null)
         {
             return ProductDetailResult.NotFound();
@@ -102,7 +93,7 @@ public class ProductService : IProductService
         }
 
         // 3. Validate sorting
-        var sortField = "createdat";
+        var sortField = ProductSortField.CreatedAt;
         var isDescending = true;
 
         if (!string.IsNullOrWhiteSpace(request.Sort))
@@ -127,113 +118,67 @@ public class ProductService : IProductService
                 });
             }
 
-            sortField = field;
+            sortField = field switch
+            {
+                "name" => ProductSortField.Name,
+                "price" => ProductSortField.Price,
+                _ => ProductSortField.CreatedAt
+            };
             isDescending = dir == "desc";
         }
 
-        // 4. Base query (apply spec containment via FromSql if needed)
-        IQueryable<Entities.Product> query;
-        if (specResult.JsonString != null)
-        {
-            var filterJson = specResult.JsonString;
-            query = _dbContext.Products
-                .FromSqlInterpolated($"SELECT * FROM products AS p WHERE (NOT EXISTS (SELECT 1 FROM product_variants AS v WHERE v.product_id = p.id) AND p.specs @> {filterJson}::jsonb) OR EXISTS (SELECT 1 FROM product_variants AS v WHERE v.product_id = p.id AND (p.specs || v.specs) @> {filterJson}::jsonb)")
-                .AsNoTracking();
-        }
-        else
-        {
-            query = _dbContext.Products.AsNoTracking();
-        }
-
-        // 5. Keyword search (q)
-        if (!string.IsNullOrWhiteSpace(request.Q))
-        {
-            var keyword = request.Q.Trim();
-            var escaped = EscapeLikePattern(keyword);
-            var pattern = $"%{escaped}%";
-
-            query = query.Where(p =>
-                EF.Functions.ILike(p.Name, pattern) ||
-                EF.Functions.ILike(p.Sku, pattern) ||
-                (p.Barcode != null && EF.Functions.ILike(p.Barcode, pattern)) ||
-                p.Variants.Any(v =>
-                    EF.Functions.ILike(v.Sku, pattern) ||
-                    (v.Barcode != null && EF.Functions.ILike(v.Barcode, pattern)) ||
-                    EF.Functions.ILike(v.VariantName, pattern)));
-        }
-
-        // 6. Brand filter
-        if (!string.IsNullOrWhiteSpace(request.Brand))
-        {
-            var brandEscaped = EscapeLikePattern(request.Brand.Trim());
-            query = query.Where(p => EF.Functions.ILike(p.Brand, brandEscaped));
-        }
-
-        // 7. Category filter
-        if (request.CategoryId.HasValue && request.CategoryId.Value != Guid.Empty)
-        {
-            query = query.Where(p => p.CategoryId == request.CategoryId.Value);
-        }
-
-        // 8. IsActive filter
-        if (request.IsActive.HasValue)
-        {
-            query = query.Where(p => p.IsActive == request.IsActive.Value);
-        }
-
-        // 9. Price range overlap filter
-        if (request.MinPrice.HasValue)
-        {
-            var min = request.MinPrice.Value;
-            query = query.Where(p => (p.Variants.Select(v => (decimal?)v.Price).Max() ?? p.BasePrice) >= min);
-        }
-
-        if (request.MaxPrice.HasValue)
-        {
-            var max = request.MaxPrice.Value;
-            query = query.Where(p => (p.Variants.Select(v => (decimal?)v.Price).Min() ?? p.BasePrice) <= max);
-        }
-
-        // 10. Ordering
-        query = sortField switch
-        {
-            "name" => isDescending
-                ? query.OrderByDescending(p => p.Name).ThenBy(p => p.Id)
-                : query.OrderBy(p => p.Name).ThenBy(p => p.Id),
-            "price" => isDescending
-                ? query.OrderByDescending(p => p.Variants.Select(v => (decimal?)v.Price).Min() ?? p.BasePrice).ThenBy(p => p.Id)
-                : query.OrderBy(p => p.Variants.Select(v => (decimal?)v.Price).Min() ?? p.BasePrice).ThenBy(p => p.Id),
-            _ => isDescending
-                ? query.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Id)
-                : query.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id),
-        };
-
-        // 11. Pagination
+        // 4. Normalize paging
         var (page, pageSize) = ProductPagingHelper.Normalize(request.Page, request.PageSize);
-        var totalCount = await query.CountAsync(cancellationToken);
+
+        // 5. Build criteria
+        var keyword = string.IsNullOrWhiteSpace(request.Q) ? null : request.Q.Trim();
+        var brand = string.IsNullOrWhiteSpace(request.Brand) ? null : request.Brand.Trim();
+        var categoryId = (request.CategoryId.HasValue && request.CategoryId.Value != Guid.Empty)
+            ? request.CategoryId.Value
+            : (Guid?)null;
+
+        var criteria = new ProductSearchCriteria(
+            Keyword: keyword,
+            Brand: brand,
+            CategoryId: categoryId,
+            IsActive: request.IsActive,
+            MinPrice: request.MinPrice,
+            MaxPrice: request.MaxPrice,
+            SpecFilterJson: specResult.JsonString,
+            SortField: sortField,
+            Descending: isDescending,
+            Page: page,
+            PageSize: pageSize);
+
+        // 6. Query repository
+        var (items, totalCount) = await productRepository.SearchAsync(criteria, cancellationToken);
         var totalPages = ProductPagingHelper.CalculateTotalPages(totalCount, pageSize);
 
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new ProductSummaryDto
+        // 7. Map entities to ProductSummaryDto
+        var summaryDtos = items.Select(p =>
+        {
+            var (priceFrom, priceTo) = ProductSpecHelper.CalculateDisplayPrice(
+                p.BasePrice,
+                p.Variants.Select(v => v.Price));
+
+            return new ProductSummaryDto
             {
                 Id = p.Id,
                 Name = p.Name,
                 Sku = p.Sku,
                 Brand = p.Brand,
                 CategoryId = p.CategoryId,
-                CategoryName = p.Category.Name,
-                PriceFrom = p.Variants.Select(v => (decimal?)v.Price).Min() ?? p.BasePrice,
-                PriceTo = p.Variants.Select(v => (decimal?)v.Price).Max() ?? p.BasePrice,
+                CategoryName = p.Category?.Name ?? string.Empty,
+                PriceFrom = priceFrom,
+                PriceTo = priceTo,
                 VariantCount = p.Variants.Count,
                 IsSerialTracked = p.IsSerialTracked,
                 IsActive = p.IsActive,
                 ImageUrl = p.ImageUrl
-            })
-            .ToListAsync(cancellationToken);
+            };
+        }).ToList();
 
-        var resultDto = new PagedResultDto<ProductSummaryDto>(items, page, pageSize, totalCount, totalPages);
+        var resultDto = new PagedResultDto<ProductSummaryDto>(summaryDtos, page, pageSize, totalCount, totalPages);
         return ProductSearchResult.Success(resultDto);
     }
 
@@ -246,11 +191,8 @@ public class ProductService : IProductService
             return CreateProductResult.ValidationFailed(validationErrors);
         }
 
-        // 2. Check Category existence
-        var category = await _dbContext.Categories
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == request.CategoryId!.Value, cancellationToken);
-
+        // 2. Check Category existence via ICategoryRepository
+        var category = await categoryRepository.GetByIdAsync(request.CategoryId!.Value, cancellationToken);
         if (category == null)
         {
             return CreateProductResult.ValidationFailed(new Dictionary<string, string[]>
@@ -259,7 +201,7 @@ public class ProductService : IProductService
             });
         }
 
-        // 3. Check SKU conflicts case-insensitively
+        // 3. Check SKU conflicts case-insensitively via IProductRepository
         var requestSkus = new List<string> { request.Sku!.Trim() };
         if (request.Variants != null)
         {
@@ -268,30 +210,18 @@ public class ProductService : IProductService
                 .Select(v => v.Sku!.Trim()));
         }
 
-        var requestSkusLower = requestSkus.Select(s => s.ToLowerInvariant()).Distinct().ToList();
-
-        var conflictingProductSkus = await _dbContext.Products
-            .Where(p => requestSkusLower.Contains(p.Sku.ToLower()))
-            .Select(p => p.Sku)
-            .ToListAsync(cancellationToken);
-
-        var conflictingVariantSkus = await _dbContext.ProductVariants
-            .Where(v => requestSkusLower.Contains(v.Sku.ToLower()))
-            .Select(v => v.Sku)
-            .ToListAsync(cancellationToken);
-
-        var allConflicts = conflictingProductSkus.Concat(conflictingVariantSkus).Distinct().ToList();
+        var allConflicts = await productRepository.FindExistingSkusAsync(requestSkus, cancellationToken);
         if (allConflicts.Count > 0)
         {
             return CreateProductResult.Conflict(allConflicts);
         }
 
-        // 4. Build product and variant entities
+        // 4. Build product and variant entities (IsActive always true)
         var now = DateTime.UtcNow;
         var prodSpecsDict = request.Specs ?? new Dictionary<string, JsonElement>();
         var prodSpecsJson = ProductSpecHelper.SerializeSpecs(prodSpecsDict);
 
-        var product = new Entities.Product
+        var product = new Product
         {
             Id = Guid.NewGuid(),
             CategoryId = request.CategoryId!.Value,
@@ -317,7 +247,7 @@ public class ProductService : IProductService
                 var vSpecsDict = vReq.Specs ?? new Dictionary<string, JsonElement>();
                 var vSpecsJson = ProductSpecHelper.SerializeSpecs(vSpecsDict);
 
-                var variant = new Entities.ProductVariant
+                var variant = new ProductVariant
                 {
                     Id = Guid.NewGuid(),
                     ProductId = product.Id,
@@ -335,14 +265,14 @@ public class ProductService : IProductService
             }
         }
 
-        _dbContext.Products.Add(product);
+        productRepository.Add(product);
 
-        // 5. Persist with SaveChangesAsync, catching 23505 race conditions
+        // 5. Persist with IUnitOfWork.SaveChangesAsync, catching DuplicateKeyException
         try
         {
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        catch (DuplicateKeyException)
         {
             return CreateProductResult.Conflict(requestSkus);
         }
@@ -395,13 +325,5 @@ public class ProductService : IProductService
         };
 
         return CreateProductResult.Success(createdDto);
-    }
-
-    private static string EscapeLikePattern(string value)
-    {
-        return value
-            .Replace(@"\", @"\\")
-            .Replace("%", @"\%")
-            .Replace("_", @"\_");
     }
 }

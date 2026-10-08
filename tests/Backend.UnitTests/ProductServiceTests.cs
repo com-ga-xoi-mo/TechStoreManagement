@@ -1,5 +1,10 @@
 using FluentAssertions;
+using TechStore.Api.Catalog.Entities;
+using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Catalog.Services;
+using TechStore.Api.Common.Data;
+using TechStore.Shared.DTOs;
+using TechStore.Shared.Requests;
 using Xunit;
 
 namespace TechStore.UnitTests;
@@ -397,5 +402,344 @@ public class ProductServiceTests
         // Assert
         errors.Should().ContainKey("name");
         errors.Should().ContainKey("costPrice");
+    }
+
+    // -------------------------------------------------------------
+    // Task 5.2: GetByIdAsync Tests
+    // -------------------------------------------------------------
+    [Fact]
+    public async Task GetByIdAsync_Should_Return_NotFound_When_Product_DoesNotExist()
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+
+        // Act
+        var result = await service.GetByIdAsync(Guid.NewGuid());
+
+        // Assert
+        result.Found.Should().BeFalse();
+        result.Data.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_Should_Return_Product_With_Sorted_Variants_And_Merged_EffectiveSpecs()
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+
+        var productId = Guid.NewGuid();
+        var product = new Product
+        {
+            Id = productId,
+            Name = "MacBook Pro",
+            Sku = "MBP-01",
+            Specs = "{\"cpu\": \"Apple M3\", \"color\": \"Silver\"}",
+            Category = new Category { Name = "Laptops" }
+        };
+
+        var variantHighPrice = new ProductVariant
+        {
+            Id = Guid.NewGuid(),
+            ProductId = productId,
+            VariantName = "V2",
+            Sku = "MBP-V2",
+            Price = 40000000m,
+            Specs = "{\"color\": \"Space Gray\"}"
+        };
+
+        var variantLowPrice = new ProductVariant
+        {
+            Id = Guid.NewGuid(),
+            ProductId = productId,
+            VariantName = "V1",
+            Sku = "MBP-V1",
+            Price = 35000000m,
+            Specs = "{\"ram_gb\": 16}"
+        };
+
+        product.Variants.Add(variantHighPrice);
+        product.Variants.Add(variantLowPrice);
+        productRepo.Add(product);
+
+        // Act
+        var result = await service.GetByIdAsync(productId);
+
+        // Assert
+        result.Found.Should().BeTrue();
+        result.Data.Should().NotBeNull();
+        result.Data!.Variants.Should().HaveCount(2);
+
+        // Ordered by price ascending
+        result.Data.Variants[0].Price.Should().Be(35000000m);
+        result.Data.Variants[1].Price.Should().Be(40000000m);
+
+        // Effective specs merged and overridden
+        result.Data.Variants[1].EffectiveSpecs["cpu"].GetString().Should().Be("Apple M3");
+        result.Data.Variants[1].EffectiveSpecs["color"].GetString().Should().Be("Space Gray");
+    }
+
+    // -------------------------------------------------------------
+    // Task 5.3: CreateAsync Tests
+    // -------------------------------------------------------------
+    [Fact]
+    public async Task CreateAsync_Should_Succeed_With_One_Save_And_IsActive_True()
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+
+        var categoryId = Guid.NewGuid();
+        categoryRepo.Categories[categoryId] = new Category { Id = categoryId, Name = "Phones" };
+
+        var request = CreateValidRequest();
+        request.CategoryId = categoryId;
+        request.Variants = new List<CreateProductVariantRequest>
+        {
+            new() { VariantName = "V1", Sku = "V1-SKU", Price = 30000000m }
+        };
+
+        // Act
+        var result = await service.CreateAsync(request);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        unitOfWork.SaveChangesCount.Should().Be(1);
+        productRepo.AddedProducts.Should().HaveCount(1);
+        var added = productRepo.AddedProducts[0];
+        added.IsActive.Should().BeTrue();
+        added.Variants.Should().HaveCount(1);
+        added.Variants.First().IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateAsync_Should_Fail_When_Category_NotFound_And_Zero_Saves()
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+
+        var request = CreateValidRequest();
+        request.CategoryId = Guid.NewGuid(); // not in categoryRepo
+
+        // Act
+        var result = await service.CreateAsync(request);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("categoryId");
+        unitOfWork.SaveChangesCount.Should().Be(0);
+        productRepo.AddedProducts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreateAsync_Should_Fail_When_Sku_Exists_And_Zero_Saves()
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+
+        var categoryId = Guid.NewGuid();
+        categoryRepo.Categories[categoryId] = new Category { Id = categoryId, Name = "Phones" };
+
+        var request = CreateValidRequest();
+        request.CategoryId = categoryId;
+        request.Sku = "EXISTING-SKU";
+        productRepo.ExistingSkus.Add("EXISTING-SKU");
+
+        // Act
+        var result = await service.CreateAsync(request);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.IsConflict.Should().BeTrue();
+        unitOfWork.SaveChangesCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CreateAsync_Should_Return_Conflict_When_UnitOfWork_Throws_DuplicateKeyException()
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork
+        {
+            ExceptionToThrowOnSave = new DuplicateKeyException("uq_products_sku")
+        };
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+
+        var categoryId = Guid.NewGuid();
+        categoryRepo.Categories[categoryId] = new Category { Id = categoryId, Name = "Phones" };
+
+        var request = CreateValidRequest();
+        request.CategoryId = categoryId;
+
+        // Act
+        var result = await service.CreateAsync(request);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.IsConflict.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateAsync_Should_Return_ValidationErrors_Without_Calling_Repository_When_Invalid()
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+
+        var request = CreateValidRequest();
+        request.Name = ""; // invalid
+
+        // Act
+        var result = await service.CreateAsync(request);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("name");
+        productRepo.AddedProducts.Should().BeEmpty();
+        unitOfWork.SaveChangesCount.Should().Be(0);
+    }
+
+    // -------------------------------------------------------------
+    // Task 5.4: SearchAsync Tests
+    // -------------------------------------------------------------
+    [Theory]
+    [InlineData("RAM:16", null, null, "spec")]
+    [InlineData(null, 30000000.0, 20000000.0, "minPrice")]
+    [InlineData(null, null, null, "sort")]
+    public async Task SearchAsync_Should_Fail_Validation_And_Not_Call_Repository(
+        string? spec, double? minPrice, double? maxPrice, string expectedErrorKey)
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+
+        var request = new ProductSearchRequest
+        {
+            MinPrice = (decimal?)minPrice,
+            MaxPrice = (decimal?)maxPrice
+        };
+        if (spec != null) request.Spec = new List<string> { spec };
+        if (expectedErrorKey == "sort") request.Sort = "invalid_field";
+
+        // Act
+        var result = await service.SearchAsync(request);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey(expectedErrorKey);
+        productRepo.SearchCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SearchAsync_Should_Pass_Mapped_Criteria_To_Repository()
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+
+        var categoryId = Guid.NewGuid();
+        var request = new ProductSearchRequest
+        {
+            Q = "  iPhone  ",
+            Brand = "  Apple  ",
+            CategoryId = categoryId,
+            IsActive = true,
+            MinPrice = 10000000m,
+            MaxPrice = 30000000m,
+            Spec = new List<string> { "ram_gb:16" },
+            Sort = "price:asc",
+            Page = 0,
+            PageSize = 500
+        };
+
+        // Act
+        var result = await service.SearchAsync(request);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        productRepo.SearchCallCount.Should().Be(1);
+        var criteria = productRepo.LastCriteria!;
+        criteria.Keyword.Should().Be("iPhone");
+        criteria.Brand.Should().Be("Apple");
+        criteria.CategoryId.Should().Be(categoryId);
+        criteria.IsActive.Should().BeTrue();
+        criteria.MinPrice.Should().Be(10000000m);
+        criteria.MaxPrice.Should().Be(30000000m);
+        criteria.SortField.Should().Be(ProductSortField.Price);
+        criteria.Descending.Should().BeFalse();
+        criteria.Page.Should().Be(1);
+        criteria.PageSize.Should().Be(100);
+        criteria.SpecFilterJson.Should().Contain("\"ram_gb\":16");
+    }
+
+    [Fact]
+    public async Task SearchAsync_Should_Map_Summary_PriceRange_Correctly()
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+
+        var productWithVariants = new Product
+        {
+            Id = Guid.NewGuid(),
+            Name = "P1",
+            BasePrice = 10000000m,
+            Category = new Category { Name = "C1" },
+            Variants = new List<ProductVariant>
+            {
+                new() { Price = 8000000m },
+                new() { Price = 12000000m }
+            }
+        };
+
+        var productWithoutVariants = new Product
+        {
+            Id = Guid.NewGuid(),
+            Name = "P2",
+            BasePrice = 5000000m,
+            Category = new Category { Name = "C2" },
+            Variants = new List<ProductVariant>()
+        };
+
+        productRepo.CustomSearchResult = (new List<Product> { productWithVariants, productWithoutVariants }, 2);
+
+        // Act
+        var result = await service.SearchAsync(new ProductSearchRequest());
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Items.Should().HaveCount(2);
+
+        // P1 with variants: min / max
+        result.Data.Items[0].PriceFrom.Should().Be(8000000m);
+        result.Data.Items[0].PriceTo.Should().Be(12000000m);
+        result.Data.Items[0].VariantCount.Should().Be(2);
+
+        // P2 without variants: base price for both
+        result.Data.Items[1].PriceFrom.Should().Be(5000000m);
+        result.Data.Items[1].PriceTo.Should().Be(5000000m);
+        result.Data.Items[1].VariantCount.Should().Be(0);
     }
 }

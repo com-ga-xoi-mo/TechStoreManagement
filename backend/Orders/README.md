@@ -28,5 +28,6 @@
 
 ## 4. Cấu trúc Thành phần Module
 - **`Configurations/`**: `OrderConfiguration.cs`, `OrderItemConfiguration.cs`, `OrderReturnConfiguration.cs`.
+- **`Repositories/`** (dự kiến): `IOrderRepository` (`Order` cùng `OrderItem`, `OrderReturn`).
 - **`Services/`**: `IOrderService.cs`, `OrderService.cs`, `ReturnRefundService.cs`.
-- **`Controllers/`**: `OrdersController.cs` (API lập đơn, chuyển trạng thái đơn, hủy/hoàn tiền, tra cứu lịch sử mua hàng).
+- **Controller** (đặt tại thư mục gốc của module): `OrdersController.cs` (API lập đơn, chuyển trạng thái đơn, hủy/hoàn tiền, tra cứu lịch sử mua hàng).

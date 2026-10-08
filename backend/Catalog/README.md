@@ -20,7 +20,11 @@
 
 ## 3. Cấu trúc Thành phần Module
 - **`Configurations/`**: `CategoryConfiguration.cs`, `ProductConfiguration.cs`, `ProductVariantConfiguration.cs` (Fluent API assembly scanning).
-- **`Services/`**:
+- **`Repositories/`** (dự kiến; nơi duy nhất dùng `AppDbContext`, trả về entity, không gọi `SaveChanges`):
+  - `IProductRepository.cs`, `ProductRepository.cs` (Dev 2 - `Product` và các `ProductVariant`).
+  - `ICategoryRepository.cs`, `CategoryRepository.cs` (Dev 3 - cây danh mục).
+  - Ghi chú: `ProductService` hiện vẫn truy vấn trực tiếp `AppDbContext`; sẽ được chuyển sang `IProductRepository` + `IUnitOfWork` trong một change tiếp theo, không đổi hành vi API.
+- **`Services/`** (nghiệp vụ; chỉ gọi repository và `IUnitOfWork`):
   - `IProductService.cs`, `ProductService.cs` (Dev 2 - Quản lý sản phẩm, tìm kiếm, lọc specs JSONB).
   - `ICategoryService.cs`, `CategoryService.cs` (Dev 3 - Cây danh mục phân cấp cha - con).
 - **Controllers (đặt tại thư mục gốc của module `backend/Catalog/`)**:

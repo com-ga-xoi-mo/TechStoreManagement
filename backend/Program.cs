@@ -18,6 +18,9 @@ if (!string.IsNullOrEmpty(connectionString))
 // Data Seeder registration
 builder.Services.AddScoped<IDataSeeder, DataSeeder>();
 
+// Unit of Work registration
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 // Catalog Module services
 builder.Services.AddScoped<IProductService, ProductService>();
 

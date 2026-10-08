@@ -1,6 +1,241 @@
-@TechStore.Api_HostAddress = http://localhost:5176
+@host = http://localhost:5176
 
-GET {{TechStore.Api_HostAddress}}/weatherforecast/
+### 0. Named Lookup for MacBook Pro (Dynamic ID Reference)
+# @name findMacbook
+GET {{host}}/api/products?q=MBP14-M3-512
 Accept: application/json
+
+### 1. Get Product Detail by ID - Success (200 OK)
+GET {{host}}/api/products/{{findMacbook.response.body.$.items[0].id}}
+Accept: application/json
+
+### 2. Get Product Detail - Unknown ID (404 Not Found)
+GET {{host}}/api/products/00000000-0000-0000-0000-000000000000
+Accept: application/problem+json
+
+### 3. Search Products - Default Listing (200 OK)
+GET {{host}}/api/products
+Accept: application/json
+
+### 4. Search Products - Keyword 'iphone' (200 OK)
+GET {{host}}/api/products?q=iphone
+Accept: application/json
+
+### 5. Search Products - Variant SKU 'IP15PM-256-NT' (200 OK)
+GET {{host}}/api/products?q=IP15PM-256-NT
+Accept: application/json
+
+### 6. Search Products - Filter by Brand 'apple' (200 OK)
+GET {{host}}/api/products?brand=apple
+Accept: application/json
+
+### 7. Search Products - Filter by Category Laptops (200 OK)
+GET {{host}}/api/products?categoryId={{findMacbook.response.body.$.items[0].categoryId}}
+Accept: application/json
+
+### 8. Search Products - Price Range Overlap (200 OK)
+GET {{host}}/api/products?minPrice=22000000&maxPrice=30000000
+Accept: application/json
+
+### 9. Search Products - Inverted Price Range (400 Bad Request)
+GET {{host}}/api/products?minPrice=30000000&maxPrice=22000000
+Accept: application/problem+json
+
+### 10. Search Products - Spec Containment 'ram_gb:16' (200 OK)
+GET {{host}}/api/products?spec=ram_gb:16
+Accept: application/json
+
+### 11. Search Products - Spec Containment Multiple 'cpu:Apple M3' & 'color:Space Gray' (200 OK)
+GET {{host}}/api/products?spec=cpu:Apple%20M3&spec=color:Space%20Gray
+Accept: application/json
+
+### 12. Search Products - Spec Containment Variant 'color:Natural Titanium' (200 OK)
+GET {{host}}/api/products?spec=color:Natural%20Titanium
+Accept: application/json
+
+### 13. Search Products - Malformed Spec (400 Bad Request)
+GET {{host}}/api/products?spec=RAM:16
+Accept: application/problem+json
+
+### 14. Search Products - Sort by Price Ascending (200 OK)
+GET {{host}}/api/products?sort=price:asc
+Accept: application/json
+
+### 15. Search Products - Unknown Sort Field (400 Bad Request)
+GET {{host}}/api/products?sort=stock
+Accept: application/problem+json
+
+### 16. Search Products - Pagination Normalization (200 OK)
+GET {{host}}/api/products?page=0&pageSize=500
+Accept: application/json
+
+### 17. Search Products - Page Beyond Total (200 OK with empty items)
+GET {{host}}/api/products?page=99
+Accept: application/json
+
+### 18. Search Products - Pagination Walk Page 1 (200 OK)
+GET {{host}}/api/products?page=1&pageSize=2
+Accept: application/json
+
+### 19. Search Products - Pagination Walk Page 2 (200 OK)
+GET {{host}}/api/products?page=2&pageSize=2
+Accept: application/json
+
+### 20. Search Products - Pagination Walk Page 3 (200 OK)
+GET {{host}}/api/products?page=3&pageSize=2
+Accept: application/json
+
+### 21. Create Product - Valid with Variants (201 Created)
+# @name createProduct
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "categoryId": "{{findMacbook.response.body.$.items[0].categoryId}}",
+  "name": "ThinkPad T14 Gen 5",
+  "sku": "TPT14-G5-{{$timestamp}}",
+  "brand": "Lenovo",
+  "basePrice": 32000000,
+  "costPrice": 27000000,
+  "specs": {
+    "cpu": "Intel Core Ultra 5",
+    "ram_gb": 16
+  },
+  "variants": [
+    {
+      "variantName": "Black 512GB",
+      "sku": "TPT14-G5-512-{{$timestamp}}",
+      "price": 32000000,
+      "specs": {
+        "storage_gb": 512,
+        "color": "Black"
+      }
+    },
+    {
+      "variantName": "Black 1TB",
+      "sku": "TPT14-G5-1T-{{$timestamp}}",
+      "price": 36000000,
+      "specs": {
+        "storage_gb": 1024,
+        "color": "Black"
+      }
+    }
+  ]
+}
+
+### 22. Get Created Product Back by ID (200 OK)
+GET {{host}}/api/products/{{createProduct.response.body.$.id}}
+Accept: application/json
+
+### 23. Create Product - Negative Base Price (400 Bad Request)
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "categoryId": "{{findMacbook.response.body.$.items[0].categoryId}}",
+  "name": "Invalid Price Item",
+  "sku": "INV-P-{{$timestamp}}",
+  "brand": "Test",
+  "basePrice": -50000,
+  "costPrice": 10000
+}
+
+### 24. Create Product - Missing Base Price & Category ID (400 Bad Request)
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Missing Required Fields",
+  "sku": "MISSING-{{$timestamp}}",
+  "brand": "Test",
+  "costPrice": 10000
+}
+
+### 25. Create Product - Unknown Category ID (400 Bad Request)
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "categoryId": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "name": "Unknown Category Item",
+  "sku": "UNK-CAT-{{$timestamp}}",
+  "brand": "Test",
+  "basePrice": 100000,
+  "costPrice": 80000
+}
+
+### 26. Create Product - Variant SKU Equals Product SKU (400 Bad Request)
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "categoryId": "{{findMacbook.response.body.$.items[0].categoryId}}",
+  "name": "Dupe SKU Item",
+  "sku": "DUPE-SKU-{{$timestamp}}",
+  "brand": "Test",
+  "basePrice": 100000,
+  "costPrice": 80000,
+  "variants": [
+    {
+      "variantName": "V1",
+      "sku": "DUPE-SKU-{{$timestamp}}",
+      "price": 100000
+    }
+  ]
+}
+
+### 27. Create Product - Existing SKU in DB (409 Conflict)
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "categoryId": "{{findMacbook.response.body.$.items[0].categoryId}}",
+  "name": "Clashing Item",
+  "sku": "ip15pm-256-nt",
+  "brand": "Test",
+  "basePrice": 100000,
+  "costPrice": 80000
+}
+
+### 28. Create Product - Malformed Specs Key (400 Bad Request)
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "categoryId": "{{findMacbook.response.body.$.items[0].categoryId}}",
+  "name": "Invalid Spec Key Item",
+  "sku": "BAD-SPEC-{{$timestamp}}",
+  "brand": "Test",
+  "basePrice": 100000,
+  "costPrice": 80000,
+  "specs": {
+    "RAM GB": 16
+  }
+}
+
+### 29. Create Product - Nested Variant Specs (400 Bad Request)
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "categoryId": "{{findMacbook.response.body.$.items[0].categoryId}}",
+  "name": "Nested Spec Item",
+  "sku": "NESTED-{{$timestamp}}",
+  "brand": "Test",
+  "basePrice": 100000,
+  "costPrice": 80000,
+  "variants": [
+    {
+      "variantName": "V1",
+      "sku": "NESTED-V1-{{$timestamp}}",
+      "price": 100000,
+      "specs": {
+        "display": {
+          "size_inch": 14
+        }
+      }
+    }
+  ]
+}
 
 ###

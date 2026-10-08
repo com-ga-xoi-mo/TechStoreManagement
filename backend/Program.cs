@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TechStore.Api.Catalog.Services;
 using TechStore.Api.Common.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,9 @@ if (!string.IsNullOrEmpty(connectionString))
 
 // Data Seeder registration
 builder.Services.AddScoped<IDataSeeder, DataSeeder>();
+
+// Catalog Module services
+builder.Services.AddScoped<IProductService, ProductService>();
 
 // Swagger / OpenAPI documentation
 builder.Services.AddEndpointsApiExplorer();

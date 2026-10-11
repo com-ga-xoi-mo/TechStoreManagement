@@ -48,12 +48,11 @@ public class DataSeederTests
         // Assert: Admin user exists with correct password
         var admin = await dbContext.Users.FirstOrDefaultAsync(u => u.Username == "admin");
         admin.Should().NotBeNull();
-        admin!.Email.Should().Be("admin@techstore.vn");
-
+        admin!.Id.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        admin.Email.Should().Be("admin@techstore.vn");
         var hasher = new PasswordHasher<User>();
         var verifyResult = hasher.VerifyHashedPassword(admin, admin.PasswordHash, "Admin@123");
         verifyResult.Should().Be(PasswordVerificationResult.Success);
-
         // Assert: Categories & Products
         var categoriesCount = await dbContext.Categories.CountAsync();
         categoriesCount.Should().BeGreaterThanOrEqualTo(2);

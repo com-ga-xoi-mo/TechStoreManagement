@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using TechStore.Api.Catalog.Entities;
+using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Inventory.Entities;
 using TechStore.Api.Inventory.Repositories;
@@ -11,6 +13,7 @@ namespace TechStore.Api.Inventory.Services;
 public class SerialImeiService(
     ISerialImeiRepository serialImeiRepository,
     IInventoryStockRepository stockRepository,
+    IProductRepository productRepository,
     IUnitOfWork unitOfWork) : ISerialImeiService
 {
     private static readonly Regex ImeiRegex = new(@"^[0-9]{15}$", RegexOptions.Compiled);
@@ -65,6 +68,26 @@ public class SerialImeiService(
         if (request.Items == null || request.Items.Count == 0)
         {
             errors["items"] = ["Items list cannot be empty."];
+        }
+        else if (request.Items.Count > 500)
+        {
+            errors["items"] = ["Batch import size cannot exceed 500 items per request."];
+        }
+
+        if (request.ProductId.HasValue && request.ProductId.Value != Guid.Empty)
+        {
+            var product = await productRepository.GetWithVariantsAsync(request.ProductId.Value, cancellationToken);
+            if (product == null)
+            {
+                errors["productId"] = [$"Product with ID '{request.ProductId.Value}' does not exist."];
+            }
+            else if (request.VariantId.HasValue && request.VariantId.Value != Guid.Empty)
+            {
+                if (product.Variants == null || product.Variants.All(v => v.Id != request.VariantId.Value))
+                {
+                    errors["variantId"] = [$"Variant with ID '{request.VariantId.Value}' does not belong to product '{request.ProductId.Value}'."];
+                }
+            }
         }
 
         if (errors.Count > 0)

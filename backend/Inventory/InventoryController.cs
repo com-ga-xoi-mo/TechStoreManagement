@@ -9,7 +9,6 @@ using TechStore.Shared.Requests;
 namespace TechStore.Api.Inventory;
 
 [ApiController]
-[Route("api/v1/inventory")]
 [Route("api/inventory")]
 public class InventoryController : ControllerBase
 {
@@ -63,7 +62,7 @@ public class InventoryController : ControllerBase
             return ValidationProblem(BuildModelState(result.ValidationErrors));
         }
 
-        return Created($"/api/v1/inventory/stocks?productId={result.Data!.ProductId}", result.Data);
+        return Created($"/api/inventory/stocks?productId={result.Data!.ProductId}", result.Data);
     }
 
     [HttpGet("serials")]
@@ -106,7 +105,7 @@ public class InventoryController : ControllerBase
         }
 
         return Created(
-            $"/api/v1/inventory/serials?productId={request.ProductId}",
+            $"/api/inventory/serials?productId={request.ProductId}",
             new { importedCount = result.ImportedCount });
     }
 

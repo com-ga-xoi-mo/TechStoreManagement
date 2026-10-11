@@ -8,7 +8,6 @@ using TechStore.Shared.Requests;
 namespace TechStore.Api.Catalog;
 
 [ApiController]
-[Route("api/v1/categories")]
 [Route("api/categories")]
 public class CategoriesController : ControllerBase
 {
@@ -58,6 +57,6 @@ public class CategoriesController : ControllerBase
             return ValidationProblem(modelState);
         }
 
-        return Created($"/api/v1/categories/{result.Data!.Id}", result.Data);
+        return Created($"/api/categories/{result.Data!.Id}", result.Data);
     }
 }

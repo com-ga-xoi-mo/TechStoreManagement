@@ -1,4 +1,5 @@
 using FluentAssertions;
+using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Inventory.Entities;
 using TechStore.Api.Inventory.Services;
 using TechStore.Shared.Enums;
@@ -11,13 +12,14 @@ public class SerialImeiServiceTests
 {
     private readonly FakeSerialImeiRepository _serialRepository = new();
     private readonly FakeInventoryStockRepository _stockRepository = new();
+    private readonly FakeProductRepository _productRepository = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly SerialImeiService _service;
     private readonly Guid _userId = Guid.NewGuid();
 
     public SerialImeiServiceTests()
     {
-        _service = new SerialImeiService(_serialRepository, _stockRepository, _unitOfWork);
+        _service = new SerialImeiService(_serialRepository, _stockRepository, _productRepository, _unitOfWork);
     }
 
     [Fact]
@@ -62,6 +64,7 @@ public class SerialImeiServiceTests
     {
         // Arrange: chưa có stock row cho sản phẩm này
         var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Product A" });
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = productId,
@@ -107,6 +110,7 @@ public class SerialImeiServiceTests
     {
         // Arrange: đã có stock row với Quantity = 10
         var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Product B" });
         var existingStock = new InventoryStock
         {
             ProductId = productId,
@@ -148,6 +152,7 @@ public class SerialImeiServiceTests
     {
         // Arrange: DB đã có Serial SN999
         var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Product C" });
         _serialRepository.Items.Add(new SerialImei
         {
             ProductId = productId,
@@ -179,6 +184,7 @@ public class SerialImeiServiceTests
     {
         // Arrange: payload tự chứa 2 serial trùng nhau
         var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Product D" });
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = productId,
@@ -204,6 +210,7 @@ public class SerialImeiServiceTests
     {
         // Arrange: IMEI 10 chữ số (không hợp lệ)
         var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Product E" });
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = productId,
@@ -219,6 +226,87 @@ public class SerialImeiServiceTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.ValidationErrors.Should().ContainKey("items[0].imei");
+        _unitOfWork.BeginTransactionCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task BatchImportAsync_Should_Fail_Validation_When_Items_Count_Exceeds_500()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Product Max" });
+        var items = Enumerable.Range(1, 501)
+            .Select(i => new SerialImeiImportItemRequest { SerialNumber = $"SN-{i}" })
+            .ToList();
+
+        var request = new BatchImportSerialImeiRequest
+        {
+            ProductId = productId,
+            Items = items
+        };
+
+        // Act
+        var result = await _service.BatchImportAsync(request, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("items");
+        result.ValidationErrors!["items"].Should().Contain("Batch import size cannot exceed 500 items per request.");
+        _unitOfWork.BeginTransactionCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task BatchImportAsync_Should_Fail_Validation_When_Product_Does_Not_Exist()
+    {
+        // Arrange
+        var nonExistentProductId = Guid.NewGuid();
+        var request = new BatchImportSerialImeiRequest
+        {
+            ProductId = nonExistentProductId,
+            Items = [new SerialImeiImportItemRequest { SerialNumber = "SN-001" }]
+        };
+
+        // Act
+        var result = await _service.BatchImportAsync(request, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("productId");
+        result.ValidationErrors!["productId"].Should().Contain($"Product with ID '{nonExistentProductId}' does not exist.");
+        _unitOfWork.BeginTransactionCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task BatchImportAsync_Should_Fail_Validation_When_Variant_Does_Not_Belong_To_Product()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        var mismatchedVariantId = Guid.NewGuid();
+        var product = new Product
+        {
+            Id = productId,
+            Name = "Product V",
+            Variants = new List<ProductVariant>
+            {
+                new() { Id = Guid.NewGuid(), ProductId = productId, Sku = "SKU-V1" }
+            }
+        };
+        _productRepository.Products.Add(productId, product);
+
+        var request = new BatchImportSerialImeiRequest
+        {
+            ProductId = productId,
+            VariantId = mismatchedVariantId,
+            Items = [new SerialImeiImportItemRequest { SerialNumber = "SN-002" }]
+        };
+
+        // Act
+        var result = await _service.BatchImportAsync(request, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("variantId");
+        result.ValidationErrors!["variantId"].Should().Contain($"Variant with ID '{mismatchedVariantId}' does not belong to product '{productId}'.");
         _unitOfWork.BeginTransactionCount.Should().Be(0);
     }
 }

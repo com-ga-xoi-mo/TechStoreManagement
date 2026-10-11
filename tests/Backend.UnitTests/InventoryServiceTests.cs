@@ -11,13 +11,14 @@ namespace TechStore.UnitTests;
 public class InventoryServiceTests
 {
     private readonly FakeInventoryStockRepository _stockRepository = new();
+    private readonly FakeProductRepository _productRepository = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly InventoryService _service;
     private readonly Guid _userId = Guid.NewGuid();
 
     public InventoryServiceTests()
     {
-        _service = new InventoryService(_stockRepository, _unitOfWork);
+        _service = new InventoryService(_stockRepository, _productRepository, _unitOfWork);
     }
 
     [Fact]
@@ -102,6 +103,7 @@ public class InventoryServiceTests
     {
         // Arrange
         var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Test Product" });
         var request = new InitializeStockRequest
         {
             ProductId = productId,
@@ -138,6 +140,7 @@ public class InventoryServiceTests
     {
         // Arrange
         var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Existing Product" });
         _stockRepository.Stocks.Add(new InventoryStock
         {
             ProductId = productId,
@@ -163,14 +166,18 @@ public class InventoryServiceTests
         _unitOfWork.CommitCount.Should().Be(0);
     }
 
-    [Fact]
-    public async Task InitializeStockAsync_Should_Fail_Validation_When_Quantity_Is_Negative()
+    [Theory]
+    [InlineData(-5)]
+    [InlineData(0)]
+    public async Task InitializeStockAsync_Should_Fail_Validation_When_Quantity_Is_Zero_Or_Negative(int quantity)
     {
         // Arrange
+        var prodId = Guid.NewGuid();
+        _productRepository.Products.Add(prodId, new Product { Id = prodId, Name = "Test Product" });
         var request = new InitializeStockRequest
         {
-            ProductId = Guid.NewGuid(),
-            Quantity = -5
+            ProductId = prodId,
+            Quantity = quantity
         };
 
         // Act
@@ -179,6 +186,62 @@ public class InventoryServiceTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.ValidationErrors.Should().ContainKey("quantity");
+        result.ValidationErrors!["quantity"].Should().Contain("Opening quantity must be greater than zero.");
+        _unitOfWork.BeginTransactionCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task InitializeStockAsync_Should_Fail_Validation_When_Product_Does_Not_Exist()
+    {
+        // Arrange
+        var nonExistentProductId = Guid.NewGuid();
+        var request = new InitializeStockRequest
+        {
+            ProductId = nonExistentProductId,
+            Quantity = 10
+        };
+
+        // Act
+        var result = await _service.InitializeStockAsync(request, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("productId");
+        result.ValidationErrors!["productId"].Should().Contain($"Product with ID '{nonExistentProductId}' does not exist.");
+        _unitOfWork.BeginTransactionCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task InitializeStockAsync_Should_Fail_Validation_When_Variant_Does_Not_Belong_To_Product()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        var mismatchedVariantId = Guid.NewGuid();
+        var product = new Product
+        {
+            Id = productId,
+            Name = "Product A",
+            Variants = new List<ProductVariant>
+            {
+                new() { Id = Guid.NewGuid(), ProductId = productId, Sku = "SKU-1" }
+            }
+        };
+        _productRepository.Products.Add(productId, product);
+
+        var request = new InitializeStockRequest
+        {
+            ProductId = productId,
+            VariantId = mismatchedVariantId,
+            Quantity = 10
+        };
+
+        // Act
+        var result = await _service.InitializeStockAsync(request, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("variantId");
+        result.ValidationErrors!["variantId"].Should().Contain($"Variant with ID '{mismatchedVariantId}' does not belong to product '{productId}'.");
         _unitOfWork.BeginTransactionCount.Should().Be(0);
     }
 }

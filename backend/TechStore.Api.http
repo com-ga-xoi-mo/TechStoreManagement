@@ -247,12 +247,12 @@ Content-Type: application/json
 }
 
 ### 30. Get Category Hierarchy Tree (200 OK)
-GET {{host}}/api/v1/categories/tree
+GET {{host}}/api/categories/tree
 Accept: application/json
 
 ### 31. Create Top-Level Category (201 Created)
 # @name createCategory
-POST {{host}}/api/v1/categories
+POST {{host}}/api/categories
 Content-Type: application/json
 
 {
@@ -262,7 +262,7 @@ Content-Type: application/json
 }
 
 ### 32. Create Subcategory with Parent (201 Created)
-POST {{host}}/api/v1/categories
+POST {{host}}/api/categories
 Content-Type: application/json
 
 {
@@ -272,7 +272,7 @@ Content-Type: application/json
 }
 
 ### 33. Create Category - Missing Name (400 Bad Request)
-POST {{host}}/api/v1/categories
+POST {{host}}/api/categories
 Content-Type: application/json
 
 {
@@ -280,7 +280,7 @@ Content-Type: application/json
 }
 
 ### 34. Create Category - Duplicate Slug Conflict (409 Conflict)
-POST {{host}}/api/v1/categories
+POST {{host}}/api/categories
 Content-Type: application/json
 
 {
@@ -289,19 +289,19 @@ Content-Type: application/json
 }
 
 ### 35. Search Stocks - Default Listing (200 OK)
-GET {{host}}/api/v1/inventory/stocks
+GET {{host}}/api/inventory/stocks
 Accept: application/json
 
 ### 36. Search Stocks - Filter by LowStock Alert (200 OK)
-GET {{host}}/api/v1/inventory/stocks?lowStock=true
+GET {{host}}/api/inventory/stocks?lowStock=true
 Accept: application/json
 
 ### 37. Search Stocks - Filter by Product ID (200 OK)
-GET {{host}}/api/v1/inventory/stocks?productId={{findMacbook.response.body.$.items[0].id}}
+GET {{host}}/api/inventory/stocks?productId={{findMacbook.response.body.$.items[0].id}}
 Accept: application/json
 
 ### 38. Initialize Stock Balance (201 Created)
-POST {{host}}/api/v1/inventory/stocks/initialize
+POST {{host}}/api/inventory/stocks/initialize
 Content-Type: application/json
 
 {
@@ -312,7 +312,7 @@ Content-Type: application/json
 }
 
 ### 39. Initialize Stock Balance - Duplicate Conflict (409 Conflict)
-POST {{host}}/api/v1/inventory/stocks/initialize
+POST {{host}}/api/inventory/stocks/initialize
 Content-Type: application/json
 
 {
@@ -322,7 +322,7 @@ Content-Type: application/json
 }
 
 ### 40. Initialize Stock Balance - Negative Quantity (400 Bad Request)
-POST {{host}}/api/v1/inventory/stocks/initialize
+POST {{host}}/api/inventory/stocks/initialize
 Content-Type: application/json
 
 {
@@ -331,11 +331,11 @@ Content-Type: application/json
 }
 
 ### 41. Query Serials - Status Filter InStock (200 OK)
-GET {{host}}/api/v1/inventory/serials?status=InStock
+GET {{host}}/api/inventory/serials?status=InStock
 Accept: application/json
 
 ### 42. Batch Import Serials - Valid Batch (201 Created)
-POST {{host}}/api/v1/inventory/serials/batch-import
+POST {{host}}/api/inventory/serials/batch-import
 Content-Type: application/json
 
 {
@@ -358,7 +358,7 @@ Content-Type: application/json
 }
 
 ### 43. Batch Import Serials - Duplicate Serial in DB (409 Conflict)
-POST {{host}}/api/v1/inventory/serials/batch-import
+POST {{host}}/api/inventory/serials/batch-import
 Content-Type: application/json
 
 {
@@ -371,7 +371,7 @@ Content-Type: application/json
 }
 
 ### 44. Batch Import Serials - Duplicate Within Batch Payload (409 Conflict)
-POST {{host}}/api/v1/inventory/serials/batch-import
+POST {{host}}/api/inventory/serials/batch-import
 Content-Type: application/json
 
 {
@@ -387,7 +387,7 @@ Content-Type: application/json
 }
 
 ### 45. Batch Import Serials - Invalid IMEI Format (400 Bad Request)
-POST {{host}}/api/v1/inventory/serials/batch-import
+POST {{host}}/api/inventory/serials/batch-import
 Content-Type: application/json
 
 {

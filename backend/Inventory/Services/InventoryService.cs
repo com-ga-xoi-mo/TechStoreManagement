@@ -1,3 +1,5 @@
+using TechStore.Api.Catalog.Entities;
+using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Inventory.Entities;
 using TechStore.Api.Inventory.Repositories;
@@ -9,6 +11,7 @@ namespace TechStore.Api.Inventory.Services;
 
 public class InventoryService(
     IInventoryStockRepository stockRepository,
+    IProductRepository productRepository,
     IUnitOfWork unitOfWork) : IInventoryService
 {
     public async Task<InventoryStockSearchResult> GetStocksAsync(
@@ -63,14 +66,30 @@ public class InventoryService(
         {
             errors["quantity"] = ["Quantity is required."];
         }
-        else if (request.Quantity.Value < 0)
+        else if (request.Quantity.Value <= 0)
         {
-            errors["quantity"] = ["Quantity must be greater than or equal to zero."];
+            errors["quantity"] = ["Opening quantity must be greater than zero."];
         }
 
         if (request.MinStockAlert.HasValue && request.MinStockAlert.Value < 0)
         {
             errors["minStockAlert"] = ["MinStockAlert must be greater than or equal to zero."];
+        }
+
+        if (request.ProductId.HasValue && request.ProductId.Value != Guid.Empty)
+        {
+            var product = await productRepository.GetWithVariantsAsync(request.ProductId.Value, cancellationToken);
+            if (product == null)
+            {
+                errors["productId"] = [$"Product with ID '{request.ProductId.Value}' does not exist."];
+            }
+            else if (request.VariantId.HasValue && request.VariantId.Value != Guid.Empty)
+            {
+                if (product.Variants == null || product.Variants.All(v => v.Id != request.VariantId.Value))
+                {
+                    errors["variantId"] = [$"Variant with ID '{request.VariantId.Value}' does not belong to product '{request.ProductId.Value}'."];
+                }
+            }
         }
 
         if (errors.Count > 0)

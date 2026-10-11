@@ -7,26 +7,26 @@ Provides hierarchical category navigation trees and administrative category mana
 ## Requirements
 
 ### Requirement: Category Hierarchy Tree Retrieval
-The system SHALL return all active categories organized into a hierarchical tree where root categories contain nested child categories.
+The system SHALL return all active categories organized into a hierarchical tree where root categories contain nested child categories via direct route `/api/categories/tree`.
 
 #### Scenario: Retrieve complete active category tree
-- **WHEN** client sends a GET request to `/api/v1/categories/tree`
+- **WHEN** client sends a GET request to `/api/categories/tree`
 - **THEN** system returns HTTP 200 with root categories and their recursively nested active subcategories ordered by display hierarchy
 
 #### Scenario: Inactive categories are excluded from tree
 - **WHEN** categories have `IsActive` set to false
-- **THEN** system omits them and their descendant branches from the tree returned by `/api/v1/categories/tree`
+- **THEN** system omits them and their descendant branches from the tree returned by `/api/categories/tree`
 
 ### Requirement: Category Creation
-The system SHALL allow authorized users with Admin or Manager roles to create a new category with a validated name, unique slug, and optional valid parent category.
+The system SHALL allow authorized users with Admin or Manager roles to create a new category with a validated name, unique slug, and optional valid parent category via direct route `/api/categories`.
 
 #### Scenario: Create top-level category successfully
-- **WHEN** an authorized Admin or Manager posts valid category details without a parent ID to `/api/v1/categories`
-- **THEN** system creates the category and returns HTTP 201 Created with the created Category DTO and a Location header
+- **WHEN** an authorized Admin or Manager posts valid category details without a parent ID to `/api/categories`
+- **THEN** system creates the category and returns HTTP 201 Created with the created Category DTO and a Location header targeting `/api/categories/{id}`
 
 #### Scenario: Create subcategory with valid parent ID
-- **WHEN** an authorized Admin or Manager posts valid category details referencing an existing parent ID to `/api/v1/categories`
-- **THEN** system validates parent existence, links the subcategory, and returns HTTP 201 Created
+- **WHEN** an authorized Admin or Manager posts valid category details referencing an existing parent ID to `/api/categories`
+- **THEN** system validates parent existence, links the subcategory, and returns HTTP 201 Created with a Location header targeting `/api/categories/{id}`
 
 #### Scenario: Category creation with duplicate slug
 - **WHEN** client posts a category with a slug that already exists in the system

@@ -1,0 +1,213 @@
+<Page x:Class="TechStore.Client.Views.Dashboard.DashboardPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:analytics="using:TechStore.Client.Models.Analytics"
+      xmlns:dashboard="using:TechStore.Client.ViewModels.Dashboard"
+      xmlns:charts="using:TechStore.Client.Controls.Dashboard"
+      xmlns:converters="using:TechStore.Client.Converters"
+      Background="{StaticResource TechStoreCanvasBackgroundBrush}">
+
+    <Page.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <DataTemplate x:Key="KpiCardTemplate" x:DataType="dashboard:DashboardKpiCard">
+            <Border Style="{StaticResource TechStoreCardBorderStyle}" Margin="0,0,12,12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                    <TextBlock Text="{x:Bind Value}" Style="{StaticResource TechStoreSubheadingTextBlockStyle}"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{x:Bind Detail}" Style="{StaticResource TechStoreMicroCaptionTextBlockStyle}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <StackPanel Padding="24" Spacing="16">
+            <StackPanel Spacing="10">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Tổng quan kinh doanh" Style="{StaticResource TechStoreHeadingTextBlockStyle}" />
+                    <TextBlock Text="{x:Bind ViewModel.RangeText, Mode=OneWay}"
+                               Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                </StackPanel>
+                <Border Style="{StaticResource TechStoreNeutralBadgeStyle}"
+                        HorizontalAlignment="Left" AutomationProperties.Name="Dữ liệu mẫu, chế độ xem trước">
+                    <TextBlock Text="Dữ liệu mẫu · Preview" Foreground="{StaticResource TechStoreNeutralTextBrush}"
+                               Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                </Border>
+            </StackPanel>
+
+            <Grid x:Name="PeriodFilterGrid" ColumnSpacing="6" MaxWidth="560">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <RadioButton Content="Hôm nay" GroupName="DashboardPeriod" MinWidth="0"
+                             IsChecked="{x:Bind ViewModel.IsTodaySelected, Mode=OneWay}"
+                             Command="{x:Bind ViewModel.ChangePeriodCommand}"
+                             CommandParameter="{x:Bind analytics:DashboardPeriod.Today}" />
+                <RadioButton Grid.Column="1" Content="7 ngày qua" GroupName="DashboardPeriod" MinWidth="0"
+                             IsChecked="{x:Bind ViewModel.IsLast7DaysSelected, Mode=OneWay}"
+                             Command="{x:Bind ViewModel.ChangePeriodCommand}"
+                             CommandParameter="{x:Bind analytics:DashboardPeriod.Last7Days}" />
+                <RadioButton Grid.Column="2" Content="Tháng này" GroupName="DashboardPeriod" MinWidth="0"
+                             IsChecked="{x:Bind ViewModel.IsThisMonthSelected, Mode=OneWay}"
+                             Command="{x:Bind ViewModel.ChangePeriodCommand}"
+                             CommandParameter="{x:Bind analytics:DashboardPeriod.ThisMonth}" />
+            </Grid>
+
+            <Grid x:Name="KpiGrid" ColumnSpacing="0" RowSpacing="0" SizeChanged="KpiGrid_SizeChanged">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ContentControl x:Name="RevenueCard" Content="{x:Bind ViewModel.RevenueCard}" ContentTemplate="{StaticResource KpiCardTemplate}" />
+                <ContentControl x:Name="OrdersCard" Grid.Column="1" Content="{x:Bind ViewModel.OrderCountCard}" ContentTemplate="{StaticResource KpiCardTemplate}" />
+                <ContentControl x:Name="ProductsCard" Grid.Column="2" Content="{x:Bind ViewModel.ProductCountCard}" ContentTemplate="{StaticResource KpiCardTemplate}" />
+                <ContentControl x:Name="LowStockCard" Grid.Column="3" Content="{x:Bind ViewModel.LowStockCountCard}" ContentTemplate="{StaticResource KpiCardTemplate}" />
+            </Grid>
+
+            <Border Style="{StaticResource TechStoreCardBorderStyle}">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Xu hướng doanh thu theo ngày" Style="{StaticResource TechStoreSubheadingTextBlockStyle}" />
+                            <TextBlock Text="{x:Bind ViewModel.RangeText, Mode=OneWay}"
+                                       Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.RevenueText, Mode=OneWay}"
+                                   Style="{StaticResource TechStoreSubheadingTextBlockStyle}"
+                                   VerticalAlignment="Top" />
+                    </Grid>
+
+                    <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                                  Width="32" Height="32" HorizontalAlignment="Center"
+                                  Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                    <StackPanel Spacing="8"
+                                Visibility="{x:Bind ViewModel.IsError, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                                   Style="{StaticResource TechStoreErrorCaptionTextBlockStyle}" TextWrapping="Wrap" />
+                        <Button Content="Thử lại" Command="{x:Bind ViewModel.RetryCommand}"
+                                Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                                HorizontalAlignment="Left" />
+                    </StackPanel>
+
+                    <TextBlock Text="Khoảng thời gian này chưa có đơn hoàn thành."
+                               Style="{StaticResource TechStoreSecondaryTextBlockStyle}"
+                               Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                    <StackPanel Spacing="8"
+                                Visibility="{x:Bind ViewModel.HasData, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <charts:RevenueChartControl x:Name="RevenueChart" Height="220" HorizontalAlignment="Stretch" />
+                        <TextBlock Text="{x:Bind ViewModel.ChartSummary, Mode=OneWay}"
+                                   Style="{StaticResource TechStoreMicroCaptionTextBlockStyle}"
+                                   TextWrapping="Wrap" AutomationProperties.Name="Tóm tắt doanh thu từng mốc thời gian" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource TechStoreCardBorderStyle}">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Tồn kho thấp" Style="{StaticResource TechStoreSubheadingTextBlockStyle}" />
+                        <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.AsOfText, Mode=OneWay}"
+                                   Style="{StaticResource TechStoreMicroCaptionTextBlockStyle}" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.LowStockItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="dashboard:DashboardLowStockRow">
+                                <Grid Padding="8,10" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Text="{x:Bind ProductName}" Style="{StaticResource TechStoreBodyTextBlockStyle}"
+                                                   FontWeight="SemiBold" TextWrapping="Wrap" />
+                                        <TextBlock Text="{x:Bind VariantName}" Style="{StaticResource TechStoreCaptionTextBlockStyle}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind QuantityLabel}"
+                                               Foreground="{StaticResource TechStoreDangerTextBrush}"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="Không có mặt hàng dưới ngưỡng an toàn."
+                               Style="{StaticResource TechStoreSecondaryTextBlockStyle}"
+                               Visibility="{x:Bind ViewModel.HasNoLowStockItems, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource TechStoreCardBorderStyle}">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="5 đơn hàng phát sinh gần nhất" Style="{StaticResource TechStoreSubheadingTextBlockStyle}" />
+                            <TextBlock Text="{x:Bind ViewModel.RangeText, Mode=OneWay}" Style="{StaticResource TechStoreMicroCaptionTextBlockStyle}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="Danh sách đầy đủ chưa triển khai"
+                                   Style="{StaticResource TechStoreMicroCaptionTextBlockStyle}"
+                                   TextWrapping="Wrap" MaxWidth="170" TextAlignment="Right" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.RecentOrders}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="dashboard:DashboardRecentOrderRow">
+                                <StackPanel Spacing="4" Padding="8,10">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind OrderCode}" Foreground="{StaticResource TechStorePrimaryBrush}"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind CustomerName}"
+                                                   Style="{StaticResource TechStoreBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                        <TextBlock Grid.Column="2" Text="{x:Bind AmountText}"
+                                                   Style="{StaticResource TechStoreBodyTextBlockStyle}" FontWeight="SemiBold" />
+                                    </Grid>
+                                    <TextBlock Text="{x:Bind ProductSummary}" Style="{StaticResource TechStoreCaptionTextBlockStyle}"
+                                               TextWrapping="Wrap" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind CreatedAtText}"
+                                                   Style="{StaticResource TechStoreMicroCaptionTextBlockStyle}" />
+                                        <Border Grid.Column="1" Style="{StaticResource TechStoreNeutralBadgeStyle}">
+                                            <TextBlock Text="{x:Bind Status}" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                                        </Border>
+                                    </Grid>
+                                    <Border Height="1" Background="{StaticResource TechStoreBorderBrush}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="Chưa có đơn hàng trong khoảng thời gian này."
+                               Style="{StaticResource TechStoreSecondaryTextBlockStyle}"
+                               Visibility="{x:Bind ViewModel.IsRecentOrdersEmpty, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

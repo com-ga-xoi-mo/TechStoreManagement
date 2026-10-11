@@ -1,0 +1,278 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ========================================================================= -->
+    <!-- 1. COLOR PALETTE (Reference: D31 Style Guide & D01 Dashboard)             -->
+    <!-- ========================================================================= -->
+
+    <!-- Primary -->
+    <Color x:Key="TechStorePrimaryColor">#2563EB</Color>
+    <Color x:Key="TechStorePrimaryHoverColor">#1D4ED8</Color>
+    <Color x:Key="TechStorePrimaryPressedColor">#1E40AF</Color>
+    <Color x:Key="TechStorePrimaryTintColor">#EFF6FF</Color>
+
+    <!-- Canvas & Surfaces -->
+    <Color x:Key="TechStoreCanvasBackgroundColor">#F8FAFC</Color>
+    <Color x:Key="TechStoreSurfaceBackgroundColor">#FFFFFF</Color>
+
+    <!-- Neutral & Text -->
+    <Color x:Key="TechStoreTextPrimaryColor">#0F172A</Color>
+    <Color x:Key="TechStoreTextSecondaryColor">#64748B</Color>
+    <Color x:Key="TechStoreTextMutedColor">#94A3B8</Color>
+    <Color x:Key="TechStoreTextDisabledColor">#94A3B8</Color>
+
+    <!-- Borders -->
+    <Color x:Key="TechStoreBorderColor">#E2E8F0</Color>
+    <Color x:Key="TechStoreBorderHoverColor">#CBD5E1</Color>
+    <Color x:Key="TechStoreBorderFocusColor">#2563EB</Color>
+    <Color x:Key="TechStoreBorderErrorColor">#EF4444</Color>
+    <Color x:Key="TechStoreControlDisabledBgColor">#F1F5F9</Color>
+    <Color x:Key="TechStoreControlDisabledBorderColor">#E2E8F0</Color>
+
+    <!-- Semantic Feedback -->
+    <Color x:Key="TechStoreSuccessColor">#10B981</Color>
+    <Color x:Key="TechStoreSuccessTextColor">#065F46</Color>
+    <Color x:Key="TechStoreSuccessBgColor">#ECFDF5</Color>
+    <Color x:Key="TechStoreSuccessBorderColor">#A7F3D0</Color>
+
+    <Color x:Key="TechStoreWarningColor">#F59E0B</Color>
+    <Color x:Key="TechStoreWarningTextColor">#92400E</Color>
+    <Color x:Key="TechStoreWarningBgColor">#FFFBEB</Color>
+    <Color x:Key="TechStoreWarningBorderColor">#FDE68A</Color>
+
+    <Color x:Key="TechStoreDangerColor">#EF4444</Color>
+    <Color x:Key="TechStoreDangerTextColor">#991B1B</Color>
+    <Color x:Key="TechStoreDangerHoverColor">#DC2626</Color>
+    <Color x:Key="TechStoreDangerPressedColor">#B91C1C</Color>
+    <Color x:Key="TechStoreDangerBgColor">#FEF2F2</Color>
+    <Color x:Key="TechStoreDangerBorderColor">#FECACA</Color>
+
+    <Color x:Key="TechStoreNeutralTextColor">#334155</Color>
+    <Color x:Key="TechStoreNeutralBgColor">#F1F5F9</Color>
+    <Color x:Key="TechStoreNeutralBorderColor">#CBD5E1</Color>
+
+    <!-- ========================================================================= -->
+    <!-- 2. SOLID COLOR BRUSHES                                                    -->
+    <!-- ========================================================================= -->
+
+    <SolidColorBrush x:Key="TechStorePrimaryBrush" Color="{StaticResource TechStorePrimaryColor}" />
+    <SolidColorBrush x:Key="TechStorePrimaryHoverBrush" Color="{StaticResource TechStorePrimaryHoverColor}" />
+    <SolidColorBrush x:Key="TechStorePrimaryPressedBrush" Color="{StaticResource TechStorePrimaryPressedColor}" />
+    <SolidColorBrush x:Key="TechStorePrimaryTintBrush" Color="{StaticResource TechStorePrimaryTintColor}" />
+
+    <SolidColorBrush x:Key="TechStoreCanvasBackgroundBrush" Color="{StaticResource TechStoreCanvasBackgroundColor}" />
+    <SolidColorBrush x:Key="TechStoreSurfaceBackgroundBrush" Color="{StaticResource TechStoreSurfaceBackgroundColor}" />
+
+    <SolidColorBrush x:Key="TechStoreTextPrimaryBrush" Color="{StaticResource TechStoreTextPrimaryColor}" />
+    <SolidColorBrush x:Key="TechStoreTextSecondaryBrush" Color="{StaticResource TechStoreTextSecondaryColor}" />
+    <SolidColorBrush x:Key="TechStoreTextMutedBrush" Color="{StaticResource TechStoreTextMutedColor}" />
+    <SolidColorBrush x:Key="TechStoreTextDisabledBrush" Color="{StaticResource TechStoreTextDisabledColor}" />
+
+    <SolidColorBrush x:Key="TechStoreBorderBrush" Color="{StaticResource TechStoreBorderColor}" />
+    <SolidColorBrush x:Key="TechStoreBorderHoverBrush" Color="{StaticResource TechStoreBorderHoverColor}" />
+    <SolidColorBrush x:Key="TechStoreBorderFocusBrush" Color="{StaticResource TechStoreBorderFocusColor}" />
+    <SolidColorBrush x:Key="TechStoreBorderErrorBrush" Color="{StaticResource TechStoreBorderErrorColor}" />
+    <SolidColorBrush x:Key="TechStoreControlDisabledBgBrush" Color="{StaticResource TechStoreControlDisabledBgColor}" />
+    <SolidColorBrush x:Key="TechStoreControlDisabledBorderBrush" Color="{StaticResource TechStoreControlDisabledBorderColor}" />
+
+    <SolidColorBrush x:Key="TechStoreSuccessBrush" Color="{StaticResource TechStoreSuccessColor}" />
+    <SolidColorBrush x:Key="TechStoreSuccessTextBrush" Color="{StaticResource TechStoreSuccessTextColor}" />
+    <SolidColorBrush x:Key="TechStoreSuccessBgBrush" Color="{StaticResource TechStoreSuccessBgColor}" />
+    <SolidColorBrush x:Key="TechStoreSuccessBorderBrush" Color="{StaticResource TechStoreSuccessBorderColor}" />
+
+    <SolidColorBrush x:Key="TechStoreWarningBrush" Color="{StaticResource TechStoreWarningColor}" />
+    <SolidColorBrush x:Key="TechStoreWarningTextBrush" Color="{StaticResource TechStoreWarningTextColor}" />
+    <SolidColorBrush x:Key="TechStoreWarningBgBrush" Color="{StaticResource TechStoreWarningBgColor}" />
+    <SolidColorBrush x:Key="TechStoreWarningBorderBrush" Color="{StaticResource TechStoreWarningBorderColor}" />
+
+    <SolidColorBrush x:Key="TechStoreDangerBrush" Color="{StaticResource TechStoreDangerColor}" />
+    <SolidColorBrush x:Key="TechStoreDangerTextBrush" Color="{StaticResource TechStoreDangerTextColor}" />
+    <SolidColorBrush x:Key="TechStoreDangerHoverBrush" Color="{StaticResource TechStoreDangerHoverColor}" />
+    <SolidColorBrush x:Key="TechStoreDangerPressedBrush" Color="{StaticResource TechStoreDangerPressedColor}" />
+    <SolidColorBrush x:Key="TechStoreDangerBgBrush" Color="{StaticResource TechStoreDangerBgColor}" />
+    <SolidColorBrush x:Key="TechStoreDangerBorderBrush" Color="{StaticResource TechStoreDangerBorderColor}" />
+
+    <SolidColorBrush x:Key="TechStoreNeutralTextBrush" Color="{StaticResource TechStoreNeutralTextColor}" />
+    <SolidColorBrush x:Key="TechStoreNeutralBgBrush" Color="{StaticResource TechStoreNeutralBgColor}" />
+    <SolidColorBrush x:Key="TechStoreNeutralBorderBrush" Color="{StaticResource TechStoreNeutralBorderColor}" />
+
+    <!-- ========================================================================= -->
+    <!-- 3. CORNER RADII & SPACING TOKENS (D31 Specification)                      -->
+    <!-- ========================================================================= -->
+
+    <CornerRadius x:Key="TechStoreControlCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="TechStoreCardCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="TechStoreBadgeCornerRadius">4</CornerRadius>
+
+    <Thickness x:Key="TechStoreSpacingXs">4</Thickness>
+    <Thickness x:Key="TechStoreSpacingSm">8</Thickness>
+    <Thickness x:Key="TechStoreSpacingMd">12</Thickness>
+    <Thickness x:Key="TechStoreSpacingLg">16</Thickness>
+    <Thickness x:Key="TechStoreSpacingXl">24</Thickness>
+
+    <!-- ========================================================================= -->
+    <!-- 4. TYPOGRAPHY STYLES (D31 Hierarchy: Heading 20, Body 13, Caption 11-12)  -->
+    <!-- ========================================================================= -->
+
+    <Style x:Key="TechStoreHeadingTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource TechStoreTextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="TechStoreSubheadingTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource TechStoreTextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="TechStoreBodyTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{StaticResource TechStoreTextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="TechStoreSecondaryTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{StaticResource TechStoreTextSecondaryBrush}" />
+    </Style>
+
+    <Style x:Key="TechStoreCaptionTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{StaticResource TechStoreTextSecondaryBrush}" />
+    </Style>
+
+    <Style x:Key="TechStoreMicroCaptionTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{StaticResource TechStoreTextMutedBrush}" />
+    </Style>
+
+    <Style x:Key="TechStoreErrorCaptionTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{StaticResource TechStoreDangerTextBrush}" />
+    </Style>
+
+    <!-- ========================================================================= -->
+    <!-- 5. CARD & SURFACE CONTAINER STYLES                                        -->
+    <!-- ========================================================================= -->
+
+    <Style x:Key="TechStoreCardBorderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource TechStoreSurfaceBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource TechStoreBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource TechStoreCardCornerRadius}" />
+        <Setter Property="Padding" Value="16" />
+    </Style>
+
+    <!-- ========================================================================= -->
+    <!-- 6. KEYED BUTTON STYLES (Primary, Secondary, Destructive)                  -->
+    <!-- Note: WinUI Button automatically derives PointerOver/Pressed/Disabled     -->
+    <!-- states from the Background/Foreground properties. The explicit hover/     -->
+    <!-- pressed color tokens are provided for custom templates when needed.       -->
+    <!-- ========================================================================= -->
+
+    <Style x:Key="TechStorePrimaryButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource TechStorePrimaryBrush}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource TechStoreControlCornerRadius}" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <!-- Basic visual states rely on WinUI defaults inheriting the Base Background/Foreground.
+             To strictly map Hover/Pressed tokens, a ControlTemplate override is needed, but WinUI's native
+             lighten/darken on our PrimaryBrush usually suffices for this foundation. -->
+    </Style>
+
+    <Style x:Key="TechStoreSecondaryButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource TechStoreSurfaceBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TechStoreTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource TechStoreBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource TechStoreControlCornerRadius}" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+
+    <Style x:Key="TechStoreDangerButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource TechStoreDangerBrush}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource TechStoreControlCornerRadius}" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+
+    <!-- ========================================================================= -->
+    <!-- 7. KEYED INPUT STYLES (Normal & Error)                                    -->
+    <!-- ========================================================================= -->
+
+    <Style x:Key="TechStoreTextBoxStyle" TargetType="TextBox">
+        <Setter Property="Background" Value="{StaticResource TechStoreSurfaceBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TechStoreTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource TechStoreBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource TechStoreControlCornerRadius}" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style x:Key="TechStorePasswordBoxStyle" TargetType="PasswordBox">
+        <Setter Property="Background" Value="{StaticResource TechStoreSurfaceBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TechStoreTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource TechStoreBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource TechStoreControlCornerRadius}" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style x:Key="TechStoreErrorTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource TechStoreTextBoxStyle}">
+        <Setter Property="BorderBrush" Value="{StaticResource TechStoreBorderErrorBrush}" />
+    </Style>
+
+    <!-- ========================================================================= -->
+    <!-- 8. STATUS BADGE CONTAINER STYLES (Rectangular 4px corner radius D31)     -->
+    <!-- ========================================================================= -->
+
+    <Style x:Key="TechStoreSuccessBadgeStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource TechStoreSuccessBgBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource TechStoreSuccessBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource TechStoreBadgeCornerRadius}" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+
+    <Style x:Key="TechStoreWarningBadgeStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource TechStoreWarningBgBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource TechStoreWarningBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource TechStoreBadgeCornerRadius}" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+
+    <Style x:Key="TechStoreDangerBadgeStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource TechStoreDangerBgBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource TechStoreDangerBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource TechStoreBadgeCornerRadius}" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+
+    <Style x:Key="TechStoreNeutralBadgeStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource TechStoreNeutralBgBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource TechStoreNeutralBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource TechStoreBadgeCornerRadius}" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+
+</ResourceDictionary>

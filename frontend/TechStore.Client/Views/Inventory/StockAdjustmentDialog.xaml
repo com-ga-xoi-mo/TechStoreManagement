@@ -1,0 +1,119 @@
+<ContentDialog x:Class="TechStore.Client.Views.Inventory.StockAdjustmentDialog"
+               xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:converters="using:TechStore.Client.Converters"
+               Title="Điều chỉnh tồn kho"
+               CloseButtonText="Đóng"
+               AutomationProperties.Name="Điều chỉnh tồn kho">
+    <ContentDialog.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </ContentDialog.Resources>
+    <ScrollViewer MaxHeight="680" MaxWidth="720"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  HorizontalScrollMode="Disabled">
+        <StackPanel Spacing="16">
+            <Border Style="{StaticResource TechStoreCardBorderStyle}" Padding="14">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{x:Bind ViewModel.Balance.ProductName, Mode=OneWay}"
+                               Style="{StaticResource TechStoreSubheadingTextBlockStyle}" TextWrapping="Wrap" />
+                    <TextBlock Text="{x:Bind ViewModel.Balance.VariantName, Mode=OneWay}"
+                               Style="{StaticResource TechStoreBodyTextBlockStyle}" TextWrapping="Wrap" />
+                    <TextBlock Text="{x:Bind ViewModel.Balance.Sku, Mode=OneWay}"
+                               Style="{StaticResource TechStoreCaptionTextBlockStyle}" TextWrapping="Wrap" />
+                    <TextBlock Text="{x:Bind ViewModel.BalanceSummary, Mode=OneWay}"
+                               Style="{StaticResource TechStoreBodyTextBlockStyle}" TextWrapping="Wrap"
+                               AutomationProperties.Name="Số tồn vật lý, đã giữ và có thể bán" />
+                    <Border Style="{StaticResource TechStoreNeutralBadgeStyle}"
+                            HorizontalAlignment="Left"
+                            Visibility="{x:Bind ViewModel.IsPreviewData, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="Dữ liệu mẫu · Preview" Foreground="{StaticResource TechStoreNeutralTextBrush}" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Spacing="10"
+                        Visibility="{x:Bind ViewModel.IsRegularBalance, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="Hướng điều chỉnh" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                <ComboBox ItemsSource="{x:Bind ViewModel.DirectionOptions}"
+                          SelectedIndex="{x:Bind ViewModel.DirectionIndex, Mode=TwoWay}"
+                          IsEnabled="{x:Bind ViewModel.CanEditDraft, Mode=OneWay}"
+                          AutomationProperties.Name="Chọn tăng hoặc giảm tồn" />
+
+                <TextBlock Text="Số lượng" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                <TextBox Text="{x:Bind ViewModel.QuantityText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         InputScope="Number" PlaceholderText="Nhập số lượng nguyên lớn hơn 0"
+                         IsEnabled="{x:Bind ViewModel.CanEditDraft, Mode=OneWay}"
+                         Style="{StaticResource TechStoreTextBoxStyle}"
+                         AutomationProperties.Name="Số lượng điều chỉnh" />
+                <TextBlock Text="{x:Bind ViewModel.ValidationMessage, Mode=OneWay}"
+                           Style="{StaticResource TechStoreErrorCaptionTextBlockStyle}"
+                           Visibility="{x:Bind ViewModel.HasValidationError, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                           AutomationProperties.LiveSetting="Polite" TextWrapping="Wrap" />
+
+                <TextBlock Text="Lý do điều chỉnh" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                <TextBox Text="{x:Bind ViewModel.Reason, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         PlaceholderText="Bắt buộc nhập lý do" AcceptsReturn="True" MinHeight="72"
+                         IsEnabled="{x:Bind ViewModel.CanEditDraft, Mode=OneWay}"
+                         Style="{StaticResource TechStoreTextBoxStyle}"
+                         AutomationProperties.Name="Lý do điều chỉnh tồn kho" />
+
+                <Border Style="{StaticResource TechStoreCardBorderStyle}" Padding="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Tồn vật lý sau điều chỉnh (ước tính)"
+                                   Style="{StaticResource TechStoreCaptionTextBlockStyle}" TextWrapping="Wrap" />
+                        <TextBlock Text="{x:Bind ViewModel.ProjectedPhysicalQuantity, Mode=OneWay}"
+                                   Style="{StaticResource TechStoreHeadingTextBlockStyle}"
+                                   AutomationProperties.Name="Tồn vật lý ước tính sau điều chỉnh" />
+                        <TextBlock Text="Giá trị ước tính; kết quả phải do nguồn dữ liệu xác nhận."
+                                   Style="{StaticResource TechStoreMicroCaptionTextBlockStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Content="Hủy" Command="{x:Bind ViewModel.CancelCommand}"
+                            Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                            AutomationProperties.Name="Hủy điều chỉnh tồn kho" />
+                    <Button Content="Xác nhận điều chỉnh" Command="{x:Bind ViewModel.SubmitCommand}"
+                            IsEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}"
+                            Style="{StaticResource TechStorePrimaryButtonStyle}"
+                            AutomationProperties.Name="Xác nhận điều chỉnh tồn kho" />
+                </StackPanel>
+            </StackPanel>
+
+            <Border Style="{StaticResource TechStoreCardBorderStyle}" Padding="14"
+                    Visibility="{x:Bind ViewModel.IsSerialBlocked, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Không thể điều chỉnh trực tiếp"
+                               Style="{StaticResource TechStoreSubheadingTextBlockStyle}" TextWrapping="Wrap" />
+                    <TextBlock Text="{x:Bind ViewModel.SerialBlockMessage, Mode=OneWay}"
+                               Style="{StaticResource TechStoreSecondaryTextBlockStyle}" TextWrapping="Wrap" />
+                    <TextBlock Text="Màn Serial/IMEI hiện là placeholder; danh sách và bộ lọc serial chưa được triển khai."
+                               Style="{StaticResource TechStoreMicroCaptionTextBlockStyle}" TextWrapping="Wrap" />
+                    <Button Content="Mở Serial/IMEI" Command="{x:Bind ViewModel.NavigateToSerialImeiCommand}"
+                            Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                            AutomationProperties.Name="Đi tới màn Serial/IMEI cho mặt hàng đã chọn" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.IsSubmitting, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <ProgressRing IsActive="{x:Bind ViewModel.IsSubmitting, Mode=OneWay}" />
+                <TextBlock Text="Đang gửi yêu cầu điều chỉnh…" Style="{StaticResource TechStoreSecondaryTextBlockStyle}" />
+            </StackPanel>
+            <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.IsReloading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <ProgressRing IsActive="{x:Bind ViewModel.IsReloading, Mode=OneWay}" />
+                <TextBlock Text="Đang tải lại số tồn…" Style="{StaticResource TechStoreSecondaryTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock Text="{x:Bind ViewModel.FeedbackMessage, Mode=OneWay}"
+                       Style="{StaticResource TechStoreErrorCaptionTextBlockStyle}"
+                       Visibility="{x:Bind ViewModel.HasFeedbackMessage, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                       AutomationProperties.LiveSetting="Polite" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8"
+                        Visibility="{x:Bind ViewModel.IsConflict, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Button Content="Tải lại số tồn" Command="{x:Bind ViewModel.ReloadBalanceCommand}"
+                        Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                        AutomationProperties.Name="Tải lại số tồn, giữ nguyên bản nháp" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

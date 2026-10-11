@@ -1,0 +1,46 @@
+<Page x:Class="TechStore.Client.Views.Shell.ShellPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:navigation="using:TechStore.Client.Services.Navigation"
+      xmlns:shell="using:TechStore.Client.ViewModels.Shell"
+      Background="{StaticResource TechStoreCanvasBackgroundBrush}">
+
+    <NavigationView x:Name="NavView"
+                    PaneTitle="TechStore System"
+                    IsBackButtonVisible="Visible"
+                    IsSettingsVisible="True"
+                    IsTitleBarAutoPaddingEnabled="True"
+                    MenuItemsSource="{x:Bind ViewModel.MenuItems}"
+                    ItemInvoked="NavView_ItemInvoked"
+                    BackRequested="NavView_BackRequested">
+        
+        <NavigationView.MenuItemTemplate>
+            <DataTemplate x:DataType="navigation:RouteMetadata">
+                <NavigationViewItem Content="{x:Bind Label}" Tag="{x:Bind Id}">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="{x:Bind IconSymbol}" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </DataTemplate>
+        </NavigationView.MenuItemTemplate>
+
+        <NavigationView.PaneFooter>
+            <StackPanel Padding="16">
+                <!-- Preview / User Status Footer -->
+                <TextBlock Text="{x:Bind ViewModel.FooterText, Mode=OneWay}"
+                           Style="{StaticResource TechStoreMicroCaptionTextBlockStyle}" 
+                           Opacity="0.8" TextWrapping="Wrap" Margin="0,0,0,12" />
+                           
+                <!-- Sign Out Action -->
+                <Button Content="Đăng xuất"
+                        Command="{x:Bind ViewModel.SignOutCommand}"
+                        Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                        HorizontalAlignment="Stretch"
+                        Visibility="{x:Bind ViewModel.IsSignOutVisible, Mode=OneWay}" />
+            </StackPanel>
+        </NavigationView.PaneFooter>
+
+        <Frame x:Name="ContentFrame" />
+
+    </NavigationView>
+</Page>

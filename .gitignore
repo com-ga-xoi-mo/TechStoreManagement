@@ -63,3 +63,9 @@ Library/
 schema.dbdiagram
 *.dbdiagram
 
+
+# Local Claude configuration
+.claude/
+
+# Local UI reference designs (keep on this machine; do not publish to GitHub)
+/UI/

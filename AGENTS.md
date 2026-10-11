@@ -304,6 +304,14 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter "FullyQu
 
 ## Testing & QA
 
+### OpenSpec task completion rule
+
+- While applying a change, leave a task as `- [ ]` until the stated work is implemented **and** its acceptance checks have actually passed. A file existing, code compiling, an uncalled test method, or an agent's expectation is not evidence that a task is done.
+- Run applicable automated checks and record their commands and results in the change's handoff or task evidence. For UI behavior, run the app and record what was observed. If a check cannot be run, mark it **unverified** and keep the dependent task unchecked.
+- Tasks requiring the project owner's manual UI acceptance stay unchecked until the owner explicitly confirms the tested build. Record the confirmation date and any failed checks; do not infer approval from screenshots, earlier phases, silence, or an agent's own test.
+- Before reporting a change complete or archiving it, reconcile every checked task with current code and evidence. Reopen any task whose implementation or verification is missing or contradicted by a later finding. Report partial progress honestly and keep real API integration separate from mock UI acceptance.
+
+
 ### 1. Frameworks & Libraries
 - **Test Runner:** `xUnit` (`2.9.3`) with `Microsoft.NET.Test.Sdk` (`18.10.1`).
 - **Assertion Library:** `FluentAssertions` (`8.11.0`) for human-readable, strongly-typed assertion chaining.

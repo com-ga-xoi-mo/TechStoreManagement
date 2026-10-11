@@ -12,10 +12,94 @@ public partial class App : Application
     /// </summary>
     public App()
     {
+        ConfigureServices();
         this.InitializeComponent();
     }
 
-    protected Window? MainWindow { get; private set; }
+    public static IServiceProvider Services { get; private set; } = null!;
+
+    private static void ConfigureServices()
+    {
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+
+        // Core Services
+        services.AddSingleton<Services.Session.ICurrentSession, Services.Session.CurrentSessionProvider>();
+        services.AddSingleton<Services.Session.IAuthModeProvider>(
+            new TechStore.Client.Services.Session.AuthModeProvider(
+                TechStore.Client.Services.Session.SessionConfig.CurrentMode));
+        services.AddSingleton<Services.Navigation.INavigationService, Services.Navigation.NavigationService>();
+        services.AddSingleton<Services.Navigation.IRootNavigationService, Services.Navigation.RootNavigationService>();
+        services.AddSingleton<Services.Dialog.IDialogService, Services.Dialog.DialogService>();
+        services.AddSingleton<Services.Dialog.IProductDetailDialogService, Services.Dialog.ProductDetailDialogService>();
+        services.AddSingleton<Services.Dialog.IProductCreateDialogService, Services.Dialog.ProductCreateDialogService>();
+        services.AddSingleton<Services.Dialog.IProductEditDialogService, Services.Dialog.ProductEditDialogService>();
+        services.AddSingleton<Services.Dialog.IStockDetailDialogService, Services.Dialog.StockDetailDialogService>();
+        services.AddSingleton<Services.Dialog.IStockAdjustmentDialogService, Services.Dialog.StockAdjustmentDialogService>();
+        services.AddSingleton<Services.Inventory.IInventoryChangeNotifier, Services.Inventory.InventoryChangeNotifier>();
+        services.AddSingleton<Services.Navigation.IInventoryNavigationContext, Services.Navigation.InventoryNavigationContext>();
+        services.AddSingleton<Services.Navigation.IInventoryNavigationService, Services.Navigation.InventoryNavigationService>();
+
+        // Setup AuthRepository conditionally based on Mode
+        if (TechStore.Client.Services.Session.SessionConfig.CurrentMode == TechStore.Client.Services.Session.AuthMode.ExplicitPreview)
+        {
+            services.AddSingleton<Repositories.Identity.IAuthRepository, Repositories.Identity.FakeAuthRepository>();
+        }
+        else
+        {
+            services.AddSingleton<Repositories.Identity.IAuthRepository, Repositories.Identity.UnavailableAuthRepository>();
+        }
+
+        if (TechStore.Client.Services.Session.SessionConfig.CurrentMode == TechStore.Client.Services.Session.AuthMode.ExplicitPreview)
+        {
+            services.AddSingleton<Repositories.Analytics.IAnalyticsRepository>(
+                new Repositories.Analytics.FakeAnalyticsRepository(
+                    Repositories.Analytics.DashboardPreviewSettings.CurrentScenario));
+            var productRepository = new Repositories.Catalog.FakeProductRepository(
+                scenario: Repositories.Catalog.CatalogPreviewSettings.CurrentScenario,
+                detailScenario: Repositories.Catalog.ProductDetailPreviewSettings.CurrentScenario,
+                createScenario: Repositories.Catalog.ProductCreatePreviewSettings.CurrentScenario,
+                editScenario: Repositories.Catalog.ProductEditPreviewSettings.CurrentScenario);
+            services.AddSingleton(productRepository);
+            services.AddSingleton<Repositories.Catalog.IProductRepository>(productRepository);
+            services.AddSingleton<Repositories.Catalog.ICategoryRepository>(
+                new Repositories.Catalog.FakeCategoryRepository(
+                    Repositories.Catalog.CategoryTreePreviewSettings.CurrentScenario));
+            services.AddSingleton<Repositories.Inventory.IInventoryRepository>(
+                new Repositories.Inventory.FakeInventoryRepository(
+                    Repositories.Inventory.StockListPreviewSettings.CurrentScenario,
+                    Repositories.Inventory.StockDetailPreviewSettings.CurrentScenario,
+                    Repositories.Inventory.StockAdjustmentPreviewSettings.CurrentScenario));
+        }
+        else
+        {
+            services.AddSingleton<Repositories.Analytics.IAnalyticsRepository, Repositories.Analytics.UnavailableAnalyticsRepository>();
+            services.AddSingleton<Repositories.Catalog.IProductRepository, Repositories.Catalog.UnavailableProductRepository>();
+            services.AddSingleton<Repositories.Catalog.ICategoryRepository, Repositories.Catalog.UnavailableCategoryRepository>();
+            services.AddSingleton<Repositories.Inventory.IInventoryRepository, Repositories.Inventory.UnavailableInventoryRepository>();
+        }
+
+        // ViewModels
+        services.AddTransient<ViewModels.Identity.LoginViewModel>();
+        services.AddTransient<ViewModels.Dashboard.DashboardViewModel>();
+        services.AddTransient<ViewModels.Theme.ThemePreviewViewModel>();
+        services.AddTransient<ViewModels.Shell.ShellViewModel>();
+        services.AddTransient<ViewModels.Placeholder.PlaceholderViewModel>();
+        services.AddTransient<ViewModels.Catalog.ProductListViewModel>();
+        services.AddTransient<ViewModels.Catalog.ProductDetailViewModel>();
+        services.AddTransient<ViewModels.Catalog.ProductCreateViewModel>();
+        services.AddTransient<ViewModels.Catalog.ProductEditViewModel>();
+        services.AddTransient<ViewModels.Catalog.CategoryListViewModel>();
+        services.AddTransient<ViewModels.Inventory.StockListViewModel>();
+        services.AddTransient<ViewModels.Inventory.StockDetailViewModel>();
+        services.AddTransient<ViewModels.Inventory.StockAdjustmentViewModel>();
+        services.AddTransient<ViewModels.Inventory.InventoryViewModel>();
+
+        Services = services.BuildServiceProvider();
+    }
+
+    public Window? MainWindow { get; private set; }
+
+    public Window? GetMainWindow() => MainWindow;
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
@@ -24,30 +108,19 @@ public partial class App : Application
         MainWindow.UseStudio();
 #endif
 
-
-        // Do not repeat app initialization when the Window already has content,
-        // just ensure that the window is active
         if (MainWindow.Content is not Frame rootFrame)
         {
-            // Create a Frame to act as the navigation context and navigate to the first page
             rootFrame = new Frame();
-
-            // Place the frame in the current Window
             MainWindow.Content = rootFrame;
-
             rootFrame.NavigationFailed += OnNavigationFailed;
         }
 
         if (rootFrame.Content == null)
         {
-            // When the navigation stack isn't restored navigate to the first page,
-            // configuring the new page by passing required information as a navigation
-            // parameter
-            rootFrame.Navigate(typeof(MainPage), args.Arguments);
+            rootFrame.Navigate(typeof(Views.Identity.LoginPage), args.Arguments);
         }
 
         MainWindow.SetWindowIcon();
-        // Ensure the current window is active
         MainWindow.Activate();
     }
 

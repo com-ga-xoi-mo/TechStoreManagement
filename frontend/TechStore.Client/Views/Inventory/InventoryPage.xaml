@@ -1,0 +1,86 @@
+<Page x:Class="TechStore.Client.Views.Inventory.InventoryPage"
+      x:Name="InventoryRoot"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:catalog="using:TechStore.Client.Views.Catalog"
+      xmlns:inventory="using:TechStore.Client.Views.Inventory"
+      xmlns:converters="using:TechStore.Client.Converters"
+      Background="{StaticResource TechStoreCanvasBackgroundBrush}">
+    <Page.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:SelectionStatusConverter x:Key="SelectionStatusConverter" />
+        <Style x:Key="InventoryTabButtonStyle" TargetType="Button" BasedOn="{StaticResource TechStoreSecondaryButtonStyle}">
+            <Setter Property="Padding" Value="6,9" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+    </Page.Resources>
+    <Grid Padding="16" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Spacing="4">
+            <TextBlock Text="Danh mục &amp; Kho" Style="{StaticResource TechStoreHeadingTextBlockStyle}" />
+            <TextBlock Text="Quản lý danh mục sản phẩm và xem thông tin kho." TextWrapping="Wrap"
+                       Style="{StaticResource TechStoreSecondaryTextBlockStyle}" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnSpacing="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+            <StackPanel>
+                <Button Command="{x:Bind ViewModel.SelectCategoryTabCommand}"
+                        Style="{StaticResource InventoryTabButtonStyle}"
+                        HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="Tab Danh mục"
+                        AutomationProperties.ItemStatus="{x:Bind ViewModel.IsCategoryTabSelected, Mode=OneWay, Converter={StaticResource SelectionStatusConverter}}">
+                    <TextBlock Text="Danh mục" TextWrapping="Wrap" TextAlignment="Center" />
+                </Button>
+                <Border Height="3" Background="{StaticResource TechStorePrimaryBrush}"
+                        Visibility="{x:Bind ViewModel.IsCategoryTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1">
+                <Button Command="{x:Bind ViewModel.SelectStockTabCommand}"
+                        Style="{StaticResource InventoryTabButtonStyle}"
+                        HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="Tab Tồn kho"
+                        AutomationProperties.ItemStatus="{x:Bind ViewModel.IsStockTabSelected, Mode=OneWay, Converter={StaticResource SelectionStatusConverter}}">
+                    <TextBlock Text="Tồn kho" TextWrapping="Wrap" TextAlignment="Center" />
+                </Button>
+                <Border Height="3" Background="{StaticResource TechStorePrimaryBrush}"
+                        Visibility="{x:Bind ViewModel.IsStockTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <Button Command="{x:Bind ViewModel.SelectSerialImeiTabCommand}"
+                        Style="{StaticResource InventoryTabButtonStyle}"
+                        HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="Tab Serial / IMEI"
+                        AutomationProperties.ItemStatus="{x:Bind ViewModel.IsSerialImeiTabSelected, Mode=OneWay, Converter={StaticResource SelectionStatusConverter}}">
+                    <TextBlock Text="Serial / IMEI" TextWrapping="Wrap" TextAlignment="Center" />
+                </Button>
+                <Border Height="3" Background="{StaticResource TechStorePrimaryBrush}"
+                        Visibility="{x:Bind ViewModel.IsSerialImeiTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="2">
+            <catalog:CategoryListView x:Name="CategoryContent"
+                DataContext="{x:Bind ViewModel.CategoryListViewModel}"
+                Visibility="{x:Bind ViewModel.IsCategoryTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            <inventory:StockListView DataContext="{x:Bind ViewModel.StockListViewModel}"
+                Visibility="{x:Bind ViewModel.IsStockTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10"
+                        Visibility="{x:Bind ViewModel.IsSerialImeiTabSelected, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <SymbolIcon Symbol="Document" Foreground="{StaticResource TechStoreTextMutedBrush}" Width="36" Height="36" />
+                <TextBlock Text="{x:Bind ViewModel.PlaceholderTitle, Mode=OneWay}"
+                           Style="{StaticResource TechStoreSubheadingTextBlockStyle}" TextAlignment="Center" />
+                <TextBlock Text="{x:Bind ViewModel.PlaceholderMessage, Mode=OneWay}"
+                           Style="{StaticResource TechStoreSecondaryTextBlockStyle}" TextWrapping="Wrap" MaxWidth="520" TextAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

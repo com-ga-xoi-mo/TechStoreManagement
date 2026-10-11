@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="FluentAssertions" Version="8.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../../frontend/TechStore.Client/Models/Inventory/StockBalance.cs" Link="Source/Models/Inventory/StockBalance.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Inventory/StockAdjustmentModels.cs" Link="Source/Models/Inventory/StockAdjustmentModels.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Inventory/StockDetailModels.cs" Link="Source/Models/Inventory/StockDetailModels.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Inventory/IInventoryRepository.cs" Link="Source/Repositories/Inventory/IInventoryRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Inventory/StockListPreviewSettings.cs" Link="Source/Repositories/Inventory/StockListPreviewSettings.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Inventory/StockAdjustmentPreviewScenario.cs" Link="Source/Repositories/Inventory/StockAdjustmentPreviewScenario.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Inventory/StockDetailPreviewScenario.cs" Link="Source/Repositories/Inventory/StockDetailPreviewScenario.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Inventory/StockDetailPreviewSettings.cs" Link="Source/Repositories/Inventory/StockDetailPreviewSettings.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Inventory/FakeInventoryRepository.cs" Link="Source/Repositories/Inventory/FakeInventoryRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Inventory/UnavailableInventoryRepository.cs" Link="Source/Repositories/Inventory/UnavailableInventoryRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Inventory/StockListViewModel.cs" Link="Source/ViewModels/Inventory/StockListViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Inventory/StockDetailViewModel.cs" Link="Source/ViewModels/Inventory/StockDetailViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Inventory/StockAdjustmentViewModel.cs" Link="Source/ViewModels/Inventory/StockAdjustmentViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Inventory/IInventoryChangeNotifier.cs" Link="Source/Services/Inventory/IInventoryChangeNotifier.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Inventory/InventoryChangeNotifier.cs" Link="Source/Services/Inventory/InventoryChangeNotifier.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Navigation/IInventoryNavigationContext.cs" Link="Source/Services/Navigation/IInventoryNavigationContext.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Navigation/InventoryNavigationContext.cs" Link="Source/Services/Navigation/InventoryNavigationContext.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Navigation/IInventoryNavigationService.cs" Link="Source/Services/Navigation/IInventoryNavigationService.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Navigation/InventoryNavigationService.cs" Link="Source/Services/Navigation/InventoryNavigationService.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Navigation/INavigationService.cs" Link="Source/Services/Navigation/INavigationService.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Navigation/RouteMetadata.cs" Link="Source/Services/Navigation/RouteMetadata.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Navigation/NavigationCatalog.cs" Link="Source/Services/Navigation/NavigationCatalog.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Dialog/IStockDetailDialogService.cs" Link="Source/Services/Dialog/IStockDetailDialogService.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Dialog/IStockAdjustmentDialogService.cs" Link="Source/Services/Dialog/IStockAdjustmentDialogService.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Catalog/CatalogModels.cs" Link="Source/Models/Catalog/CatalogModels.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Catalog/CategoryTreeModels.cs" Link="Source/Models/Catalog/CategoryTreeModels.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Catalog/ProductDetailModels.cs" Link="Source/Models/Catalog/ProductDetailModels.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Catalog/ProductEditModels.cs" Link="Source/Models/Catalog/ProductEditModels.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/ProductEditPreviewScenario.cs" Link="Source/Repositories/Catalog/ProductEditPreviewScenario.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/ProductEditPreviewSettings.cs" Link="Source/Repositories/Catalog/ProductEditPreviewSettings.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/IProductRepository.cs" Link="Source/Repositories/Catalog/IProductRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/ICategoryRepository.cs" Link="Source/Repositories/Catalog/ICategoryRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/FakeProductRepository.cs" Link="Source/Repositories/Catalog/FakeProductRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/FakeCategoryRepository.cs" Link="Source/Repositories/Catalog/FakeCategoryRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/CategoryTreePreviewScenario.cs" Link="Source/Repositories/Catalog/CategoryTreePreviewScenario.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/CategoryTreePreviewSettings.cs" Link="Source/Repositories/Catalog/CategoryTreePreviewSettings.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/UnavailableProductRepository.cs" Link="Source/Repositories/Catalog/UnavailableProductRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/UnavailableCategoryRepository.cs" Link="Source/Repositories/Catalog/UnavailableCategoryRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/CatalogPreviewScenario.cs" Link="Source/Repositories/Catalog/CatalogPreviewScenario.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/CatalogPreviewSettings.cs" Link="Source/Repositories/Catalog/CatalogPreviewSettings.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/ProductDetailPreviewSettings.cs" Link="Source/Repositories/Catalog/ProductDetailPreviewSettings.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/ProductCreatePreviewScenario.cs" Link="Source/Repositories/Catalog/ProductCreatePreviewScenario.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/ProductCreatePreviewSettings.cs" Link="Source/Repositories/Catalog/ProductCreatePreviewSettings.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Catalog/ProductCardViewModel.cs" Link="Source/ViewModels/Catalog/ProductCardViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Catalog/ProductListViewModel.cs" Link="Source/ViewModels/Catalog/ProductListViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Catalog/ProductDetailViewModel.cs" Link="Source/ViewModels/Catalog/ProductDetailViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Catalog/ProductCreateViewModel.cs" Link="Source/ViewModels/Catalog/ProductCreateViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Catalog/ProductEditViewModel.cs" Link="Source/ViewModels/Catalog/ProductEditViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Catalog/CategoryListViewModel.cs" Link="Source/ViewModels/Catalog/CategoryListViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Inventory/InventoryViewModel.cs" Link="Source/ViewModels/Inventory/InventoryViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Analytics/DashboardPeriodHelper.cs" Link="Source/Models/Analytics/DashboardPeriodHelper.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Analytics/DashboardSnapshot.cs" Link="Source/Models/Analytics/DashboardSnapshot.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Analytics/DashboardPreviewSettings.cs" Link="Source/Repositories/Analytics/DashboardPreviewSettings.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Analytics/FakeAnalyticsRepository.cs" Link="Source/Repositories/Analytics/FakeAnalyticsRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Analytics/IAnalyticsRepository.cs" Link="Source/Repositories/Analytics/IAnalyticsRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Analytics/UnavailableAnalyticsRepository.cs" Link="Source/Repositories/Analytics/UnavailableAnalyticsRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Dashboard/DashboardViewModel.cs" Link="Source/ViewModels/Dashboard/DashboardViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Identity/LoginResult.cs" Link="Source/Models/Identity/LoginResult.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Identity/IAuthRepository.cs" Link="Source/Repositories/Identity/IAuthRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Identity/FakeAuthRepository.cs" Link="Source/Repositories/Identity/FakeAuthRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Identity/UnavailableAuthRepository.cs" Link="Source/Repositories/Identity/UnavailableAuthRepository.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Session/ICurrentSession.cs" Link="Source/Services/Session/ICurrentSession.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Session/CostAccessPreviewSettings.cs" Link="Source/Services/Session/CostAccessPreviewSettings.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Session/ProductEditCapabilityPreviewSettings.cs" Link="Source/Services/Session/ProductEditCapabilityPreviewSettings.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Dialog/IProductDetailDialogService.cs" Link="Source/Services/Dialog/IProductDetailDialogService.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Dialog/IProductCreateDialogService.cs" Link="Source/Services/Dialog/IProductCreateDialogService.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Dialog/IProductEditDialogService.cs" Link="Source/Services/Dialog/IProductEditDialogService.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Session/SessionConfig.cs" Link="Source/Services/Session/SessionConfig.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Navigation/IRootNavigationService.cs" Link="Source/Services/Navigation/IRootNavigationService.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Identity/LoginViewModel.cs" Link="Source/ViewModels/Identity/LoginViewModel.cs" />
+  </ItemGroup>
+</Project>

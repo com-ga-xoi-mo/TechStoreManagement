@@ -1,5 +1,7 @@
 # KIẾN TRÚC HỆ THỐNG VÀ CẤU TRÚC THƯ MỤC (ARCHITECTURE SPECIFICATION)
+
 ## Dự án: TechStore Management System
+
 **Nền tảng:** .NET 10 | **Kiến trúc:** 3-Tier API-First | **Thiết kế:** Backend Modular & Frontend WinUI 3 Standard
 
 ---
@@ -37,6 +39,7 @@
 ## 2. Cấu trúc Thư mục Toàn hệ thống
 
 ### 2.1. Cây Thư mục Tổng quan
+
 ```text
 SalesManagement/
 ├── TechStore.sln                      # Solution tổng (.NET 10)
@@ -57,6 +60,7 @@ SalesManagement/
 ---
 
 ### 2.2. Chi tiết Cấu trúc `backend/`
+
 Các module nghiệp vụ được tổ chức theo từng thư mục tính năng độc lập, nằm trực tiếp trong `backend/` ngang hàng với `Common/`:
 
 ```text
@@ -207,6 +211,7 @@ tests/                                 # KIỂM THỬ TỰ ĐỘNG
 ### 2.5. Giải thích Kiến trúc MVVM và Feature-First MVVM
 
 #### A. Mô hình MVVM (Model - View - ViewModel) là gì?
+
 **MVVM** là mẫu kiến trúc phần mềm tiêu chuẩn cho các ứng dụng giao diện XAML (.NET MAUI, WPF, WinUI 3, Uno Platform), chia ứng dụng thành 3 thành phần tách biệt:
 
 ```text
@@ -229,14 +234,15 @@ tests/                                 # KIỂM THỬ TỰ ĐỘNG
 ---
 
 #### B. Feature-First MVVM là gì?
+
 **Feature-First MVVM** là phương pháp tổ chức mã nguồn bằng cách **nhóm View và ViewModel thuộc cùng một tính năng nghiệp vụ vào chung một thư mục**, thay vì phân chia theo tầng kỹ thuật truyền thống (Layer-First).
 
-| Tiêu chí | Layer-First (Truyền thống) | Feature-First (Hiện đại) |
-| :--- | :--- | :--- |
-| **Cách tổ chức** | • Gom tất cả Views vào thư mục `Views/`<br>• Gom tất cả ViewModels vào `ViewModels/`<br>• Gom tất cả Dialogs vào `Dialogs/` | Gom `ProductListPage.xaml`, `ProductListViewModel.cs`, `ProductDetailDialog.xaml` vào chung một thư mục `Features/Catalog/` |
-| **Thao tác khi code** | Khi cần sửa một màn hình, lập trình viên phải nhảy qua lại giữa 3 thư mục cách xa nhau trên cây project (**Navigation Tax**). | Mở đúng 1 thư mục là có đầy đủ giao diện (View) và logic điều khiển (ViewModel) của tính năng đó. |
-| **Độ kết dính (Cohesion)**| Rời rạc, khó theo dõi toàn bộ ngữ cảnh của một màn hình. | Rất cao (**High Cohesion**), toàn bộ ngữ cảnh tính năng được đóng gói trọn vẹn. |
-| **Khả năng mở rộng** | Khi dự án lớn lên, thư mục `Views/` và `ViewModels/` chứa hàng chục file lẫn lộn, rất dễ nhầm lẫn. | Thêm tính năng mới chỉ cần tạo thêm 1 thư mục con trong `Features/`, không làm xáo trộn các thư mục hiện có. |
+| Tiêu chí                           | Layer-First (Truyền thống)                                                                                                                         | Feature-First (Hiện đại)                                                                                                            |
+| :----------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cách tổ chức**            | • Gom tất cả Views vào thư mục`Views/`• Gom tất cả ViewModels vào `ViewModels/`• Gom tất cả Dialogs vào `Dialogs/`               | Gom`ProductListPage.xaml`, `ProductListViewModel.cs`, `ProductDetailDialog.xaml` vào chung một thư mục `Features/Catalog/` |
+| **Thao tác khi code**         | Khi cần sửa một màn hình, lập trình viên phải nhảy qua lại giữa 3 thư mục cách xa nhau trên cây project (**Navigation Tax**). | Mở đúng 1 thư mục là có đầy đủ giao diện (View) và logic điều khiển (ViewModel) của tính năng đó.                 |
+| **Độ kết dính (Cohesion)** | Rời rạc, khó theo dõi toàn bộ ngữ cảnh của một màn hình.                                                                                 | Rất cao (**High Cohesion**), toàn bộ ngữ cảnh tính năng được đóng gói trọn vẹn.                                   |
+| **Khả năng mở rộng**       | Khi dự án lớn lên, thư mục`Views/` và `ViewModels/` chứa hàng chục file lẫn lộn, rất dễ nhầm lẫn.                                | Thêm tính năng mới chỉ cần tạo thêm 1 thư mục con trong`Features/`, không làm xáo trộn các thư mục hiện có.       |
 
 ---
 
@@ -246,14 +252,14 @@ Hệ thống cơ sở dữ liệu được đặc tả hoàn chỉnh và trực 
 
 ### 3.1. Phân rã 6 Phân hệ Bảng (TableGroups) - 21 Bảng Dữ liệu
 
-| Phân hệ (TableGroup) | Bảng dữ liệu | Số bảng | Mô tả nghiệp vụ cốt lõi |
-| :--- | :--- | :---: | :--- |
-| **Catalog** | `categories`, `products`, `product_variants` | 3 | Cây danh mục cha-con (`parent_id`), sản phẩm gốc và các biến thể phần cứng (màu sắc, dung lượng). Thông số kỹ thuật lưu qua cột `specs JSONB`. |
-| **Inventory** | `inventory_stocks`, `inventory_movements`, `suppliers`, `purchase_orders`, `purchase_order_items`, `serial_imeis` | 6 | Quản lý tồn kho vật lý, số lượng đặt trước (`reserved_quantity`), sổ cái biến động kho bất biến (`inventory_movements`), nhà cung cấp, đơn mua hàng (hỗ trợ nhập từng phần `PartiallyReceived`), và theo dõi định danh Serial/IMEI từng máy. |
-| **Orders** | `orders`, `order_items`, `order_returns` | 3 | Đơn hàng bán lẻ POS, từng dòng sản phẩm liên kết Serial/IMEI đã xuất bán, và đơn hoàn trả/bảo hành kèm cờ nhập lại kho (`is_restocked`). |
-| **Customers** | `customers`, `customer_loyalty_points`, `vouchers` | 3 | Hồ sơ khách hàng, phân hạng VIP (Standard, Silver, Gold, Platinum), sổ cái tích/tiêu điểm thưởng (`customer_loyalty_points`), và mã giảm giá voucher (`vouchers`). |
-| **Sales** | `pos_sessions`, `vietqr_transactions` | 2 | Quản lý ca làm việc của thu ngân (đối soát tiền mặt đầu/cuối ca, tổng doanh thu thẻ/QR) và các giao dịch chuyển khoản ngân hàng động VietQR. |
-| **Identity** | `users`, `roles`, `user_roles`, `refresh_tokens` | 4 | Tài khoản nhân viên, 4 vai trò RBAC, bảng liên kết nhiều-nhiều `user_roles`, và chuỗi refresh token được mã hóa SHA-256 (`token_hash`) hỗ trợ thu hồi. |
+| Phân hệ (TableGroup) | Bảng dữ liệu                                                                                                               | Số bảng | Mô tả nghiệp vụ cốt lõi                                                                                                                                                                                                                                                         |
+| :--------------------- | :---------------------------------------------------------------------------------------------------------------------------- | :-------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Catalog**      | `categories`, `products`, `product_variants`                                                                            |     3     | Cây danh mục cha-con (`parent_id`), sản phẩm gốc và các biến thể phần cứng (màu sắc, dung lượng). Thông số kỹ thuật lưu qua cột `specs JSONB`.                                                                                                               |
+| **Inventory**    | `inventory_stocks`, `inventory_movements`, `suppliers`, `purchase_orders`, `purchase_order_items`, `serial_imeis` |     6     | Quản lý tồn kho vật lý, số lượng đặt trước (`reserved_quantity`), sổ cái biến động kho bất biến (`inventory_movements`), nhà cung cấp, đơn mua hàng (hỗ trợ nhập từng phần `PartiallyReceived`), và theo dõi định danh Serial/IMEI từng máy. |
+| **Orders**       | `orders`, `order_items`, `order_returns`                                                                                |     3     | Đơn hàng bán lẻ POS, từng dòng sản phẩm liên kết Serial/IMEI đã xuất bán, và đơn hoàn trả/bảo hành kèm cờ nhập lại kho (`is_restocked`).                                                                                                                  |
+| **Customers**    | `customers`, `customer_loyalty_points`, `vouchers`                                                                      |     3     | Hồ sơ khách hàng, phân hạng VIP (Standard, Silver, Gold, Platinum), sổ cái tích/tiêu điểm thưởng (`customer_loyalty_points`), và mã giảm giá voucher (`vouchers`).                                                                                              |
+| **Sales**        | `pos_sessions`, `vietqr_transactions`                                                                                     |     2     | Quản lý ca làm việc của thu ngân (đối soát tiền mặt đầu/cuối ca, tổng doanh thu thẻ/QR) và các giao dịch chuyển khoản ngân hàng động VietQR.                                                                                                                 |
+| **Identity**     | `users`, `roles`, `user_roles`, `refresh_tokens`                                                                      |     4     | Tài khoản nhân viên, 4 vai trò RBAC, bảng liên kết nhiều-nhiều`user_roles`, và chuỗi refresh token được mã hóa SHA-256 (`token_hash`) hỗ trợ thu hồi.                                                                                                         |
 
 ---
 
@@ -278,36 +284,34 @@ Hệ thống chuẩn hóa 10 kiểu liệt kê (Enum) định nghĩa toàn bộ 
 
 1. **100% Foreign Key Indexing (B-Tree):**
    Mọi cột khóa ngoại (FK) trên cả 21 bảng đều được tạo chỉ mục B-tree rõ ràng (chuẩn đặt tên: `idx_<table>_<col>`). Điều này ngăn chặn việc PostgreSQL quét toàn bảng (Sequential Scan) khi JOIN và triệt tiêu nguy cơ khóa bảng khi kiểm tra ràng buộc tầng (Cascade validation).
-
 2. **Khóa Ngoại Tổng Hợp (Composite Foreign Keys):**
    Ràng buộc khóa ngoại kép `(variant_id, product_id)` tham chiếu tới `product_variants.(id, product_id)` được áp dụng trên các bảng `inventory_stocks`, `purchase_order_items`, `serial_imeis`, và `order_items`. Điều này đảm bảo tuyệt đối ở tầng CSDL rằng biến thể được chọn phải thuộc về đúng sản phẩm cha đó, tránh lỗi dữ liệu cắm nhầm variant sang sản phẩm khác. Bảng `product_variants` có index duy nhất `uq_product_variants_id_product` trên `(id, product_id)`.
-
 3. **PostgreSQL 16 `UNIQUE NULLS NOT DISTINCT`:**
    Với các sản phẩm không có biến thể (`variant_id = NULL`), PostgreSQL thông thường coi các giá trị NULL là khác nhau nên có thể cho phép chèn nhiều dòng trùng lặp. Tính năng PostgreSQL 16 `UNIQUE NULLS NOT DISTINCT (product_id, variant_id)` (trong EF Core: `.AreNullsDistinct(false)`) bảo đảm:
+
    - Trên `inventory_stocks`: Chỉ tồn tại duy nhất 1 dòng tồn kho cho mỗi cặp `(product_id, variant_id)`, kể cả khi `variant_id` là NULL.
    - Trên `purchase_order_items`: Chỉ tồn tại duy nhất 1 dòng chi tiết cho mỗi sản phẩm/biến thể trên cùng 1 đơn nhập hàng `(purchase_order_id, product_id, variant_id)`.
-
 4. **Tối ưu Cột Thông số Kỹ thuật Động (`specs JSONB`):**
+
    - Cột `specs` trên bảng `products` và `product_variants` được đánh chỉ mục **GIN với operator class `jsonb_path_ops`** (`idx_products_specs_gin`, `idx_product_variants_specs_gin`), tối ưu hóa tốc độ truy vấn chứa (`specs @> '{"ram_gb": 16}'`).
    - Quy ước cấu trúc JSON phẳng với khóa dạng lowercase snake_case (`cpu`, `ram_gb`, `storage_gb`, `battery_mah`, `color`).
    - Kế thừa động: Thông số hiệu lực của biến thể được tính bằng `product.specs || variant.specs` (biến thể ghi đè khóa cấp 1 tương ứng của sản phẩm cha).
-
 5. **Chỉ Mục Một Phần (Partial / Filtered Indexes):**
    Tối ưu hóa các truy vấn tần suất cực cao tại quầy và bảo mật:
+
    - `serial_imeis`: Partial index `(product_id, status)` với điều kiện `WHERE status = 'InStock'` giúp thu ngân quét mã vạch/IMEI tức thì.
    - `vouchers`: Partial index `(is_active, expires_at)` với điều kiện `WHERE is_active = true` (điều kiện so sánh động `expires_at > now()` được lọc ở tầng query vì PostgreSQL cấm hàm không immutable trong index predicate).
    - `refresh_tokens`: Partial index `(user_id, token_hash)` với điều kiện `WHERE is_revoked = false` (`token_hash` lưu hash SHA-256 an toàn).
-
 6. **Bảo toàn Số dư Tồn kho & Chống Bán Âm (Anti-Overselling Concurrency):**
+
    - Ràng buộc kiểm tra (Check Constraints): `quantity >= 0`, `reserved_quantity >= 0`, `reserved_quantity <= quantity`.
    - Số lượng thực tế có thể bán: `available = quantity - reserved_quantity`.
    - Khi giữ chỗ cho đơn đang thanh toán: Tăng `reserved_quantity` và đổi trạng thái IMEI sang `Reserved` trong transaction sử dụng khóa dòng `SELECT ... FOR UPDATE`.
    - Bất biến với máy quản lý IMEI (`is_serial_tracked = true`): `inventory_stocks.quantity` phải luôn bằng `COUNT(serial_imeis WHERE status IN ('InStock', 'Reserved'))`.
-
 7. **Sổ Cái Biến Động Kho Bất Biến (Append-Only Audit Ledger `inventory_movements`):**
    Mọi thay đổi số lượng tồn kho vật lý (`quantity_change <> 0`) bắt buộc phải ghi 1 bản ghi vào `inventory_movements` trong cùng transaction, lưu vết số dư ngay sau giao dịch (`quantity_after >= 0`), người thực hiện (`performed_by_user_id`), và chứng từ gốc liên kết (`purchase_order_item_id`, `order_item_id`, hoặc `order_return_id`). Bảng chỉ hỗ trợ INSERT (Append-Only), nghiêm cấm UPDATE/DELETE lịch sử.
-
 8. **Chuẩn hóa Kiểu Dữ liệu & Quy ước Định danh:**
+
    - Mọi mốc thời gian dùng kiểu `timestamptz` chuẩn múi giờ UTC.
    - Mọi số tiền, đơn giá, chiết khấu dùng kiểu `numeric(18, 2)` tránh sai số làm tròn số thực.
    - Tên bảng, cột, khóa, index và enum tuân thủ thống nhất chữ thường nối gạch dưới (`snake_case`).

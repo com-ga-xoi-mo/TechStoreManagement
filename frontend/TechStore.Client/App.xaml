@@ -7,6 +7,9 @@
       <ResourceDictionary.MergedDictionaries>
         <!-- Load WinUI resources -->
         <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+
+        <!-- TechStore Theme & Style Foundation (D31 Specification) -->
+        <ResourceDictionary Source="ms-appx:///Styles/TechStoreTheme.xaml" />
       </ResourceDictionary.MergedDictionaries>
 
       <!-- Add resources here -->

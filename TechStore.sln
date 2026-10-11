@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "frontend", "frontend", "{CE
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TechStore.Client", "frontend\TechStore.Client\TechStore.Client.csproj", "{31C944B2-C470-41CB-BC78-4701E3798DC1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Frontend.UnitTests", "tests\Frontend.UnitTests\Frontend.UnitTests.csproj", "{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -79,6 +81,18 @@ Global
 		{31C944B2-C470-41CB-BC78-4701E3798DC1}.Release|x64.Build.0 = Release|Any CPU
 		{31C944B2-C470-41CB-BC78-4701E3798DC1}.Release|x86.ActiveCfg = Release|Any CPU
 		{31C944B2-C470-41CB-BC78-4701E3798DC1}.Release|x86.Build.0 = Release|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Debug|x64.Build.0 = Debug|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Debug|x86.Build.0 = Debug|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Release|x64.ActiveCfg = Release|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Release|x64.Build.0 = Release|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Release|x86.ActiveCfg = Release|Any CPU
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -89,5 +103,6 @@ Global
 		{E287CE12-E324-CCE3-8D1B-404C5259F724} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{E804448B-E6C2-4FC8-BAED-5D90CD9BA9FC} = {E287CE12-E324-CCE3-8D1B-404C5259F724}
 		{31C944B2-C470-41CB-BC78-4701E3798DC1} = {CE609670-85B9-0D16-FB54-ED063D5D8A6D}
+		{27B0AD81-B6A5-4957-BD5E-46B2D9D39D82} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

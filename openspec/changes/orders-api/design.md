@@ -10,8 +10,8 @@ Current state that shapes the approach:
 - Schema notes on `orders` / `order_items` define the lifecycle this design implements: a `Pending` draft may omit its device; payment verification reserves devices and stock; fulfilment releases the reservation, deducts stock, marks the device `Sold`, writes `Sale` movements and activates warranty atomically; paid orders use the refund flow, never cancellation.
 - Layering and transactions follow `AGENTS.md` section 9: `Controller → Service → Repository → AppDbContext`; repositories stage, never save; the service owns `IUnitOfWork` (`BeginTransactionAsync`, `SaveChangesAsync`, `CommitAsync`, `RollbackAsync`, no nesting; rollback clears the change tracker; unique violation `23505` becomes `DuplicateKeyException` with `ConstraintName`).
 - Catalog (Dev 2) is the template: result records, `[ApiController]` ProblemDetails helpers, fully nullable request contracts, a hand-written validator keyed by camelCase paths, `PagedResultDto<T>`, `ProductPagingHelper`, hand-written fakes.
-- Dev 3's branch `origin/catalog-inventory-api` (unmerged when this was written) provides `IInventoryStockRepository` (`GetByProductAndVariantAsync`, `GetForUpdateAsync` using `FromSqlInterpolated ... FOR UPDATE`, `Add`, `AddMovement`), `ISerialImeiRepository` (`SearchAsync`, `FindExistingIdentifiersAsync`, `AddRange`) and `IInventoryService` (`GetStocksAsync`, `InitializeStockAsync`). Its controller resolves the acting user from claims and otherwise falls back to `11111111-1111-1111-1111-111111111111`.
-- `DataSeeder` creates `admin` with `Guid.NewGuid()`; nothing guarantees the fallback actor exists.
+- Dev 3's work (merged into `dev` as PR #6; the interfaces below were verified after the merge) provides `IInventoryStockRepository` (`GetByProductAndVariantAsync`, `GetForUpdateAsync` using `FromSqlInterpolated ... FOR UPDATE`, `Add`, `AddMovement`), `ISerialImeiRepository` (`SearchAsync`, `FindExistingIdentifiersAsync`, `AddRange`) and `IInventoryService` (`GetStocksAsync`, `InitializeStockAsync`). Its controller resolves the acting user from claims and otherwise falls back to `11111111-1111-1111-1111-111111111111`.
+- `DataSeeder` (since commit `26824d7` on `dev`) creates `admin` with the fixed id `11111111-1111-1111-1111-111111111111`, so the fallback actor exists in freshly seeded databases.
 - There is no authentication, no exception middleware, no `ICustomerRepository`, and no JSON string-enum converter.
 
 ## Goals / Non-Goals
@@ -109,19 +109,19 @@ Paging reuses `ProductPagingHelper` (public static, same 20 / 1..100 rules) and 
 ### D12. Minimal Customers repository
 `ICustomerRepository` with `GetByIdAsync(id)` (`AsNoTracking`) and a `CustomerRepository`, registered Scoped. Same precedent as Catalog (Dev 2 created a minimal `ICategoryRepository`, Dev 3 extended it). Dev 5 owns and extends it; they must not create a second one.
 
-### D13. Acting user and seeder
-`OrdersController` resolves the user like Dev 3's controller (claim `NameIdentifier` / `sub`, else the fixed id). The method is private and duplicated for now with a comment; it is replaced by the shared mechanism when authentication (Dev 1) lands. `DataSeeder` assigns `Id = Guid.Parse("11111111-1111-1111-1111-111111111111")` to the admin user; every other seeded reference already uses `adminUser.Id`. The seeder is idempotent and skips a non-empty database, so existing local databases keep the random id until recreated (`docker compose down -v`).
+### D13. Acting user
+`OrdersController` resolves the user like Dev 3's controller (claim `NameIdentifier` / `sub`, else the fixed id `11111111-1111-1111-1111-111111111111`). The method is private and duplicated for now with a comment; it is replaced by the shared mechanism when authentication (Dev 1) lands. No seeder change is required: `DataSeeder` already gives `admin` that id. Databases seeded before that fix keep a random admin id (the seeder skips a non-empty database) and must be recreated with `docker compose down -v`.
 
 ### D14. Routes and action names
 `[Route("api/orders")]`; actions `Create` (POST, `CreatedAtAction(nameof(GetById), ...)`), `Search` (GET), `GetById` (GET `{id:guid}`), `UpdateStatus` (PATCH `{id:guid}/status`). Action names carry no `Async` suffix (ASP.NET Core strips it, which breaks `CreatedAtAction`); service methods keep it. Error mapping: validation → `ValidationProblem`, not found → `NotFound`, state / stock / device conflict → `Problem(409)`.
 
 ### D15. Branch and commits
-Branch `feat/orders-api` from `dev` (already created). Because Inventory work needs Dev 3's interfaces on `dev`, tasks are ordered so everything independent of those interfaces comes first; the branch is rebased onto `dev` after Dev 3's pull request merges. Commits: (1) OpenSpec artifacts; (2) seeder admin id; (3) shared contracts + Orders helpers; (4) Inventory fulfilment; (5) Orders repository / service / controller; (6) docs and task progress. No commit touches unrelated files such as `.gitignore`.
+Branch `feat/orders-api` from `dev` (already created). Because Inventory work needs Dev 3's interfaces on `dev`, tasks are ordered so everything independent of those interfaces comes first; the branch is rebased onto `dev` after Dev 3's pull request merges. Commits: (1) OpenSpec artifacts; (2) shared contracts + Orders helpers; (3) Inventory fulfilment; (4) Orders repository / service / controller; (5) docs and task progress. No commit touches unrelated files such as `.gitignore`.
 
 ## Risks / Trade-offs
 
 - [Dev 3's branch is unmerged, interfaces may change] → Inventory fulfilment tasks are gated on the merge; rebase and adjust method names if needed; keep new Inventory code in new files.
-- [Existing databases keep a random admin id] → Document the reset in the task list; seeder spec scenario covers fresh databases only; the fallback actor FK error is easy to recognize (`23503`).
+- [Databases seeded before commit `26824d7` keep a random admin id] → Recreate the local database; the symptom is a foreign-key error (`23503`) on `cashier_user_id` or `performed_by_user_id`.
 - [Unauthenticated fallback acts as admin] → Acceptable only until authentication; the fallback must be removed when `[Authorize]` is introduced (tracked in Open Questions).
 - [Create-time availability check is unlocked and can go stale] → Transitions re-verify under locks and return 409; a stale draft is harmless because it reserves nothing.
 - [Only the locking SQL and unique-code retry depend on PostgreSQL and cannot be unit tested] → Fakes cover service logic; manual requests in `TechStore.Api.http` cover `FOR UPDATE`, the race on one device and the 23505 retry; no integration test project exists yet.
@@ -134,7 +134,7 @@ Branch `feat/orders-api` from `dev` (already created). Because Inventory work ne
 ## Migration Plan
 
 - No database migration. Branch `feat/orders-api` from `dev`; commits as in D15; merge by pull request after Dev 3's Inventory pull request.
-- After pulling the seeder change every developer recreates their local database (`docker compose down -v && docker compose up -d`) so `admin` gets the fixed id.
+- Developers whose local database was seeded before the admin-id fix recreate it (`docker compose down -v && docker compose up -d`).
 - Rollback: revert the commits; no schema or data change to undo (orders created during manual testing are disposable development data).
 
 ## Open Questions

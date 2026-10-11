@@ -8,6 +8,9 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
     public List<InventoryStock> Stocks { get; } = [];
     public List<InventoryMovement> Movements { get; } = [];
 
+    // Stock rows locked through GetForUpdateAsync, in call order (used to assert the lock order).
+    public List<(Guid ProductId, Guid? VariantId)> LockedKeys { get; } = [];
+
     public Task<(IReadOnlyList<InventoryStock> Items, int TotalCount)> SearchStocksAsync(
         InventoryStockSearchCriteria criteria,
         CancellationToken cancellationToken = default)
@@ -52,6 +55,7 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
         Guid? variantId,
         CancellationToken cancellationToken = default)
     {
+        LockedKeys.Add((productId, variantId));
         var stock = Stocks.FirstOrDefault(s => s.ProductId == productId && s.VariantId == variantId);
         return Task.FromResult(stock);
     }

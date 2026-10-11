@@ -39,6 +39,7 @@ builder.Services.AddScoped<ISerialImeiRepository, SerialImeiRepository>();
 // Inventory Module services
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ISerialImeiService, SerialImeiService>();
+builder.Services.AddScoped<IInventoryFulfillmentService, InventoryFulfillmentService>();
 
 // Swagger / OpenAPI documentation
 builder.Services.AddEndpointsApiExplorer();

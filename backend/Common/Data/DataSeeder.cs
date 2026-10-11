@@ -42,7 +42,7 @@ public class DataSeeder : IDataSeeder
         // 3. Users
         var adminUser = new User
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Username = "admin",
             Email = "admin@techstore.vn",
             FullName = "System Administrator",

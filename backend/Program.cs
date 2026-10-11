@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Catalog.Services;
 using TechStore.Api.Common.Data;
+using TechStore.Api.Inventory.Repositories;
+using TechStore.Api.Inventory.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +30,15 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
 // Catalog Module services
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+
+// Inventory Module repositories
+builder.Services.AddScoped<IInventoryStockRepository, InventoryStockRepository>();
+builder.Services.AddScoped<ISerialImeiRepository, SerialImeiRepository>();
+
+// Inventory Module services
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<ISerialImeiService, SerialImeiService>();
 
 // Swagger / OpenAPI documentation
 builder.Services.AddEndpointsApiExplorer();

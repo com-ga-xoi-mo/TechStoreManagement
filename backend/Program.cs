@@ -1,9 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Catalog.Services;
 using TechStore.Api.Common.Data;
+using TechStore.Api.Customers.Repositories;
 using TechStore.Api.Inventory.Repositories;
 using TechStore.Api.Inventory.Services;
+using TechStore.Api.Orders.Repositories;
+using TechStore.Api.Orders.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +44,16 @@ builder.Services.AddScoped<ISerialImeiRepository, SerialImeiRepository>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ISerialImeiService, SerialImeiService>();
 builder.Services.AddScoped<IInventoryFulfillmentService, InventoryFulfillmentService>();
+
+// Customers Module repositories
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+
+// Orders Module repositories
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+
+// Orders Module services
+builder.Services.TryAddSingleton(TimeProvider.System);
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 // Swagger / OpenAPI documentation
 builder.Services.AddEndpointsApiExplorer();

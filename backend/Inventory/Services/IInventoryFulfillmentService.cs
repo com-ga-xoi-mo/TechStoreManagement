@@ -10,7 +10,17 @@ public record FulfillmentLine(
     Guid? SerialImeiId,
     int Quantity);
 
-public record FulfillmentProblem(int LineIndex, string Message);
+public enum FulfillmentProblemKind
+{
+    Device,
+    StockNotInitialized,
+    InsufficientStock
+}
+
+public record FulfillmentProblem(
+    int LineIndex,
+    string Message,
+    FulfillmentProblemKind Kind = FulfillmentProblemKind.Device);
 
 public record FulfillmentCheckResult(IReadOnlyList<FulfillmentProblem> Problems)
 {

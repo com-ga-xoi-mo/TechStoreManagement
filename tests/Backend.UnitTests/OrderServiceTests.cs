@@ -7,7 +7,7 @@ using Xunit;
 
 namespace TechStore.UnitTests;
 
-public class OrderServiceTests
+public partial class OrderServiceTests
 {
     // ------------------------------------------------------------------
     // OrderStatusTransitions

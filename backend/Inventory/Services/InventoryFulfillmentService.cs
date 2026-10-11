@@ -42,7 +42,7 @@ public class InventoryFulfillmentService(
 
             if (stock == null)
             {
-                problems.Add(new FulfillmentProblem(i, StockNotInitializedMessage));
+                problems.Add(new FulfillmentProblem(i, StockNotInitializedMessage, FulfillmentProblemKind.StockNotInitialized));
                 continue;
             }
 
@@ -50,7 +50,7 @@ public class InventoryFulfillmentService(
             var available = stock.Quantity - stock.ReservedQuantity;
             if (total > available)
             {
-                problems.Add(new FulfillmentProblem(i, InsufficientStockMessage(available)));
+                problems.Add(new FulfillmentProblem(i, InsufficientStockMessage(available), FulfillmentProblemKind.InsufficientStock));
                 continue;
             }
 
@@ -96,7 +96,7 @@ public class InventoryFulfillmentService(
             var available = stock.Quantity - stock.ReservedQuantity;
             if (total > available)
             {
-                return FulfillmentResult.Failed(new FulfillmentProblem(i, InsufficientStockMessage(available)));
+                return FulfillmentResult.Failed(new FulfillmentProblem(i, InsufficientStockMessage(available), FulfillmentProblemKind.InsufficientStock));
             }
 
             demand[key] = total;
@@ -162,7 +162,7 @@ public class InventoryFulfillmentService(
             var total = demand.GetValueOrDefault(key) + lines[i].Quantity;
             if (total > stock.ReservedQuantity || total > stock.Quantity)
             {
-                return SaleConfirmationResult.Failed(new FulfillmentProblem(i, "Stock is not reserved for this sale."));
+                return SaleConfirmationResult.Failed(new FulfillmentProblem(i, "Stock is not reserved for this sale.", FulfillmentProblemKind.InsufficientStock));
             }
 
             demand[key] = total;
@@ -253,7 +253,7 @@ public class InventoryFulfillmentService(
                 var lineIndex = lines
                     .Select((line, index) => (line, index))
                     .First(x => x.line.ProductId == key.ProductId && x.line.VariantId == key.VariantId).index;
-                return (stocks, new FulfillmentProblem(lineIndex, StockNotInitializedMessage));
+                return (stocks, new FulfillmentProblem(lineIndex, StockNotInitializedMessage, FulfillmentProblemKind.StockNotInitialized));
             }
 
             stocks[key] = stock;

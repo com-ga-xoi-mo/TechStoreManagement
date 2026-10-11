@@ -6,7 +6,7 @@
 - `OrderReturn.cs` (`order_returns`): Phiếu hoàn trả hàng, yêu cầu bảo hành và hoàn tiền.
 
 ## 2. Các Enum Dùng chung (Shared Enums)
-- **`OrderStatus`**: `Pending`, `Processing`, `Completed`, `Cancelled`, `Refunded`.
+- **`OrderStatus`**: `Pending`, `Processing`, `Completed`, `Cancelled`, `PartiallyRefunded`, `Refunded`.
 - **`PaymentMethod`**: `Cash`, `VietQr`, `Card`.
 
 ## 3. Quy ước Thiết kế & Ràng buộc Schema (Theo schema.dbml)
@@ -28,6 +28,40 @@
 
 ## 4. Cấu trúc Thành phần Module
 - **`Configurations/`**: `OrderConfiguration.cs`, `OrderItemConfiguration.cs`, `OrderReturnConfiguration.cs`.
-- **`Repositories/`** (dự kiến): `IOrderRepository` (`Order` cùng `OrderItem`, `OrderReturn`).
-- **`Services/`**: `IOrderService.cs`, `OrderService.cs`, `ReturnRefundService.cs`.
-- **Controller** (đặt tại thư mục gốc của module): `OrdersController.cs` (API lập đơn, chuyển trạng thái đơn, hủy/hoàn tiền, tra cứu lịch sử mua hàng).
+- **`Repositories/`**: `IOrderRepository` / `OrderRepository` (tìm kiếm có phân trang, chi tiết đơn, khóa đơn `FOR UPDATE`, mã đơn cuối của tháng), `OrderSearchCriteria`.
+- **`Services/`**:
+  - `IOrderService` / `OrderService`: tạo đơn, danh sách, chi tiết, chuyển trạng thái. Service sở hữu transaction (`IUnitOfWork`).
+  - Hàm thuần (test không cần DB): `OrderPricingHelper`, `OrderStatusTransitions`, `OrderCodeGenerator`, `CreateOrderValidator`, `OrderEnumParser`.
+  - `ReturnRefundService`: dự kiến cho đổi trả/hoàn tiền (chưa làm trong Milestone 2).
+- **Controller** (đặt tại thư mục gốc của module): `OrdersController.cs`.
+
+## 5. API (Milestone 2, Feature 4)
+| Use case | Endpoint | Ghi chú |
+| :--- | :--- | :--- |
+| UC-ORD-01 | `POST /api/orders` | Tạo đơn `Pending` (nháp, **không giữ chỗ**). Giá lấy từ catalog; máy có IMEI phải chọn `serialImeiId` ngay khi tạo |
+| UC-ORD-02 | `GET /api/orders` | Lọc `status`, `customerId`, `from`, `to`, `q` (mã đơn, tên/SĐT khách); `sort=createdAt\|totalAmount:asc\|desc`; phân trang |
+| UC-ORD-03 | `GET /api/orders/{id}` | Chi tiết đơn kèm IMEI/serial từng dòng (không trả giá vốn) |
+| UC-ORD-04 | `PATCH /api/orders/{id}/status` | Body `{ "targetStatus": "Processing" \| "Completed" \| "Cancelled" }` |
+
+`status`, `targetStatus`, `paymentMethod` là **chuỗi tên enum** (không phân biệt hoa thường), không nhận số.
+
+### Vòng đời trạng thái
+```
+Pending ──► Processing ──► Completed
+   │  └────────────────────────▲   (tiền mặt: Pending → Completed trong một transaction)
+   └──► Cancelled              (chỉ khi chưa thanh toán)
+```
+| Chuyển | Tác động lên Inventory |
+| :--- | :--- |
+| `Pending → Processing` | Máy `InStock → Reserved`, `reserved_quantity += q`, đặt `paid_at`; không ghi movement |
+| `Processing → Completed` | Máy `Reserved → Sold` + bảo hành, `quantity` và `reserved_quantity` giảm, 1 movement `Sale` mỗi dòng, chốt `unit_cost`, đặt `completed_at` |
+| `Pending → Cancelled` | Không có (đơn nháp không giữ chỗ) |
+
+Đơn đã thanh toán không hủy được (đi qua luồng hoàn tiền, ngoài phạm vi Milestone 2). Chuyển trạng thái không hợp lệ hoặc lặp lại trả `409`; thiết bị hết khả dụng khi chuyển trạng thái cũng trả `409` và toàn bộ thay đổi được hoàn tác.
+
+## 6. Phụ thuộc vào module khác
+- **Inventory** (`IInventoryFulfillmentService`, file mới trong `backend/Inventory/Services/`): `CheckAvailabilityAsync`, `ReserveAsync`, `ConfirmSaleAsync`. Chỉ *staging*, không `SaveChanges`/commit; `OrderService` mở và đóng transaction. Orders không ghi trực tiếp vào bảng của Inventory.
+- **Catalog**: đọc sản phẩm/biến thể qua `IProductRepository.GetWithVariantsAsync`.
+- **Customers**: kiểm tra khách qua `ICustomerRepository.GetByIdAsync` (bản tối thiểu, Dev 5 mở rộng).
+- **Người thao tác**: chưa có đăng nhập nên lấy từ claim `sub`/`NameIdentifier`, nếu không có thì dùng admin cố định `11111111-1111-1111-1111-111111111111` (do `DataSeeder` tạo). Bỏ khi có JWT.
+- Chưa làm trong Milestone 2: hoàn trả/hoàn tiền, giải phóng giữ chỗ (`Release`), voucher, giảm giá theo hạng, thuế, ca POS (`pos_session_id` để `NULL`), xác minh thanh toán VietQR/thẻ.

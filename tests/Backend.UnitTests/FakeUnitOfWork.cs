@@ -11,9 +11,16 @@ public class FakeUnitOfWork : IUnitOfWork
 
     public Exception? ExceptionToThrowOnSave { get; set; }
 
+    // Exceptions thrown by successive saves, one per call, before ExceptionToThrowOnSave applies.
+    public Queue<Exception> SaveExceptionQueue { get; } = new();
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCount++;
+        if (SaveExceptionQueue.Count > 0)
+        {
+            throw SaveExceptionQueue.Dequeue();
+        }
         if (ExceptionToThrowOnSave != null)
         {
             throw ExceptionToThrowOnSave;

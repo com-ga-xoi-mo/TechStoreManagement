@@ -144,3 +144,4 @@ Branch `feat/orders-api` from `dev` (already created). Because Inventory work ne
 - Non-tracked goods costing policy is still unagreed with Dev 3; this change uses the product's `cost_price`.
 - Tax rate, voucher and tier discount rules are undefined; `taxAmount` and order-level `discountAmount` stay 0 until the team decides.
 - Whether to adopt a global `JsonStringEnumConverter` later, which would let DTO properties become real enums.
+- Seed data gap found during live verification: `DELL-XPS15-9530`, `MBP14-M3-512` and `S24U-256` are serial-tracked and have `inventory_stocks` rows (quantity 2, 3 and 5) but no `serial_imeis` rows, so they violate `quantity = InStock + Reserved` and cannot be sold through Orders (a device is required). Only the iPhone has devices. The seeder owner should add devices (or lower the stock) so the demo can sell more than one product.

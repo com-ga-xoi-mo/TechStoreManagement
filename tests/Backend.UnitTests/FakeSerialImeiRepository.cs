@@ -60,6 +60,33 @@ public class FakeSerialImeiRepository : ISerialImeiRepository
         return Task.FromResult(new ExistingIdentifiersResult(existingSerials, existingImeis));
     }
 
+    public int GetByIdsCallCount { get; private set; }
+    public int GetForUpdateCallCount { get; private set; }
+
+    // Ids passed to each GetForUpdateAsync call, in the order the fake returned them (ascending id).
+    public List<IReadOnlyList<Guid>> LockedIdBatches { get; } = [];
+
+    public Task<IReadOnlyList<SerialImei>> GetByIdsAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        GetByIdsCallCount++;
+        var idSet = ids.ToHashSet();
+        IReadOnlyList<SerialImei> found = Items.Where(s => idSet.Contains(s.Id)).ToList();
+        return Task.FromResult(found);
+    }
+
+    public Task<IReadOnlyList<SerialImei>> GetForUpdateAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        GetForUpdateCallCount++;
+        var idSet = ids.ToHashSet();
+        IReadOnlyList<SerialImei> found = Items.Where(s => idSet.Contains(s.Id)).OrderBy(s => s.Id).ToList();
+        LockedIdBatches.Add(found.Select(s => s.Id).ToList());
+        return Task.FromResult(found);
+    }
+
     public void AddRange(IEnumerable<SerialImei> items)
     {
         Items.AddRange(items);

@@ -85,6 +85,37 @@ public class SerialImeiRepository(AppDbContext dbContext) : ISerialImeiRepositor
         return new ExistingIdentifiersResult(existingSerials, existingImeis);
     }
 
+    public async Task<IReadOnlyList<SerialImei>> GetByIdsAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var idList = ids.Distinct().ToList();
+        if (idList.Count == 0)
+        {
+            return [];
+        }
+
+        return await dbContext.SerialImeis
+            .AsNoTracking()
+            .Where(s => idList.Contains(s.Id))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SerialImei>> GetForUpdateAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var idArray = ids.Distinct().OrderBy(id => id).ToArray();
+        if (idArray.Length == 0)
+        {
+            return [];
+        }
+
+        return await dbContext.SerialImeis
+            .FromSqlInterpolated($"SELECT * FROM serial_imeis WHERE id = ANY({idArray}) ORDER BY id FOR UPDATE")
+            .ToListAsync(cancellationToken);
+    }
+
     public void AddRange(IEnumerable<SerialImei> items)
     {
         dbContext.SerialImeis.AddRange(items);

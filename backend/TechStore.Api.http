@@ -401,3 +401,271 @@ Content-Type: application/json
 }
 
 ###
+
+###############################################################################
+# ORDERS (UC-ORD-01..04)
+# Run 50-53 first: they cache the ids (product, variant, InStock devices) that
+# the later requests read through named responses, so no id is hard-coded.
+# The seeded iPhone has 4 InStock devices: [0] full flow, [1] cash shortcut,
+# [2] race between two pending orders. Start from a freshly seeded database.
+###############################################################################
+
+### 50. Lookup iPhone product
+# @name findIphone
+GET {{host}}/api/products?q=IP15PM-256-NT
+Accept: application/json
+
+### 51. Lookup iPhone detail (variant id)
+# @name iphoneDetail
+GET {{host}}/api/products/{{findIphone.response.body.$.items[0].id}}
+Accept: application/json
+
+### 52. Lookup InStock iPhone devices
+# @name iphoneDevices
+GET {{host}}/api/inventory/serials?status=InStock&productId={{findIphone.response.body.$.items[0].id}}
+Accept: application/json
+
+### 53. Lookup Sony headphones (not serial-tracked)
+# @name findSony
+GET {{host}}/api/products?q=SONY-WH1000XM5
+Accept: application/json
+
+### 54. Create order - walk-in, one iPhone device (201 Created, status Pending, code ORD-yyyyMM-NNNN)
+# @name createOrder
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{
+  "paymentMethod": "Cash",
+  "notes": "Walk-in sale",
+  "items": [
+    {
+      "productId": "{{findIphone.response.body.$.items[0].id}}",
+      "variantId": "{{iphoneDetail.response.body.$.variants[0].id}}",
+      "serialImeiId": "{{iphoneDevices.response.body.$.items[0].id}}"
+    }
+  ]
+}
+
+### 55. Order detail (200 OK, line shows the IMEI)
+GET {{host}}/api/orders/{{createOrder.response.body.$.id}}
+Accept: application/json
+
+### 56. List pending orders (200 OK)
+GET {{host}}/api/orders?status=pending
+Accept: application/json
+
+### 57. Search by order code (200 OK)
+GET {{host}}/api/orders?q={{createOrder.response.body.$.orderCode}}
+Accept: application/json
+
+### 58. Pending -> Processing (200 OK: device Reserved, reserved_quantity +1, paid_at set)
+PATCH {{host}}/api/orders/{{createOrder.response.body.$.id}}/status
+Content-Type: application/json
+
+{ "targetStatus": "Processing" }
+
+### 59. Processing -> Cancelled (409 Conflict: paid orders use the refund flow)
+PATCH {{host}}/api/orders/{{createOrder.response.body.$.id}}/status
+Content-Type: application/json
+
+{ "targetStatus": "Cancelled" }
+
+### 60. Processing -> Completed (200 OK: device Sold + warranty, stock -1, Sale movement)
+PATCH {{host}}/api/orders/{{createOrder.response.body.$.id}}/status
+Content-Type: application/json
+
+{ "targetStatus": "Completed" }
+
+### 61. Completed -> Completed again (409 Conflict, nothing changes)
+PATCH {{host}}/api/orders/{{createOrder.response.body.$.id}}/status
+Content-Type: application/json
+
+{ "targetStatus": "Completed" }
+
+### 62. Create order for the cash shortcut (device [1])
+# @name createShortcutOrder
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "{{findIphone.response.body.$.items[0].id}}",
+      "variantId": "{{iphoneDetail.response.body.$.variants[0].id}}",
+      "serialImeiId": "{{iphoneDevices.response.body.$.items[1].id}}"
+    }
+  ]
+}
+
+### 63. Pending -> Completed in one step (200 OK, paid_at = completed_at)
+PATCH {{host}}/api/orders/{{createShortcutOrder.response.body.$.id}}/status
+Content-Type: application/json
+
+{ "targetStatus": "Completed" }
+
+### 64. Race, order A: pending order holding device [2]
+# @name createRaceA
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "{{findIphone.response.body.$.items[0].id}}",
+      "variantId": "{{iphoneDetail.response.body.$.variants[0].id}}",
+      "serialImeiId": "{{iphoneDevices.response.body.$.items[2].id}}"
+    }
+  ]
+}
+
+### 65. Race, order B: a second pending order for the same device (still 201, drafts reserve nothing)
+# @name createRaceB
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "{{findIphone.response.body.$.items[0].id}}",
+      "variantId": "{{iphoneDetail.response.body.$.variants[0].id}}",
+      "serialImeiId": "{{iphoneDevices.response.body.$.items[2].id}}"
+    }
+  ]
+}
+
+### 66. Race: complete A (200 OK)
+PATCH {{host}}/api/orders/{{createRaceA.response.body.$.id}}/status
+Content-Type: application/json
+
+{ "targetStatus": "Completed" }
+
+### 67. Race: complete B (409 Conflict, B stays Pending, device stays Sold for A)
+PATCH {{host}}/api/orders/{{createRaceB.response.body.$.id}}/status
+Content-Type: application/json
+
+{ "targetStatus": "Completed" }
+
+### 68. Cancel the losing pending order B (200 OK, no inventory touched)
+PATCH {{host}}/api/orders/{{createRaceB.response.body.$.id}}/status
+Content-Type: application/json
+
+{ "targetStatus": "Cancelled" }
+
+### 69. Create order with a device that is already Sold (400 Bad Request under items[0].serialImeiId)
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productId": "{{findIphone.response.body.$.items[0].id}}",
+      "variantId": "{{iphoneDetail.response.body.$.variants[0].id}}",
+      "serialImeiId": "{{iphoneDevices.response.body.$.items[0].id}}"
+    }
+  ]
+}
+
+### 70. Non-serial-tracked order: 2 headphones with a 100,000 line discount (201 Created)
+# @name createSonyOrder
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{
+  "paymentMethod": "VietQr",
+  "items": [
+    {
+      "productId": "{{findSony.response.body.$.items[0].id}}",
+      "quantity": 2,
+      "discountAmount": 100000
+    }
+  ]
+}
+
+### 71. Sony order Pending -> Completed (200 OK: stock 9 -> 7, one Sale movement of -2)
+PATCH {{host}}/api/orders/{{createSonyOrder.response.body.$.id}}/status
+Content-Type: application/json
+
+{ "targetStatus": "Completed" }
+
+### 72. Non-tracked order asking for more than the stock (400 Bad Request under items[0].quantity)
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{
+  "items": [
+    { "productId": "{{findSony.response.body.$.items[0].id}}", "quantity": 10000 }
+  ]
+}
+
+### 73. Several validation errors at once (400 Bad Request)
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{
+  "paymentMethod": "Bitcoin",
+  "customerId": "00000000-0000-0000-0000-000000000000",
+  "items": [
+    { "productId": "{{findIphone.response.body.$.items[0].id}}", "discountAmount": -1 }
+  ]
+}
+
+### 74. Empty order (400 Bad Request)
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{ "items": [] }
+
+### 75. Order with an unknown customer (400 Bad Request under customerId)
+POST {{host}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": "11111111-2222-3333-4444-555555555555",
+  "items": [
+    {
+      "productId": "{{findIphone.response.body.$.items[0].id}}",
+      "variantId": "{{iphoneDetail.response.body.$.variants[0].id}}",
+      "serialImeiId": "{{iphoneDevices.response.body.$.items[3].id}}"
+    }
+  ]
+}
+
+### 76. List completed orders, newest first (200 OK)
+GET {{host}}/api/orders?status=completed&sort=createdAt:desc&pageSize=5
+Accept: application/json
+
+### 77. List sorted by total amount (200 OK)
+GET {{host}}/api/orders?sort=totalAmount:desc
+Accept: application/json
+
+### 78. List with invalid filters (400 Bad Request: status, sort and from)
+GET {{host}}/api/orders?status=foo&sort=customer&from=2026-10-10&to=2026-10-01
+Accept: application/problem+json
+
+### 79. List page beyond the end (200 OK with empty items)
+GET {{host}}/api/orders?page=99
+Accept: application/json
+
+### 80. Disallowed target status (400 Bad Request)
+PATCH {{host}}/api/orders/{{createOrder.response.body.$.id}}/status
+Content-Type: application/json
+
+{ "targetStatus": "Refunded" }
+
+### 81. Unknown order id (404 Not Found)
+PATCH {{host}}/api/orders/00000000-0000-0000-0000-000000000000/status
+Content-Type: application/json
+
+{ "targetStatus": "Completed" }
+
+### 82. Order detail - unknown id (404 Not Found)
+GET {{host}}/api/orders/00000000-0000-0000-0000-000000000000
+Accept: application/problem+json
+
+# Checks to run in the database after the requests above:
+#   SELECT status, warranty_start_at, warranty_end_at FROM serial_imeis WHERE status = 'Sold';   -- Sold devices carry warranty dates
+#   SELECT quantity, reserved_quantity FROM inventory_stocks;                                    -- reserved_quantity back to 0
+#   SELECT movement_type, quantity_change, quantity_after, order_item_id, performed_by_user_id
+#     FROM inventory_movements WHERE movement_type = 'Sale';                                     -- performed_by_user_id = 11111111-1111-1111-1111-111111111111
+#   SELECT order_code, status, paid_at, completed_at, cashier_user_id FROM orders ORDER BY created_at DESC;

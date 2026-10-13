@@ -1,0 +1,262 @@
+<Page x:Class="TechStore.Client.Views.Catalog.ProductListPage"
+      x:Name="ProductListRoot"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:models="using:TechStore.Client.Models.Catalog"
+      xmlns:vm="using:TechStore.Client.ViewModels.Catalog"
+      xmlns:converters="using:TechStore.Client.Converters"
+      Background="{StaticResource TechStoreCanvasBackgroundBrush}">
+
+    <Page.Resources>
+        <converters:CurrencyConverter x:Key="CurrencyConverter" />
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:ImageUrlToImageSourceConverter x:Key="ImageUrlToImageSourceConverter" />
+        <converters:ProductStatusToVietnameseConverter x:Key="ProductStatusConverter" />
+        <converters:HexColorToBrushConverter x:Key="HexColorToBrushConverter" />
+
+        <DataTemplate x:Key="ProductCardTemplate" x:DataType="vm:ProductCardViewModel">
+            <Border Style="{StaticResource TechStoreCardBorderStyle}"
+                    Width="280"
+                    Margin="8"
+                    Padding="14">
+                <StackPanel Spacing="10">
+                    <Grid Height="168" Background="{StaticResource TechStoreNeutralBgBrush}"
+                          AutomationProperties.Name="Ảnh sản phẩm hoặc ảnh thay thế">
+                        <SymbolIcon Symbol="Pictures"
+                                    Width="42"
+                                    Height="42"
+                                    Foreground="{StaticResource TechStoreTextMutedBrush}" />
+                        <Image Source="{x:Bind ImageUrl, Mode=OneWay, Converter={StaticResource ImageUrlToImageSourceConverter}}"
+                               Stretch="UniformToFill"
+                               AutomationProperties.Name="Ảnh sản phẩm" />
+                    </Grid>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{x:Bind Brand}"
+                                   Style="{StaticResource TechStoreMicroCaptionTextBlockStyle}" />
+                        <TextBlock Text="{x:Bind Name}"
+                                   Style="{StaticResource TechStoreSubheadingTextBlockStyle}"
+                                   TextWrapping="Wrap"
+                                   MaxLines="2" />
+                        <TextBlock Text="{x:Bind CurrentSku, Mode=OneWay}"
+                                   Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                    </StackPanel>
+
+                    <ComboBox ItemsSource="{x:Bind Variants}"
+                              SelectedItem="{x:Bind SelectedVariant, Mode=TwoWay}"
+                              HorizontalAlignment="Stretch"
+                              AutomationProperties.Name="Chọn biến thể sản phẩm">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:ProductVariantSummary">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Ellipse Width="14" Height="14"
+                                             Fill="{x:Bind SwatchColor, Converter={StaticResource HexColorToBrushConverter}}"
+                                             Stroke="{StaticResource TechStoreNeutralBorderBrush}"
+                                             StrokeThickness="1" />
+                                    <TextBlock Text="{x:Bind Name}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <StackPanel Orientation="Horizontal" Spacing="6"
+                                AutomationProperties.Name="Màu biến thể đang chọn">
+                        <Ellipse Width="12" Height="12"
+                                 Fill="{x:Bind CurrentSwatchColor, Mode=OneWay, Converter={StaticResource HexColorToBrushConverter}}"
+                                 Stroke="{StaticResource TechStoreNeutralBorderBrush}"
+                                 StrokeThickness="1" />
+                        <TextBlock Text="{x:Bind CurrentSwatchLabel, Mode=OneWay}"
+                                   Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind CurrentPrice, Mode=OneWay, Converter={StaticResource CurrencyConverter}}"
+                                   Style="{StaticResource TechStoreHeadingTextBlockStyle}"
+                                   Foreground="{StaticResource TechStorePrimaryBrush}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Còn" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                        <TextBlock Text="{x:Bind CurrentAvailableQuantity, Mode=OneWay}"
+                                   Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                        <TextBlock Text="•" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                        <TextBlock Text="{x:Bind CurrentStatus, Mode=OneWay, Converter={StaticResource ProductStatusConverter}}"
+                                   Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                    </StackPanel>
+
+                    <Button Content="Xem chi tiết"
+                            Command="{x:Bind OpenDetailCommand}"
+                            CommandParameter="{x:Bind Id}"
+                            Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                            HorizontalAlignment="Stretch"
+                            AutomationProperties.Name="Xem chi tiết sản phẩm" />
+                    <Button Content="Sửa sản phẩm"
+                            Command="{x:Bind OpenEditCommand}"
+                            CommandParameter="{x:Bind Id}"
+                            Visibility="{x:Bind IsEditActionVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                            HorizontalAlignment="Stretch"
+                            AutomationProperties.Name="Sửa sản phẩm" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Padding="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,18">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock Text="Sản phẩm" Style="{StaticResource TechStoreHeadingTextBlockStyle}" VerticalAlignment="Center" />
+                    <Border Style="{StaticResource TechStoreNeutralBadgeStyle}">
+                        <TextBlock Text="Dữ liệu mẫu / Preview" Foreground="{StaticResource TechStoreNeutralTextBrush}" />
+                    </Border>
+                </StackPanel>
+                <Button Grid.Column="1" Content="+ Thêm sản phẩm"
+                        Command="{x:Bind ViewModel.OpenProductCreateCommand}"
+                        Style="{StaticResource TechStorePrimaryButtonStyle}"
+                        AutomationProperties.Name="Thêm sản phẩm" />
+            </Grid>
+            <TextBlock Text="{x:Bind ViewModel.CreateSuccessMessage, Mode=OneWay}"
+                       Foreground="{StaticResource TechStoreSuccessTextBrush}"
+                       TextWrapping="Wrap"
+                       Visibility="{x:Bind ViewModel.IsCreateSuccess, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                       AutomationProperties.Name="Kết quả tạo sản phẩm preview" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnSpacing="12" RowSpacing="10" Margin="0,0,0,12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TextBox Grid.Row="0" Grid.ColumnSpan="2"
+                     Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     PlaceholderText="Tìm theo tên hoặc SKU"
+                     Style="{StaticResource TechStoreTextBoxStyle}"
+                     AutomationProperties.Name="Tìm sản phẩm theo tên hoặc SKU" />
+
+            <ComboBox Grid.Row="1" Grid.Column="0" SelectedValuePath="Tag"
+                      SelectedValue="{x:Bind ViewModel.SelectedBrand, Mode=TwoWay}"
+                      AutomationProperties.Name="Lọc theo thương hiệu">
+                <ComboBoxItem Content="Tất cả thương hiệu" Tag="" />
+                <ComboBoxItem Content="Apple" Tag="Apple" />
+                <ComboBoxItem Content="Samsung" Tag="Samsung" />
+                <ComboBoxItem Content="Asus" Tag="Asus" />
+                <ComboBoxItem Content="Dell" Tag="Dell" />
+                <ComboBoxItem Content="Xiaomi" Tag="Xiaomi" />
+            </ComboBox>
+
+            <ComboBox Grid.Row="1" Grid.Column="1" SelectedValuePath="Tag"
+                      SelectedValue="{x:Bind ViewModel.SelectedCategoryId, Mode=TwoWay}"
+                      AutomationProperties.Name="Lọc theo danh mục">
+                <ComboBoxItem Content="Tất cả danh mục" Tag="" />
+                <ComboBoxItem Content="Điện thoại" Tag="phones" />
+                <ComboBoxItem Content="Laptop" Tag="laptops" />
+                <ComboBoxItem Content="Tablet" Tag="tablets" />
+                <ComboBoxItem Content="Phụ kiện" Tag="accessories" />
+            </ComboBox>
+
+            <ComboBox Grid.Row="2" Grid.Column="0"
+                      SelectedIndex="{x:Bind ViewModel.SelectedPriceBandIndex, Mode=TwoWay}"
+                      AutomationProperties.Name="Lọc theo khoảng giá">
+                <ComboBoxItem Content="Tất cả khoảng giá" />
+                <ComboBoxItem Content="Dưới 10 triệu" />
+                <ComboBoxItem Content="10–25 triệu" />
+                <ComboBoxItem Content="Trên 25 triệu" />
+            </ComboBox>
+
+            <ComboBox Grid.Row="2" Grid.Column="1"
+                      SelectedIndex="{x:Bind ViewModel.SelectedStockStatusIndex, Mode=TwoWay}"
+                      AutomationProperties.Name="Lọc theo tình trạng kho">
+                <ComboBoxItem Content="Tất cả tình trạng" />
+                <ComboBoxItem Content="Còn hàng" />
+                <ComboBoxItem Content="Sắp hết" />
+                <ComboBoxItem Content="Hết hàng" />
+                <ComboBoxItem Content="Ngừng bán" />
+            </ComboBox>
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnSpacing="12" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{x:Bind ViewModel.ResultRangeText, Mode=OneWay}"
+                       Style="{StaticResource TechStoreSecondaryTextBlockStyle}"
+                       VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1"
+                      SelectedIndex="{x:Bind ViewModel.SelectedSortModeIndex, Mode=TwoWay}"
+                      AutomationProperties.Name="Sắp xếp sản phẩm">
+                <ComboBoxItem Content="Mới nhất" />
+                <ComboBoxItem Content="Giá: thấp đến cao" />
+                <ComboBoxItem Content="Giá: cao đến thấp" />
+                <ComboBoxItem Content="Tồn kho nhiều nhất" />
+            </ComboBox>
+        </Grid>
+
+        <Grid Grid.Row="3">
+            <StackPanel Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <ProgressRing IsActive="True" />
+                <TextBlock Text="Đang tải danh sách..." Style="{StaticResource TechStoreSecondaryTextBlockStyle}" />
+            </StackPanel>
+
+            <StackPanel Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <SymbolIcon Symbol="Find" Foreground="{StaticResource TechStoreTextMutedBrush}" Width="40" Height="40" />
+                <TextBlock Text="Không tìm thấy sản phẩm nào." Style="{StaticResource TechStoreSecondaryTextBlockStyle}" />
+            </StackPanel>
+
+            <StackPanel Visibility="{x:Bind ViewModel.IsError, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <TextBlock Text="Không thể tải dữ liệu xem trước sản phẩm." Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+                <Button Content="Thử lại" Command="{x:Bind ViewModel.RetryCommand}" Style="{StaticResource TechStoreSecondaryButtonStyle}" />
+            </StackPanel>
+
+            <ScrollViewer Visibility="{x:Bind ViewModel.IsProductGridVisible, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          HorizontalScrollMode="Disabled">
+                <ItemsControl ItemsSource="{x:Bind ViewModel.Products}"
+                              ItemTemplate="{StaticResource ProductCardTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VariableSizedWrapGrid Orientation="Horizontal"
+                                                   MaximumRowsOrColumns="4"
+                                                   ItemWidth="296" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+
+        <Grid Grid.Row="4" Margin="0,12,0,0">
+            <TextBlock Text="{x:Bind ViewModel.ResultRangeText, Mode=OneWay}"
+                       Style="{StaticResource TechStoreSecondaryTextBlockStyle}"
+                       VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="Trước" Command="{x:Bind ViewModel.PreviousPageCommand}" Style="{StaticResource TechStoreSecondaryButtonStyle}" />
+                <TextBlock Text="{x:Bind ViewModel.CurrentPage, Mode=OneWay}" VerticalAlignment="Center" />
+                <TextBlock Text="/" VerticalAlignment="Center" />
+                <TextBlock Text="{x:Bind ViewModel.TotalPages, Mode=OneWay}" VerticalAlignment="Center" />
+                <Button Content="Sau" Command="{x:Bind ViewModel.NextPageCommand}" Style="{StaticResource TechStoreSecondaryButtonStyle}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

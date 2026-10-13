@@ -1,0 +1,265 @@
+<ContentDialog x:Class="TechStore.Client.Views.Catalog.ProductCreateDialog"
+               x:Name="CreateDialogRoot"
+               xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:models="using:TechStore.Client.Models.Catalog"
+               xmlns:vm="using:TechStore.Client.ViewModels.Catalog"
+               xmlns:converters="using:TechStore.Client.Converters"
+               Title="Thêm sản phẩm mới"
+               PrimaryButtonText="Lưu &amp; tạo sản phẩm"
+               CloseButtonText="Hủy bỏ"
+               DefaultButton="Primary"
+               AutomationProperties.Name="Thêm sản phẩm mới">
+    <ContentDialog.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:ImageUrlToImageSourceConverter x:Key="ImageUrlToImageSourceConverter" />
+
+        <DataTemplate x:Key="SpecificationTemplate" x:DataType="vm:ProductSpecificationEntryViewModel">
+            <StackPanel Spacing="4" Margin="0,0,0,8">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{x:Bind Key, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="Tên thông số"
+                             Style="{StaticResource TechStoreTextBoxStyle}"
+                             AutomationProperties.Name="Tên thông số phần cứng" />
+                    <TextBox Grid.Column="1"
+                             Text="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="Giá trị"
+                             Style="{StaticResource TechStoreTextBoxStyle}"
+                             AutomationProperties.Name="Giá trị thông số phần cứng" />
+                    <Button Grid.Column="2" Content="Xóa" Command="{x:Bind RemoveCommand}"
+                            Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                            AutomationProperties.Name="Xóa thông số" />
+                </Grid>
+                <TextBlock Text="{x:Bind Error, Mode=OneWay}"
+                           Foreground="{StaticResource TechStoreDangerTextBrush}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="VariantTemplate" x:DataType="vm:ProductVariantDraftViewModel">
+            <Border Style="{StaticResource TechStoreCardBorderStyle}" Margin="0,0,0,10">
+                <StackPanel Spacing="8">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{x:Bind Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="Tên cấu hình / màu sắc"
+                                 Style="{StaticResource TechStoreTextBoxStyle}"
+                                 AutomationProperties.Name="Tên biến thể" />
+                        <TextBox Grid.Column="1" Text="{x:Bind Sku, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="SKU biến thể"
+                                 Style="{StaticResource TechStoreTextBoxStyle}"
+                                 AutomationProperties.Name="SKU biến thể" />
+                        <Button Grid.Column="2" Content="Xóa" Command="{x:Bind RemoveCommand}"
+                                IsEnabled="{x:Bind CanRemove, Mode=OneWay}"
+                                Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                                AutomationProperties.Name="Xóa biến thể" />
+                    </Grid>
+                    <TextBlock Text="{x:Bind NameError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" />
+                    <TextBlock Text="{x:Bind SkuError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{x:Bind Barcode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="Barcode biến thể (không bắt buộc)"
+                                 Style="{StaticResource TechStoreTextBoxStyle}"
+                                 AutomationProperties.Name="Barcode biến thể" />
+                        <TextBox Grid.Column="1" Text="{x:Bind PriceText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="Giá bán biến thể (VND)"
+                                 Style="{StaticResource TechStoreTextBoxStyle}"
+                                 AutomationProperties.Name="Giá bán biến thể" />
+                    </Grid>
+                    <TextBlock Text="{x:Bind BarcodeError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" />
+                    <TextBlock Text="{x:Bind PriceError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" />
+                    <TextBlock Text="Thông số riêng của biến thể" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                    <ItemsControl ItemsSource="{x:Bind Specifications, Mode=OneWay}"
+                                  ItemTemplate="{StaticResource SpecificationTemplate}" />
+                    <Button Content="+ Thêm thông số biến thể" Command="{x:Bind AddSpecificationCommand}"
+                            Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                            AutomationProperties.Name="Thêm thông số biến thể" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </ContentDialog.Resources>
+
+    <ScrollViewer MaxHeight="720"
+                  MaxWidth="920"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  HorizontalScrollMode="Disabled">
+        <StackPanel Spacing="14">
+            <Border Style="{StaticResource TechStoreNeutralBadgeStyle}" HorizontalAlignment="Left">
+                <TextBlock Text="DỮ LIỆU PREVIEW — chưa lưu lên server" Foreground="{StaticResource TechStoreNeutralTextBrush}" />
+            </Border>
+
+            <Border Style="{StaticResource TechStoreCardBorderStyle}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="1. Thông tin cơ bản &amp; định danh" Style="{StaticResource TechStoreSubheadingTextBlockStyle}" />
+                    <TextBlock Text="Tên sản phẩm *" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                    <TextBox x:Name="NameTextBox" Text="{x:Bind ViewModel.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="VD: iPhone 16 Pro Max 256GB"
+                             Style="{StaticResource TechStoreTextBoxStyle}"
+                             AutomationProperties.Name="Tên sản phẩm" />
+                    <TextBlock Text="{x:Bind ViewModel.NameError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+
+                    <TextBlock Text="Hãng sản xuất *" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                    <TextBox x:Name="BrandTextBox" Text="{x:Bind ViewModel.Brand, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="Apple, Samsung, Asus..."
+                             Style="{StaticResource TechStoreTextBoxStyle}"
+                             AutomationProperties.Name="Hãng sản xuất" />
+                    <TextBlock Text="{x:Bind ViewModel.BrandError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+
+                    <TextBlock Text="Danh mục *" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                    <ComboBox x:Name="CategoryComboBox"
+                              ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
+                              SelectedValuePath="Id"
+                              SelectedValue="{x:Bind ViewModel.CategoryId, Mode=TwoWay}"
+                              AutomationProperties.Name="Danh mục sản phẩm">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:CategoryOption">
+                                <TextBlock Text="{x:Bind Name}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                Visibility="{x:Bind ViewModel.IsLoadingCategories, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <ProgressRing IsActive="True" Width="18" Height="18" />
+                        <TextBlock Text="Đang tải danh mục preview..." Style="{StaticResource TechStoreSecondaryTextBlockStyle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{x:Bind ViewModel.CategoryError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+                        <TextBlock Text="{x:Bind ViewModel.CategoriesErrorMessage, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+                        <Button Content="Thử tải lại danh mục" Command="{x:Bind ViewModel.LoadCategoriesCommand}"
+                                Visibility="{x:Bind ViewModel.IsCategoriesError, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Style="{StaticResource TechStoreSecondaryButtonStyle}" />
+                    </StackPanel>
+
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.IsSerialTracked, Mode=TwoWay}"
+                                  Header="Quản lý bằng Serial / IMEI"
+                                  AutomationProperties.Name="Quản lý sản phẩm bằng Serial hoặc IMEI" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="SKU sản phẩm *" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                            <TextBox x:Name="ProductSkuTextBox" Text="{x:Bind ViewModel.ProductSku, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     PlaceholderText="Mã SKU sản phẩm" Style="{StaticResource TechStoreTextBoxStyle}"
+                                     AutomationProperties.Name="SKU sản phẩm" />
+                            <TextBlock Text="{x:Bind ViewModel.ProductSkuError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="Barcode (không bắt buộc)" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                            <TextBox x:Name="BarcodeTextBox" Text="{x:Bind ViewModel.Barcode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     PlaceholderText="Chỉ nhập chữ số" Style="{StaticResource TechStoreTextBoxStyle}"
+                                     AutomationProperties.Name="Barcode sản phẩm" />
+                            <TextBlock Text="{x:Bind ViewModel.BarcodeError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource TechStoreCardBorderStyle}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="2. Giá bán &amp; giá vốn tham chiếu" Style="{StaticResource TechStoreSubheadingTextBlockStyle}" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Giá niêm yết bán lẻ (VND) *" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                            <TextBox x:Name="BasePriceTextBox" Text="{x:Bind ViewModel.BasePriceText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     PlaceholderText="Ví dụ: 35990000" Style="{StaticResource TechStoreTextBoxStyle}"
+                                     AutomationProperties.Name="Giá bán niêm yết" />
+                            <TextBlock Text="{x:Bind ViewModel.BasePriceError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="Giá vốn nhập tham chiếu (VND) *" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                            <TextBox x:Name="CostPriceTextBox" Text="{x:Bind ViewModel.CostPriceText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     PlaceholderText="Ví dụ: 31200000" Style="{StaticResource TechStoreTextBoxStyle}"
+                                     AutomationProperties.Name="Giá vốn tham chiếu" />
+                            <TextBlock Text="{x:Bind ViewModel.CostPriceError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource TechStoreCardBorderStyle}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="3. Ảnh sản phẩm (URL preview)" Style="{StaticResource TechStoreSubheadingTextBlockStyle}" />
+                    <TextBox x:Name="ImageUrlTextBox" Text="{x:Bind ViewModel.ImageUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="https://... (không tải ảnh lên)"
+                             Style="{StaticResource TechStoreTextBoxStyle}"
+                             AutomationProperties.Name="Đường dẫn ảnh sản phẩm" />
+                    <TextBlock Text="{x:Bind ViewModel.ImageUrlError, Mode=OneWay}"
+                               Foreground="{StaticResource TechStoreDangerTextBrush}"
+                               TextWrapping="Wrap" />
+                    <Grid Height="160" Background="{StaticResource TechStoreNeutralBgBrush}"
+                          AutomationProperties.Name="Ảnh preview hoặc hình thay thế">
+                        <SymbolIcon Symbol="Pictures" Width="42" Height="42" Foreground="{StaticResource TechStoreTextMutedBrush}" />
+                        <Image Source="{x:Bind ViewModel.ImageUrl, Mode=OneWay, Converter={StaticResource ImageUrlToImageSourceConverter}}"
+                               Stretch="UniformToFill" AutomationProperties.Name="Ảnh sản phẩm preview" />
+                    </Grid>
+                    <TextBlock Text="Chỉ xem trước URL hợp lệ; upload/CDN chưa được triển khai." Style="{StaticResource TechStoreCaptionTextBlockStyle}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource TechStoreCardBorderStyle}">
+                <StackPanel Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="4. Thông số phần cứng động" Style="{StaticResource TechStoreSubheadingTextBlockStyle}" />
+                        <Button Content="+ Thêm thông số" Command="{x:Bind ViewModel.AddSpecificationCommand}"
+                                Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                                AutomationProperties.Name="Thêm thông số phần cứng" />
+                    </StackPanel>
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.Specifications, Mode=OneWay}"
+                                  ItemTemplate="{StaticResource SpecificationTemplate}" />
+                    <TextBlock Text="{x:Bind ViewModel.SpecificationsError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource TechStoreCardBorderStyle}">
+                <StackPanel Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="5. Biến thể" Style="{StaticResource TechStoreSubheadingTextBlockStyle}" />
+                        <Button Content="+ Thêm dòng biến thể" Command="{x:Bind ViewModel.AddVariantCommand}"
+                                Style="{StaticResource TechStoreSecondaryButtonStyle}"
+                                AutomationProperties.Name="Thêm dòng biến thể" />
+                    </StackPanel>
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.Variants, Mode=OneWay}"
+                                  ItemTemplate="{StaticResource VariantTemplate}" />
+                    <TextBlock Text="{x:Bind ViewModel.VariantsError, Mode=OneWay}" Foreground="{StaticResource TechStoreDangerTextBrush}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource TechStoreWarningBadgeStyle}">
+                <TextBlock Text="{x:Bind ViewModel.InventoryBoundaryMessage, Mode=OneWay}"
+                           Foreground="{StaticResource TechStoreWarningTextBrush}"
+                           TextWrapping="Wrap"
+                           AutomationProperties.Name="Thông báo luồng nhập kho chưa triển khai" />
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center"
+                        Visibility="{x:Bind ViewModel.IsSubmitting, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <ProgressRing IsActive="True" Width="20" Height="20" />
+                <TextBlock Text="Đang tạo dữ liệu preview..." Style="{StaticResource TechStoreSecondaryTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock Text="{x:Bind ViewModel.SubmissionMessage, Mode=OneWay}"
+                       Foreground="{StaticResource TechStoreDangerTextBrush}"
+                       TextWrapping="Wrap"
+                       Visibility="{x:Bind ViewModel.IsSubmissionError, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

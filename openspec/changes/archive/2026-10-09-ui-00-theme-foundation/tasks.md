@@ -1,0 +1,25 @@
+# Tasks
+
+## 1. Theme resources
+
+- [x] 1.1 Create `Styles/TechStoreTheme.xaml` with keyed D31 colors/brushes, typography, spacing, and surface resources; merge it after `XamlControlsResources` in `App.xaml`, then verify the desktop target builds and existing `MainPage` still starts.
+- [x] 1.2 Inspect the actual primary/secondary/danger button and normal/error input states in the running preview with pointer hover, press, disabled state, and keyboard Tab focus. Connect any unused state brushes to rendered states or use native visual states where they already meet the spec; verify visible focus and readable validation text. Record what was observed for each state in the handoff. A static hover-color swatch does not complete this task.
+- [x] 1.3 Document the chosen resource names, D31-over-HTML badge decision, system-font fallback, native icon choice, and image placeholder in `Styles/README.md`; verify the document matches the actual resource keys and preview approach.
+- [x] 1.4 Recalculate WCAG contrast from the final badge foreground/background hex pairs, retain D31 accent/background/border colors and darker readable text, and correct the ratios in `Styles/README.md` and the handoff. Verify each normal-size badge text pair reaches at least 4.5:1; do not reuse the handoff's current unverified numerical ratios.
+
+## 2. Preview and presentation helpers
+
+- [x] 2.1 Implement `Converters/CurrencyConverter.cs` for numeric VND display and an explicit unavailable placeholder; verify in the preview that `34990000` becomes `34.990.000 ₫` and an unavailable value becomes `—` without changing the numeric source.
+- [x] 2.2 Add `ViewModels/Theme/ThemePreviewViewModel.cs` with preview-only state and a retry command, plus minimal DI registration/resolution; verify invoking retry changes only the demo message and does not access network or business data.
+- [x] 2.3 Complete `Views/Theme/ThemePreviewView.xaml` with separately labeled loading, empty, error, and success examples; bind retry to the local ViewModel error example and verify every example is visible, understandable, and cannot be mistaken for a real saved transaction.
+- [x] 2.4 Host the preview in the existing `MainPage` placeholder while retaining its current `NavigationView` and startup route; verify all existing menu items remain present and the preview opens without authentication, API, or database services.
+- [x] 2.5 Ask the project owner to inspect swatches, buttons, and badges in a normal and a narrower usable desktop window at their current display settings. Adjust layout if they find horizontal clipping; pass when the owner confirms all samples remain reachable without horizontal scrolling. Exact window dimensions and scale percentages are not required.
+- [x] 2.6 Ask the project owner to scroll through both input examples and all four feedback examples in the narrower usable window. Adjust layout if they find clipped labels, error text, retry, or success content; pass when the owner confirms each example is readable and reachable without horizontal scrolling.
+
+## 3. Integration checks
+
+- [x] 3.1 After the final UI-00 source changes, run `dotnet build frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop` and `dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop --launch-profile "TechStore.Client (Desktop)"`; record commands/outcomes, verify the preview stays open, and have the owner confirm retry and typing work. Separate DevServer-only warnings from application failures. A prior build or timed process exit is not proof of this final runtime check.
+- [x] 3.2 Have the project owner inspect the running preview in their normal desktop window against D31/D01. Ask them to confirm typography, Vietnamese text, representative focus/error/disabled states, and overall readability; record the confirmation, date, and any observations in the UI-00 handoff. Screenshots and exact window/scale measurements are optional.
+- [x] 3.3 Have the project owner narrow the running window to a usable size and scroll from top to bottom. Ask them to confirm swatches, buttons, badges, inputs, and feedback stay readable and reachable without horizontal clipping; record the confirmation and any observed limitations in the handoff. Screenshots and exact window/scale measurements are optional.
+- [x] 3.4 On a Windows environment, build and smoke-test `net10.0-windows10.0.26100`; if unavailable, record the Windows target as unverified in the handoff, without claiming native Windows validation.
+- [x] 3.5 Update the UI-00 handoff with final changed files, build/runtime results, corrected badge contrast calculations, font fallback, "UI preview only / API not applicable" status, and the project owner's dated confirmation of the visual/interaction checks they actually performed. Record any unverified behavior or platform clearly. Screenshots may be linked if available but are not required. Verify every checked task has a corresponding result or owner confirmation before calling UI-00 complete.

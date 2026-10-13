@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "mvvm-toolkit": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/mvvm-toolkit/SKILL.md",
+      "computedHash": "4e6340eb4f540a7c47d571faaf73bd2b8ad8e040bd607edc38db82186358bdc5"
+    },
+    "mvvm-toolkit-di": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/mvvm-toolkit-di/SKILL.md",
+      "computedHash": "03d4ba593107178559ac03bac176bf9dcb66bd3d9bb3cc865e69a4997308acbf"
+    },
+    "uno-platform": {
+      "source": "managedcode/dotnet-skills",
+      "sourceType": "github",
+      "skillPath": "catalog/Frameworks/Uno-Platform/skills/uno-platform/SKILL.md",
+      "computedHash": "9f760c5daa664d7bb9f3efad35884668406045d8ef992a343f2e0c23d9c3047d"
+    }
+  }
+}

@@ -1,0 +1,106 @@
+<Page x:Class="TechStore.Client.Views.Identity.LoginPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      mc:Ignorable="d"
+      Background="{StaticResource TechStoreCanvasBackgroundBrush}">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <!-- Left Branding Area (Hidden on small screens) -->
+            <ColumnDefinition x:Name="BrandColumn" Width="*" MinWidth="300" MaxWidth="600" />
+            <!-- Right Login Form Area -->
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Region: Brand -->
+        <Grid Grid.Column="0" Background="{StaticResource TechStorePrimaryBrush}" Padding="48"
+              HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+              Visibility="{x:Bind ViewModel.IsBrandingVisible, Mode=OneWay}">
+            <StackPanel VerticalAlignment="Center" Spacing="24">
+                <SymbolIcon Symbol="Shop" Width="80" Height="80" Foreground="#FFFFFF" HorizontalAlignment="Left" />
+                <TextBlock Text="TechStore" FontSize="36" FontWeight="Bold" Foreground="#FFFFFF" />
+                <TextBlock Text="Hệ thống quản lý chuỗi bán lẻ thiết bị công nghệ." 
+                           FontSize="18" Foreground="{StaticResource TechStorePrimaryTintBrush}" 
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Right Region: Form -->
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="400" Padding="32" Spacing="24">
+                
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Đăng nhập" Style="{StaticResource TechStoreHeadingTextBlockStyle}" FontSize="28" />
+                    <TextBlock Text="Vui lòng đăng nhập để tiếp tục" Style="{StaticResource TechStoreSecondaryTextBlockStyle}" />
+                    <TextBlock Text="Chưa có Auth API. Để thử giao diện đăng nhập, chạy ứng dụng ở chế độ preview."
+                               Foreground="{StaticResource TechStoreDangerTextBrush}"
+                               TextWrapping="Wrap"
+                               Visibility="{x:Bind ViewModel.IsUnavailableVisible, Mode=OneWay}" />
+                </StackPanel>
+
+                <!-- Error Message -->
+                <Border Background="{StaticResource TechStoreDangerBgBrush}" 
+                        BorderBrush="{StaticResource TechStoreDangerBorderBrush}" 
+                        BorderThickness="1" CornerRadius="{StaticResource TechStoreBadgeCornerRadius}" 
+                        Padding="12" 
+                        Visibility="{x:Bind ViewModel.IsErrorVisible, Mode=OneWay}">
+                    <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}" 
+                               Foreground="{StaticResource TechStoreDangerTextBrush}" 
+                               TextWrapping="Wrap" FontSize="13" />
+                </Border>
+
+                <StackPanel Spacing="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Tên đăng nhập" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                        <TextBox x:Name="UsernameBox"
+                                 Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="Nhập tên đăng nhập..."
+                                 Style="{StaticResource TechStoreTextBoxStyle}"
+                                 IsEnabled="{x:Bind ViewModel.IsFormEnabled, Mode=OneWay}" />
+                        <TextBlock Text="{x:Bind ViewModel.UsernameError, Mode=OneWay}"
+                                   Foreground="{StaticResource TechStoreDangerTextBrush}"
+                                   TextWrapping="Wrap"
+                                   Visibility="{x:Bind ViewModel.IsUsernameErrorVisible, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Mật khẩu" Style="{StaticResource TechStoreCaptionTextBlockStyle}" />
+                        <PasswordBox x:Name="PasswordBox"
+                                     PasswordChanged="PasswordBox_PasswordChanged"
+                                     PlaceholderText="Nhập mật khẩu..."
+                                     PasswordRevealMode="Peek"
+                                     Style="{StaticResource TechStorePasswordBoxStyle}"
+                                     IsEnabled="{x:Bind ViewModel.IsFormEnabled, Mode=OneWay}" />
+                        <TextBlock Text="{x:Bind ViewModel.PasswordError, Mode=OneWay}"
+                                   Foreground="{StaticResource TechStoreDangerTextBrush}"
+                                   TextWrapping="Wrap"
+                                   Visibility="{x:Bind ViewModel.IsPasswordErrorVisible, Mode=OneWay}" />
+                    </StackPanel>
+                    
+                    <CheckBox Content="Duy trì đăng nhập (Chưa hỗ trợ)" 
+                              IsEnabled="False" 
+                              ToolTipService.ToolTip="Cần tích hợp Secure Storage trước khi mở tính năng này." />
+                </StackPanel>
+
+                <!-- Actions -->
+                <StackPanel Spacing="16">
+                    <Button Content="Đăng nhập"
+                            Command="{x:Bind ViewModel.LoginCommand}"
+                            Style="{StaticResource TechStorePrimaryButtonStyle}"
+                            HorizontalAlignment="Stretch"
+                            IsEnabled="{x:Bind ViewModel.IsFormEnabled, Mode=OneWay}" />
+                    
+                    <!-- Loading State -->
+                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" 
+                                Visibility="{x:Bind ViewModel.IsLoadingVisible, Mode=OneWay}">
+                        <ProgressRing IsActive="True" Width="20" Height="20" />
+                        <TextBlock Text="Đang xác thực..." Style="{StaticResource TechStoreSecondaryTextBlockStyle}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

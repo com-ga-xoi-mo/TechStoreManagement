@@ -1,0 +1,282 @@
+<!DOCTYPE html><html lang="vi" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+@layer base { 
+  html, body { 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important; 
+  } 
+  body { 
+    overscroll-behavior: none; 
+  } 
+  main > :first-child { 
+    margin-top: 0 !important; 
+  } 
+  main > :last-child { 
+    margin-bottom: 0 !important; 
+  } 
+} 
+::-webkit-scrollbar { display: none; }
+
+/* Critical Material Symbols CSS fix to prevent font-family override and text overlapping */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+}
+</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-container": "#eceef0", "secondary-fixed": "#d3e4fe", "tertiary": "#4d556b", "on-secondary-fixed-variant": "#38485d", "on-primary-container": "#eeefff", "surface-container-highest": "#e0e3e5", "surface-bright": "#f7f9fb", "error": "#ba1a1a", "on-primary-fixed": "#00174b", "on-background": "#191c1e", "inverse-surface": "#2d3133", "on-tertiary-container": "#eef0ff", "on-tertiary-fixed": "#131b2e", "background": "#f7f9fb", "secondary": "#505f76", "on-secondary-fixed": "#0b1c30", "on-tertiary": "#ffffff", "surface-tint": "#0053db", "primary": "#004ac6", "primary-fixed-dim": "#b4c5ff", "on-surface-variant": "#434655", "on-tertiary-fixed-variant": "#3f465c", "on-primary": "#ffffff", "secondary-fixed-dim": "#b7c8e1", "surface-container-low": "#f2f4f6", "on-secondary": "#ffffff", "primary-fixed": "#dbe1ff", "surface-variant": "#e0e3e5", "surface-container-lowest": "#ffffff", "primary-container": "#2563eb", "on-secondary-container": "#54647a", "surface-dim": "#d8dadc", "outline-variant": "#c3c6d7", "on-primary-fixed-variant": "#003ea8", "on-surface": "#191c1e", "surface": "#f7f9fb", "tertiary-fixed": "#dae2fd", "tertiary-container": "#656d84", "error-container": "#ffdad6", "inverse-primary": "#b4c5ff", "secondary-container": "#d0e1fb", "on-error-container": "#93000a", "on-error": "#ffffff", "inverse-on-surface": "#eff1f3", "outline": "#737686", "tertiary-fixed-dim": "#bec6e0", "surface-container-high": "#e6e8ea" }, "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, "spacing": { "space-sm": "0.5rem", "space-lg": "1.5rem", "gutter": "1rem", "space-md": "1rem", "margin-desktop": "2rem", "space-xs": "0.375rem", "margin": "1rem", "space-xl": "2rem", "space-2xl": "3rem", "gutter-desktop": "1.5rem", "space-2xs": "0.25rem" }, "fontFamily": { "sans": ["'Plus Jakarta Sans'", "sans-serif"], "label-sm": ["'Plus Jakarta Sans'", "sans-serif"], "body-lg": ["'Plus Jakarta Sans'", "sans-serif"], "label-md": ["'Plus Jakarta Sans'", "sans-serif"], "mono-data": ["'Plus Jakarta Sans'", "monospace"], "headline-lg": ["'Plus Jakarta Sans'", "sans-serif"], "headline-md": ["'Plus Jakarta Sans'", "sans-serif"], "body-md": ["'Plus Jakarta Sans'", "sans-serif"], "body-sm": ["'Plus Jakarta Sans'", "sans-serif"], "headline-sm": ["'Plus Jakarta Sans'", "sans-serif"], "display": ["'Plus Jakarta Sans'", "sans-serif"] }, "fontSize": { "label-sm": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.02em", "fontWeight": "600" }], "body-lg": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }], "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "500" }], "mono-data": ["0.8125rem", { "lineHeight": "1.25rem", "letterSpacing": "0.01em", "fontWeight": "500" }], "headline-lg": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" }], "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" }], "body-md": ["0.875rem", { "lineHeight": "1.375rem", "fontWeight": "400" }], "body-sm": ["0.8125rem", { "lineHeight": "1.25rem", "fontWeight": "400" }], "headline-sm": ["1.125rem", { "lineHeight": "1.5rem", "fontWeight": "600" }], "display": ["1.875rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.02em", "fontWeight": "700" }] } } } };</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-screen w-60 bg-surface-container-lowest flex flex-col justify-between z-50 select-none border-r border-slate-200/60"><div class="flex flex-col"><div class="h-16 px-4 flex items-center gap-3 bg-surface-container-lowest border-b border-slate-100"><div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 shadow-sm"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><rect height="14" rx="2" width="20" x="2" y="3"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg></div><div class="flex flex-col min-w-0"><span class="font-bold text-slate-900 text-base tracking-tight leading-tight truncate">TechStore</span><span class="text-xs text-slate-500 leading-tight truncate">Quản lý bán lẻ</span></div></div><div class="px-3 pt-4"><div class="text-[11px] font-semibold text-slate-400 tracking-wider uppercase px-3 mb-2">MENU CHÍNH</div><nav class="flex flex-col gap-1"><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors text-[13px] font-medium" href="#"><svg class="w-[18px] h-[18px] shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg><span class="">Tổng quan</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors text-[13px] font-medium" href="#"><svg class="w-[18px] h-[18px] shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg><span class="">Sản phẩm</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 text-blue-600 font-medium transition-colors text-[13px]" href="#"><svg class="w-[18px] h-[18px] shrink-0 text-blue-600" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg><span class="">Danh mục &amp; Kho</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors text-[13px] font-medium" href="#"><svg class="w-[18px] h-[18px] shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="">Đơn hàng</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors text-[13px] font-medium" href="#"><svg class="w-[18px] h-[18px] shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg><span class="">Khách hàng</span></a></nav></div></div><div class="p-3 flex flex-col gap-1 bg-surface-container-lowest border-t border-slate-100"><nav class="flex flex-col mb-1"><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors text-[13px] font-medium" href="#"><svg class="w-[18px] h-[18px] shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span class="">Cài đặt</span></a></nav><div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"><div class="flex items-center gap-2.5 min-w-0"><img alt="Admin" class="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAei59Nf_KPvQLxrisdefCPKE0bAmSe8uRiDA5nTIaIP05Mlud3vUHZ-yafyAdq1viaB4cp9_OqcLMY2eIYfFw7UkN01FB3WF4rjo2NZsDy9bUvlIYD1AJztlgxontPxPLaqFclvz4nI0Wxt_8pAfzIyiDlc7nLZnWw1GJXtELhZ1cVftG236qvAp0H3ad5jcPPCN-tXlYIpWjppq8i_IxH1XJB6WXcbffH9WJWl7I"><div class="flex flex-col min-w-0"><span class="text-[13px] font-semibold text-slate-900 leading-tight truncate">Admin TechStore</span><span class="text-[11px] text-slate-500 font-normal leading-tight truncate">Quản trị viên</span></div></div><svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg></div></div></aside><div class="pl-60 min-h-screen flex flex-col bg-surface"><main class="w-full bg-surface px-gutter-desktop py-space-lg flex-1"><div class="flex flex-col w-full relative">
+<div class="flex flex-col w-full gap-space-lg select-none pointer-events-none opacity-40 filter blur-[1px]">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+<div>
+<div class="flex items-center gap-space-xs text-secondary font-label-sm uppercase tracking-wider">
+<span class="">Kho vận</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="">Quản lý định danh</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Quản lý Danh mục &amp; Kho - Modal Dán danh sách IMEI hàng loạt</h1>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="px-space-md py-space-xs rounded-xl bg-surface-container text-on-surface font-label-md flex items-center gap-space-xs">
+<span class="material-symbols-outlined">file_download</span> Xuất Excel
+        </button>
+<button class="px-space-md py-space-xs rounded-xl bg-primary text-on-primary font-label-md flex items-center gap-space-xs shadow-sm">
+<span class="material-symbols-outlined">barcode_scanner</span> + Quét / Nhập IMEI
+        </button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-space-md">
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-xs">
+<span class="font-body-sm text-body-sm text-secondary">Tổng thiết bị có IMEI</span>
+<span class="font-headline-lg text-headline-lg text-on-surface">1,428</span>
+<span class="font-label-sm text-label-sm text-secondary">+24 máy nhập hôm nay</span>
+</div>
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-xs">
+<span class="font-body-sm text-body-sm text-secondary">Đang trong kho</span>
+<span class="font-headline-lg text-headline-lg text-on-surface">1,190</span>
+<span class="font-label-sm text-label-sm text-secondary">Sẵn sàng xuất bán</span>
+</div>
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-xs">
+<span class="font-body-sm text-body-sm text-secondary">Đã kích hoạt bảo hành</span>
+<span class="font-headline-lg text-headline-lg text-on-surface">214</span>
+<span class="font-label-sm text-label-sm text-secondary">Đã liên kết đơn hàng</span>
+</div>
+<div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-xs">
+<span class="font-body-sm text-body-sm text-secondary">Bảo hành / Đổi trả</span>
+<span class="font-headline-lg text-headline-lg text-error">24</span>
+<span class="font-label-sm text-label-sm text-error">Cần xử lý RMA</span>
+</div>
+</div>
+<div class="p-space-sm px-space-md rounded-xl bg-error-container/40 border border-error/20 flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs"><div class="flex items-start sm:items-center gap-2"><span class="material-symbols-outlined text-error text-[20px] shrink-0">warning</span><div class="font-body-sm text-[13px] text-on-surface"><span class="font-semibold text-error">Phát hiện 2 mã có vấn đề:</span> 1 mã sai độ dài (12 số) và 1 mã đã trùng lặp trong hệ thống. Vui lòng kiểm tra lại hoặc chọn loại trừ.</div></div><div class="flex items-center gap-2 shrink-0"><button class="px-2.5 py-1 rounded-md bg-surface-container-lowest hover:bg-surface-container border border-slate-200/60 text-secondary hover:text-on-surface text-[12px] font-semibold transition-colors flex items-center gap-1" type="button"><span class="material-symbols-outlined text-[15px]">block</span> Bỏ qua các mã lỗi</button><button class="px-2.5 py-1 rounded-md bg-error text-white hover:bg-error/90 text-[12px] font-semibold transition-colors flex items-center gap-1 shadow-sm" type="button"><span class="material-symbols-outlined text-[15px]">auto_fix_high</span> Xóa nhanh 2 mã lỗi</button></div></div><div class="w-full bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="p-space-md bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-sm text-headline-sm text-on-surface">Danh sách mã định danh</span>
+<span class="px-space-xs py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Kho A02</span>
+</div>
+</div>
+<div class="h-64 w-full bg-surface-container-low/40 flex items-center justify-center">
+<span class="text-secondary font-body-sm">Đang hiển thị chế độ nền...</span>
+</div>
+</div>
+</div>
+<div class="fixed inset-0 z-50 flex items-center justify-center p-space-md bg-on-background/45 backdrop-blur-[2px]">
+<div class="relative w-full max-w-[780px] bg-surface-container-lowest rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150" id="imei-modal">
+<div class="px-space-xl py-space-lg bg-surface-container-lowest flex items-start justify-between">
+<div class="flex items-start gap-space-md">
+<div class="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center text-primary shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">barcode_scanner</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Quét &amp; Nhập Serial / IMEI vào kho</h2>
+<span class="px-space-xs py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm">Lô hàng #NK-2024-089</span>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5">Ghi nhận mã định danh thiết bị theo lô nhập hoặc quét trực tiếp từ máy quét mã vạch chuyên dụng.</p>
+</div>
+</div>
+<button class="w-8 h-8 rounded-lg bg-surface-container-low hover:bg-surface-container text-secondary hover:text-on-surface flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<div class="px-space-xl pb-space-lg flex flex-col gap-space-lg max-h-[798px] overflow-y-auto">
+<div class="p-space-md rounded-xl bg-surface-container-low flex flex-col gap-space-md">
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-secondary uppercase tracking-wider">
+<span class="material-symbols-outlined text-[16px]">info</span>
+<span class="">Thông tin thiết bị và vị trí nhập</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-space-md">
+<div class="md:col-span-12 flex flex-col gap-space-2xs">
+<label class="font-label-sm text-label-sm text-on-surface font-medium">Sản phẩm &amp; Phiên bản <span class="text-error">*</span></label>
+<div class="relative">
+<div class="w-full h-10 px-space-md bg-surface-container-lowest rounded-lg flex items-center justify-between text-on-surface font-body-md shadow-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<span class="material-symbols-outlined text-primary text-[20px]">smartphone</span>
+<span class="font-medium truncate">iPhone 15 Pro Max 256GB - Titan Tự Nhiên</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface-variant font-mono-data text-[11px]">SKU: IP15PM-256-NT</span>
+</div>
+<span class="material-symbols-outlined text-secondary text-[20px]">arrow_drop_down</span>
+</div>
+</div>
+</div>
+<div class="md:col-span-6 flex flex-col gap-space-2xs">
+<label class="font-label-sm text-label-sm text-on-surface font-medium">Kho lưu trữ đích <span class="text-error">*</span></label>
+<div class="h-10 px-space-md bg-surface-container-lowest rounded-lg flex items-center justify-between text-on-surface font-body-md shadow-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[18px]">warehouse</span>
+<span class="">Kho Tổng - Kệ A02 (Tầng 1)</span>
+</div>
+<span class="material-symbols-outlined text-secondary text-[20px]">expand_more</span>
+</div>
+</div>
+<div class="md:col-span-6 flex flex-col gap-space-2xs">
+<label class="font-label-sm text-label-sm text-on-surface font-medium">Chính sách bảo hành</label>
+<div class="h-10 px-space-md bg-surface-container-lowest rounded-lg flex items-center justify-between text-on-surface font-body-md shadow-sm">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[18px]">verified_user</span>
+<span class="">12 tháng chính hãng Apple VN</span>
+</div>
+<span class="material-symbols-outlined text-secondary text-[20px]">lock</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between"><div class="flex items-center p-0.5 rounded-lg bg-surface-container"><button class="px-space-md py-1.5 rounded-md text-secondary hover:text-on-surface font-label-md text-label-md flex items-center gap-space-xs transition-colors" id="tab-scan" type="button"><span class="material-symbols-outlined text-[18px]">qr_code_scanner</span><span class="">Quét mã vạch (Barcode Scanner)</span></button><button class="px-space-md py-1.5 rounded-md bg-surface-container-lowest text-primary font-label-md text-label-md shadow-sm flex items-center gap-space-xs font-semibold" id="tab-manual" type="button"><span class="material-symbols-outlined text-[18px]">edit_note</span><span class="">Dán danh sách hàng loạt (Batch Paste)</span></button></div><div class="flex items-center gap-space-xs text-secondary font-label-sm text-label-sm"><span class="material-symbols-outlined text-primary text-[16px]">info</span><span class="">Hỗ trợ định dạng: <strong>Mỗi mã 1 dòng hoặc cách nhau bởi dấu phẩy</strong></span></div></div>
+<div class="p-space-md rounded-xl bg-surface-container-low border border-slate-200/60 flex flex-col gap-space-sm relative" id="batch-paste-view"><div class="flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-primary text-[20px]">content_paste</span><span class="font-label-md text-label-md text-on-surface font-semibold">Dán danh sách mã Serial / IMEI</span><span class="text-secondary font-body-sm text-[12px]">(Tối đa 500 mã/lần)</span></div><div class="flex items-center gap-space-sm"><button class="px-2.5 py-1 rounded-md text-secondary hover:text-primary hover:bg-surface-container text-[12px] font-medium flex items-center gap-1 transition-colors" type="button"><span class="material-symbols-outlined text-[15px]">download</span> Tải file mẫu (.CSV)</button><button class="px-2.5 py-1 rounded-md text-error hover:bg-error-container/40 text-[12px] font-medium flex items-center gap-1 transition-colors" type="button"><span class="material-symbols-outlined text-[15px]">clear_all</span> Xóa nội dung</button></div></div><div class="relative rounded-lg bg-surface-container-lowest border border-slate-200/60 overflow-hidden shadow-sm"><textarea class="w-full h-36 p-3 font-mono-data text-[13px] text-on-surface bg-transparent focus:outline-none resize-none leading-relaxed" placeholder="Dán danh sách mã IMEI tại đây (mỗi dòng một mã hoặc ngăn cách bởi dấu phẩy)..." spellcheck="false">352910482910490
+352910482910491
+352910482910492
+352910482910493
+352910482910494
+352910482910495
+352910482910496
+352910482910497
+86491029481023</textarea></div><div class="flex items-center justify-between pt-1"><div class="flex items-center gap-2 text-body-sm font-label-sm"><span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-600 font-semibold text-[12px]"><span class="material-symbols-outlined text-[16px]">data_object</span> Đã phát hiện 9 mã IMEI</span><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 8 hợp lệ</span><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-error-container text-error text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-error"></span> 1 lỗi định dạng</span></div><button class="px-space-md py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold flex items-center gap-1.5 shadow-sm transition-all" type="button"><span class="material-symbols-outlined text-[18px]">rule</span><span class="">Kiểm tra &amp; Phân tích cú pháp</span></button></div></div>
+</div>
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between px-1"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Danh sách mã đã phân tích (7 hợp lệ, 2 lỗi / cảnh báo)</span><span class="px-space-xs py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-semibold" id="count-badge">7 / 9 máy sẵn sàng</span></div><div class="flex items-center gap-space-sm"><button class="text-primary hover:underline font-label-sm text-label-sm flex items-center gap-0.5" type="button"><span class="material-symbols-outlined text-[16px]">filter_list</span> Chỉ xem mã lỗi (2)</button><button class="text-error hover:underline font-label-sm text-label-sm flex items-center gap-0.5" type="button"><span class="material-symbols-outlined text-[16px]">delete_sweep</span> Xóa toàn bộ danh sách</button></div></div>
+<div class="p-space-sm px-space-md rounded-xl bg-error-container/40 border border-error/20 flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs"><div class="flex items-start sm:items-center gap-2"><span class="material-symbols-outlined text-error text-[20px] shrink-0">warning</span><div class="font-body-sm text-[13px] text-on-surface"><span class="font-semibold text-error">Phát hiện 2 mã có vấn đề:</span> 1 mã sai độ dài (12 số) và 1 mã đã trùng lặp trong hệ thống. Vui lòng kiểm tra lại hoặc chọn loại trừ.</div></div><div class="flex items-center gap-2 shrink-0"><button class="px-2.5 py-1 rounded-md bg-surface-container-lowest hover:bg-surface-container border border-slate-200/60 text-secondary hover:text-on-surface text-[12px] font-semibold transition-colors flex items-center gap-1" type="button"><span class="material-symbols-outlined text-[15px]">block</span> Bỏ qua các mã lỗi</button><button class="px-2.5 py-1 rounded-md bg-error text-white hover:bg-error/90 text-[12px] font-semibold transition-colors flex items-center gap-1 shadow-sm" type="button"><span class="material-symbols-outlined text-[15px]">auto_fix_high</span> Xóa nhanh 2 mã lỗi</button></div></div><div class="rounded-xl overflow-hidden bg-surface-container-lowest shadow-sm">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low font-label-sm text-label-sm text-secondary uppercase tracking-wider">
+<th class="py-2.5 px-space-md w-12 text-center">STT</th>
+<th class="py-2.5 px-space-md">Mã Serial / IMEI Thiết bị</th>
+<th class="py-2.5 px-space-md">Quy chuẩn định danh</th>
+<th class="py-2.5 px-space-md">Trạng thái kiểm tra</th>
+<th class="py-2.5 px-space-md text-right w-16">Thao tác</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface divide-y divide-surface-container" id="imei-table-body"><tr class="hover:bg-surface-container-low/60 transition-colors"><td class="py-2 px-space-md text-center font-mono-data text-secondary">01</td><td class="py-2 px-space-md"><div class="flex items-center gap-space-xs font-mono-data font-semibold text-primary"><span class="">352910482910490</span><span class="material-symbols-outlined text-[14px] text-secondary cursor-pointer hover:text-on-surface" title="Sao chép">content_copy</span></div></td><td class="py-2 px-space-md font-body-sm text-secondary">IMEI 1 (eSIM / Vật lý)</td><td class="py-2 px-space-md"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-label-sm text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Hợp lệ (15 số - Apple)</span></td><td class="py-2 px-space-md text-right"><button class="p-1 rounded text-secondary hover:text-error hover:bg-error-container/40 transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">delete</span></button></td></tr><tr class="hover:bg-surface-container-low/60 transition-colors"><td class="py-2 px-space-md text-center font-mono-data text-secondary">02</td><td class="py-2 px-space-md"><div class="flex items-center gap-space-xs font-mono-data font-semibold text-primary"><span class="">352910482910491</span><span class="material-symbols-outlined text-[14px] text-secondary cursor-pointer hover:text-on-surface" title="Sao chép">content_copy</span></div></td><td class="py-2 px-space-md font-body-sm text-secondary">IMEI 1 (eSIM / Vật lý)</td><td class="py-2 px-space-md"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-label-sm text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Hợp lệ (15 số - Apple)</span></td><td class="py-2 px-space-md text-right"><button class="p-1 rounded text-secondary hover:text-error hover:bg-error-container/40 transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">delete</span></button></td></tr><tr class="bg-error-container/40 hover:bg-error-container/60 transition-colors border-l-4 border-error"><td class="py-2 px-space-md text-center font-mono-data text-error font-bold">03</td><td class="py-2 px-space-md"><div class="flex items-center gap-space-xs font-mono-data font-bold text-error"><span class="bg-white/80 px-1 rounded ring-1 ring-error/30">352910482910</span><span class="material-symbols-outlined text-[16px] text-error" title="Sai định dạng IMEI">error</span></div><div class="text-[11px] text-error font-medium">Chỉ phát hiện 12 ký tự số</div></td><td class="py-2 px-space-md font-body-sm text-error font-medium"><div class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">help</span><span class="">Không xác định (Sai độ dài: 12/15 số)</span></div></td><td class="py-2 px-space-md"><div class="flex flex-col items-start gap-0.5"><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-error text-on-error font-label-sm text-[11px] font-bold shadow-sm"><span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> Lỗi định dạng (Thiếu 3 số)</span><span class="text-[11px] text-error/90">Yêu cầu chuẩn 15 chữ số IMEI</span></div></td><td class="py-2 px-space-md text-right"><div class="flex items-center justify-end gap-1"><button class="p-1 rounded text-secondary hover:text-primary hover:bg-surface-container transition-colors" title="Sửa mã IMEI" type="button"><span class="material-symbols-outlined text-[18px]">edit</span></button><button class="p-1 rounded text-error hover:bg-error hover:text-white transition-colors" title="Xóa dòng lỗi" type="button"><span class="material-symbols-outlined text-[18px]">delete</span></button></div></td></tr><tr class="bg-amber-50/70 hover:bg-amber-100/60 transition-colors border-l-4 border-amber-500"><td class="py-2 px-space-md text-center font-mono-data text-amber-800 font-bold">04</td><td class="py-2 px-space-md"><div class="flex items-center gap-space-xs font-mono-data font-semibold text-amber-900"><span class="bg-white/80 px-1 rounded ring-1 ring-amber-300">352910482910492</span><span class="material-symbols-outlined text-[16px] text-amber-600" title="Mã đã tồn tại trong kho">warning</span></div><div class="text-[11px] text-amber-700">Trùng mã với thiết bị hiện hữu</div></td><td class="py-2 px-space-md font-body-sm text-secondary">IMEI 1 (eSIM / Vật lý)</td><td class="py-2 px-space-md"><div class="flex flex-col items-start gap-0.5"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-label-sm text-[11px] font-semibold border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Đã tồn tại trong kho (Kệ B01)</span><span class="text-[11px] text-secondary">Nhập kho ngày 15/03/2024</span></div></td><td class="py-2 px-space-md text-right"><div class="flex items-center justify-end gap-1"><button class="p-1 rounded text-secondary hover:text-primary hover:bg-surface-container transition-colors" title="Xem thiết bị trùng" type="button"><span class="material-symbols-outlined text-[18px]">visibility</span></button><button class="p-1 rounded text-error hover:bg-error-container/60 transition-colors" title="Xóa dòng này" type="button"><span class="material-symbols-outlined text-[18px]">delete</span></button></div></td></tr><tr class="hover:bg-surface-container-low/60 transition-colors"><td class="py-2 px-space-md text-center font-mono-data text-secondary">05</td><td class="py-2 px-space-md"><div class="flex items-center gap-space-xs font-mono-data font-semibold text-primary"><span class="">352910482910493</span><span class="material-symbols-outlined text-[14px] text-secondary cursor-pointer hover:text-on-surface" title="Sao chép">content_copy</span></div></td><td class="py-2 px-space-md font-body-sm text-secondary">IMEI 1 (eSIM / Vật lý)</td><td class="py-2 px-space-md"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-label-sm text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Hợp lệ (15 số - Apple)</span></td><td class="py-2 px-space-md text-right"><button class="p-1 rounded text-secondary hover:text-error hover:bg-error-container/40 transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">delete</span></button></td></tr><tr class="hover:bg-surface-container-low/60 transition-colors"><td class="py-2 px-space-md text-center font-mono-data text-secondary">06</td><td class="py-2 px-space-md"><div class="flex items-center gap-space-xs font-mono-data font-semibold text-primary"><span class="">352910482910494</span><span class="material-symbols-outlined text-[14px] text-secondary cursor-pointer hover:text-on-surface" title="Sao chép">content_copy</span></div></td><td class="py-2 px-space-md font-body-sm text-secondary">IMEI 1 (eSIM / Vật lý)</td><td class="py-2 px-space-md"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-label-sm text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Hợp lệ (15 số - Apple)</span></td><td class="py-2 px-space-md text-right"><button class="p-1 rounded text-secondary hover:text-error hover:bg-error-container/40 transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">delete</span></button></td></tr><tr class="hover:bg-surface-container-low/60 transition-colors"><td class="py-2 px-space-md text-center font-mono-data text-secondary">07</td><td class="py-2 px-space-md"><div class="flex items-center gap-space-xs font-mono-data font-semibold text-primary"><span class="">352910482910495</span><span class="material-symbols-outlined text-[14px] text-secondary cursor-pointer hover:text-on-surface" title="Sao chép">content_copy</span></div></td><td class="py-2 px-space-md font-body-sm text-secondary">IMEI 1 (eSIM / Vật lý)</td><td class="py-2 px-space-md"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-label-sm text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Hợp lệ (15 số - Apple)</span></td><td class="py-2 px-space-md text-right"><button class="p-1 rounded text-secondary hover:text-error hover:bg-error-container/40 transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">delete</span></button></td></tr><tr class="hover:bg-surface-container-low/60 transition-colors"><td class="py-2 px-space-md text-center font-mono-data text-secondary">08</td><td class="py-2 px-space-md"><div class="flex items-center gap-space-xs font-mono-data font-semibold text-primary"><span class="">352910482910496</span><span class="material-symbols-outlined text-[14px] text-secondary cursor-pointer hover:text-on-surface" title="Sao chép">content_copy</span></div></td><td class="py-2 px-space-md font-body-sm text-secondary">IMEI 1 (eSIM / Vật lý)</td><td class="py-2 px-space-md"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-label-sm text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Hợp lệ (15 số - Apple)</span></td><td class="py-2 px-space-md text-right"><button class="p-1 rounded text-secondary hover:text-error hover:bg-error-container/40 transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">delete</span></button></td></tr><tr class="hover:bg-surface-container-low/60 transition-colors"><td class="py-2 px-space-md text-center font-mono-data text-secondary">09</td><td class="py-2 px-space-md"><div class="flex items-center gap-space-xs font-mono-data font-semibold text-primary"><span class="">352910482910497</span><span class="material-symbols-outlined text-[14px] text-secondary cursor-pointer hover:text-on-surface" title="Sao chép">content_copy</span></div></td><td class="py-2 px-space-md font-body-sm text-secondary">IMEI 1 (eSIM / Vật lý)</td><td class="py-2 px-space-md"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-label-sm text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Hợp lệ (15 số - Apple)</span></td><td class="py-2 px-space-md text-right"><button class="p-1 rounded text-secondary hover:text-error hover:bg-error-container/40 transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">delete</span></button></td></tr></tbody>
+</table>
+</div>
+<div class="flex items-center justify-between p-space-sm px-space-md rounded-lg bg-surface-container-low"><div class="flex items-center gap-space-xs text-on-surface font-body-sm text-body-sm"><span class="material-symbols-outlined text-error text-[18px]">error</span><span class="">Phát hiện <strong>1 mã lỗi định dạng</strong> và <strong>1 mã trùng lặp</strong> (sẽ được tự động bỏ qua nếu chọn tiếp tục).</span></div><span class="font-mono-data text-secondary text-[12px]">Luhn Checksum: 7 Passed / 2 Failed</span></div>
+</div>
+</div>
+<div class="px-space-xl py-space-md bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-xs text-secondary font-body-sm text-body-sm"><span class="material-symbols-outlined text-[18px]">sync</span><span class="">Tồn kho tức thời sẽ cập nhật <strong>+7 chiếc</strong> tại Kệ A02 (đã loại trừ 2 mã lỗi/trùng).</span></div><div class="flex items-center gap-space-sm w-full sm:w-auto justify-end"><button class="px-space-lg py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors shadow-sm" type="button">Hủy bỏ</button><button class="px-space-md py-2 rounded-lg bg-error-container hover:bg-error-container/80 text-error font-label-md text-label-md font-semibold flex items-center gap-space-xs transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">filter_alt_off</span><span class="">Bỏ qua 2 mã lỗi</span></button><button class="px-space-xl py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-semibold flex items-center gap-space-xs shadow-md transition-all active:scale-[0.99]" type="button"><span class="material-symbols-outlined text-[20px]">check</span><span class="">Xác nhận nhập kho (7 mã hợp lệ)</span></button></div></div>
+</div>
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[2px] animate-in fade-in duration-150" id="quick-edit-imei-dialog"><div class="relative w-full max-w-[500px] bg-surface-container-lowest rounded-2xl shadow-2xl border border-slate-200/80 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"><div class="px-5 py-3.5 bg-surface-container-low border-b border-slate-200/60 flex items-center justify-between"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-lg bg-primary-fixed text-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px]">edit</span></div><div class="flex items-center gap-2"><h3 class="font-headline-sm text-[15px] font-semibold text-on-surface">Chỉnh sửa nhanh mã IMEI</h3><span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Dòng 03 · Đã chuẩn hóa</span></div></div><button class="w-7 h-7 rounded-lg hover:bg-surface-container text-secondary hover:text-on-surface flex items-center justify-center transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">close</span></button></div><div class="p-5 flex flex-col gap-4 bg-surface-container-lowest"><div class="p-2.5 rounded-lg bg-surface-container-low border border-slate-200/60 flex items-center justify-between text-[12px]"><div class="flex items-center gap-2 min-w-0"><span class="material-symbols-outlined text-primary text-[18px] shrink-0">smartphone</span><span class="font-medium text-on-surface truncate">iPhone 15 Pro Max 256GB - Titan Tự Nhiên</span></div><span class="px-2 py-0.5 rounded bg-surface-container-high text-secondary shrink-0 font-medium">Kệ A02</span></div><div class="flex flex-col gap-1.5"><div class="flex items-center justify-between"><label class="font-label-sm text-[13px] text-on-surface font-semibold">Số Serial / IMEI <span class="text-error">*</span></label><span class="font-mono-data text-[12px] font-bold text-emerald-700 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 15 / 15 ký tự (Hợp lệ)</span></div><div class="relative flex items-center"><input class="w-full h-11 px-3.5 font-mono-data text-[15px] font-bold text-on-surface tracking-wider bg-surface-container-lowest border-2 border-emerald-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20" spellcheck="false" type="text" value="352910482910492"><div class="absolute right-2.5 flex items-center gap-1"><span class="material-symbols-outlined text-emerald-500 text-[20px] p-1" title="Mã hợp lệ">verified</span><button class="p-1 rounded text-secondary hover:text-primary hover:bg-surface-container transition-colors" title="Sao chép mã" type="button"><span class="material-symbols-outlined text-[18px]">content_copy</span></button></div></div><div class="flex flex-col gap-1.5 pt-1"><div class="p-2.5 rounded-lg bg-emerald-50 border border-emerald-500/20 flex items-center gap-2 text-[12px] text-emerald-700 font-medium"><span class="material-symbols-outlined text-[18px] text-emerald-600 shrink-0">check_circle</span><span>Đạt chuẩn GSMA TAC (Apple Inc · iPhone 15 Pro Max) &amp; Luhn Checksum hợp lệ</span></div><div class="p-2.5 rounded-lg bg-surface-container-low border border-slate-200/60 flex flex-col gap-1.5 text-[11px] text-secondary"><div class="flex items-center justify-between"><span class="font-medium text-slate-900">Cấu trúc chuẩn 15 số (GSMA):</span><span class="font-mono-data font-semibold text-emerald-700">Đã xác thực</span></div><div class="grid grid-cols-3 gap-2 pt-0.5"><div class="bg-surface-container-lowest p-1.5 rounded border border-slate-200/60 flex flex-col"><span class="text-slate-400 text-[10px]">TAC (8 số)</span><span class="font-mono-data font-semibold text-slate-900">35291048</span></div><div class="bg-surface-container-lowest p-1.5 rounded border border-slate-200/60 flex flex-col"><span class="text-slate-400 text-[10px]">SNR (6 số)</span><span class="font-mono-data font-semibold text-slate-900">291049</span></div><div class="bg-surface-container-lowest p-1.5 rounded border border-slate-200/60 flex flex-col"><span class="text-slate-400 text-[10px]">Luhn Check</span><span class="font-mono-data font-semibold text-emerald-700">2 (Passed)</span></div></div></div></div></div></div><div class="px-5 py-3.5 bg-surface-container-low border-t border-slate-200/60 flex items-center justify-between"><button class="text-error hover:underline text-[12px] font-semibold flex items-center gap-1 transition-colors" type="button"><span class="material-symbols-outlined text-[15px]">delete</span> Xóa bỏ mã này</button><div class="flex items-center gap-2"><button class="px-3.5 py-1.5 rounded-lg bg-surface-container-lowest hover:bg-surface-container border border-slate-200/60 text-secondary hover:text-on-surface text-[13px] font-medium transition-colors" type="button">Đóng</button><button class="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-[13px] font-semibold flex items-center gap-1.5 shadow-sm transition-all active:scale-[0.99]" type="button"><span class="material-symbols-outlined text-[17px]">check</span> Áp dụng &amp; Lưu thay đổi</button></div></div></div></div></div>
+</div>
+<script>
+  (function() {
+    const tabScan = document.getElementById('tab-scan');
+    const tabManual = document.getElementById('tab-manual');
+    const scannerView = document.getElementById('scanner-view');
+    const input = document.getElementById('imei-input');
+    const addBtn = document.getElementById('btn-add-imei');
+    const tableBody = document.getElementById('imei-table-body');
+    const countBadge = document.getElementById('count-badge');
+
+    let imeiList = [
+      '352910482910490',
+      '352910482910491',
+      '352910482910492',
+      '352910482910493',
+      '352910482910494'
+    ];
+
+    function renderTable() {
+      tableBody.innerHTML = '';
+      imeiList.forEach((imei, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-surface-container-low/60 transition-colors';
+        tr.innerHTML = `
+          <td class="py-2 px-space-md text-center font-mono-data text-secondary">${String(index + 1).padStart(2, '0')}</td>
+          <td class="py-2 px-space-md">
+            <div class="flex items-center gap-space-xs font-mono-data font-semibold text-primary">
+              <span>${imei}</span>
+              <span class="material-symbols-outlined text-[14px] text-secondary cursor-pointer hover:text-on-surface" title="Sao chép">content_copy</span>
+            </div>
+          </td>
+          <td class="py-2 px-space-md font-body-sm text-secondary">IMEI 1 (eSIM / Vật lý)</td>
+          <td class="py-2 px-space-md">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-label-sm text-[11px] font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Hợp lệ (15 số - Apple)
+            </span>
+          </td>
+          <td class="py-2 px-space-md text-right">
+            <button type="button" data-index="${index}" class="btn-delete p-1 rounded text-secondary hover:text-error hover:bg-error-container/40 transition-colors">
+              <span class="material-symbols-outlined text-[18px]">delete</span>
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      countBadge.textContent = `${imeiList.length} / 10 máy`;
+
+      document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(btn.getAttribute('data-index'), 10);
+          imeiList.splice(idx, 1);
+          renderTable();
+        });
+      });
+    }
+
+    function addIMEI() {
+      const val = input.value.trim();
+      if (val && !imeiList.includes(val)) {
+        imeiList.push(val);
+        input.value = '';
+        renderTable();
+      }
+    }
+
+    if (addBtn && input) {
+      addBtn.addEventListener('click', addIMEI);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addIMEI();
+        }
+      });
+    }
+
+    if (tabScan && tabManual) {
+      tabScan.addEventListener('click', () => {
+        tabScan.className = 'px-space-md py-1.5 rounded-md bg-surface-container-lowest text-primary font-label-md text-label-md shadow-sm flex items-center gap-space-xs';
+        tabManual.className = 'px-space-md py-1.5 rounded-md text-secondary hover:text-on-surface font-label-md text-label-md flex items-center gap-space-xs transition-colors';
+        scannerView.classList.remove('hidden');
+      });
+
+      tabManual.addEventListener('click', () => {
+        tabManual.className = 'px-space-md py-1.5 rounded-md bg-surface-container-lowest text-primary font-label-md text-label-md shadow-sm flex items-center gap-space-xs';
+        tabScan.className = 'px-space-md py-1.5 rounded-md text-secondary hover:text-on-surface font-label-md text-label-md flex items-center gap-space-xs transition-colors';
+      });
+    }
+
+    renderTable();
+  })();
+</script></main></div>
+</body></html>

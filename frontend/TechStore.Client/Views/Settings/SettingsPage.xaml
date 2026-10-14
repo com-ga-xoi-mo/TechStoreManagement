@@ -1,0 +1,49 @@
+<Page x:Class="TechStore.Client.Views.Settings.SettingsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:shell="using:TechStore.Client.Views.Shell"
+      xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+      Background="{ThemeResource TechStoreCanvasBrush}"
+      FontFamily="{StaticResource TechStoreRegularFont}">
+    <Grid Padding="24" RowSpacing="20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <StackPanel Spacing="4">
+            <TextBlock Text="Cài đặt" Style="{StaticResource TechStoreHeadingTextStyle}" />
+            <TextBlock Text="Tùy chọn giao diện và thông tin ứng dụng." Style="{StaticResource TechStoreCaptionTextStyle}" Foreground="{ThemeResource TechStoreSecondaryTextBrush}" />
+        </StackPanel>
+        <Grid Grid.Row="1">
+            <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                          Visibility="{x:Bind shell:ShellPage.VisibilityFor(ViewModel.IsLoading), Mode=OneWay}" />
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          Visibility="{x:Bind shell:ShellPage.VisibilityFor(ViewModel.IsContent), Mode=OneWay}">
+                <StackPanel Spacing="12" MaxWidth="880" HorizontalAlignment="Left">
+                    <toolkit:SettingsCard Header="Giao diện"
+                                          Description="Áp dụng ngay cho cửa sổ TechStore trong phiên hiện tại.">
+                        <ComboBox MinWidth="180"
+                                  ItemsSource="{x:Bind ViewModel.ThemeOptions}"
+                                  SelectedIndex="{x:Bind ViewModel.SelectedThemeIndex, Mode=TwoWay}"
+                                  AutomationProperties.Name="Chế độ giao diện"
+                                  Style="{StaticResource TechStoreComboBoxStyle}" />
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsExpander Header="Thông tin ứng dụng"
+                                              Description="Thông tin bản dựng không nhạy cảm"
+                                              IsExpanded="True">
+                        <StackPanel Spacing="8" Padding="16,8">
+                            <toolkit:SettingsCard Header="Ứng dụng" Description="{x:Bind ViewModel.ApplicationName}" />
+                            <toolkit:SettingsCard Header="Phiên bản" Description="{x:Bind ViewModel.ApplicationVersion}" />
+                            <toolkit:SettingsCard Header="Nền tảng" Description="{x:Bind ViewModel.RuntimeDescription}" />
+                        </StackPanel>
+                    </toolkit:SettingsExpander>
+                    <TextBlock Text="Lựa chọn giao diện chỉ được giữ trong phiên này; phiên mới mặc định theo hệ thống."
+                               Style="{StaticResource TechStoreCaptionTextStyle}"
+                               Foreground="{ThemeResource TechStoreSecondaryTextBrush}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </ScrollViewer>
+            <StackPanel Spacing="12" Visibility="{x:Bind shell:ShellPage.VisibilityFor(ViewModel.IsError), Mode=OneWay}">
+                <TextBlock Text="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}" Style="{StaticResource TechStoreFieldErrorStyle}" />
+                <Button Content="Thử tải lại" Command="{x:Bind ViewModel.RetryCommand}" Style="{StaticResource TechStoreButtonStyle}" HorizontalAlignment="Left" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

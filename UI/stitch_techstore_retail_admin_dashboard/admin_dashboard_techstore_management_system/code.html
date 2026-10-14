@@ -1,0 +1,301 @@
+<!DOCTYPE html><html lang="vi" style=""><head><style class="">*, ::before, ::after { font-family: 'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important; }</style><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><style>*, ::before, ::after { font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; }</style></head><body class="text-slate-800 antialiased min-h-screen flex selection:bg-brand-100 selection:text-brand-700"><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>TechStore - Bảng điều khiển quản trị</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" class=""><style class="">.material-symbols-outlined { font-family: 'Material Symbols Outlined' !important; font-weight: normal; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-flex; align-items: center; justify-content: center; width: 1em; height: 1em; overflow: hidden; white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; vertical-align: middle; }</style>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#EFF6FF',
+              100: '#DBEAFE',
+              200: '#BFDBFE',
+              500: '#3B82F6',
+              600: '#2563EB',
+              700: '#1D4ED8',
+            },
+            canvas: '#F4F7FC',
+          },
+          boxShadow: {
+            card: '0 10px 25px -4px rgba(37, 99, 235, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02)',
+            cardHover: '0 20px 30px -10px rgba(37, 99, 235, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.04)',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #F3F6FD;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+  </style>
+
+
+<!-- Left Sidebar (Inspired by Odasta Reference) -->
+<aside class="w-[250px] shrink-0 bg-white border-r border-slate-200/80 flex flex-col justify-between select-none p-4"><div class="flex flex-col gap-5"><div class="flex items-center gap-3 px-1.5 py-1"><div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></div><div class="flex flex-col min-w-0"><span class="font-bold text-[16px] text-slate-900 tracking-tight leading-snug truncate" style="font-size: 20px; font-weight: 600; line-height: 1.25;">TechStore</span><span class="text-[12px] font-medium text-slate-400 truncate">Quản lý bán lẻ</span></div></div><nav class="flex flex-col gap-1"><span class="text-[12px] uppercase font-bold tracking-wider text-slate-400 px-3 mb-1">Menu chính</span><a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 text-blue-600 font-semibold text-[13px] transition-all" href="#"><svg class="w-[19px] h-[19px] shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg><span class="">Tổng quan</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-[13px] transition-colors" href="#"><svg class="w-[19px] h-[19px] shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg><span class="">Sản phẩm</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-[13px] transition-colors" href="#"><svg class="w-[19px] h-[19px] shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg><span class="">Danh mục và Kho</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-[13px] transition-colors" href="#"><svg class="w-[19px] h-[19px] shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="">Đơn hàng</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-[13px] transition-colors" href="#"><svg class="w-[19px] h-[19px] shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg><span class="">Khách hàng</span></a></nav></div><div class="flex flex-col gap-2 pt-3 border-t border-slate-100 mt-auto"><a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-[13px] transition-colors"><svg class="w-[19px] h-[19px] shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg><span class="">Cài đặt</span></a><div class="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"><div class="flex items-center gap-2.5 min-w-0"><img alt="Admin" class="w-8 h-8 rounded-full object-cover ring-2 ring-slate-100 shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLZ5TTKNQHvrSwDjGDLSNuUFobiFKeXKSuaHoy3FO7huFI0DTTcU7ogdMYlTff5S1SrCz8--Mvv78DtEBSH3jHWRX6KNwO_OXQrYfRhS8xnDgJ_Swj9lAaOnUYPf_PmtU_qCz-2_PNpv0qtotFLd64rfmBAXJZTigoJ5kYS_lwhbvQftOsO1hD6Jh9uQ7ctiwf5gj6T5ZnDXY5GBopegj4BELvM3vO-JVWf0E-e98"><div class="flex flex-col min-w-0"><span class="text-[12.5px] font-bold text-slate-900 truncate leading-tight">Admin TechStore</span><span class="text-[12px] text-slate-400 truncate">Quản trị viên</span></div></div><svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg></div></div></aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col p-5 gap-5">
+<!-- Top Navigation / Search / Range Filter Bar -->
+<header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4"><!-- Page Title & Breadcrumb -->
+<div class="flex flex-col">
+
+<h1 class="text-[20px] font-bold text-slate-900 tracking-tight leading-none" style="font-size: 20px; font-weight: 600; line-height: 1.25;">Tổng quan kinh doanh</h1>
+</div>
+<!-- Actions & Controls -->
+<div class="flex items-center gap-3 flex-wrap ml-auto">
+<!-- Compact Search Input -->
+
+<!-- Time Filter Pill -->
+<div class="inline-flex items-center bg-white border border-slate-200 p-0.5 rounded-lg shadow-sm text-[12px] font-medium">
+<button class="px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-800 transition-colors">Hôm nay</button>
+<button class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 font-semibold shadow-xs">7 ngày qua</button>
+<button class="px-2.5 py-1 rounded-md text-slate-500 hover:text-slate-800 transition-colors">Tháng này</button>
+</div>
+<!-- Primary CTA Button -->
+
+</div></header>
+<!-- Top Metric Cards Row (Styled after Fund 1, Fund 2, Fund 3 in Reference) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"><div class="bg-white rounded-lg p-3.5 border border-slate-200 shadow-sm flex flex-col justify-between"><div class="flex items-center justify-between mb-2"><span class="text-[12.5px] font-medium text-slate-500">Tổng doanh thu</span><div class="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div></div><div><div class="text-[20px] font-bold text-slate-900 tracking-tight leading-none" style="font-size: 22px; font-weight: 700; line-height: 1;">482.650.000 ₫</div><div class="flex items-center gap-1.5 mt-2 text-[11.5px]"><span class="inline-flex items-center text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded text-[11px]">+12.5%</span><span class="text-slate-400">so với tuần trước</span></div></div></div><div class="bg-white rounded-lg p-3.5 border border-slate-200 shadow-sm flex flex-col justify-between"><div class="flex items-center justify-between mb-2"><span class="text-[12.5px] font-medium text-slate-500">Số đơn hàng</span><div class="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg></div></div><div><div class="text-[20px] font-bold text-slate-900 tracking-tight leading-none" style="font-size: 22px; font-weight: 700; line-height: 1;">128 <span class="text-[13px] font-medium text-slate-400">đơn</span></div><div class="flex items-center gap-1.5 mt-2 text-[11.5px]"><span class="inline-flex items-center text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded text-[11px]">+8.2%</span><span class="text-slate-400 truncate">TB 3.770.000 ₫ / đơn</span></div></div></div><div class="bg-white rounded-lg p-3.5 border border-slate-200 shadow-sm flex flex-col justify-between"><div class="flex items-center justify-between mb-2"><span class="text-[12.5px] font-medium text-slate-500">Tổng sản phẩm</span><div class="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></div></div><div><div class="text-[20px] font-bold text-slate-900 tracking-tight leading-none" style="font-size: 22px; font-weight: 700; line-height: 1;">1.420 <span class="text-[13px] font-medium text-slate-400">máy</span></div><div class="flex items-center gap-1.5 mt-2 text-[11.5px]"><span class="text-slate-500 font-medium">38 danh mục hoạt động</span></div></div></div><div class="bg-white rounded-lg p-3.5 border border-slate-200 shadow-sm flex flex-col justify-between"><div class="flex items-center justify-between mb-2"><span class="text-[12.5px] font-medium text-slate-500">Cảnh báo tồn kho</span><div class="w-7 h-7 rounded-md bg-rose-50 text-rose-600 flex items-center justify-center shrink-0"><svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div></div><div><div class="text-[20px] font-bold text-rose-600 tracking-tight leading-none" style="font-size: 22px; font-weight: 700; line-height: 1;">7 <span class="text-[13px] font-medium text-slate-400">sản phẩm</span></div><div class="flex items-center gap-1.5 mt-2 text-[11.5px]"><span class="text-slate-400">Dưới mức an toàn</span></div></div></div></div>
+<!-- Middle Charts Row (Two Equal Crisp White Cards like "Last Ratio" and "Combined Ratio" in Reference) -->
+<div class="grid grid-cols-1 lg:grid-cols-10 gap-4 items-stretch">
+<!-- Cột trái (70% = col-span-7): Xu hướng doanh thu theo ngày -->
+<div class="lg:col-span-7 bg-white rounded-lg p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between mb-2">
+<div>
+<h2 class="text-[14px] font-bold text-slate-900">Xu hướng doanh thu theo ngày</h2>
+<p class="text-[11.5px] text-slate-400">Thứ 2 đến Chủ nhật • Đỉnh cao điểm Thứ 7: <span class="text-blue-600 font-semibold">92.650.000 ₫</span></p>
+</div>
+
+</div>
+<!-- Chart SVG Kết hợp Bar & Smooth Curve -->
+<div class="w-full h-[180px] select-none pt-1">
+<svg class="w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 700 170">
+<!-- Horizontal Guidelines -->
+<line stroke="#F1F5F9" stroke-dasharray="3 3" stroke-width="1" x1="45" x2="680" y1="15" y2="15"></line>
+<line stroke="#F1F5F9" stroke-dasharray="3 3" stroke-width="1" x1="45" x2="680" y1="45" y2="45"></line>
+<line stroke="#F1F5F9" stroke-dasharray="3 3" stroke-width="1" x1="45" x2="680" y1="75" y2="75"></line>
+<line stroke="#F1F5F9" stroke-dasharray="3 3" stroke-width="1" x1="45" x2="680" y1="105" y2="105"></line>
+<line stroke="#E2E8F0" stroke-width="1" x1="45" x2="680" y1="135" y2="135"></line>
+<!-- Y Axis -->
+<text fill="#94A3B8" font-size="9" text-anchor="end" x="38" y="19">100M</text>
+<text fill="#94A3B8" font-size="9" text-anchor="end" x="38" y="49">75M</text>
+<text fill="#94A3B8" font-size="9" text-anchor="end" x="38" y="79">50M</text>
+<text fill="#94A3B8" font-size="9" text-anchor="end" x="38" y="109">25M</text>
+<text fill="#94A3B8" font-size="9" text-anchor="end" x="38" y="138">0</text>
+<!-- Gradients -->
+<defs>
+<linearGradient id="fluentBarBlue" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#3B82F6"></stop>
+<stop offset="100%" stop-color="#60A5FA" stop-opacity="0.6"></stop>
+</linearGradient>
+<linearGradient id="fluentBarPeak" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#1D4ED8"></stop>
+<stop offset="100%" stop-color="#2563EB"></stop>
+</linearGradient>
+<linearGradient id="fluentArea" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#2563EB" stop-opacity="0.15"></stop>
+<stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"></stop>
+</linearGradient>
+</defs>
+<!-- Bars -->
+<!-- T2 (62M) -->
+<rect fill="url(#fluentBarBlue)" height="62" rx="3" width="28" x="76" y="73"></rect>
+<!-- T3 (48M) -->
+<rect fill="url(#fluentBarBlue)" height="48" rx="3" width="28" x="166" y="87"></rect>
+<!-- T4 (55M) -->
+<rect fill="url(#fluentBarBlue)" height="55" rx="3" width="28" x="256" y="80"></rect>
+<!-- T5 (70M) -->
+<rect fill="url(#fluentBarBlue)" height="70" rx="3" width="28" x="346" y="65"></rect>
+<!-- T6 (78M) -->
+<rect fill="url(#fluentBarBlue)" height="78" rx="3" width="28" x="436" y="57"></rect>
+<!-- T7 (92.65M - Peak) -->
+<rect fill="url(#fluentBarPeak)" height="98" rx="3" width="28" x="526" y="37"></rect>
+<!-- Peak Badge Tag -->
+<rect fill="#1E293B" height="16" rx="4" width="52" x="514" y="16"></rect>
+<text fill="#FFFFFF" font-size="8.5" font-weight="600" text-anchor="middle" x="540" y="27.5">92.65M ₫</text>
+<!-- CN (42M) -->
+<rect fill="url(#fluentBarBlue)" height="42" rx="3" width="28" x="616" y="93"></rect>
+<!-- Area Fill Under Curve -->
+<path d="M 90 73 C 180 87, 270 80, 360 65 C 450 57, 540 37, 630 93 L 630 135 L 90 135 Z" fill="url(#fluentArea)"></path>
+<!-- Connecting Smooth Spline -->
+<path d="M 90 73 C 180 87, 270 80, 360 65 C 450 57, 540 37, 630 93" fill="none" stroke="#1D4ED8" stroke-linecap="round" stroke-width="2.5"></path>
+<!-- Nodes -->
+<circle cx="90" cy="73" fill="#FFFFFF" r="3.5" stroke="#2563EB" stroke-width="2"></circle>
+<circle cx="180" cy="87" fill="#FFFFFF" r="3.5" stroke="#2563EB" stroke-width="2"></circle>
+<circle cx="270" cy="80" fill="#FFFFFF" r="3.5" stroke="#2563EB" stroke-width="2"></circle>
+<circle cx="360" cy="65" fill="#FFFFFF" r="3.5" stroke="#2563EB" stroke-width="2"></circle>
+<circle cx="450" cy="57" fill="#FFFFFF" r="3.5" stroke="#2563EB" stroke-width="2"></circle>
+<circle cx="540" cy="37" fill="#FFFFFF" r="4.5" stroke="#1D4ED8" stroke-width="2.5"></circle>
+<circle cx="630" cy="93" fill="#FFFFFF" r="3.5" stroke="#2563EB" stroke-width="2"></circle>
+<!-- X Axis Labels -->
+<text fill="#64748B" font-size="10" font-weight="500" text-anchor="middle" x="90" y="152">T2</text>
+<text fill="#64748B" font-size="10" font-weight="500" text-anchor="middle" x="180" y="152">T3</text>
+<text fill="#64748B" font-size="10" font-weight="500" text-anchor="middle" x="270" y="152">T4</text>
+<text fill="#64748B" font-size="10" font-weight="500" text-anchor="middle" x="360" y="152">T5</text>
+<text fill="#64748B" font-size="10" font-weight="500" text-anchor="middle" x="450" y="152">T6</text>
+<text fill="#1D4ED8" font-size="10" font-weight="700" text-anchor="middle" x="540" y="152">T7</text>
+<text fill="#64748B" font-size="10" font-weight="500" text-anchor="middle" x="630" y="152">CN</text>
+</svg>
+</div>
+</div>
+<!-- Cột phải (30% = col-span-3): Top 5 sản phẩm bán chạy -->
+<div class="lg:col-span-3 bg-white rounded-lg p-4 border border-slate-200 shadow-sm flex flex-col justify-between"><div class="flex items-center justify-between mb-2"><h2 class="text-[14px] font-bold text-slate-900">Tồn kho thấp</h2></div><div class="flex flex-col divide-y divide-slate-100 text-[12.5px]"><div class="flex items-center justify-between py-2"><div class="flex items-center gap-2.5 min-w-0"><div class="w-7 h-7 rounded bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg></div><div class="flex flex-col min-w-0"><span class="font-semibold text-slate-900 truncate">iPhone 15 Pro Max</span><span class="text-[12px] text-slate-400">256GB Titan</span></div></div><span class="font-bold text-rose-600 shrink-0 ml-2 text-[12.5px]">2 <span class="text-[12px] font-normal text-rose-600">máy</span></span></div><div class="flex items-center justify-between py-2"><div class="flex items-center gap-2.5 min-w-0"><div class="w-7 h-7 rounded bg-slate-100 text-slate-600 flex items-center justify-center shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></div><div class="flex flex-col min-w-0"><span class="font-semibold text-slate-900 truncate">MacBook Air M3</span><span class="text-[12px] text-slate-400">13 inch 16GB</span></div></div><span class="font-bold text-rose-600 shrink-0 ml-2 text-[12.5px]">1 <span class="text-[12px] font-normal text-rose-600">máy</span></span></div><div class="flex items-center justify-between py-2"><div class="flex items-center gap-2.5 min-w-0"><div class="w-7 h-7 rounded bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg></div><div class="flex flex-col min-w-0"><span class="font-semibold text-slate-900 truncate">Galaxy S24 Ultra</span><span class="text-[12px] text-slate-400">512GB Gray</span></div></div><span class="font-bold text-rose-600 shrink-0 ml-2 text-[12.5px]">3 <span class="text-[12px] font-normal text-rose-600">máy</span></span></div><div class="flex items-center justify-between py-2"><div class="flex items-center gap-2.5 min-w-0"><div class="w-7 h-7 rounded bg-slate-100 text-slate-600 flex items-center justify-center shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg></div><div class="flex flex-col min-w-0"><span class="font-semibold text-slate-900 truncate">iPad Air M2</span><span class="text-[12px] text-slate-400">11 inch Wi-Fi</span></div></div><span class="font-bold text-rose-600 shrink-0 ml-2 text-[12.5px]">2 <span class="text-[12px] font-normal text-rose-600">máy</span></span></div><div class="flex items-center justify-between py-2"><div class="flex items-center gap-2.5 min-w-0"><div class="w-7 h-7 rounded bg-slate-100 text-slate-600 flex items-center justify-center shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></div><div class="flex flex-col min-w-0"><span class="font-semibold text-slate-900 truncate">Asus Zenbook 14</span><span class="text-[12px] text-slate-400">OLED UX3405</span></div></div><span class="font-bold text-rose-600 shrink-0 ml-2 text-[12.5px]">1 <span class="text-[12px] font-normal text-rose-600">máy</span></span></div></div></div>
+</div>
+<!-- Bottom Section (Styled like "Premium Graph" card in Reference with Metrics + Wave Banner + Order Table) -->
+<div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden p-4">
+<div class="flex items-center justify-between mb-3">
+<div>
+<h3 class="text-[14px] font-bold text-slate-900">5 đơn hàng phát sinh gần nhất</h3>
+
+</div>
+<a class="text-[12px] font-semibold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 transition-colors" href="#"><span class="">Xem tất cả 128 đơn</span><svg class="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></a>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse"><thead>
+<tr class="border-b border-slate-200 text-slate-400" style="font-size: 12px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em;"><th class="py-2.5 px-3">Mã đơn</th><th class="py-2.5 px-3">Khách hàng</th><th class="py-2.5 px-3">Sản phẩm</th><th class="py-2.5 px-3 text-right">Tổng tiền</th><th class="py-2.5 px-3 text-center" style="min-width: 120px;">Trạng thái</th></tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<!-- Order 1 -->
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="py-2.5 px-3 font-semibold text-blue-600" style="font-size: 13px;">#DH-8921</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col">
+<span class="leading-tight" style="font-size: 13px; font-weight: 600; color: rgb(15, 23, 42);">Nguyễn Văn An</span>
+<span class="mt-0.5" style="font-size: 11px; font-weight: 400; color: rgb(100, 116, 139);">0912 345 678</span>
+</div>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col">
+<span class="leading-tight" style="font-size: 13px; font-weight: 500; color: rgb(30, 41, 59);">iPhone 15 Pro Max 256GB Titan Tự Nhiên</span>
+<span class="mt-0.5" style="font-size: 11px; font-weight: 400; color: rgb(100, 116, 139);">IMEI: 358941098274610</span>
+</div>
+</td>
+<td class="py-2.5 px-3 text-right" style="font-size: 13px; font-weight: 600; color: rgb(15, 23, 42);">
+  34.990.000 ₫
+</td>
+<td class="py-2.5 px-3 text-center"><span class="border border-emerald-200 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md text-[12px] font-medium" style="white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">Hoàn thành</span></td>
+</tr>
+<!-- Order 2 -->
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="py-2.5 px-3 font-semibold text-blue-600" style="font-size: 13px;">#DH-8920</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col">
+<span class="leading-tight" style="font-size: 13px; font-weight: 600; color: rgb(15, 23, 42);">Trần Thị Mai</span>
+<span class="mt-0.5" style="font-size: 11px; font-weight: 400; color: rgb(100, 116, 139);">0983 112 233</span>
+</div>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col">
+<span class="leading-tight" style="font-size: 13px; font-weight: 500; color: rgb(30, 41, 59);">MacBook Air M3 13" 16GB/512GB Midnight</span>
+<span class="mt-0.5" style="font-size: 11px; font-weight: 400; color: rgb(100, 116, 139);">IMEI: C02GL019Q05N</span>
+</div>
+</td>
+<td class="py-2.5 px-3 text-right" style="font-size: 13px; font-weight: 600; color: rgb(15, 23, 42);">
+  32.490.000 ₫
+</td>
+<td class="py-2.5 px-3 text-center"><span class="border border-blue-200 text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md text-[12px] font-medium" style="white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">Đang xử lý</span></td>
+</tr>
+<!-- Order 3 -->
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="py-2.5 px-3 font-semibold text-blue-600" style="font-size: 13px;">#DH-8919</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col">
+<span class="leading-tight" style="font-size: 13px; font-weight: 600; color: rgb(15, 23, 42);">Lê Hoàng Long</span>
+<span class="mt-0.5" style="font-size: 11px; font-weight: 400; color: rgb(100, 116, 139);">0905 889 900</span>
+</div>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col">
+<span class="leading-tight" style="font-size: 13px; font-weight: 500; color: rgb(30, 41, 59);">Samsung Galaxy S24 Ultra 512GB</span>
+<span class="mt-0.5" style="font-size: 11px; font-weight: 400; color: rgb(100, 116, 139);">IMEI: 359482109283712</span>
+</div>
+</td>
+<td class="py-2.5 px-3 text-right" style="font-size: 13px; font-weight: 600; color: rgb(15, 23, 42);">
+  29.990.000 ₫
+</td>
+<td class="py-2.5 px-3 text-center"><span class="border border-amber-200 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md text-[12px] font-medium" style="white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">Chờ thanh toán</span></td>
+</tr>
+<!-- Order 4 -->
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="py-2.5 px-3 font-semibold text-blue-600" style="font-size: 13px;">#DH-8918</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col">
+<span class="leading-tight" style="font-size: 13px; font-weight: 600; color: rgb(15, 23, 42);">Phạm Minh Đức</span>
+<span class="mt-0.5" style="font-size: 11px; font-weight: 400; color: rgb(100, 116, 139);">0974 556 677</span>
+</div>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col">
+<span class="leading-tight" style="font-size: 13px; font-weight: 500; color: rgb(30, 41, 59);">Asus Zenbook 14 OLED UX3405</span>
+<span class="mt-0.5" style="font-size: 11px; font-weight: 400; color: rgb(100, 116, 139);">IMEI: N3NRCX01298412B</span>
+</div>
+</td>
+<td class="py-2.5 px-3 text-right" style="font-size: 13px; font-weight: 600; color: rgb(15, 23, 42);">
+  26.890.000 ₫
+</td>
+<td class="py-2.5 px-3 text-center"><span class="border border-emerald-200 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md text-[12px] font-medium" style="white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">Hoàn thành</span></td>
+</tr>
+<!-- Order 5 -->
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="py-2.5 px-3 font-semibold text-blue-600" style="font-size: 13px;">#DH-8917</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col">
+<span class="leading-tight" style="font-size: 13px; font-weight: 600; color: rgb(15, 23, 42);">Vũ Quỳnh Trang</span>
+<span class="mt-0.5" style="font-size: 11px; font-weight: 400; color: rgb(100, 116, 139);">0938 778 899</span>
+</div>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col">
+<span class="leading-tight" style="font-size: 13px; font-weight: 500; color: rgb(30, 41, 59);">Tai nghe AirPods Pro 2 USB-C</span>
+<span class="mt-0.5" style="font-size: 11px; font-weight: 400; color: rgb(100, 116, 139);">IMEI: 352910482910481</span>
+</div>
+</td>
+<td class="py-2.5 px-3 text-right" style="font-size: 13px; font-weight: 600; color: rgb(15, 23, 42);">
+  5.890.000 ₫
+</td>
+<td class="py-2.5 px-3 text-center"><span class="border border-emerald-200 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md text-[12px] font-medium" style="white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;">Hoàn thành</span></td>
+</tr>
+</tbody></table>
+</div>
+</div>
+</main>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body></html>

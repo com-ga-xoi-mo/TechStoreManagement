@@ -1,0 +1,438 @@
+<!DOCTYPE html><html lang="vi" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>TechStore - Bảng điều khiển quản trị - Trưng bày bán lẻ</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#EFF6FF',
+              100: '#DBEAFE',
+              200: '#BFDBFE',
+              500: '#3B82F6',
+              600: '#0066FF',
+              700: '#0052CC',
+            },
+            surface: '#FFFFFF',
+          },
+          boxShadow: {
+            card: '0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02)',
+            cardHover: '0 20px 32px -8px rgba(0, 102, 255, 0.09), 0 8px 16px -4px rgba(15, 23, 42, 0.04)',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #F8FAFC;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined' !important;
+      font-weight: normal;
+      font-style: normal;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+    }
+  </style>
+<meta content="web_dashboard" name="shell-type"></head>
+<body class="text-slate-800 antialiased min-h-screen flex selection:bg-blue-100 selection:text-blue-700 bg-[#F8FAFC]">
+<!-- Left Sidebar (Giữ nguyên cấu trúc TechStore) -->
+<aside class="w-[250px] shrink-0 bg-white border-r border-slate-200/80 flex flex-col justify-between select-none p-4 min-h-screen">
+<div class="flex flex-col gap-5">
+<!-- Brand Logo -->
+<div class="flex items-center gap-3 px-1.5 py-1">
+<div class="w-9 h-9 rounded-lg bg-[#0066FF] flex items-center justify-center text-white shadow-sm shrink-0">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-bold text-[18px] text-slate-900 tracking-tight leading-snug truncate">TechStore</span>
+<span class="text-[12px] font-medium text-slate-400 truncate">Quản lý bán lẻ</span>
+</div>
+</div>
+<!-- Navigation Menu -->
+<nav class="flex flex-col gap-1">
+<span class="text-[11px] uppercase font-bold tracking-wider text-slate-400 px-3 mb-1">Menu chính</span>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-[13px] transition-colors" href="#">
+<svg class="w-[19px] h-[19px] shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+<span class="">Tổng quan</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50/80 text-[#0066FF] font-semibold text-[13px] transition-all" href="#">
+<svg class="w-[19px] h-[19px] shrink-0 text-[#0066FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span class="">Sản phẩm</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-[13px] transition-colors" href="#">
+<svg class="w-[19px] h-[19px] shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span class="">Danh mục và Kho</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-[13px] transition-colors" href="#">
+<svg class="w-[19px] h-[19px] shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span class="">Đơn hàng</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-[13px] transition-colors" href="#">
+<svg class="w-[19px] h-[19px] shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span class="">Khách hàng</span>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-2 pt-3 border-t border-slate-100 mt-auto">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium text-[13px] transition-colors" href="#">
+<svg class="w-[19px] h-[19px] shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span class="">Cài đặt</span>
+</a>
+<div class="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+<div class="flex items-center gap-2.5 min-w-0">
+<img alt="Admin" class="w-8 h-8 rounded-full object-cover ring-2 ring-slate-100 shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLZ5TTKNQHvrSwDjGDLSNuUFobiFKeXKSuaHoy3FO7huFI0DTTcU7ogdMYlTff5S1SrCz8--Mvv78DtEBSH3jHWRX6KNwO_OXQrYfRhS8xnDgJ_Swj9lAaOnUYPf_PmtU_qCz-2_PNpv0qtotFLd64rfmBAXJZTigoJ5kYS_lwhbvQftOsO1hD6Jh9uQ7ctiwf5gj6T5ZnDXY5GBopegj4BELvM3vO-JVWf0E-e98">
+<div class="flex flex-col min-w-0">
+<span class="text-[12.5px] font-bold text-slate-900 truncate leading-tight">Admin TechStore</span>
+<span class="text-[11px] text-slate-400 truncate">Quản trị viên</span>
+</div>
+</div>
+<svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 9l4-4 4 4m0 6l-4 4-4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col p-6 gap-6 min-w-0"><div class="flex flex-col w-full">
+<!-- 1. Header -->
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-baseline gap-3">
+<h1 class="font-headline-md text-headline-md text-slate-900 font-bold tracking-tight">Sản phẩm</h1>
+<span class="font-body-sm text-body-sm text-slate-500 whitespace-nowrap">128 sản phẩm</span>
+</div>
+<div class="flex items-center gap-3">
+<!-- View mode switchers -->
+<div class="flex items-center gap-1">
+<button aria-label="Xem dạng lưới" class="w-9 h-9 rounded-md bg-blue-50 border border-blue-200 text-[#0066FF] flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+</button>
+<button aria-label="Xem dạng danh sách" class="w-9 h-9 rounded-md bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">format_list_bulleted</span>
+</button>
+</div>
+<!-- Add Product CTA -->
+<button class="inline-flex items-center justify-center py-2.5 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white font-medium font-body-md text-body-md shadow-sm transition-colors whitespace-nowrap px-6" type="button">
+        + Thêm sản phẩm
+      </button>
+</div>
+</div>
+<!-- 2. Search & Filters Row -->
+<div class="grid grid-cols-12 gap-3 mb-4">
+<!-- Search Bar -->
+<div class="col-span-12 lg:col-span-6 relative">
+<div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+<span class="material-symbols-outlined text-[19px]">search</span>
+</div>
+<input class="w-full h-10 pl-10 pr-4 bg-white border border-slate-200 rounded-md text-slate-900 font-body-sm text-body-sm placeholder:text-slate-400 focus:outline-none focus:border-[#0066FF] transition-colors" placeholder="Tìm theo tên hoặc SKU" type="text">
+</div>
+<!-- Dropdown: Brand -->
+<div class="col-span-4 lg:col-span-2 relative">
+<select class="w-full h-10 px-3 pr-8 bg-white border border-slate-200 rounded-md text-slate-700 font-body-sm text-body-sm appearance-none focus:outline-none focus:border-[#0066FF] transition-colors cursor-pointer truncate">
+<option value="">Thương hiệu: Tất cả</option>
+<option value="apple">Apple</option>
+<option value="samsung">Samsung</option>
+<option value="asus">Asus</option>
+<option value="dell">Dell</option>
+<option value="xiaomi">Xiaomi</option>
+</select>
+<div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+<span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+</div>
+</div>
+<!-- Dropdown: Price Range -->
+<div class="col-span-4 lg:col-span-2 relative">
+<select class="w-full h-10 px-3 pr-8 bg-white border border-slate-200 rounded-md text-slate-700 font-body-sm text-body-sm appearance-none focus:outline-none focus:border-[#0066FF] transition-colors cursor-pointer truncate">
+<option value="">Khoảng giá: Tất cả</option>
+<option value="under-10m">Dưới 10 triệu</option>
+<option value="10m-25m">10 - 25 triệu</option>
+<option value="above-25m">Trên 25 triệu</option>
+</select>
+<div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+<span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+</div>
+</div>
+<!-- Dropdown: Status -->
+<div class="col-span-4 lg:col-span-2 relative">
+<select class="w-full h-10 px-3 pr-8 bg-white border border-slate-200 rounded-md text-slate-700 font-body-sm text-body-sm appearance-none focus:outline-none focus:border-[#0066FF] transition-colors cursor-pointer truncate">
+<option value="">Trạng thái: Tất cả</option>
+<option value="in-stock">Còn hàng</option>
+<option value="low-stock">Sắp hết</option>
+<option value="out-of-stock">Hết hàng</option>
+<option value="discontinued">Ngừng bán</option>
+</select>
+<div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+<span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+</div>
+</div>
+</div>
+<!-- 3. Category Chips & Sorting -->
+<div class="flex items-center justify-between gap-3 mt-1 mb-5">
+<!-- Category pills -->
+<div class="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+<button class="px-4 py-1.5 rounded-full bg-blue-50 border border-[#0066FF] text-[#0066FF] font-medium font-body-sm text-body-sm whitespace-nowrap transition-colors" type="button">
+        Tất cả (128)
+      </button>
+<button class="px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-slate-300 font-medium font-body-sm text-body-sm whitespace-nowrap transition-colors" type="button">
+        Điện thoại (54)
+      </button>
+<button class="px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-slate-300 font-medium font-body-sm text-body-sm whitespace-nowrap transition-colors" type="button">
+        Laptop (36)
+      </button>
+<button class="px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-slate-300 font-medium font-body-sm text-body-sm whitespace-nowrap transition-colors" type="button">
+        Tablet (18)
+      </button>
+<button class="px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-slate-300 font-medium font-body-sm text-body-sm whitespace-nowrap transition-colors" type="button">
+        Phụ kiện (20)
+      </button>
+</div>
+<!-- Sort dropdown -->
+<div class="relative shrink-0">
+<select class="h-9 pl-3.5 pr-8 bg-white border border-slate-200 rounded-md text-slate-700 font-body-sm text-body-sm appearance-none focus:outline-none focus:border-[#0066FF] transition-colors cursor-pointer whitespace-nowrap">
+<option value="newest">Sắp xếp: Mới nhất</option>
+<option value="price-asc">Giá: Thấp đến cao</option>
+<option value="price-desc">Giá: Cao đến thấp</option>
+<option value="stock-desc">Tồn kho nhiều nhất</option>
+</select>
+<div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-slate-400">
+<span class="material-symbols-outlined text-[17px]">keyboard_arrow_down</span>
+</div>
+</div>
+</div>
+<!-- 4. Product Grid (2 Rows x 4 Cols = Exactly 8 Items) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+<!-- Card 1 -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-[#0066FF] hover:shadow-card transition-all cursor-pointer group min-w-[230px]">
+<div>
+<div class="relative aspect-square w-full rounded-md bg-slate-50 flex items-center justify-center overflow-hidden mb-3.5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Minimalist studio product shot of a titanium iPhone 15 Pro Max on a crisp neutral grey podium, clean soft shadows, commercial photography, sharp precision angle, 8k resolution" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtnFRFsLlSWIbMeO3jGTKW4iq5MYkSlV4z_ZhrOpdAVoz9OgxZlVRhKsPyWelD7N-NzJSpgAk_pYXm-srLtB_MXAKphymfFnYAi_6l8j3q29WPqrs7NqDnCai1KIzLMWAx7AM4hcqVFhbfBLV3aNiw6C2l003jP5m9wZKXoL1BX2XX7RywrgFD-c95kM3pzUGmAXKSmBMbNCIRZoR-OwpAkRRu8LktD7gec17k7Cc">
+<button aria-label="Thao tác" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-slate-900 border border-slate-200/60 flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">more_horiz</span>
+</button>
+</div>
+<h3 class="font-medium font-body-md text-body-md text-slate-900 line-clamp-2 leading-snug mb-1">
+          iPhone 15 Pro Max 256GB
+        </h3>
+<p class="font-body-sm text-body-sm text-slate-500 whitespace-nowrap mb-3">
+          IP15PM-256 • Apple
+        </p><div class="flex items-center gap-1.5 my-2.5"><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #9A958D;" title="Titan Tự nhiên" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110 ring-2 ring-blue-600 ring-offset-1" style="background-color: #2B333E;" title="Titan Xanh" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #E2E4E1;" title="Titan Trắng" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #3C3B37;" title="Titan Đen" type="button"></button></div>
+</div>
+<div>
+<div class="font-bold font-body-lg text-body-lg text-slate-900 mb-1"><span class="text-[12px] font-normal text-slate-500 mr-1">Từ</span><span class="font-bold text-slate-900">34.990.000 ₫</span></div>
+<div class="font-medium font-body-sm text-body-sm text-emerald-600 whitespace-nowrap">
+          Còn 12
+        </div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-[#0066FF] hover:shadow-card transition-all cursor-pointer group min-w-[230px]">
+<div>
+<div class="relative aspect-square w-full rounded-md bg-slate-50 flex items-center justify-center overflow-hidden mb-3.5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Elegant product photograph of a modern Samsung Galaxy S24 Ultra smartphone in sleek titanium finish on pure white studio background with mild ambient lighting, clean reflections" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCL05AkdQntPyfl8nY0IB030TocSQXHfbf8bg4jC2YoEO5oTh6houHwqLLuBTLQ_bZ6HZx1-VBFZ0dmbJOLV3_ZdI0jTi9eVnyS7szVYdJII7c0tuJL6cj1jHdGhHL4lyHgBRCdj54VNsS_uDc2_6-h2zZrNTWjC5R5uQ4Hvg0YLShMnSjJjqgGnc4riQ_QsseQ-IBugRhbMD76WdsyWBCNNu3LkHPaANAuWlVm9b0">
+<button aria-label="Thao tác" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-slate-900 border border-slate-200/60 flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">more_horiz</span>
+</button>
+</div>
+<h3 class="font-medium font-body-md text-body-md text-slate-900 line-clamp-2 leading-snug mb-1">
+          Samsung Galaxy S24 Ultra
+        </h3>
+<p class="font-body-sm text-body-sm text-slate-500 whitespace-nowrap mb-3">
+          SS-S24U-512 • Samsung
+        </p><div class="flex items-center gap-1.5 my-2.5"><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #545350;" title="Xám Titan" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110 ring-2 ring-blue-600 ring-offset-1" style="background-color: #4A4453;" title="Tím Titan" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #E5DCBE;" title="Vàng Titan" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #232323;" title="Đen Titan" type="button"></button></div>
+</div>
+<div>
+<div class="font-bold font-body-lg text-body-lg text-slate-900 mb-1"><span class="text-[12px] font-normal text-slate-500 mr-1">Từ</span><span class="font-bold text-slate-900">31.490.000 ₫</span></div>
+<div class="font-medium font-body-sm text-body-sm text-emerald-600 whitespace-nowrap">
+          Còn 8
+        </div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-[#0066FF] hover:shadow-card transition-all cursor-pointer group min-w-[230px]">
+<div>
+<div class="relative aspect-square w-full rounded-md bg-slate-50 flex items-center justify-center overflow-hidden mb-3.5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Modern ultra-slim Apple MacBook Air M3 13-inch midnight finish open on clean desk surface, soft natural daylight, commercial tech catalog photography, crisp details" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLL2SIEZeIaA0XbWMtntfYFSjkcdFAJRF11oe1n_vbHrczxEJF37OWN7Jmj6SKdf2B4RvUj4iOzlzCzTfhSBI100to7gDLnJJdp9bCqnBS37NKFs3WdqLS8EJtURhPdgMsDHw69qJg5kzKR8ZoCqcGk9Nu73ypAGgK653q_oqP0HkJjaFBM3xnu_sH5OU8sRxCDKwewBGv_NGho4Eflee_4-Pc3eiLSpz0REqd0UM">
+<button aria-label="Thao tác" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-slate-900 border border-slate-200/60 flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">more_horiz</span>
+</button>
+</div>
+<h3 class="font-medium font-body-md text-body-md text-slate-900 line-clamp-2 leading-snug mb-1">
+          MacBook Air M3 13 inch
+        </h3>
+<p class="font-body-sm text-body-sm text-slate-500 whitespace-nowrap mb-3">
+          MBA-M3-13 • Apple
+        </p><div class="flex items-center gap-1.5 my-2.5"><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110 ring-2 ring-blue-600 ring-offset-1" style="background-color: #1E2530;" title="Midnight" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #E3DAC9;" title="Starlight" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #7D7E80;" title="Space Gray" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #E3E4E5;" title="Silver" type="button"></button></div>
+</div>
+<div>
+<div class="font-bold font-body-lg text-body-lg text-slate-900 mb-1"><span class="text-[12px] font-normal text-slate-500 mr-1">Từ</span><span class="font-bold text-slate-900">27.990.000 ₫</span></div>
+<div class="font-medium font-body-sm text-body-sm text-amber-600 whitespace-nowrap">
+          Còn 3
+        </div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-[#0066FF] hover:shadow-card transition-all cursor-pointer group min-w-[230px]">
+<div>
+<div class="relative aspect-square w-full rounded-md bg-slate-50 flex items-center justify-center overflow-hidden mb-3.5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Asus Zenbook 14 OLED premium laptop resting on light slate surface showing deep black keyboard and vibrant slim bezel screen, premium corporate product shot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2YxgRndVEphFRaDq6sg6JjILhynC50h3rt3cqrZyZbQAhRKZHpGd2lonhtq6vXkCnNCNSwuj_3iw2Mj01ogGHZJVVrzs3wBuAwapDsUXzOM1x7wENVdO_1ClFGFpNV7wU32vpVilWeZ_Yv27c7m7-zQuTXMeTelUXpsylt5P-oubFqobSnucHwdcYPMXjlesb9rg3Kp5xd6NR_JrK2f5e5VtFg1BXXQPF4WH835o">
+<button aria-label="Thao tác" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-slate-900 border border-slate-200/60 flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">more_horiz</span>
+</button>
+</div>
+<h3 class="font-medium font-body-md text-body-md text-slate-900 line-clamp-2 leading-snug mb-1">
+          Asus Zenbook 14 OLED
+        </h3>
+<p class="font-body-sm text-body-sm text-slate-500 whitespace-nowrap mb-3">
+          ASUS-UX3405 • Asus
+        </p><div class="flex items-center gap-1.5 my-2.5"><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110 ring-2 ring-blue-600 ring-offset-1" style="background-color: #2C3E50;" title="Ponder Blue" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #BDC3C7;" title="Foggy Silver" type="button"></button></div>
+</div>
+<div>
+<div class="font-bold font-body-lg text-body-lg text-slate-900 mb-1"><span class="text-[12px] font-normal text-slate-500 mr-1">Từ</span><span class="font-bold text-slate-900">28.490.000 ₫</span></div>
+<div class="font-medium font-body-sm text-body-sm text-emerald-600 whitespace-nowrap">
+          Còn 15
+        </div>
+</div>
+</div>
+<!-- Card 5 -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-[#0066FF] hover:shadow-card transition-all cursor-pointer group min-w-[230px]">
+<div>
+<div class="relative aspect-square w-full rounded-md bg-slate-50 flex items-center justify-center overflow-hidden mb-3.5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Clean front perspective of an Apple iPad Air M2 tablet on minimalist matte light grey stand, sharp display edge, elegant high-end device presentation" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBydEI_shoUT9aXd1Fl99vIwhjqvZwZlYJ6Tygd_O3h1Ca2VNHrY5N1nRlPyXTN9RZVq4AAG-8jfjxpe4EwLzSAURvLJu_LhhN6OmlwXSWMhlUjqFn9gj6J0q63PdGL90N8PRW6xmr70sNQ_9_F3sTi0i-oRFxQ3EMtqsMwGhopB_eMYbPiG2KONyvoE6qr-eJgToQctksh6Cxg7I10zQbwhcK5_62wKVR1PKRCaZo">
+<button aria-label="Thao tác" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-slate-900 border border-slate-200/60 flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">more_horiz</span>
+</button>
+</div>
+<h3 class="font-medium font-body-md text-body-md text-slate-900 line-clamp-2 leading-snug mb-1">
+          iPad Air M2
+        </h3>
+<p class="font-body-sm text-body-sm text-slate-500 whitespace-nowrap mb-3">
+          IPAD-AIR-M2 • Apple
+        </p><div class="flex items-center gap-1.5 my-2.5"><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110 ring-2 ring-blue-600 ring-offset-1" style="background-color: #BAC8D3;" title="Xanh da trời" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #C9C3DB;" title="Tím" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #E8E4DA;" title="Ánh sao" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #717378;" title="Xám không gian" type="button"></button></div>
+</div>
+<div>
+<div class="font-bold font-body-lg text-body-lg text-slate-900 mb-1"><span class="text-[12px] font-normal text-slate-500 mr-1">Từ</span><span class="font-bold text-slate-900">16.490.000 ₫</span></div>
+<div class="font-medium font-body-sm text-body-sm text-red-600 whitespace-nowrap">
+          Hết hàng
+        </div>
+</div>
+</div>
+<!-- Card 6 -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-[#0066FF] hover:shadow-card transition-all cursor-pointer group min-w-[230px]">
+<div>
+<div class="relative aspect-square w-full rounded-md bg-slate-50 flex items-center justify-center overflow-hidden mb-3.5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Xiaomi 14T flagship phone showcased angled in studio lighting, showing metallic camera module and sleek polished bezel, professional device render" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDt8PEwQ99etx0Gg-ZM9sMDP8K9eACbcTWRMzTtOnK76sPL3f7S7t7jBLOeQHDfFOhIhVPIoAUKu292v1N270wJv9l3D4sbGRFd6-OUluEnEGhY5glgpC8XWVmlQjK8RC2iD6r4CiNKLfqIOK8-Cqudol2qLiBeF-uaROabB0FYg2BD5LsdOeLGSmhG3W9P-O7jpxQQ0WLhzHnlh6ve95IU0rUBzlZdGrvZMFGmo0A">
+<button aria-label="Thao tác" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-slate-900 border border-slate-200/60 flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">more_horiz</span>
+</button>
+</div>
+<h3 class="font-medium font-body-md text-body-md text-slate-900 line-clamp-2 leading-snug mb-1">
+          Xiaomi 14T
+        </h3>
+<p class="font-body-sm text-body-sm text-slate-500 whitespace-nowrap mb-3">
+          MI-14T-256 • Xiaomi
+        </p><div class="flex items-center gap-1.5 my-2.5"><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110 ring-2 ring-blue-600 ring-offset-1" style="background-color: #7B7D7D;" title="Titan Gray" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #3B5998;" title="Titan Blue" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #222222;" title="Titan Black" type="button"></button></div>
+</div>
+<div>
+<div class="font-bold font-body-lg text-body-lg text-slate-900 mb-1"><span class="text-[12px] font-normal text-slate-500 mr-1">Từ</span><span class="font-bold text-slate-900">12.990.000 ₫</span></div>
+<div class="font-medium font-body-sm text-body-sm text-emerald-600 whitespace-nowrap">
+          Còn 18
+        </div>
+</div>
+</div>
+<!-- Card 7 -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-[#0066FF] hover:shadow-card transition-all cursor-pointer group min-w-[230px]">
+<div>
+<div class="relative aspect-square w-full rounded-md bg-slate-50 flex items-center justify-center overflow-hidden mb-3.5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Dell XPS 13 modern ultrabook open revealing edge-to-edge glass touchpad and borderless infinity display in pristine contemporary workspace setup" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4OURe-jrSGBkQ-ydWaaLHJSsibhWiOmU1djgq_AK-0R9fTZQ4qR0th0hEDLHZWUX14-LiQNDiSMIP8MliU4IC01i6AP-cYpNXlzB-dBgau2lctYPhZpbidH5HXnFpBO0Gui_v9f2vG3knqduCdmRSinrvlSkX7LYzzVW0VDiRtLQbC4te-yd958iAXKqhET23UfLl5ZUXIrWJPko7qzFycoH2f06PYV-fn4XQq78">
+<button aria-label="Thao tác" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-slate-900 border border-slate-200/60 flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">more_horiz</span>
+</button>
+</div>
+<h3 class="font-medium font-body-md text-body-md text-slate-900 line-clamp-2 leading-snug mb-1">
+          Dell XPS 13
+        </h3>
+<p class="font-body-sm text-body-sm text-slate-500 whitespace-nowrap mb-3">
+          DELL-XPS-9340 • Dell
+        </p><div class="flex items-center gap-1.5 my-2.5"><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110 ring-2 ring-blue-600 ring-offset-1" style="background-color: #DCDDE1;" title="Platinum Silver" type="button"></button><button class="w-4 h-4 rounded-full border border-slate-200 cursor-pointer transition-transform hover:scale-110" style="background-color: #373B44;" title="Graphite" type="button"></button></div>
+</div>
+<div>
+<div class="font-bold font-body-lg text-body-lg text-slate-900 mb-1"><span class="text-[12px] font-normal text-slate-500 mr-1">Từ</span><span class="font-bold text-slate-900">39.990.000 ₫</span></div>
+<div class="font-medium font-body-sm text-body-sm text-emerald-600 whitespace-nowrap">
+          Còn 5
+        </div>
+</div>
+</div>
+<!-- Card 8 (Discontinued item with subtle badge) -->
+<div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-[#0066FF] hover:shadow-card transition-all cursor-pointer group min-w-[230px]">
+<div>
+<div class="relative aspect-square w-full rounded-md bg-slate-50 flex items-center justify-center overflow-hidden mb-3.5">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="Crisp studio product shot of Apple AirPods Pro 2 wireless charging case slightly ajar with earbuds sitting next to it on clear seamless platform" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtMdqmtQ3-zZ0vlxANiqyQoqBldeWzwu7QhQFMCZoWZj18tbT6nzsv3QrqJez21ezw1agqsOP9kDo0JnJLvkUPfj7d1ruGMe9BxlaPqCEuARi8UkZJeDITkKOeb6QYdy-R0pej2r0eSALJk9uQ20cocUCluiekw4GlZlv_m3GkBCEmEWtG5DKOlnXOq1420O7vu9-jiLnQ-WFmc8612IMl3ulKPDRpRltkC21jhWc">
+<button aria-label="Thao tác" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-slate-900 border border-slate-200/60 flex items-center justify-center transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">more_horiz</span>
+</button>
+</div>
+<h3 class="font-medium font-body-md text-body-md text-slate-900 line-clamp-2 leading-snug mb-1">
+          AirPods Pro 2
+        </h3>
+<p class="font-body-sm text-body-sm text-slate-500 whitespace-nowrap mb-3">
+          APP-GEN2-USB • Apple
+        </p><div class="flex items-center gap-1.5 my-2.5"><button class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer transition-transform hover:scale-110 ring-2 ring-blue-600 ring-offset-1" style="background-color: #FFFFFF;" title="Trắng bóng" type="button"></button></div>
+</div>
+<div>
+<div class="font-bold font-body-lg text-body-lg text-slate-900 mb-1"><span class="text-[12px] font-normal text-slate-500 mr-1">Từ</span><span class="font-bold text-slate-900">5.690.000 ₫</span></div>
+<div class="font-medium font-body-sm text-body-sm text-red-600 whitespace-nowrap">Hết hàng</div>
+</div>
+</div>
+</div>
+<!-- 5. Pagination Footer -->
+<div class="mt-8 pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="font-body-sm text-body-sm text-slate-500 whitespace-nowrap">
+      Hiển thị 1-8 trong 128 sản phẩm
+    </div>
+<div class="flex items-center gap-1.5 select-none">
+<button class="h-8 px-3 rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-body-sm text-body-sm transition-colors whitespace-nowrap" type="button">
+        Trang trước
+      </button>
+<button class="w-8 h-8 rounded-md bg-[#0066FF] text-white font-medium font-body-sm text-body-sm flex items-center justify-center transition-colors" type="button">
+        1
+      </button>
+<button class="w-8 h-8 rounded-md bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-body-sm text-body-sm flex items-center justify-center transition-colors" type="button">
+        2
+      </button>
+<button class="w-8 h-8 rounded-md bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-body-sm text-body-sm flex items-center justify-center transition-colors" type="button">
+        3
+      </button>
+<button class="h-8 px-3 rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-body-sm text-body-sm transition-colors whitespace-nowrap" type="button">
+        Trang sau
+      </button>
+</div>
+</div>
+</div></main>
+<!-- Redesigned Product Detail Dialog: Variant 1 Split-Panel Showroom (Two-Column Layout) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+<div class="w-[880px] max-w-[880px] bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-[90vh] font-['Inter',sans-serif] text-[13px] animate-in fade-in zoom-in-95 duration-150"><div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-white shrink-0"><div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-blue-600 text-[22px]">edit_note</span><h2 class="text-[20px] font-bold text-slate-900 tracking-tight leading-none">Chỉnh sửa sản phẩm: iPhone 15 Pro Max</h2></div><button aria-label="Đóng" class="text-slate-400 hover:text-slate-700 w-8 h-8 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors flex items-center justify-center shrink-0" type="button"><span class="material-symbols-outlined text-[20px]">close</span></button></div><div class="overflow-y-auto px-6 py-5 flex-1"><div class="flex flex-col gap-6"><!-- KHU VỰC 1: THÔNG TIN CHUNG (Nửa trên) --><div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start"><!-- Cột trái: Ảnh sản phẩm --><div class="md:col-span-4 flex flex-col gap-2.5"><label class="text-[11.5px] font-bold text-slate-700 uppercase tracking-wider">Ảnh đại diện sản phẩm</label><div class="relative w-full h-[180px] rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center"><img alt="iPhone 15 Pro Max" class="h-full w-full object-contain p-2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtnFRFsLlSWIbMeO3jGTKW4iq5MYkSlV4z_ZhrOpdAVoz9OgxZlVRhKsPyWelD7N-NzJSpgAk_pYXm-srLtB_MXAKphymfFnYAi_6l8j3q29WPqrs7NqDnCai1KIzLMWAx7AM4hcqVFhbfBLV3aNiw6C2l003jP5m9wZKXoL1BX2XX7RywrgFD-c95kM3pzUGmAXKSmBMbNCIRZoR-OwpAkRRu8LktD7gec17k7Cc"><span class="absolute bottom-2 left-2 bg-slate-900/70 text-white text-[11px] px-2 py-0.5 rounded backdrop-blur-sm">Chính (Default)</span></div><div class="flex items-center gap-2"><input class="flex-1 h-9 px-2.5 bg-white border border-slate-300 rounded-md text-[12px] text-slate-700 focus:outline-none focus:border-[#0066FF] transition-colors" type="text" value="https://cdn.techstore.vn/products/iphone-15-pro-max-natural.png"><button class="h-9 px-3 border border-slate-300 hover:border-[#0066FF] hover:text-[#0066FF] bg-white text-slate-700 rounded-md text-[12px] font-medium flex items-center gap-1 shrink-0 transition-colors cursor-pointer" type="button"><span class="material-symbols-outlined text-[16px]">image</span> Đổi ảnh</button></div></div><!-- Cột phải: Thông tin & Cấu hình phần cứng --><div class="md:col-span-8 flex flex-col gap-3.5"><div class="flex flex-col gap-1"><label class="text-[11.5px] font-medium text-slate-600">Tên sản phẩm <span class="text-red-600">*</span></label><input class="h-9 px-3 bg-white border border-slate-300 rounded-md text-[13px] font-semibold text-slate-900 focus:outline-none focus:border-[#0066FF]" type="text" value="iPhone 15 Pro Max"></div><div class="grid grid-cols-2 gap-3"><div class="flex flex-col gap-1"><label class="text-[11.5px] font-medium text-slate-600">Danh mục</label><div class="relative"><select class="w-full h-9 px-3 pr-8 bg-white border border-slate-300 rounded-md text-[12.5px] text-slate-800 appearance-none focus:outline-none focus:border-[#0066FF] cursor-pointer"><option selected="">Điện thoại &gt; Apple</option><option>Điện thoại &gt; Samsung</option><option>Laptop &gt; Apple</option></select><div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span></div></div></div><div class="flex flex-col gap-1"><label class="text-[11.5px] font-medium text-slate-600">Thương hiệu</label><div class="relative"><select class="w-full h-9 px-3 pr-8 bg-white border border-slate-300 rounded-md text-[12.5px] text-slate-800 appearance-none focus:outline-none focus:border-[#0066FF] cursor-pointer"><option selected="">Apple</option><option>Samsung</option><option>Asus</option></select><div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-slate-400"><span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span></div></div></div></div><!-- Hardware Specs --><div class="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80 flex flex-col gap-2.5 mt-0.5"><div class="flex items-center justify-between"><span class="text-[11.5px] font-bold text-slate-700 uppercase tracking-wider">Cấu hình cơ bản (Hardware Specs)</span><span class="text-[11px] text-slate-400">Thông số chung</span></div><div class="grid grid-cols-2 gap-2.5"><div class="flex flex-col gap-1"><label class="text-[11px] font-medium text-slate-500">Vi xử lý (CPU)</label><input class="h-8 px-2.5 bg-white border border-slate-300 rounded-md text-[12px] text-slate-800 focus:outline-none focus:border-[#0066FF]" type="text" value="Apple A17 Pro (3nm, 6-core)"></div><div class="flex flex-col gap-1"><label class="text-[11px] font-medium text-slate-500">Màn hình</label><input class="h-8 px-2.5 bg-white border border-slate-300 rounded-md text-[12px] text-slate-800 focus:outline-none focus:border-[#0066FF]" type="text" value="6.7&quot; Super Retina XDR OLED, 120Hz"></div><div class="flex flex-col gap-1"><label class="text-[11px] font-medium text-slate-500">RAM</label><input class="h-8 px-2.5 bg-white border border-slate-300 rounded-md text-[12px] text-slate-800 focus:outline-none focus:border-[#0066FF]" type="text" value="8GB LPDDR5"></div><div class="flex flex-col gap-1"><label class="text-[11px] font-medium text-slate-500">Pin &amp; Sạc</label><input class="h-8 px-2.5 bg-white border border-slate-300 rounded-md text-[12px] text-slate-800 focus:outline-none focus:border-[#0066FF]" type="text" value="4.422 mAh, Sạc nhanh 20W"></div></div></div></div></div><!-- KHU VỰC 2: QUẢN LÝ BIẾN THỂ - PHIÊN BẢN & ĐỊNH GIÁ (Nửa dưới) --><div class="flex flex-col gap-3.5 pt-4 border-t border-slate-200"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><h3 class="font-bold text-slate-900 text-sm tracking-tight">Phiên bản &amp; Định giá</h3><span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-semibold border border-blue-200">Master-Detail Variants</span></div><span class="text-[11.5px] text-slate-400 font-medium">3 phiên bản cấu hình</span></div><!-- Hàng 1: Tabs biến thể --><div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none"><button class="variant-tab flex items-center gap-2 px-3.5 py-2 rounded-lg bg-blue-50/80 border border-[#0066FF] text-[#0066FF] font-semibold text-[12.5px] transition-all cursor-pointer shadow-xs whitespace-nowrap" id="variant-tab-1" onclick="switchVariantTab(1)" type="button"><span class="w-2 h-2 rounded-full bg-[#0066FF]"></span><span>Titan Tự Nhiên - 256GB</span></button><button class="variant-tab flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium text-[12.5px] transition-all cursor-pointer whitespace-nowrap" id="variant-tab-2" onclick="switchVariantTab(2)" type="button"><span class="w-2 h-2 rounded-full bg-slate-300"></span><span>Titan Xanh - 512GB</span></button><button class="variant-tab flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 font-medium text-[12.5px] transition-all cursor-pointer whitespace-nowrap" id="variant-tab-3" onclick="switchVariantTab(3)" type="button"><span class="w-2 h-2 rounded-full bg-slate-300"></span><span>Titan Đen - 1TB</span></button><button class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-[#0066FF] text-[#0066FF] hover:bg-blue-50/60 font-medium text-[12.5px] transition-colors cursor-pointer whitespace-nowrap shrink-0" type="button"><span class="material-symbols-outlined text-[16px]">add</span><span>Thêm biến thể</span></button></div><!-- Hàng 2: Active Tab Panel --><div class="bg-[#F8FAFC] rounded-xl border border-slate-200/90 p-5 flex flex-col gap-4"><div class="flex items-center justify-between border-b border-slate-200/70 pb-3"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-blue-600 text-[18px]">tune</span><span class="font-bold text-slate-900 text-[13px]" id="variant-panel-title">Chi tiết biến thể: Titan Tự Nhiên - 256GB</span></div><button class="text-slate-400 hover:text-red-600 flex items-center gap-1 text-[12px] font-medium transition-colors cursor-pointer px-2 py-1 rounded hover:bg-red-50" title="Xóa biến thể này" type="button"><span class="material-symbols-outlined text-[16px]">delete</span><span>Xóa biến thể này</span></button></div><!-- 4 ô nhập (2x2) --><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div class="flex flex-col gap-1"><label class="text-[11.5px] font-medium text-slate-600">Mã SKU</label><input class="h-9 px-3 bg-white border border-slate-300 rounded-md text-[12.5px] font-medium text-slate-800 focus:outline-none focus:border-[#0066FF] transition-colors" id="variant-sku-input" type="text" value="IP15PM-NT-256"></div><div class="flex flex-col gap-1"><label class="text-[11.5px] font-medium text-slate-600">Mã vạch (Barcode)</label><input class="h-9 px-3 bg-white border border-slate-300 rounded-md text-[12.5px] font-medium text-slate-800 focus:outline-none focus:border-[#0066FF] transition-colors" id="variant-barcode-input" type="text" value="893850123910"></div><div class="flex flex-col gap-1"><label class="text-[11.5px] font-medium text-slate-600">Giá bán niêm yết</label><div class="relative"><input class="w-full h-9 px-3 bg-white border border-slate-300 rounded-md text-[13px] font-bold text-blue-600 focus:outline-none focus:border-[#0066FF] transition-colors" id="variant-price-input" type="text" value="34.990.000 ₫"></div></div><div class="flex flex-col gap-1"><label class="text-[11.5px] font-medium text-slate-600">Giá vốn nhập kho</label><div class="relative"><input class="w-full h-9 px-3 bg-white border border-slate-300 rounded-md text-[13px] font-medium text-slate-800 focus:outline-none focus:border-[#0066FF] transition-colors" id="variant-cost-input" type="text" value="30.500.000 ₫"></div></div></div><div class="flex items-center gap-2 pt-1 text-slate-500 text-[11.5px]"><span class="material-symbols-outlined text-[16px] text-blue-600">info</span><span>Tự động đồng bộ số liệu và bảng giá khi chuyển đổi qua lại giữa các phiên bản.</span></div></div></div></div><div class="px-6 py-3.5 border-t border-slate-200 flex items-center justify-between bg-slate-50/70 shrink-0"><button class="border border-red-200 text-red-600 bg-white hover:bg-red-50 hover:border-red-300 px-4 py-2 rounded-lg font-medium text-[13px] cursor-pointer transition-colors whitespace-nowrap shadow-xs flex items-center gap-1.5" type="button"><span class="material-symbols-outlined text-[17px]">delete</span> Xóa sản phẩm</button><div class="flex items-center gap-2.5"><button class="border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 px-4 py-2 rounded-lg font-medium text-[13px] cursor-pointer transition-colors whitespace-nowrap shadow-xs" type="button">Hủy bỏ</button><button class="bg-[#0066FF] hover:bg-[#0052CC] text-white px-5 py-2 rounded-lg font-semibold text-[13px] cursor-pointer shadow-sm transition-colors whitespace-nowrap flex items-center gap-1.5" type="button"><span class="material-symbols-outlined text-[17px]">save</span> Lưu thay đổi</button></div></div></div></div>
+</div></body></html>

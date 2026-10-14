@@ -1,0 +1,422 @@
+<!DOCTYPE html><html lang="vi" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>TechStore Management System - Style Guide &amp; System Specification Board</title>
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN with Forms & Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              DEFAULT: '#2563EB',
+              hover: '#1D4ED8',
+              tint: '#EFF6FF',
+            },
+            surface: '#FFFFFF',
+            canvas: '#F8FAFC',
+          }
+        }
+      }
+    }
+  </script>
+<!-- Core Layout Styles -->
+<style data-purpose="base-layout">
+    body {
+      background-color: #F8FAFC;
+      color: #0F172A;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+  </style>
+<!-- Badge Utility Specifications: Viên thuốc bo tròn hoàn toàn chuẩn Dashboard -->
+<style data-purpose="dashboard-badge-specs">
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.125rem 0.625rem; /* py-0.5 px-2.5 */
+      font-size: 0.75rem; /* 12px */
+      font-weight: 500;
+      line-height: 1rem;
+      border-radius: 9999px;
+      border-width: 1px;
+      border-style: solid;
+      white-space: nowrap;
+      transition: all 0.15s ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 lg:p-6 text-slate-800">
+<!-- BEGIN: MasterContainer -->
+<div class="max-w-[1400px] mx-auto space-y-4">
+<!-- BEGIN: HeaderSection -->
+<header class="bg-white border border-slate-200 rounded-xl px-5 py-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4" data-purpose="system-header">
+<div class="flex items-center gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m4 4v10M4 7v10l8 4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h1 class="text-[20px] font-semibold text-slate-900 tracking-tight leading-snug">TechStore Management System</h1>
+<span class="px-2 py-0.5 text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded">v2.1 Dashboard Sync</span>
+</div>
+<p class="text-[12px] text-slate-500 mt-0.5 font-normal">Style Guide &amp; System Specification Board (Frame 00) • Đồng bộ 100% Typography &amp; Badge Dashboard</p>
+</div>
+</div>
+<!-- Quick Meta Attributes -->
+<div class="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+<span class="text-slate-400">Typography:</span>
+<span class="font-medium text-slate-700">Inter Font Family (Thanh mảnh, sắc nét)</span>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg"><span class="text-slate-400">Badge Rule:</span><span class="font-medium text-emerald-700">Khung chữ nhật bo góc nhẹ 4px (rounded) • Viền mảnh 1px + Nền tint nhạt</span></div>
+</div>
+</header>
+<!-- END: HeaderSection -->
+<!-- BEGIN: MainContentGrid -->
+<main class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+<!-- ========================================== -->
+<!-- LEFT COLUMN: CORE UI & DESIGN TOKENS (6 Cols) -->
+<!-- ========================================== -->
+<div class="lg:col-span-6 space-y-4" data-purpose="left-column-tokens">
+<!-- 1. Color Palette Tokens -->
+<section class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm" data-purpose="color-tokens">
+<div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+<h2 class="text-[14px] font-semibold text-slate-900">1. Bảng màu chuẩn hóa (Color Tokens)</h2>
+</div>
+<span class="text-[11px] font-mono text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">HEX / 8 Swatches</span>
+</div>
+<!-- Color Swatches Grid -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+<!-- Primary Blue -->
+<div class="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col justify-between">
+<div class="h-8 rounded bg-[#2563EB] shadow-xs mb-2"></div>
+<div>
+<p class="text-[12px] font-semibold text-slate-900">Primary Blue</p>
+<p class="text-[11px] font-mono text-blue-700 font-semibold">#2563EB</p>
+<p class="text-[11px] text-slate-500 font-normal">CTA chính, Active</p>
+</div>
+</div>
+<!-- Primary Hover -->
+<div class="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col justify-between">
+<div class="h-8 rounded bg-[#1D4ED8] shadow-xs mb-2"></div>
+<div>
+<p class="text-[12px] font-semibold text-slate-900">Primary Hover</p>
+<p class="text-[11px] font-mono text-blue-900 font-semibold">#1D4ED8</p>
+<p class="text-[11px] text-slate-500 font-normal">Hover tương tác</p>
+</div>
+</div>
+<!-- Light Tint -->
+<div class="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col justify-between">
+<div class="h-8 rounded bg-[#EFF6FF] border border-blue-200 shadow-xs mb-2"></div>
+<div>
+<p class="text-[12px] font-semibold text-slate-900">Light Tint</p>
+<p class="text-[11px] font-mono text-slate-600 font-semibold">#EFF6FF</p>
+<p class="text-[11px] text-slate-500 font-normal">Nền badge, Focus</p>
+</div>
+</div>
+<!-- Canvas Background -->
+<div class="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col justify-between">
+<div class="h-8 rounded bg-[#F8FAFC] border border-slate-300 shadow-xs mb-2"></div>
+<div>
+<p class="text-[12px] font-semibold text-slate-900">Page Canvas</p>
+<p class="text-[11px] font-mono text-slate-600 font-semibold">#F8FAFC</p>
+<p class="text-[11px] text-slate-500 font-normal">Nền ứng dụng</p>
+</div>
+</div>
+<!-- Text Primary -->
+<div class="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col justify-between">
+<div class="h-8 rounded bg-[#0F172A] shadow-xs mb-2"></div>
+<div>
+<p class="text-[12px] font-semibold text-slate-900">Text Primary</p>
+<p class="text-[11px] font-mono text-slate-700 font-semibold">#0F172A</p>
+<p class="text-[11px] text-slate-500 font-normal">Tiêu đề, số liệu</p>
+</div>
+</div>
+<!-- Semantic Success -->
+<div class="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col justify-between">
+<div class="h-8 rounded bg-[#10B981] shadow-xs mb-2"></div>
+<div>
+<p class="text-[12px] font-semibold text-slate-900">Success</p>
+<p class="text-[11px] font-mono text-emerald-700 font-semibold">#10B981</p>
+<p class="text-[11px] text-slate-500 font-normal">Hoàn thành, có sẵn</p>
+</div>
+</div>
+<!-- Semantic Warning -->
+<div class="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col justify-between">
+<div class="h-8 rounded bg-[#F59E0B] shadow-xs mb-2"></div>
+<div>
+<p class="text-[12px] font-semibold text-slate-900">Warning</p>
+<p class="text-[11px] font-mono text-amber-700 font-semibold">#F59E0B</p>
+<p class="text-[11px] text-slate-500 font-normal">Chờ xử lý, giữ chỗ</p>
+</div>
+</div>
+<!-- Semantic Danger -->
+<div class="p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 flex flex-col justify-between">
+<div class="h-8 rounded bg-[#EF4444] shadow-xs mb-2"></div>
+<div>
+<p class="text-[12px] font-semibold text-slate-900">Danger</p>
+<p class="text-[11px] font-mono text-rose-700 font-semibold">#EF4444</p>
+<p class="text-[11px] text-slate-500 font-normal">Hàng lỗi, đã hủy</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. Typography Scale -->
+<section class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm" data-purpose="typography-spec">
+<div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+<h2 class="text-[14px] font-semibold text-slate-900">2. Phân cấp Kiểu chữ (Typography)</h2>
+</div>
+<span class="text-[11px] text-slate-500 font-mono">Font: Inter (Đồng bộ Dashboard)</span>
+</div>
+<div class="space-y-2.5 bg-slate-50/50 p-3 rounded-lg border border-slate-100">
+<!-- Page Title -->
+<div class="flex items-baseline justify-between border-b border-slate-200/60 pb-2">
+<div>
+<span class="text-[10px] uppercase font-mono text-slate-400 block mb-0.5 tracking-wider">Heading 1 • 20px SemiBold</span>
+<span class="text-[20px] font-semibold text-[#0F172A] tracking-tight">Tổng quan doanh thu TechStore</span>
+</div>
+<span class="text-[11px] font-mono text-slate-400">20px / 600</span>
+</div>
+<!-- Card Title -->
+<div class="flex items-baseline justify-between border-b border-slate-200/60 pb-2">
+<div>
+<span class="text-[10px] uppercase font-mono text-slate-400 block mb-0.5 tracking-wider">Card Title • 14px / 15px SemiBold</span>
+<span class="text-[14px] font-semibold text-[#0F172A]">Quản lý tồn kho &amp; Số IMEI khả dụng</span>
+</div>
+<span class="text-[11px] font-mono text-slate-400">14px / 600</span>
+</div>
+<!-- Body Text -->
+<div class="flex items-baseline justify-between border-b border-slate-200/60 pb-2">
+<div>
+<span class="text-[10px] uppercase font-mono text-slate-400 block mb-0.5 tracking-wider">Body Text • 13px Regular / Medium</span>
+<span class="text-[13px] text-[#1E293B] font-normal">iPhone 15 Pro Max 256GB Titan Tự Nhiên - VN/A chính hãng</span>
+</div>
+<span class="text-[11px] font-mono text-slate-400">13px / 400</span>
+</div>
+<!-- Caption / Monospace -->
+<div class="flex items-baseline justify-between">
+<div>
+<span class="text-[10px] uppercase font-mono text-slate-400 block mb-0.5 tracking-wider">Caption &amp; Serial/IMEI • 11px - 12px Regular</span>
+<span class="text-[11px] font-mono text-[#64748B]">IMEI: 352910482910481 • Cập nhật lần cuối: 14:20 28/10/2024</span>
+</div>
+<span class="text-[11px] font-mono text-slate-400">12px / 400</span>
+</div>
+</div>
+</section>
+<!-- 3. Form Controls & Interactive Buttons -->
+<section class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm" data-purpose="ui-controls">
+<div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+<h2 class="text-[14px] font-semibold text-slate-900">3. Nút thao tác &amp; Ô nhập liệu (Form &amp; Buttons)</h2>
+</div>
+<span class="text-[11px] text-slate-500">Radius 8px (rounded-lg) • Height 36px</span>
+</div>
+<!-- Buttons Row -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+<!-- Primary Button -->
+<button class="h-[36px] px-3.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[13px] font-medium rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Tạo đơn mới</span>
+</button>
+<!-- Outline Button -->
+<button class="h-[36px] px-3.5 bg-white hover:bg-slate-50 border border-[#E2E8F0] text-slate-700 text-[13px] font-medium rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition">
+<svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Bộ lọc</span>
+</button>
+<!-- Danger Button -->
+<button class="h-[36px] px-3.5 bg-[#EF4444] hover:bg-rose-600 text-white text-[13px] font-medium rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Xóa</span>
+</button>
+<!-- Disabled Button -->
+<button class="h-[36px] px-3.5 bg-slate-100 text-slate-400 text-[13px] font-medium rounded-lg cursor-not-allowed flex items-center justify-center gap-1.5 border border-[#E2E8F0]" disabled="">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Vô hiệu hóa</span>
+</button>
+</div>
+<!-- Input Fields Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<!-- Search Input -->
+<div>
+<label class="block text-[12px] font-medium text-[#64748B] mb-1">Thanh tìm kiếm (Search Input)</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</span>
+<input class="w-full h-[36px] pl-8 pr-3 text-[13px] bg-white border border-[#E2E8F0] rounded-lg placeholder-slate-400 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition" placeholder="Tìm theo tên máy, số IMEI..." type="text">
+</div>
+</div>
+<!-- Active / Focus State Input -->
+<div>
+<label class="block text-[12px] font-medium text-[#64748B] mb-1">Trạng thái Active/Focus (Input Focus Ring)</label>
+<input class="w-full h-[36px] px-3 text-[13px] bg-white border border-[#2563EB] rounded-lg ring-2 ring-blue-100 text-[#0F172A] font-medium focus:outline-none transition" type="text" value="iPhone 15 Pro Max 256GB">
+</div>
+<div><label class="block text-[12px] font-medium text-[#64748B] mb-1">Trạng thái Lỗi (Input Error State)</label><div class="relative"><input class="w-full h-[36px] px-3 pr-8 text-[13px] bg-[#FEF2F2]/40 border border-[#EF4444] rounded-lg text-[#0F172A] font-medium focus:outline-none transition" type="text" value="0912abcxyz"><span class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-[#EF4444]"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"></circle><line x1="12" y1="8" x2="12" y2="12" stroke-width="2"></line><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="2"></line></svg></span></div><p class="text-[11px] text-[#EF4444] mt-1 font-normal flex items-center gap-1">Số điện thoại không hợp lệ</p></div><div><label class="block text-[12px] font-medium text-[#64748B] mb-1">Ô chọn thả xuống (Dropdown / Select)</label><div class="relative"><select class="w-full h-[36px] pl-3 pr-8 text-[13px] bg-white border border-[#E2E8F0] rounded-lg text-[#1E293B] font-normal focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition appearance-none cursor-pointer"><option>Chọn danh mục sản phẩm</option><option>iPhone / Điện thoại</option><option>iPad / Máy tính bảng</option><option>MacBook / Laptop</option><option>Phụ kiện công nghệ</option></select><span class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span></div></div></div>
+</section>
+<!-- 4. Feedback & Empty State -->
+<section class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm" data-purpose="feedback-states">
+<div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+<h2 class="text-[14px] font-semibold text-slate-900">4. Phản hồi thông báo &amp; Trạng thái rỗng</h2>
+</div>
+<span class="text-[11px] text-slate-500">Feedback Pattern</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><div class="p-3 bg-white border-l-4 border-l-emerald-500 border border-slate-200 rounded-lg shadow-xs flex items-start justify-between"><div class="flex items-start gap-2.5"><span class="p-1 rounded bg-emerald-50 text-emerald-600 mt-0.5 flex-shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></span><div><h4 class="text-[13px] font-semibold text-[#0F172A] leading-tight">Lưu dữ liệu thành công!</h4><p class="text-[11px] text-[#64748B] mt-0.5 font-normal">Số Serial &amp; hóa đơn đã được cập nhật.</p></div></div><button class="text-slate-400 hover:text-slate-600"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button></div><div class="p-3 bg-slate-50/70 border border-dashed border-slate-300 rounded-lg text-center flex flex-col items-center justify-center"><div class="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 mb-1.5 shadow-2xs"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div><p class="text-[12px] font-medium text-slate-700">Không tìm thấy dữ liệu</p><button class="mt-0.5 text-[11px] font-medium text-blue-600 hover:text-blue-700 hover:underline">Đặt lại bộ lọc</button></div><div class="p-3 bg-white border border-slate-200 rounded-lg shadow-xs flex flex-col justify-between animate-pulse"><div class="flex items-center justify-between mb-2"><span class="text-[11px] font-medium text-slate-500 font-mono">Skeleton Loading State</span><span class="w-2 h-2 rounded-full bg-blue-500"></span></div><div class="flex items-center gap-2 mb-2"><div class="w-8 h-8 rounded bg-slate-200 flex-shrink-0"></div><div class="w-full space-y-1.5"><div class="h-2.5 bg-slate-200 rounded w-4/5"></div><div class="h-2 bg-slate-100 rounded w-3/5"></div></div></div><div class="h-2 bg-slate-100 rounded w-full"></div></div></div>
+</section>
+</div>
+<!-- END: Left Column -->
+<!-- ============================================================== -->
+<!-- RIGHT COLUMN: DOMAIN ENUMS & BILINGUAL STATUS MAPPING (6 Cols) -->
+<!-- ============================================================== -->
+<div class="lg:col-span-6 space-y-4" data-purpose="right-column-enums">
+<!-- Rule Alert Box -->
+<div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3 flex items-start gap-2.5">
+<svg class="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<div class="text-[12px] text-blue-900 leading-relaxed font-normal"><span class="font-semibold text-blue-950">Quy chuẩn Badge Dashboard:</span> Dáng khung chữ nhật bo góc nhẹ 4px (<code class="bg-white/80 px-1 py-0.5 rounded text-[11px] font-mono text-blue-800 border border-blue-200">rounded</code>), viền mảnh 1px đồng tông màu, nền tint thanh nhạt, chữ 12px font-medium, không dùng chấm tròn, tương phản đạt chuẩn WCAG AA.</div>
+</div>
+<!-- Enum Table A: Order Status -->
+<section class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm" data-purpose="enum-order-status">
+<div class="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-2.5">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<h3 class="text-[13px] font-semibold uppercase tracking-wider text-slate-800">Vòng đời Đơn hàng (`order_status`)</h3>
+</div>
+<span class="text-[11px] font-mono text-slate-400">5 Trạng thái</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-[11px] font-mono text-slate-400 border-b border-slate-100">
+<th class="py-2 font-medium">BACKEND ENUM</th>
+<th class="py-2 font-medium">UI BADGE (VIỆT HÓA)</th>
+<th class="py-2 font-medium text-right">HEX COLOR SPECS</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-50 text-[13px]"><tr class="hover:bg-slate-50/50">
+<td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Completed</span></td>
+<td class="py-2.5">
+<span class="status-badge bg-[#ECFDF5] border-[#A7F3D0] text-[#059669] rounded">Hoàn thành</span>
+</td>
+<td class="py-2.5 text-right font-mono text-[11px] text-slate-400">#ECFDF5 • Viền #A7F3D0 • Chữ #059669</td>
+</tr>
+<tr class="hover:bg-slate-50/50">
+<td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Processing</span></td>
+<td class="py-2.5">
+<span class="status-badge bg-[#EFF6FF] border-[#BFDBFE] text-[#2563EB] rounded">Đang xử lý</span>
+</td>
+<td class="py-2.5 text-right font-mono text-[11px] text-slate-400">#EFF6FF • Viền #BFDBFE • Chữ #2563EB</td>
+</tr>
+<tr class="hover:bg-slate-50/50">
+<td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Pending</span></td>
+<td class="py-2.5">
+<span class="status-badge bg-[#FFFBEB] border-[#FDE68A] text-[#D97706] rounded">Chờ thanh toán</span>
+</td>
+<td class="py-2.5 text-right font-mono text-[11px] text-slate-400">#FFFBEB • Viền #FDE68A • Chữ #D97706</td>
+</tr>
+<tr class="hover:bg-slate-50/50">
+<td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Cancelled</span></td>
+<td class="py-2.5">
+<span class="status-badge bg-[#FEF2F2] border-[#FECACA] text-[#DC2626] rounded">Đã hủy</span>
+</td>
+<td class="py-2.5 text-right font-mono text-[11px] text-slate-400">#FEF2F2 • Viền #FECACA • Chữ #DC2626</td>
+</tr>
+<tr class="hover:bg-slate-50/50">
+<td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Refunded</span></td>
+<td class="py-2.5">
+<span class="status-badge bg-[#F5F3FF] border-[#DDD6FE] text-[#7C3AED] rounded">Đã hoàn tiền</span>
+</td>
+<td class="py-2.5 text-right font-mono text-[11px] text-slate-400">#F5F3FF • Viền #DDD6FE • Chữ #7C3AED</td>
+</tr></tbody>
+</table>
+</div>
+</section>
+<!-- Enum Table B: Serial / IMEI Status -->
+<section class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm" data-purpose="enum-imei-status">
+<div class="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-2.5">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<h3 class="text-[13px] font-semibold uppercase tracking-wider text-slate-800">Vòng đời Serial / IMEI (`serial_imei_status`)</h3>
+</div>
+<span class="text-[11px] font-mono text-slate-400">6 Trạng thái</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-[11px] font-mono text-slate-400 border-b border-slate-100">
+<th class="py-2 font-medium">BACKEND ENUM</th>
+<th class="py-2 font-medium">UI BADGE (VIỆT HÓA)</th>
+<th class="py-2 font-medium text-right">Ý NGHĨA KHO</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-50 text-[13px]"><tr class="hover:bg-slate-50/50"><td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">InStock</span></td><td class="py-2.5"><span class="status-badge bg-[#ECFDF5] border-[#A7F3D0] text-[#059669] rounded">Trong kho</span></td><td class="py-2.5 text-right text-[12px] text-slate-500">Sẵn sàng xuất bán</td></tr><tr class="hover:bg-slate-50/50"><td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Reserved</span></td><td class="py-2.5"><span class="status-badge bg-[#FFFBEB] border-[#FDE68A] text-[#D97706] rounded">Đang giữ chỗ</span></td><td class="py-2.5 text-right text-[12px] text-slate-500">Gắn vào đơn chờ duyệt</td></tr><tr class="hover:bg-slate-50/50"><td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Sold</span></td><td class="py-2.5"><span class="status-badge bg-[#F1F5F9] border-[#CBD5E1] text-[#475569] rounded">Đã bán</span></td><td class="py-2.5 text-right text-[12px] text-slate-500">Đã xuất hóa đơn cho khách</td></tr><tr class="hover:bg-slate-50/50"><td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Defective</span></td><td class="py-2.5"><span class="status-badge bg-[#FEF2F2] border-[#FECACA] text-[#DC2626] rounded">Hàng lỗi</span></td><td class="py-2.5 text-right text-[12px] text-slate-500">Lỗi phần cứng/màn hình</td></tr><tr class="hover:bg-slate-50/50"><td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Returned</span></td><td class="py-2.5"><span class="status-badge bg-[#F5F3FF] border-[#DDD6FE] text-[#7C3AED] rounded">Khách trả</span></td><td class="py-2.5 text-right text-[12px] text-slate-500">Thu hồi đổi trả 1:1</td></tr><tr class="hover:bg-slate-50/50"><td class="py-2.5"><span class="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded">UnderRepair</span></td><td class="py-2.5"><span class="status-badge bg-[#FFF7ED] border-[#FED7AA] text-[#EA580C] rounded">Đang bảo hành</span></td><td class="py-2.5 text-right text-[12px] text-slate-500">Gửi hãng / TTBH</td></tr></tbody>
+</table>
+</div>
+</section>
+<!-- Enum Table C & D Split: Nhập Hàng, VietQR & Phân Hạng Khách Hàng -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<!-- Nhập Hàng & VietQR -->
+<section class="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm" data-purpose="enum-purchase-vietqr">
+<h4 class="text-[13px] font-semibold uppercase tracking-wider text-slate-800 pb-2 border-b border-slate-100 mb-2">Nhập Hàng &amp; VietQR</h4>
+<div class="space-y-2.5"><div class="flex items-center justify-between text-xs"><span class="font-mono text-[11px] text-slate-600">Draft</span><span class="status-badge rounded bg-[#F8FAFC] border-[#E2E8F0] text-[#64748B]">Bản nháp</span></div><div class="flex items-center justify-between text-xs"><span class="font-mono text-[11px] text-slate-600">Ordered</span><span class="status-badge rounded bg-[#EFF6FF] border-[#BFDBFE] text-[#2563EB]">Đã đặt hàng</span></div><div class="flex items-center justify-between text-xs"><span class="font-mono text-[11px] text-slate-600">Received</span><span class="status-badge rounded bg-[#ECFDF5] border-[#A7F3D0] text-[#059669]">Đã nhận đủ</span></div><div class="flex items-center justify-between text-xs"><span class="font-mono text-[11px] text-slate-600">Confirmed (QR)</span><span class="status-badge rounded bg-[#ECFDF5] border-[#A7F3D0] text-[#059669]">Thành công</span></div><div class="flex items-center justify-between text-xs"><span class="font-mono text-[11px] text-slate-600">Failed (QR)</span><span class="status-badge rounded bg-[#FEF2F2] border-[#FECACA] text-[#DC2626]">Thất bại</span></div></div>
+</section>
+<!-- Phân Hạng Thành Viên -->
+<section class="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm" data-purpose="enum-customer-tier">
+<h4 class="text-[13px] font-semibold uppercase tracking-wider text-slate-800 pb-2 border-b border-slate-100 mb-2">Hạng Khách Hàng (`customer_tier`)</h4>
+<div class="space-y-2.5"><div class="flex items-center justify-between text-xs"><span class="font-mono text-[11px] text-slate-600">Standard</span><span class="status-badge rounded bg-[#F8FAFC] border-[#E2E8F0] text-[#64748B]">Hạng Tiêu chuẩn</span></div><div class="flex items-center justify-between text-xs"><span class="font-mono text-[11px] text-slate-600">Silver</span><span class="status-badge rounded bg-[#F1F5F9] border-[#CBD5E1] text-[#475569]">Hạng Bạc</span></div><div class="flex items-center justify-between text-xs"><span class="font-mono text-[11px] text-slate-600">Gold</span><span class="status-badge rounded bg-[#FFFBEB] border-[#FDE68A] text-[#D97706]">Hạng Vàng</span></div><div class="flex items-center justify-between text-xs"><span class="font-mono text-[11px] text-slate-600">Platinum</span><span class="status-badge rounded bg-[#F5F3FF] border-[#DDD6FE] text-[#7C3AED]">Hạng Bạch kim</span></div></div>
+</section>
+</div>
+</div>
+<!-- END: Right Column -->
+</main>
+<!-- END: MainContentGrid -->
+<!-- BEGIN: FooterSpecifications -->
+<div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm" data-purpose="system-specs-strip"><div class="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-3"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span><h3 class="text-[13px] font-semibold text-slate-900 uppercase tracking-wider">Quy chuẩn Kỹ thuật Bổ sung (System Spec Strip)</h3></div><span class="text-[11px] font-mono text-slate-400">Tiền tệ &amp; Modal Specs</span></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"><div class="p-3 bg-slate-50/70 border border-slate-200 rounded-lg flex flex-col justify-between"><div class="flex items-center gap-2 mb-1.5"><svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"></circle><path d="M12 7v10M9 9h6" stroke-width="2"></path></svg><span class="font-semibold text-slate-800 text-[13px]">Quy chuẩn định dạng tiền tệ (Currency)</span></div><p class="text-slate-600 leading-relaxed text-[12px]">Phân cách hàng nghìn bằng dấu chấm, kèm khoảng trắng và ký hiệu ₫.</p><div class="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between"><span class="text-slate-500 font-mono text-[11px]">Ví dụ hiển thị:</span><span class="font-mono font-semibold text-emerald-700 bg-emerald-50 border border-[#A7F3D0] px-2 py-0.5 rounded text-[12px]">34.990.000 ₫</span></div></div><div class="p-3 bg-slate-50/70 border border-slate-200 rounded-lg flex flex-col justify-between"><div class="flex items-center gap-2 mb-1.5"><svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"></rect><line x1="3" y1="9" x2="21" y2="9" stroke-width="2"></line></svg><span class="font-semibold text-slate-800 text-[13px]">Kích thước chuẩn Hộp thoại (Dialog Modal Sizes)</span></div><div class="space-y-1.5 text-[11px]"><div class="flex items-center justify-between"><span class="text-slate-600"><strong class="text-slate-800">Small (480px):</strong> Xác nhận xóa / hủy (Confirm Dialog)</span><span class="font-mono text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">max-w-md</span></div><div class="flex items-center justify-between"><span class="text-slate-600"><strong class="text-slate-800">Medium (640px):</strong> Form thêm/sửa khách hàng &amp; nạp kho</span><span class="font-mono text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">max-w-xl</span></div><div class="flex items-center justify-between"><span class="text-slate-600"><strong class="text-slate-800">Large (800px):</strong> Chi tiết đơn hàng &amp; bảng 15 số IMEI/Serial</span><span class="font-mono text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">max-w-2xl</span></div></div></div></div></div><footer class="bg-white border border-slate-200 rounded-xl px-5 py-3 shadow-sm text-xs text-slate-500 flex flex-col md:flex-row items-center justify-between gap-2" data-purpose="spec-footer">
+<div class="flex items-center gap-2">
+<span class="inline-block w-2 h-2 rounded-full bg-blue-600"></span>
+<span class="font-medium text-slate-700">TechStore UI System</span>
+<span class="">• Phù hợp với khung màn hình Desktop 1440x900px</span>
+</div>
+<div class="flex items-center gap-4 text-[11px]">
+<span class="">Ngôn ngữ hệ thống: <strong class="text-slate-700 font-medium">Tiếng Việt 100%</strong></span>
+<span class="">Quy chuẩn: <strong class="text-slate-700 font-medium">WCAG AA &amp; Dashboard Synchronized</strong></span>
+</div>
+</footer>
+<!-- END: FooterSpecifications -->
+</div>
+<!-- END: MasterContainer -->
+
+
+</body></html>

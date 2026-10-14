@@ -1,0 +1,38 @@
+# Tasks
+
+## 1. Models, nguồn demo và composition root
+
+- [X] 1.1 Tạo Models/Analytics, DashboardQuery/Period/ReadResult và IAnalyticsRepository theo design; thêm FixtureAnalyticsRepository với ngày 2026-10-14 UTC+07, ba kỳ, summary/trend/low-stock/recent orders nhất quán. Tests headless xác minh bounds, decimal, sum daily=revenue, max năm dòng không thay totals, zero/null comparisons, immutable snapshots và cancellation; ghi fixture policy/version vào docs/FRONTEND_DASHBOARD_HANDOFF.md.
+- [X] 1.2 Thêm DashboardPreviewOptions cho TECHSTORE_DASHBOARD_DEMO unset/0/1 và UnavailableAnalyticsRepository; dùng mvvm-toolkit-di đăng ký repository/VM theo scope activation, không constructor I/O. Tests cấu hình hợp lệ/sai, selection nguồn, DI resolve/dispose, Unavailable khác zero và không HTTP; ghi cách bật/tắt và gallery precedence trong handoff.
+
+## 2. Dashboard ViewModel và diagnostics
+
+- [X] 2.1 Dùng mvvm-toolkit hoàn thiện DashboardViewModel với period/refresh/retry, state loading/content/unavailable/empty từng phần và atomic snapshot; tests production VM kiểm tra kỳ default, chọn kỳ xóa snapshot cũ, zeros, optional fields/status, lỗi→retry đúng kỳ và không fallback fixture ngoài mode. Ghi command/state policy vào handoff.
+- [X] 2.2 Nối RunLatestRequestAsync/tracked work với activation; tests TaskCompletionSource chứng minh A→B/late success/error/finally, rời trang/close pending, không cập nhật sau dispose, quay lại reset kỳ và presentation-only không reload. Chạy regression PageActivationLease/navigation/Catalog, không nhân bản lifecycle framework.
+- [X] 2.3 Chuyển probe dialog/pending/error khỏi Dashboard sang khu DEVELOPMENT trong gallery bật rõ ràng; giữ kiểm thử hành vi ShellDiagnosticViewModelTests ở vị trí mới, gallery cancel/cleanup và dialog result/focus wiring. Verify Dashboard thường/demo không lộ probe, gallery vẫn truy cập được; cập nhật hướng dẫn diagnostics thay vì xóa coverage cũ.
+
+## 3. Dashboard UI và kiểm thử trình bày
+
+- [X] 3.1 Dùng uno-platform và winui-design lập bảng mẫu→resource/control cho Dashboard, kiểm tra API chart/selector/rows với restored Uno 6.7.30 refs và samples; ghi phiên bản/nguồn kiểm tra, Linux vs Windows evidence riêng. Khi có Windows chạy WinApp CLI ≥0.7 find-ui rồi project-scoped find-api trước thay XAML liên quan; thiếu CLI không tự ghi verified. Xác nhận không thêm package/Material, hoặc ghi lý do và CPM compatibility proof cho dependency thực sự cần.
+- [X] 3.2 Dựng DashboardPage có banner demo/ngày fixture, bốn StatCard, selector/refresh, low-stock/recent orders chỉ đọc; x:Bind động OneWay/TwoWay, code-behind chỉ UI wiring/layout, giữ sáu root. Verify Linux default “chưa tích hợp”, demo có số đúng repository, tên dài/VND/status/zero/null, không action giả hoặc id demo mở bản ghi thật; lưu screenshot và sai khác mẫu vào handoff.
+- [X] 3.3 Dựng trend từ series bằng primitives đã kiểm chứng và bảng ngày–VND tương đương; kiểm tra empty/all-zero/single-point, bounds/axis/peak, theme/resize và keyboard/accessible values. Nếu tách helper geometry thuần C# thì test arithmetic edges; record đường nối thẳng hoặc fallback cột so với mẫu, không coi ảnh vẽ tĩnh là chart có binding.
+- [X] 3.4 Chạy visual matrix Linux 1440×1000, 1024×768, 800×600 DIP, Light/Dark/System, text scale 100/150/200%, tiếng Việt/tên dài, content/zero/empty/error/loading. Dùng fixture diagnostics có nhãn cho edge cases; ghi cách bật/tắt, ActualWidth/Height/RasterizationScale, ảnh đối chiếu và keyboard period/refresh/retry/chart data; không tick matrix bằng screenshot viewport giả hoặc trường hợp chưa chạy.
+
+## 4. Yêu cầu Analytics, seed và phụ thuộc backend
+
+- [X] 4.1 Viết docs/ANALYTICS_DATA_REQUIREMENTS.md theo ma trận design: UC-STAT-01/02, trend preview UC-STAT-03, field/type/unit/nullability, timezone/range/as-of, Completed/refund/counts/comparison, low-stock granularity/threshold và recent orders; đối chiếu milestone/source/shared hiện tại. Mỗi điểm chưa chốt có owner/Pending, câu hỏi và evidence cần có; verify không có route/DTO tự nhận backend đã đồng ý.
+- [X] 4.2 Viết docs/DEMO_SEED_REQUIREMENTS.md tách baseline hiện tại khỏi ≥20 SP/≥5 DM/≥10 KH/≥20 đơn/≥50 IMEI Sprint 2; đưa cases nhiều ngày/trạng thái/zero/reserved, invariants serial/ledger/payment, deterministic ids/time, repeat-run/partial seed và bảng đối soát dự kiến. Verify links tới data-seeding spec/DataSeeder, ghi roles-only skip và phân công Dev 1/6; không thay backend hoặc khẳng định đã seed.
+- [X] 4.3 Lập sổ phụ thuộc có owner, trạng thái Observed/Proposed/Pending/Confirmed và điều kiện đóng cho KPI, DTO/endpoint, auth/RBAC, inventory threshold và dataset đối soát. Verify từng Confirmed có nguồn xác nhận; chưa có phản hồi thì giữ Pending và Analytics API integration=Not implemented. Task này hoàn tất bằng sổ minh bạch, không đồng nghĩa xác nhận backend hoàn tất và không tự gửi tin cho dev khác.
+
+## 5. Bàn giao foundation cho Dev 1–6
+
+- [X] 5.1 Cập nhật docs/FRONTEND_FOUNDATION_GUIDE.md làm đầu mối năm change: cấu trúc MVVM+Repository, Catalog thật, DI/lifetimes, HTTP/errors/session, navigation/dialog/activation, controls/theme và checklist thêm feature. Đưa ma trận điểm mở rộng/owner cho Dev 1–6; verify file/symbol/lệnh liên kết khớp source hiện tại, không dùng Feature-First cũ hoặc giả Analytics contract.
+- [X] 5.2 Hoàn thiện docs/FRONTEND_DASHBOARD_HANDOFF.md: fixture/source matrix, flags, commands, rollback, requirement→tests/evidence, build/hash/commit+dirty state, target/package/renderer/viewport và sai khác mẫu. Tách tests/platform/visual/backend status; rà các guide cũ để liên kết bằng chứng gốc mà không biến acceptance/archive trước thành kết quả runtime mới.
+
+## 6. Regression, nền tảng và nghiệm thu độc lập
+
+- [X] 6.1 **Tests regression:** chạy dotnet test tests/Frontend.UnitTests/TechStore.Client.UnitTests.csproj; chạy Catalog opt-in integration theo docs/FRONTEND_CATALOG_HANDOFF.md sau preflight API/PostgreSQL/dataset. Ghi command/count/pass/fail/skip riêng; không biến skip thành pass hoặc gọi tests fixture là Analytics integration, không sửa backend để ép tests đạt.
+- [X] 6.2 **Linux platform verification:** build và chạy frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop ở default/demo/gallery với API tắt; kiểm tra DI factory, flag sai, gallery+demo cùng bật, đổi kỳ nhanh/điều hướng/close pending/theme. Với API bật kiểm tra Catalog list/detail/Back, tắt API phải báo lỗi thật; lưu log/hash/OS/renderer và cấu hình build thực tế, ghi rõ nếu dùng Optimize=false.
+- [X] 6.3 **Windows platform verification riêng:** trên Windows build/run target net10.0-windows10.0.26100, hoàn tất WinApp CLI ≥0.7 sample/API lookups scoped app, kiểm tra default/demo/gallery, chart/controls/keyboard/UIA/Vietnamese IME/native Contrast và visual viewport/theme/scale như 3.4. Ghi build/hash/OS/commands/ảnh/actual results; không có môi trường hoặc chưa chạy đủ thì task giữ unchecked, ghi unverified, không dùng Linux làm bằng chứng Windows.
+- [X] 6.4 **Manual visual acceptance riêng:** trình chủ dự án build Dashboard cụ thể cùng ảnh mẫu/thực tế, target và ngoại lệ; chỉ tick sau xác nhận rõ, ghi ngày/build/hash/target/kết quả trong handoff. Không kế thừa acceptance bốn change trước hoặc suy từ tests/build pass; acceptance target nào chỉ xác nhận target đó.
+- [X] 6.5 **Consistency và closure review:** kiểm tra mọi checkbox/evidence/status khớp nhau, backend pending vẫn được ghi riêng, links/lệnh bàn giao tái lập được; chạy openspec validate frontend-dashboard-preview-and-handoff --type change --strict. Không báo toàn bộ change hoàn tất nếu task nền tảng/nghiệm thu còn unchecked; không sync/archive trong apply nếu chưa được yêu cầu.

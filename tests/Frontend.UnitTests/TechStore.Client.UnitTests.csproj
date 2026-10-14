@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="coverlet.collector" Version="10.1.0" />
+    <PackageReference Include="FluentAssertions" Version="8.11.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../../frontend/TechStore.Client/Controls/Charts/**/*.cs" Link="Production/Controls/Charts/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Development/**/*.cs" Link="Production/Services/Development/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Models/**/*.cs" Link="Production/Models/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/**/*.cs" Link="Production/Repositories/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Navigation/**/*.cs" Link="Production/Services/Navigation/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/**/*.cs" Link="Production/ViewModels/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Theme/**/*.cs" Link="Production/Services/Theme/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Dialog/**/*.cs" Link="Production/Services/Dialog/%(Filename)%(Extension)" />
+    <ProjectReference Include="..\..\shared\TechStore.Shared.csproj" />
+    <Compile Include="..\..\frontend\TechStore.Client\Services\Api\**\*.cs"
+             Link="Production\Services\Api\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\..\frontend\TechStore.Client\Services\Session\**\*.cs"
+             Link="Production\Services\Session\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\..\frontend\TechStore.Client\ServiceCollectionExtensions.cs"
+             Link="Production\ServiceCollectionExtensions.cs" />
+    <Compile Include="..\..\frontend\TechStore.Client\ServiceProviderLifetime.cs"
+             Link="Production\ServiceProviderLifetime.cs" />
+    <Compile Include="..\..\frontend\TechStore.Client\FrontendStartupDiagnostics.cs"
+             Link="Production\FrontendStartupDiagnostics.cs" />
+  </ItemGroup>
+
+</Project>

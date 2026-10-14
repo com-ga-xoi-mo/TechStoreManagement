@@ -1,0 +1,96 @@
+<Page x:Class="TechStore.Client.Views.Shell.ShellPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:local="using:TechStore.Client.Views.Shell"
+      Background="{ThemeResource TechStoreCanvasBrush}"
+      FontFamily="{StaticResource TechStoreRegularFont}"
+      SizeChanged="OnShellSizeChanged">
+    <NavigationView x:Name="ShellNavigationView"
+                    IsBackButtonVisible="Collapsed"
+                    IsSettingsVisible="False"
+                    OpenPaneLength="250"
+                    CompactPaneLength="64"
+                    PaneDisplayMode="Auto"
+                    CompactModeThresholdWidth="800"
+                    ExpandedModeThresholdWidth="1100"
+                    SelectionFollowsFocus="Disabled"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    >
+        <NavigationView.PaneHeader>
+            <StackPanel Orientation="Horizontal" Spacing="12" Padding="16,12,12,16">
+                <Border Width="36" Height="36" CornerRadius="10" Background="{ThemeResource TechStorePrimaryBrush}">
+                    <TextBlock Text="T" Foreground="{ThemeResource TechStoreOnPrimaryBrush}"
+                               FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel VerticalAlignment="Center" Spacing="1">
+                    <TextBlock Text="TechStore" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource TechStoreTextBrush}" />
+                    <TextBlock Text="QUẢN TRỊ HỆ THỐNG" Style="{StaticResource TechStoreCaptionTextStyle}"
+                               Foreground="{ThemeResource TechStoreSecondaryTextBrush}" />
+                </StackPanel>
+            </StackPanel>
+        </NavigationView.PaneHeader>
+        <NavigationView.MenuItems>
+            <NavigationViewItem Content="Tổng quan" Tag="Dashboard" AutomationProperties.Name="Tổng quan">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Sản phẩm" Tag="Products" AutomationProperties.Name="Sản phẩm">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Shop" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Danh mục và Kho" Tag="Inventory" AutomationProperties.Name="Danh mục và Kho">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="AllApps" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Đơn hàng" Tag="Orders" AutomationProperties.Name="Đơn hàng">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Document" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="Khách hàng" Tag="Customers" AutomationProperties.Name="Khách hàng">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Contact" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem Content="Cài đặt" Tag="Settings" AutomationProperties.Name="Cài đặt">
+                <NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+        <NavigationView.PaneFooter>
+            <Border BorderBrush="{ThemeResource TechStoreStrokeBrush}" BorderThickness="0,1,0,0" Padding="16,12">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Border Width="36" Height="36" CornerRadius="18" Background="{ThemeResource TechStoreSubtleBrush}">
+                        <TextBlock Text="TS" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TechStoreTextBrush}" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="Tài khoản phát triển" Style="{StaticResource TechStoreBodyTextStyle}" />
+                        <TextBlock Text="Chưa đăng nhập" Style="{StaticResource TechStoreCaptionTextStyle}"
+                                   Foreground="{ThemeResource TechStoreSecondaryTextBrush}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </NavigationView.PaneFooter>
+        <Grid Padding="24,16" RowSpacing="12">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <StackPanel Spacing="8">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel Spacing="3">
+                        <TextBlock Text="{x:Bind ViewModel.CurrentTitle, Mode=OneWay}" Style="{StaticResource TechStoreHeadingTextStyle}" />
+                        <TextBlock Text="Không gian quản trị TechStore" Style="{StaticResource TechStoreCaptionTextStyle}"
+                                   Foreground="{ThemeResource TechStoreSecondaryTextBrush}" />
+                    </StackPanel>
+                    <Border Grid.Column="1" VerticalAlignment="Center" CornerRadius="16" Padding="12,6"
+                            Background="{ThemeResource TechStoreWarningFillBrush}" BorderBrush="{ThemeResource TechStoreWarningStrokeBrush}" BorderThickness="1">
+                        <TextBlock Text="BẢN PHÁT TRIỂN · CHƯA ĐĂNG NHẬP" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TechStoreWarningTextBrush}" />
+                    </Border>
+                </Grid>
+                <TextBlock Text="{x:Bind ViewModel.NavigationError, Mode=OneWay}"
+                           Style="{StaticResource TechStoreFieldErrorStyle}" AutomationProperties.LiveSetting="Polite"
+                           Visibility="{x:Bind local:ShellPage.VisibilityFor(ViewModel.HasNavigationError), Mode=OneWay}" />
+            </StackPanel>
+            <ContentControl x:Name="PageHost" Grid.Row="1" IsTabStop="True"
+                            AutomationProperties.Name="Nội dung trang"
+                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+        </Grid>
+    </NavigationView>
+</Page>

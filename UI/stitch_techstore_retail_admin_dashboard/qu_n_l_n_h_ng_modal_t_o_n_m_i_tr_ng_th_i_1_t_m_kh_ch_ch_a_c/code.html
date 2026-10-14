@@ -1,0 +1,334 @@
+<!DOCTYPE html><html lang="vi" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-background":"#191c1e","primary-container":"#2563eb","on-secondary-container":"#54647a","background":"#f7f9fb","secondary-fixed":"#d3e4fe","error-container":"#ffdad6","surface-bright":"#f7f9fb","tertiary-container":"#656d84","tertiary-fixed-dim":"#bec6e0","on-primary-fixed":"#00174b","on-error-container":"#93000a","on-primary-fixed-variant":"#003ea8","surface-container-high":"#e6e8ea","surface-container-highest":"#e0e3e5","primary-fixed":"#dbe1ff","surface-container":"#eceef0","surface":"#f7f9fb","outline":"#737686","secondary-fixed-dim":"#b7c8e1","surface-dim":"#d8dadc","secondary":"#505f76","surface-tint":"#0053db","tertiary":"#4d556b","inverse-primary":"#b4c5ff","inverse-on-surface":"#eff1f3","secondary-container":"#d0e1fb","inverse-surface":"#2d3133","on-tertiary":"#ffffff","on-secondary-fixed":"#0b1c30","outline-variant":"#c3c6d7","surface-container-lowest":"#ffffff","on-surface-variant":"#434655","primary":"#004ac6","on-primary":"#ffffff","on-primary-container":"#eeefff","on-tertiary-container":"#eef0ff","tertiary-fixed":"#dae2fd","on-secondary":"#ffffff","on-tertiary-fixed-variant":"#3f465c","surface-container-low":"#f2f4f6","on-surface":"#191c1e","surface-variant":"#e0e3e5","on-error":"#ffffff","error":"#ba1a1a","primary-fixed-dim":"#b4c5ff","on-tertiary-fixed":"#131b2e","on-secondary-fixed-variant":"#38485d"},borderRadius:{DEFAULT:"0.125rem",lg:"0.25rem",xl:"0.5rem",full:"0.75rem"},spacing:{"space-sm":"0.5rem",gutter:"1rem","margin-desktop":"2rem","gutter-desktop":"1.5rem","space-2xl":"3rem","space-xl":"2rem","space-2xs":"0.25rem","space-lg":"1.5rem","space-xs":"0.375rem","space-md":"1rem",margin:"1rem"},fontFamily:{"label-md":["Inter"],"body-lg":["Inter"],"body-sm":["Inter"],"headline-sm":["Inter"],"headline-lg":["Inter"],"body-md":["Inter"],"headline-md":["Inter"],"label-sm":["Inter"],display:["Inter"],"mono-data":["Inter"]},fontSize:{"label-md":["0.875rem",{lineHeight:"1.25rem",fontWeight:"500"}],"body-lg":["1rem",{lineHeight:"1.5rem",fontWeight:"400"}],"body-sm":["0.8125rem",{lineHeight:"1.25rem",fontWeight:"400"}],"headline-sm":["1.125rem",{lineHeight:"1.5rem",fontWeight:"600"}],"headline-lg":["1.5rem",{lineHeight:"2rem",letterSpacing:"-0.015em",fontWeight:"600"}],"body-md":["0.875rem",{lineHeight:"1.375rem",fontWeight:"400"}],"headline-md":["1.25rem",{lineHeight:"1.75rem",letterSpacing:"-0.01em",fontWeight:"600"}],"label-sm":["0.75rem",{lineHeight:"1rem",letterSpacing:"0.02em",fontWeight:"600"}],display:["1.875rem",{lineHeight:"2.25rem",letterSpacing:"-0.02em",fontWeight:"700"}],"mono-data":["0.8125rem",{lineHeight:"1.25rem",letterSpacing:"0.01em",fontWeight:"500"}]}}}};</script></head><body class="bg-[#F8FAFC] font-body-md text-[#0F172A] antialiased"><aside class="fixed left-0 top-0 h-full w-60 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col"><div class="h-14 px-gutter flex items-center gap-space-sm"><div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-on-primary font-headline-sm text-headline-sm"><span class="material-symbols-outlined text-[18px]">devices</span></div><div class="flex flex-col leading-none"><span class="font-headline-sm text-headline-sm tracking-tight text-on-surface">TechStore</span><span class="font-label-sm text-label-sm text-on-surface-variant font-medium">Retail Management</span></div></div><nav class="flex flex-col gap-space-2xs px-space-xs mt-space-sm" data-active-classes="bg-secondary-container text-primary font-semibold rounded-lg"><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface font-label-md text-label-md transition-colors" data-path="tong-quan" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="">Tổng quan</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface font-label-md text-label-md transition-colors" data-path="san-pham" href="#"><span class="material-symbols-outlined text-[20px]">inventory_2</span><span class="">Sản phẩm</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface font-label-md text-label-md transition-colors" data-path="danh-muc-va-kho" href="#"><span class="material-symbols-outlined text-[20px]">warehouse</span><span class="">Danh mục &amp; Kho</span></a><a aria-current="page" class="flex items-center gap-space-sm px-space-sm py-space-xs transition-colors bg-secondary-container text-primary font-semibold rounded-lg" data-path="don-hang" href="#"><span class="material-symbols-outlined text-[20px]">receipt_long</span><span class="">Đơn hàng</span></a><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface font-label-md text-label-md transition-colors" data-path="khach-hang" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span class="">Khách hàng</span></a></nav></div><div class="flex flex-col gap-space-xs px-space-xs pb-space-sm"><a class="flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface font-label-md text-label-md transition-colors" data-path="cai-dat" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span class="">Cài đặt</span></a><div class="mt-space-2xs p-space-xs bg-surface-container-low rounded-lg flex items-center justify-between"><div class="flex items-center gap-space-xs min-w-0"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-on-surface truncate">Admin TechStore</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">Quản trị viên</span></div></div><span class="material-symbols-outlined text-on-surface-variant text-[18px]">unfold_more</span></div></div></aside><div class="pl-60"><header class="fixed top-0 left-60 right-0 h-14 bg-surface-container-lowest/90 backdrop-blur-md z-40 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 w-full px-gutter-desktop flex items-center justify-end"><div class="flex items-center gap-space-sm"><button class="w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" title="Thông báo"><span class="material-symbols-outlined text-[20px]">notifications</span></button><button class="w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" title="Trợ giúp"><span class="material-symbols-outlined text-[20px]">help_outline</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-14 bg-[#F8FAFC] min-h-screen"><div class="w-full p-gutter-desktop"><div class="flex flex-col w-full">
+<!-- Top Bar: Page Title & Global Actions -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md mb-space-md">
+<div class="flex items-center gap-space-sm">
+<h1 class="font-headline-md text-headline-md text-[#0F172A] font-bold">Đơn hàng</h1>
+<span class="px-2.5 py-0.5 rounded-full text-label-sm font-label-sm bg-[#E2E8F0] text-[#64748B] font-semibold">
+      1.280 đơn hàng
+    </span>
+</div>
+<div class="flex items-center gap-space-sm flex-wrap">
+<!-- View Switcher (Chỉ 2 lựa chọn: Dạng bảng & Nhóm theo ngày) -->
+<div class="inline-flex p-1 bg-surface-container-low rounded-lg border border-[#E2E8F0]">
+<button class="px-3 py-1.5 rounded-md text-label-sm font-label-sm text-[#64748B] hover:text-[#0F172A] flex items-center gap-1.5 transition-colors" title="Chuyển sang dạng bảng" type="button">
+<span class="material-symbols-outlined text-[16px]">table_rows</span>
+<span class="">Dạng bảng</span>
+</button>
+<button class="px-3 py-1.5 rounded-md text-label-sm font-label-sm bg-surface-container-lowest text-primary font-semibold shadow-sm flex items-center gap-1.5 transition-all" title="Xem theo dòng thời gian ngày" type="button">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+<span class="">Nhóm theo ngày</span>
+</button>
+</div>
+<button class="h-9 px-space-md rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center gap-space-xs shadow-sm hover:opacity-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span class="">Tạo đơn mới</span>
+</button>
+</div>
+</div>
+<!-- Filter Controls Toolbar -->
+<div class="bg-surface-container-lowest rounded-xl border border-[#E2E8F0] shadow-sm p-space-md mb-space-lg">
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-space-sm flex-wrap">
+<!-- Quick search -->
+<div class="relative flex-1 min-w-[260px] sm:max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-[#64748B] text-[18px]">search</span>
+<input class="h-9.5 w-full pl-9 pr-4 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] font-body-sm text-body-sm text-[#0F172A] placeholder:text-[#64748B] focus:outline-none focus:border-primary focus:bg-white" id="orderSearchInput" placeholder="Tìm theo mã đơn, tên khách, SĐT, IMEI" type="text">
+</div>
+<!-- Filter: Timeline -->
+<div class="relative">
+<select class="h-9.5 px-3 pr-8 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] font-body-sm text-body-sm text-[#0F172A] appearance-none focus:outline-none focus:border-primary cursor-pointer">
+<option value="today">Thời gian: Hôm nay &amp; Hôm qua</option>
+<option value="7days">7 ngày qua</option>
+<option value="30days">30 ngày qua</option>
+<option value="custom">Tùy chọn ngày...</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 pointer-events-none text-[#64748B] text-[18px]">expand_more</span>
+</div>
+<!-- Filter: Status -->
+<div class="relative">
+<select class="h-9.5 px-3 pr-8 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] font-body-sm text-body-sm text-[#0F172A] appearance-none focus:outline-none focus:border-primary cursor-pointer">
+<option value="all">Trạng thái: Tất cả</option>
+<option value="new">Mới tạo</option>
+<option value="processing">Đang xử lý</option>
+<option value="completed">Hoàn thành</option>
+<option value="cancelled">Đã hủy</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 pointer-events-none text-[#64748B] text-[18px]">expand_more</span>
+</div>
+<!-- Filter: Payment Method -->
+<div class="relative">
+<select class="h-9.5 px-3 pr-8 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] font-body-sm text-body-sm text-[#0F172A] appearance-none focus:outline-none focus:border-primary cursor-pointer">
+<option value="all">Phương thức: Tất cả</option>
+<option value="cash">Tiền mặt</option>
+<option value="vietqr">VietQR</option>
+<option value="card">Thẻ POS</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-2.5 pointer-events-none text-[#64748B] text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- ================= TIMELINE DATE-GROUPED CARDS ================= -->
+<div class="flex flex-col gap-space-xl mb-space-lg">
+<!-- ================= SECTION 1: HÔM NAY ================= -->
+<section class="flex flex-col gap-3"><div class="flex items-center justify-between pb-2 border-b border-[#E2E8F0]"><div class="flex items-center gap-space-sm"><div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div><h2 class="font-headline-sm text-headline-sm text-[#0F172A] font-bold tracking-tight">HÔM NAY <span class="font-normal text-[#64748B] text-body-md">(18/10/2024)</span></h2></div><div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-label-sm text-label-sm"><span class="font-semibold">24 đơn hàng</span><span class="">•</span><span class="font-mono-data font-bold">158.420.000 ₫</span></div></div><div class="flex flex-col gap-3"><div class="px-5 py-3 flex flex-col justify-between relative overflow-hidden rounded-lg bg-surface-container-lowest border border-[#E2E8F0] hover:border-primary/40 hover:shadow-sm hover:bg-slate-50/50 cursor-pointer transition-all"><div class="flex items-center justify-between"><div class="flex flex-col justify-center min-w-[150px]"><div class="flex items-baseline gap-2"><span class="font-headline-sm text-[15px] text-primary font-bold tracking-tight">#DH-8921</span><span class="text-[12px] font-mono-data text-[#64748B]">15:42</span></div><span class="text-[13px] font-semibold text-[#0F172A] truncate">Nguyễn Văn An</span></div><div class="flex-1 px-6 min-w-0 flex items-center"><span class="text-[13px] font-medium text-[#0F172A] truncate">iPhone 15 Pro Max 256GB Titan Tự Nhiên</span><span class="text-[12px] text-[#64748B] font-normal ml-1.5 shrink-0">và 1 sản phẩm khác</span></div><div class="flex items-center gap-3 shrink-0"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container-low text-[#0F172A] font-label-sm text-[12px]"><span class="material-symbols-outlined text-[15px] text-primary">qr_code_2</span><span class="">VietQR</span></span><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[12px] font-semibold bg-[#ECFDF5] text-[#059669] border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Hoàn thành</span><span class="font-mono-data text-[15px] font-bold text-[#0F172A] min-w-[120px] text-right">34.990.000 ₫</span></div></div><div class="border-t border-[#E2E8F0] mt-2.5 pt-2 flex items-center gap-2 text-[12px]"><div class="flex items-center gap-1.5 text-emerald-600 font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span class="">Tạo đơn</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">15:42</span></div><span class="text-[#94A3B8] text-[11px]">→</span><div class="flex items-center gap-1.5 text-emerald-600 font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span class="">Đã thanh toán</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">15:44</span></div><span class="text-[#94A3B8] text-[11px]">→</span><div class="flex items-center gap-1.5 text-emerald-600 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span class="">Hoàn thành</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">15:48</span></div></div></div><div class="px-5 py-3 flex flex-col justify-between relative overflow-hidden rounded-lg bg-surface-container-lowest border border-[#E2E8F0] hover:border-primary/40 hover:shadow-sm hover:bg-slate-50/50 cursor-pointer transition-all"><div class="flex items-center justify-between"><div class="flex flex-col justify-center min-w-[150px]"><div class="flex items-baseline gap-2"><span class="font-headline-sm text-[15px] text-primary font-bold tracking-tight">#DH-8920</span><span class="text-[12px] font-mono-data text-[#64748B]">14:15</span></div><span class="text-[13px] font-semibold text-[#0F172A] truncate">Trần Thị Hương</span></div><div class="flex-1 px-6 min-w-0 flex items-center"><span class="text-[13px] font-medium text-[#0F172A] truncate">Samsung Galaxy S24 Ultra 512GB Titanium Black</span></div><div class="flex items-center gap-3 shrink-0"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container-low text-[#0F172A] font-label-sm text-[12px]"><span class="material-symbols-outlined text-[15px] text-primary">credit_card</span><span class="">Thẻ</span></span><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[12px] font-semibold bg-[#EFF6FF] text-[#2563EB] border border-blue-200"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Đang xử lý</span><span class="font-mono-data text-[15px] font-bold text-[#0F172A] min-w-[120px] text-right">32.490.000 ₫</span></div></div><div class="border-t border-[#E2E8F0] mt-2.5 pt-2 flex items-center gap-2 text-[12px]"><div class="flex items-center gap-1.5 text-emerald-600 font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span class="">Tạo đơn</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">14:15</span></div><span class="text-[#94A3B8] text-[11px]">→</span><div class="flex items-center gap-1.5 text-[#2563EB] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span><span class="">Đang xử lý</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">14:18</span></div><span class="text-[#94A3B8] text-[11px]">→</span><div class="flex items-center gap-1.5 text-[#94A3B8] font-normal"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span><span class="">Hoàn thành</span></div></div></div><div class="px-5 py-3 flex flex-col justify-between relative overflow-hidden rounded-lg bg-surface-container-lowest border border-[#E2E8F0] hover:border-primary/40 hover:shadow-sm hover:bg-slate-50/50 cursor-pointer transition-all"><div class="flex items-center justify-between"><div class="flex flex-col justify-center min-w-[150px]"><div class="flex items-baseline gap-2"><span class="font-headline-sm text-[15px] text-primary font-bold tracking-tight">#DH-8918</span><span class="text-[12px] font-mono-data text-[#64748B]">11:05</span></div><span class="text-[13px] font-semibold text-[#0F172A] truncate">Phạm Minh Tuấn</span></div><div class="flex-1 px-6 min-w-0 flex items-center"><span class="text-[13px] font-medium text-[#0F172A] truncate">iPad Air M2 11" Wi-Fi 128GB Blue</span></div><div class="flex items-center gap-3 shrink-0"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container-low text-[#0F172A] font-label-sm text-[12px]"><span class="material-symbols-outlined text-[15px] text-primary">qr_code_2</span><span class="">VietQR</span></span><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[12px] font-semibold bg-[#FFFBEB] text-[#D97706] border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Mới tạo</span><span class="font-mono-data text-[15px] font-bold text-[#0F172A] min-w-[120px] text-right">16.490.000 ₫</span></div></div><div class="border-t border-[#E2E8F0] mt-2.5 pt-2 flex items-center gap-2 text-[12px]"><div class="flex items-center gap-1.5 text-emerald-600 font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span class="">Tạo đơn</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">11:05</span></div><span class="text-[#94A3B8] text-[11px]">→</span><div class="flex items-center gap-1.5 text-[#D97706] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span><span class="">Chờ thanh toán</span></div><span class="text-[#94A3B8] text-[11px]">→</span><div class="flex items-center gap-1.5 text-[#94A3B8] font-normal"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span><span class="">Hoàn thành</span></div></div></div></div></section>
+<!-- ================= SECTION 2: HÔM QUA ================= -->
+<section class="flex flex-col gap-3"><div class="flex items-center justify-between pb-2 border-b border-[#E2E8F0]"><div class="flex items-center gap-space-sm"><div class="w-3 h-3 rounded-full bg-slate-400"></div><h2 class="font-headline-sm text-headline-sm text-[#0F172A] font-bold tracking-tight">HÔM QUA <span class="font-normal text-[#64748B] text-body-md">(17/10/2024)</span></h2></div><div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low border border-[#E2E8F0] text-[#0F172A] font-label-sm text-label-sm"><span class="font-semibold text-[#64748B]">38 đơn hàng</span><span class="text-[#64748B]">•</span><span class="font-mono-data font-bold">246.800.000 ₫</span></div></div><div class="flex flex-col gap-3"><div class="px-5 py-3 flex flex-col justify-between relative overflow-hidden rounded-lg bg-surface-container-lowest border border-[#E2E8F0] hover:border-primary/40 hover:shadow-sm hover:bg-slate-50/50 cursor-pointer transition-all"><div class="flex items-center justify-between"><div class="flex flex-col justify-center min-w-[150px]"><div class="flex items-baseline gap-2"><span class="font-headline-sm text-[15px] text-primary font-bold tracking-tight">#DH-8914</span><span class="text-[12px] font-mono-data text-[#64748B]">21:10</span></div><span class="text-[13px] font-semibold text-[#0F172A] truncate">Khách lẻ</span></div><div class="flex-1 px-6 min-w-0 flex items-center"><span class="text-[13px] font-medium text-[#0F172A] truncate">Dell XPS 13 9340 Intel Core Ultra 7 16GB/1TB</span><span class="text-[12px] text-[#64748B] font-normal ml-1.5 shrink-0">và 2 sản phẩm khác</span></div><div class="flex items-center gap-3 shrink-0"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container-low text-[#0F172A] font-label-sm text-[12px]"><span class="material-symbols-outlined text-[15px] text-emerald-600">payments</span><span class="">Tiền mặt</span></span><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[12px] font-semibold bg-[#ECFDF5] text-[#059669] border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Hoàn thành</span><span class="font-mono-data text-[15px] font-bold text-[#0F172A] min-w-[120px] text-right">43.990.000 ₫</span></div></div><div class="border-t border-[#E2E8F0] mt-2.5 pt-2 flex items-center gap-2 text-[12px]"><div class="flex items-center gap-1.5 text-emerald-600 font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span class="">Tạo đơn</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">21:10</span></div><span class="text-[#94A3B8] text-[11px]">→</span><div class="flex items-center gap-1.5 text-emerald-600 font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span class="">Đã thanh toán</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">21:12</span></div><span class="text-[#94A3B8] text-[11px]">→</span><div class="flex items-center gap-1.5 text-emerald-600 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span class="">Hoàn thành</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">21:20</span></div></div></div><div class="px-5 py-3 flex flex-col justify-between relative overflow-hidden rounded-lg bg-slate-50/80 border border-[#E2E8F0] opacity-75 hover:opacity-90 hover:border-red-300 hover:shadow-sm cursor-pointer transition-all"><div class="flex items-center justify-between"><div class="flex flex-col justify-center min-w-[150px]"><div class="flex items-baseline gap-2"><span class="font-headline-sm text-[15px] text-[#64748B] font-bold tracking-tight">#DH-8916</span><span class="text-[12px] font-mono-data text-[#64748B]">09:12</span></div><span class="text-[13px] font-semibold text-[#64748B] truncate">Vũ Đức Trọng</span></div><div class="flex-1 px-6 min-w-0 flex items-center"><span class="text-[13px] font-medium text-[#64748B] truncate">Sony WH-1000XM5 Wireless Headphones Silver</span></div><div class="flex items-center gap-3 shrink-0"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container-low text-[#64748B] font-label-sm text-[12px]"><span class="material-symbols-outlined text-[15px]">credit_card</span><span class="">Thẻ</span></span><span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[12px] font-semibold bg-[#FEF2F2] text-[#DC2626] border border-red-200"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Đã hủy</span><span class="font-mono-data text-[15px] font-bold text-[#94A3B8] line-through min-w-[120px] text-right">6.790.000 ₫</span></div></div><div class="border-t border-[#E2E8F0] mt-2.5 pt-2 flex items-center gap-2 text-[12px]"><div class="flex items-center gap-1.5 text-[#DC2626] font-medium"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span><span class="">Tạo đơn</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">09:12</span></div><span class="text-[#94A3B8] text-[11px]">→</span><div class="flex items-center gap-1.5 text-[#DC2626] font-medium"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span><span class="">Đã hoàn kho</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">09:20</span></div><span class="text-[#94A3B8] text-[11px]">→</span><div class="flex items-center gap-1.5 text-[#DC2626] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span><span class="">Đã hủy</span><span class="text-[#94A3B8] font-normal font-mono-data text-[11px]">09:25</span></div></div></div></div></section>
+<!-- ================= SECTION 3: TUẦN TRƯỚC (THU GỌN) ================= -->
+<section class="flex flex-col">
+<div class="bg-surface-container-lowest rounded-xl border border-[#E2E8F0] p-4 flex flex-col sm:flex-row items-center justify-between gap-space-sm hover:border-primary/40 transition-colors shadow-sm cursor-pointer group">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-[#64748B] group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">date_range</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+<span class="font-headline-sm text-headline-sm text-[#0F172A] font-bold">TUẦN TRƯỚC</span>
+<span class="text-body-sm text-[#64748B]">(10/10/2024 – 16/10/2024)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-md self-end sm:self-auto">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low border border-[#E2E8F0] text-[#0F172A] font-label-sm text-label-sm">
+<span class="font-semibold text-[#64748B]">248 đơn hàng</span>
+<span class="text-[#64748B]">•</span>
+<span class="font-mono-data font-bold">1.412.350.000 ₫</span>
+</div>
+<button class="h-8 px-3 rounded-lg border border-[#E2E8F0] group-hover:border-primary/40 text-primary font-label-sm text-label-sm flex items-center gap-1 font-semibold transition-colors" type="button">
+<span class="">Mở rộng</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<!-- Pagination Footer -->
+<div class="bg-surface-container-lowest rounded-xl border border-[#E2E8F0] px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-space-sm shadow-sm">
+<div class="font-body-sm text-body-sm text-[#64748B]">
+    Hiển thị <span class="font-medium text-[#0F172A]">1 – 5</span> trên tổng số <span class="font-medium text-[#0F172A]">1.280</span> đơn hàng
+  </div>
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] hover:bg-surface-container flex items-center justify-center transition-colors disabled:opacity-40" disabled="" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold flex items-center justify-center shadow-sm" type="button">
+      1
+    </button>
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest border border-[#E2E8F0] text-[#0F172A] hover:bg-surface-container font-label-md text-label-md flex items-center justify-center transition-colors" type="button">
+      2
+    </button>
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest border border-[#E2E8F0] text-[#0F172A] hover:bg-surface-container font-label-md text-label-md flex items-center justify-center transition-colors" type="button">
+      3
+    </button>
+<span class="px-1 text-[#64748B] text-label-sm">...</span>
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest border border-[#E2E8F0] text-[#0F172A] hover:bg-surface-container font-label-md text-label-md flex items-center justify-center transition-colors" type="button">
+      214
+    </button>
+<button class="w-8 h-8 rounded-lg bg-surface-container-lowest border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] hover:bg-surface-container flex items-center justify-center transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div></div></main></div>
+<!-- Modal Create Order POS Backdrop & Container -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+<!-- Dialog Box (940px width) -->
+<div class="bg-white rounded-xl border border-[#E2E8F0] shadow-2xl w-full max-w-[940px] max-h-[90vh] flex flex-col overflow-hidden text-[#0F172A]">
+<!-- Header -->
+<div class="px-6 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-surface-container-lowest shrink-0">
+<div class="flex flex-col">
+<div class="flex items-center gap-2.5">
+<h2 class="text-[18px] font-bold text-[#0F172A] tracking-tight">Tạo đơn hàng mới</h2>
+<span class="px-2.5 py-0.5 rounded-full text-[12px] font-mono-data font-semibold bg-blue-50 text-primary border border-blue-200">
+            #DH-8922 (Dự kiến)
+          </span>
+</div>
+<p class="text-[12px] text-[#64748B] mt-0.5">
+          Bán lẻ thiết bị &amp; phụ kiện tại quầy — Nhân viên: <span class="font-medium text-[#0F172A]">Admin TechStore</span>
+</p>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-[#64748B] hover:bg-slate-100 hover:text-[#0F172A] transition-colors" title="Đóng popup" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Body: 2 Columns Layout -->
+<div class="flex-1 overflow-y-auto flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[#E2E8F0]">
+<!-- CỘT TRÁI (~58%): Chọn sản phẩm & IMEI -->
+<div class="w-full md:w-[58%] p-5 flex flex-col gap-4 bg-slate-50/30 overflow-y-auto">
+<!-- Search Input -->
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-[#64748B] text-[18px]">search</span>
+<input class="h-9.5 w-full pl-9 pr-10 rounded-lg bg-white border border-[#E2E8F0] text-[13px] text-[#0F172A] placeholder:text-[#64748B] focus:outline-none focus:border-primary shadow-sm" placeholder="Tìm kiếm thiết bị theo tên, model, SKU hoặc quét barcode..." type="text">
+<button class="absolute right-2 top-2 text-[#64748B] hover:text-primary p-0.5 rounded" title="Quét mã Barcode / QR" type="button">
+<span class="material-symbols-outlined text-[19px]">qr_code_scanner</span>
+</button>
+</div>
+<!-- Danh sách sản phẩm trong giỏ -->
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between text-[12px] font-semibold text-[#64748B] px-1">
+<span class="">SẢN PHẨM TRONG ĐƠN (2)</span>
+<span class="">TỔNG: 2 MẶT HÀNG</span>
+</div>
+<!-- Sản phẩm 1: iPhone 15 Pro Max (Có IMEI) -->
+<div class="p-3.5 rounded-lg bg-white border border-[#E2E8F0] shadow-sm flex flex-col gap-2.5">
+<div class="flex items-start justify-between gap-2">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="px-1.5 py-0.5 rounded bg-blue-50 text-primary text-[10px] font-bold uppercase tracking-wide">IMEI</span>
+<span class="font-semibold text-[13.5px] text-[#0F172A] truncate">iPhone 15 Pro Max 256GB Titan Tự Nhiên</span>
+</div>
+<div class="text-[11px] text-[#64748B] mt-0.5">Mã SKU: IP15PM-256-NAT • Còn 3 sản phẩm</div>
+</div>
+<div class="text-right shrink-0">
+<span class="font-mono-data font-bold text-[14px] text-[#0F172A]">34.990.000 ₫</span>
+<div class="text-[11px] text-[#64748B]">Mã SKU: IP15PM-256-NAT • Còn 3 sản phẩm</div>
+</div>
+</div>
+<!-- IMEI Dropdown selection -->
+<div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[12px]">
+<div class="flex items-center gap-2 flex-1 min-w-0">
+<span class="text-[#64748B] shrink-0 font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px] text-primary">pin</span> IMEI:
+                </span>
+<select class="h-7 px-2 pr-6 rounded border border-[#E2E8F0] bg-slate-50 text-[11.5px] font-mono-data text-[#0F172A] focus:outline-none focus:border-primary flex-1 truncate">
+<option selected="">352910482910490 (Kệ A01 - Mới 100%)</option>
+<option>352910482910491 (Kệ A01 - Mới 100%)</option>
+<option>352910482910495 (Tủ kính trưng bày)</option>
+</select>
+</div>
+<button class="text-[#94A3B8] hover:text-red-500 p-1 transition-colors shrink-0" title="Xóa sản phẩm" type="button">
+<span class="material-symbols-outlined text-[17px]">delete_outline</span>
+</button>
+</div>
+</div>
+<!-- Sản phẩm 2: Củ sạc 20W Apple (Phụ kiện số lượng) -->
+<div class="p-3.5 rounded-lg bg-white border border-[#E2E8F0] shadow-sm flex flex-col gap-2.5">
+<div class="flex items-start justify-between gap-2">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="px-1.5 py-0.5 rounded bg-slate-100 text-[#64748B] text-[10px] font-bold uppercase tracking-wide">Phụ kiện</span>
+<span class="font-semibold text-[13.5px] text-[#0F172A] truncate">Củ sạc Apple 20W USB-C Power Adapter</span>
+</div>
+<div class="text-[11px] text-[#64748B] mt-0.5">Mã SKU: MHJE3ZA/A</div>
+</div>
+<div class="text-right shrink-0">
+<span class="font-mono-data font-bold text-[14px] text-[#0F172A]">520.000 ₫</span>
+</div>
+</div>
+<!-- Điều chỉnh số lượng & Nút xóa -->
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 text-[12px]">
+<div class="flex items-center gap-3">
+<span class="text-[#64748B] font-medium">Số lượng:</span>
+<div class="inline-flex items-center border border-[#E2E8F0] rounded bg-white shadow-2xs">
+<button class="w-6 h-6 flex items-center justify-center text-[#64748B] hover:bg-slate-100 font-bold" type="button">-</button>
+<span class="w-7 text-center font-mono-data font-semibold text-[12px]">1</span>
+<button class="w-6 h-6 flex items-center justify-center text-[#64748B] hover:bg-slate-100 font-bold" type="button">+</button>
+</div>
+</div>
+<button class="text-[#94A3B8] hover:text-red-500 p-1 transition-colors shrink-0" title="Xóa sản phẩm" type="button">
+<span class="material-symbols-outlined text-[17px]">delete_outline</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Nút thêm sản phẩm & Gợi ý phụ kiện bán kèm -->
+<div class="flex flex-col gap-2 mt-auto pt-2">
+<button class="h-8.5 rounded-lg border border-dashed border-primary/60 text-primary hover:bg-blue-50/50 font-label-sm text-[12.5px] flex items-center justify-center gap-1.5 transition-colors font-medium" type="button">
+<span class="material-symbols-outlined text-[17px]">add_circle</span>
+            Thêm sản phẩm khác vào đơn
+          </button>
+<!-- Gợi ý bán kèm -->
+</div>
+</div>
+<!-- CỘT PHẢI (~42%): Khách hàng & Thanh toán POS -->
+<div class="w-full md:w-[42%] p-5 flex flex-col justify-between gap-4 bg-white overflow-y-auto">
+<div class="flex flex-col gap-4">
+<!-- Khối Khách hàng -->
+<div class="flex flex-col gap-2.5">
+  <div class="flex items-center justify-between">
+    <span class="text-[12px] font-bold text-[#64748B] uppercase tracking-wide">Thông tin khách hàng</span>
+    <div class="inline-flex p-0.5 bg-slate-100 rounded-md text-[11px]">
+      <button class="px-2.5 py-0.5 rounded bg-white text-primary font-semibold shadow-xs flex items-center gap-1" type="button">
+        <span class="material-symbols-outlined text-[13px]">search</span>
+        <span class="">Tìm khách hàng</span>
+      </button>
+      <button class="px-2 py-0.5 rounded text-[#64748B] hover:text-[#0F172A] flex items-center gap-1 transition-colors" type="button">
+        <span class="material-symbols-outlined text-[13px]">person_add</span>
+        <span class="">Thêm khách mới</span>
+      </button>
+    </div>
+  </div>
+  <div class="flex flex-col gap-2">
+    <div class="relative">
+      <span class="material-symbols-outlined absolute left-2.5 top-2 text-[#64748B] text-[18px]">search</span>
+      <input class="h-8.5 w-full pl-8 pr-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] text-[12.5px] text-[#0F172A] placeholder:text-[#64748B] focus:outline-none focus:border-primary focus:bg-white" placeholder="Tìm khách theo tên hoặc số điện thoại..." type="text">
+    </div>
+    <div class="p-2.5 rounded-lg border border-blue-200 bg-blue-50/40 flex items-start justify-between">
+      <div class="flex items-start gap-2.5 min-w-0">
+        <div class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold text-[12px] mt-0.5">
+          <span class="material-symbols-outlined text-[16px]">person</span>
+        </div>
+        <div class="flex flex-col min-w-0 gap-0.5">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-[13px] font-semibold text-[#0F172A] truncate">Trần Minh Hoàng</span>
+            <span class="text-[11.5px] font-mono-data text-[#64748B]">0918 223 999</span>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap mt-0.5">
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#FFFBEB] text-[#D97706] border border-amber-200 text-[11px] font-semibold">
+              <span class="material-symbols-outlined text-[12px] text-amber-500">star</span>
+              Thành viên Vàng (Gold) - Giảm 5%
+            </span>
+            <span class="text-[11px] text-[#64748B] font-mono-data">Điểm tích lũy: 1.520 điểm</span>
+          </div>
+        </div>
+      </div>
+      <button class="text-[#94A3B8] hover:text-red-500 p-1 transition-colors shrink-0" title="Bỏ chọn khách" type="button">
+        <span class="material-symbols-outlined text-[16px]">close</span>
+      </button>
+    </div>
+  </div>
+</div>
+<!-- Khối Phương thức thanh toán -->
+<div class="flex flex-col gap-2.5 pt-2 border-t border-slate-100">
+<span class="text-[12px] font-bold text-[#64748B] uppercase tracking-wide">Phương thức thanh toán</span>
+<div class="grid grid-cols-3 gap-1.5">
+<button class="py-2 px-1 rounded-lg border border-[#E2E8F0] text-[12px] font-medium text-[#64748B] hover:bg-slate-50 flex flex-col items-center gap-1 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+                Tiền mặt
+              </button>
+<button class="py-2 px-1 rounded-lg border-2 border-primary bg-blue-50/40 text-[12px] font-bold text-primary flex flex-col items-center gap-1 shadow-xs transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">qr_code_2</span>
+                VietQR
+              </button>
+<button class="py-2 px-1 rounded-lg border border-[#E2E8F0] text-[12px] font-medium text-[#64748B] hover:bg-slate-50 flex flex-col items-center gap-1 transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">credit_card</span> Thẻ</button>
+</div>
+<!-- Khung mã VietQR tự động sinh -->
+<div class="p-3 rounded-lg bg-blue-50/40 border border-blue-200 text-center text-primary text-[12.5px] font-medium flex items-center justify-center gap-2 mt-1"><span class="material-symbols-outlined text-[18px]">qr_code_2</span><span class="">Thanh toán bằng chuyển khoản VietQR</span></div>
+</div>
+<!-- Tóm tắt số tiền -->
+<div class="flex flex-col gap-1.5 pt-2 border-t border-slate-100 text-[12.5px]">
+  <div class="flex items-center justify-between text-[#64748B]">
+    <span class="">Tổng tiền hàng:</span>
+    <span class="font-mono-data font-medium text-[#0F172A]">35.510.000 ₫</span>
+  </div>
+  <div class="flex items-center justify-between text-[#059669]">
+    <span class="flex items-center gap-1 font-medium">
+      <span class="material-symbols-outlined text-[15px]">loyalty</span>
+      Giảm giá thành viên (Gold 5%):
+    </span>
+    <span class="font-mono-data font-semibold text-[#059669]">- 1.775.500 ₫</span>
+  </div>
+  <div class="flex items-center justify-between pt-2 border-t border-dashed border-[#E2E8F0] mt-1">
+    <span class="font-bold text-[13.5px] text-[#0F172A]">Khách phải trả:</span>
+    <span class="font-mono-data font-bold text-[20px] text-primary tracking-tight">33.734.500 ₫</span>
+  </div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="px-6 py-3.5 border-t border-[#E2E8F0] bg-slate-50 flex items-center justify-between shrink-0">
+<div class="flex items-center gap-3 w-full justify-end"><button class="h-9 px-4 rounded-lg bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A] hover:bg-slate-100 font-label-md text-[13px] font-medium transition-colors" type="button">Hủy</button><div class="flex flex-col items-center"><button class="h-9 px-4 rounded-lg bg-slate-200/80 text-[#0F172A] hover:bg-slate-300/80 font-label-md text-[13px] font-medium transition-colors" type="button">Lưu đơn</button><span class="text-[10px] text-[#64748B] mt-0.5">Giữ hàng, chưa thanh toán</span></div><button class="h-9 px-5 rounded-lg bg-primary text-white hover:opacity-95 font-label-md text-[13px] font-semibold flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all" type="button"><span class="material-symbols-outlined text-[18px]">check_circle</span> Thanh toán và hoàn tất</button></div>
+</div>
+</div>
+</div>
+
+
+</body></html>

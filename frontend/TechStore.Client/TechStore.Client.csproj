@@ -1,6 +1,10 @@
 <Project Sdk="Uno.Sdk">
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" />
     <ProjectReference Include="..\..\shared\TechStore.Shared.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
   <PropertyGroup>
     <TargetFrameworks>net10.0-windows10.0.26100;net10.0-desktop</TargetFrameworks>

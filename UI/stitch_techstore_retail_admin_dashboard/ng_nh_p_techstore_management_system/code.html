@@ -1,0 +1,408 @@
+<!DOCTYPE html><html lang="vi"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1440, initial-scale=1.0">
+  <title>Đăng nhập - TechStore Management System</title>
+  <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              DEFAULT: '#0066FF',
+              hover: '#0052CC',
+              pressed: '#0040A8',
+              light: '#EBF3FF',
+            },
+            surface: {
+              canvas: '#F8FAFC',
+              white: '#FFFFFF',
+              border: '#E2E8F0',
+            },
+            content: {
+              title: '#0F172A',
+              body: '#1E293B',
+              muted: '#64748B',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #F8FAFC;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="w-[1440px] h-[900px] overflow-hidden flex bg-[#F8FAFC]">
+
+  <!-- CỘT TRÁI: KHUNG THƯƠNG HIỆU GỌN GÀNG (BRANDING PANEL) -->
+  <div class="w-[580px] h-full bg-gradient-to-br from-[#0B1528] via-[#0F1E3D] to-[#0A2558] text-white flex flex-col justify-between p-14 relative overflow-hidden select-none border-r border-[#1E293B]/40">
+    
+    <!-- HỌA TIẾT NỀN NGHỆ THUẬT & ÁNH SÁNG XANH DƯƠNG CHỦ ĐẠO -->
+    <div class="absolute -top-32 -left-32 w-96 h-96 bg-[#0066FF]/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-10 -right-20 w-[420px] h-[420px] bg-[#0066FF]/15 rounded-full blur-[100px] pointer-events-none"></div>
+    
+    <!-- Vector Grid Lưới mờ tinh tế phong cách Fluent/Tech -->
+    <svg class="absolute inset-0 w-full h-full opacity-[0.06] pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="tech-grid" width="36" height="36" patternUnits="userSpaceOnUse">
+          <path d="M 36 0 L 0 0 0 36" fill="none" stroke="#FFFFFF" stroke-width="1"></path>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#tech-grid)"></rect>
+    </svg>
+
+    <!-- Top: Logo & Tên ứng dụng TechStore -->
+    <div class="relative z-10">
+      <div class="flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#0066FF] to-[#3B82F6] flex items-center justify-center shadow-lg shadow-[#0066FF]/30 border border-white/20">
+          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </div>
+        <div>
+          <span class="text-2xl font-bold tracking-tight text-white block leading-none">TechStore</span>
+          <span class="text-[12px] font-medium text-blue-200/70 tracking-wide mt-1 block">Hệ thống quản lý bán lẻ</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: Khung thông điệp súc tích & Minh họa thiết bị công nghệ tối giản -->
+    <div class="relative z-10 max-w-[420px] my-auto">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/25 text-blue-300 text-[12px] font-medium mb-6 backdrop-blur-md">
+        <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+        Nền tảng vận hành POS &amp; Kho đa kênh
+      </div>
+      
+      <h1 class="text-3xl font-bold leading-tight tracking-tight text-white mb-3">
+        Quản lý bán lẻ thiết bị công nghệ
+      </h1>
+      <p class="text-slate-300 text-[14px] leading-relaxed mb-8">
+        Hệ thống tích hợp theo dõi tồn kho Serial/IMEI, quản lý bán hàng tại quầy và chăm sóc khách hàng chuyên nghiệp.
+      </p>
+
+      <!-- Minh họa tối giản: Khối các thiết bị & Điểm nổi bật tinh gọn -->
+      <div class="p-5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md shadow-2xl space-y-3.5">
+        <div class="flex items-center gap-3.5 text-slate-200">
+          <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </div>
+          <div class="text-[13px] font-medium">Kiểm soát 15 số IMEI chính xác theo từng máy</div>
+        </div>
+        <div class="flex items-center gap-3.5 text-slate-200">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <polyline points="16 11 18 13 22 9"></polyline>
+            </svg>
+          </div>
+          <div class="text-[13px] font-medium">Thanh toán nhanh: Tiền mặt, Thẻ POS &amp; VietQR</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom: Phiên bản & Thông tin bảo mật -->
+    <div class="relative z-10 flex items-center justify-between text-[12px] text-slate-400/80 border-t border-white/10 pt-5">
+      <span>Phiên bản Desktop v2.4</span>
+      <span class="flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        Bảo mật xác thực doanh nghiệp
+      </span>
+    </div>
+  </div>
+
+  <!-- CỘT PHẢI: KHỐI FORM ĐĂNG NHẬP & BỘ TRÌNH DIỄN CÁC TRẠNG THÁI -->
+  <div class="flex-1 h-full bg-[#F8FAFC] flex flex-col justify-between p-10 relative">
+    
+    <!-- Header chuyển đổi trạng thái mẫu (Interactive State Switcher) giúp người dùng và dev dễ kiểm tra -->
+    <div class="w-full flex items-center justify-between border-b border-[#E2E8F0] pb-4 mb-2">
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Xem thử trạng thái:</span>
+        <div class="inline-flex p-1 bg-[#F1F5F9] rounded-lg border border-[#E2E8F0]">
+          <button onclick="setState('normal')" id="btn-state-normal" class="px-2.5 py-1 text-[12px] font-medium rounded-md transition-all bg-white text-[#0066FF] shadow-sm">
+            Mặc định
+          </button>
+          <button onclick="setState('loading')" id="btn-state-loading" class="px-2.5 py-1 text-[12px] font-medium rounded-md transition-all text-slate-600 hover:text-slate-900">
+            Đang xử lý
+          </button>
+          <button onclick="setState('wrong-cred')" id="btn-state-wrong-cred" class="px-2.5 py-1 text-[12px] font-medium rounded-md transition-all text-slate-600 hover:text-slate-900">
+            Sai thông tin
+          </button>
+          <button onclick="setState('locked')" id="btn-state-locked" class="px-2.5 py-1 text-[12px] font-medium rounded-md transition-all text-slate-600 hover:text-slate-900">
+            Tài khoản bị khóa
+          </button>
+          <button onclick="setState('network-err')" id="btn-state-network-err" class="px-2.5 py-1 text-[12px] font-medium rounded-md transition-all text-slate-600 hover:text-slate-900">
+            Mất kết nối
+          </button>
+          <button onclick="setState('empty-err')" id="btn-state-empty-err" class="px-2.5 py-1 text-[12px] font-medium rounded-md transition-all text-slate-600 hover:text-slate-900">
+            Để trống ô
+          </button>
+        </div>
+      </div>
+      <div class="text-[12px] text-slate-400 font-medium flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        Máy chủ POS: Sẵn sàng kết nối
+      </div>
+    </div>
+
+    <!-- KHỐI FORM ĐĂNG NHẬP CHÍNH (CĂN GIỮA, RỘNG 440PX, NHIỀU KHOẢNG TRẮNG THOÁNG ĐÃNG) -->
+    <div class="w-full max-w-[440px] mx-auto my-auto bg-white p-9 rounded-2xl border border-[#E2E8F0] shadow-sm">
+      
+      <!-- 1. Tiêu đề "Đăng nhập" & dòng phụ -->
+      <div class="mb-7">
+        <h2 class="text-[26px] font-bold text-[#0F172A] tracking-tight leading-tight">Đăng nhập</h2>
+        <p class="text-[13px] text-[#64748B] mt-1.5">Chào mừng quay lại, vui lòng đăng nhập để tiếp tục</p>
+      </div>
+
+      <!-- KHU VỰC THÔNG BÁO TRẠNG THÁI (HIỂN THỊ PHÍA TRÊN NÚT / FORM THEO YÊU CẦU) -->
+      
+      <!-- Trạng thái 1: Sai thông tin (thông báo đỏ nhạt phía trên nút) -->
+      <div id="alert-wrong-cred" class="hidden mb-5 p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-[13px] flex items-center gap-2.5">
+        <svg class="w-4 h-4 text-red-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>Tên đăng nhập hoặc mật khẩu không đúng</span>
+      </div>
+
+      <!-- Trạng thái 2: Tài khoản bị khóa (thông báo cam) -->
+      <div id="alert-locked" class="hidden mb-5 p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[13px] flex items-start gap-2.5">
+        <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span class="leading-snug">Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên</span>
+      </div>
+
+      <!-- Trạng thái 3: Mất kết nối máy chủ (thông báo xám kèm nút nhỏ "Thử lại") -->
+      <div id="alert-network-err" class="hidden mb-5 p-3.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-800 text-[13px] flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+            <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+          </svg>
+          <span>Không thể kết nối đến máy chủ</span>
+        </div>
+        <button type="button" onclick="setState('normal')" class="px-2.5 py-1 text-[11px] font-semibold bg-white border border-slate-300 rounded hover:bg-slate-50 text-slate-700 shadow-2xs whitespace-nowrap">
+          Thử lại
+        </button>
+      </div>
+
+      <!-- FORM NHẬP LIỆU CHÍNH -->
+      <form id="login-form" onsubmit="event.preventDefault();" class="space-y-4">
+        
+        <!-- 2. Ô Tên đăng nhập có icon người dùng -->
+        <div>
+          <label class="block text-[13px] font-medium text-[#1E293B] mb-1.5" for="username-input">
+            Tên đăng nhập
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#64748B]">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            <input type="text" id="username-input" value="admin.techstore" placeholder="Nhập tên đăng nhập hoặc mã nhân viên" class="w-full pl-10 pr-4 py-2.5 text-[13px] bg-[#FFFFFF] border border-[#E2E8F0] rounded-lg text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0066FF]/20 focus:border-[#0066FF] transition-all">
+          </div>
+          <!-- Dòng lỗi để trống ô Tên đăng nhập -->
+          <p id="error-username" class="hidden text-[12px] text-red-600 mt-1.5 flex items-center gap-1 font-medium">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            Vui lòng nhập tên đăng nhập
+          </p>
+        </div>
+
+        <!-- 3. Ô Mật khẩu có icon ổ khóa và nút hiện/ẩn mật khẩu -->
+        <div>
+          <label class="block text-[13px] font-medium text-[#1E293B] mb-1.5" for="password-input">
+            Mật khẩu
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#64748B]">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </span>
+            <input type="password" id="password-input" value="••••••••••••" placeholder="Nhập mật khẩu của bạn" class="w-full pl-10 pr-11 py-2.5 text-[13px] bg-[#FFFFFF] border border-[#E2E8F0] rounded-lg text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0066FF]/20 focus:border-[#0066FF] transition-all">
+            <!-- Nút hiện/ẩn mật khẩu -->
+            <button type="button" id="toggle-pwd-btn" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#64748B] hover:text-[#0F172A] transition-colors" title="Hiện / Ẩn mật khẩu">
+              <svg id="eye-icon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+          <!-- Dòng lỗi để trống ô Mật khẩu -->
+          <p id="error-password" class="hidden text-[12px] text-red-600 mt-1.5 flex items-center gap-1 font-medium">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            Vui lòng nhập mật khẩu
+          </p>
+        </div>
+
+        <!-- 4. Ô tick "Ghi nhớ đăng nhập" -->
+        <div class="pt-1 pb-1.5">
+          <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+            <input type="checkbox" id="remember-checkbox" checked="" class="w-4 h-4 rounded text-[#0066FF] border-[#CBD5E1] focus:ring-[#0066FF] focus:ring-offset-0 cursor-pointer">
+            <span class="text-[13px] text-[#1E293B] font-normal">Ghi nhớ đăng nhập</span>
+          </label>
+        </div>
+
+        <!-- 5. Nút xanh dương rộng hết khối "Đăng nhập" -->
+        <div class="pt-2">
+          <button type="button" id="submit-btn" class="w-full h-11 bg-[#0066FF] hover:bg-[#0052CC] active:bg-[#0040A8] text-white font-semibold text-[13px] rounded-lg shadow-sm shadow-[#0066FF]/20 flex items-center justify-center gap-2 transition-all cursor-pointer">
+            <!-- Biểu tượng loading xoay tròn cho trạng thái Đang xử lý -->
+            <svg id="loading-spinner" class="hidden animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="btn-text">Đăng nhập</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Chân trang: Dòng chữ nhỏ xám "TechStore Management System" -->
+    <div class="w-full text-center py-2 text-[12px] text-[#64748B]">
+      TechStore Management System
+    </div>
+
+  </div>
+
+  <!-- SCRIPT ĐIỀU KHIỂN CÁC TRẠNG THÁI THEO YÊU CẦU ĐẶC TẢ -->
+  <script>
+    let isPasswordVisible = false;
+
+    function togglePassword() {
+      const pwdInput = document.getElementById('password-input');
+      const eyeIcon = document.getElementById('eye-icon');
+      isPasswordVisible = !isPasswordVisible;
+      
+      if (isPasswordVisible) {
+        pwdInput.type = 'text';
+        // Biểu tượng gạch chéo mắt (eye-off)
+        eyeIcon.innerHTML = `
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        `;
+      } else {
+        pwdInput.type = 'password';
+        // Biểu tượng con mắt thường
+        eyeIcon.innerHTML = `
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        `;
+      }
+    }
+
+    function setState(state) {
+      // 1. Reset các tab nút bấm trên cùng
+      const buttons = [
+        'btn-state-normal', 'btn-state-loading', 'btn-state-wrong-cred', 
+        'btn-state-locked', 'btn-state-network-err', 'btn-state-empty-err'
+      ];
+      buttons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.className = "px-2.5 py-1 text-[12px] font-medium rounded-md transition-all text-slate-600 hover:text-slate-900";
+        }
+      });
+      const activeBtn = document.getElementById(`btn-state-${state}`);
+      if (activeBtn) {
+        activeBtn.className = "px-2.5 py-1 text-[12px] font-medium rounded-md transition-all bg-white text-[#0066FF] shadow-sm";
+      }
+
+      // 2. Ẩn toàn bộ thông báo lỗi
+      document.getElementById('alert-wrong-cred').classList.add('hidden');
+      document.getElementById('alert-locked').classList.add('hidden');
+      document.getElementById('alert-network-err').classList.add('hidden');
+      document.getElementById('error-username').classList.add('hidden');
+      document.getElementById('error-password').classList.add('hidden');
+
+      // 3. Reset các ô input
+      const userInput = document.getElementById('username-input');
+      const passInput = document.getElementById('password-input');
+      userInput.className = "w-full pl-10 pr-4 py-2.5 text-[13px] bg-[#FFFFFF] border border-[#E2E8F0] rounded-lg text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0066FF]/20 focus:border-[#0066FF] transition-all";
+      passInput.className = "w-full pl-10 pr-11 py-2.5 text-[13px] bg-[#FFFFFF] border border-[#E2E8F0] rounded-lg text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0066FF]/20 focus:border-[#0066FF] transition-all";
+
+      // 4. Reset nút Đăng nhập
+      const submitBtn = document.getElementById('submit-btn');
+      const spinner = document.getElementById('loading-spinner');
+      const btnText = document.getElementById('btn-text');
+      
+      submitBtn.classList.remove('opacity-60', 'cursor-not-allowed', 'bg-[#0066FF]/80');
+      submitBtn.classList.add('bg-[#0066FF]', 'hover:bg-[#0052CC]', 'cursor-pointer');
+      spinner.classList.add('hidden');
+      btnText.textContent = "Đăng nhập";
+
+      // 5. Kích hoạt trạng thái tương ứng
+      if (state === 'normal') {
+        userInput.value = "admin.techstore";
+        passInput.value = "12345678";
+      } else if (state === 'loading') {
+        // Nút hiện vòng xoay "Đang đăng nhập..." và bị làm mờ
+        submitBtn.classList.add('opacity-60', 'cursor-not-allowed', 'bg-[#0066FF]/80');
+        submitBtn.classList.remove('hover:bg-[#0052CC]', 'cursor-pointer');
+        spinner.classList.remove('hidden');
+        btnText.textContent = "Đang đăng nhập...";
+      } else if (state === 'wrong-cred') {
+        // Thông báo đỏ nhạt phía trên nút: "Tên đăng nhập hoặc mật khẩu không đúng"
+        document.getElementById('alert-wrong-cred').classList.remove('hidden');
+      } else if (state === 'locked') {
+        // Thông báo cam: "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên"
+        document.getElementById('alert-locked').classList.remove('hidden');
+      } else if (state === 'network-err') {
+        // Thông báo xám kèm nút nhỏ "Thử lại": "Không thể kết nối đến máy chủ"
+        document.getElementById('alert-network-err').classList.remove('hidden');
+      } else if (state === 'empty-err') {
+        // Ô nhập để trống: viền đỏ và dòng lỗi nhỏ bên dưới "Vui lòng nhập tên đăng nhập" hoặc "Vui lòng nhập mật khẩu"
+        userInput.value = "";
+        passInput.value = "";
+        userInput.className = "w-full pl-10 pr-4 py-2.5 text-[13px] bg-[#FFFFFF] border border-red-500 rounded-lg text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all";
+        passInput.className = "w-full pl-10 pr-11 py-2.5 text-[13px] bg-[#FFFFFF] border border-red-500 rounded-lg text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all";
+        document.getElementById('error-username').classList.remove('hidden');
+        document.getElementById('error-password').classList.remove('hidden');
+      }
+    }
+  </script>
+
+
+</body></html>

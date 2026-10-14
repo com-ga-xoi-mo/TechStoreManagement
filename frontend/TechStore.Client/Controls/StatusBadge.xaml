@@ -1,0 +1,37 @@
+<UserControl x:Class="TechStore.Client.Controls.StatusBadge" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" IsTabStop="False">
+<Grid>
+<VisualStateManager.VisualStateGroups><VisualStateGroup x:Name="ToneStates">
+<VisualState x:Name="Neutral"><VisualState.Setters>
+<Setter Target="BadgeBorder.Background" Value="{ThemeResource TechStoreNeutralFillBrush}" />
+<Setter Target="BadgeBorder.BorderBrush" Value="{ThemeResource TechStoreNeutralStrokeBrush}" />
+<Setter Target="BadgeText.Foreground" Value="{ThemeResource TechStoreNeutralTextBrush}" />
+</VisualState.Setters></VisualState>
+<VisualState x:Name="Info"><VisualState.Setters>
+<Setter Target="BadgeBorder.Background" Value="{ThemeResource TechStoreInfoFillBrush}" />
+<Setter Target="BadgeBorder.BorderBrush" Value="{ThemeResource TechStoreInfoStrokeBrush}" />
+<Setter Target="BadgeText.Foreground" Value="{ThemeResource TechStoreInfoTextBrush}" />
+</VisualState.Setters></VisualState>
+<VisualState x:Name="Success"><VisualState.Setters>
+<Setter Target="BadgeBorder.Background" Value="{ThemeResource TechStoreSuccessFillBrush}" />
+<Setter Target="BadgeBorder.BorderBrush" Value="{ThemeResource TechStoreSuccessStrokeBrush}" />
+<Setter Target="BadgeText.Foreground" Value="{ThemeResource TechStoreSuccessTextBrush}" />
+</VisualState.Setters></VisualState>
+<VisualState x:Name="Warning"><VisualState.Setters>
+<Setter Target="BadgeBorder.Background" Value="{ThemeResource TechStoreWarningFillBrush}" />
+<Setter Target="BadgeBorder.BorderBrush" Value="{ThemeResource TechStoreWarningStrokeBrush}" />
+<Setter Target="BadgeText.Foreground" Value="{ThemeResource TechStoreWarningTextBrush}" />
+</VisualState.Setters></VisualState>
+<VisualState x:Name="Danger"><VisualState.Setters>
+<Setter Target="BadgeBorder.Background" Value="{ThemeResource TechStoreDangerFillBrush}" />
+<Setter Target="BadgeBorder.BorderBrush" Value="{ThemeResource TechStoreDangerStrokeBrush}" />
+<Setter Target="BadgeText.Foreground" Value="{ThemeResource TechStoreDangerTextBrush}" />
+</VisualState.Setters></VisualState>
+<VisualState x:Name="Accent"><VisualState.Setters>
+<Setter Target="BadgeBorder.Background" Value="{ThemeResource TechStoreAccentFillBrush}" />
+<Setter Target="BadgeBorder.BorderBrush" Value="{ThemeResource TechStoreAccentStrokeBrush}" />
+<Setter Target="BadgeText.Foreground" Value="{ThemeResource TechStoreAccentTextBrush}" />
+</VisualState.Setters></VisualState>
+</VisualStateGroup></VisualStateManager.VisualStateGroups>
+<Border x:Name="BadgeBorder" CornerRadius="{StaticResource TechStoreBadgeRadius}" Padding="{StaticResource TechStoreBadgePadding}" BorderThickness="1" HorizontalAlignment="Left" Background="{ThemeResource TechStoreNeutralFillBrush}" BorderBrush="{ThemeResource TechStoreNeutralStrokeBrush}">
+<TextBlock x:Name="BadgeText" Text="{x:Bind Label, Mode=OneWay}" Style="{StaticResource TechStoreCaptionTextStyle}" />
+</Border></Grid></UserControl>

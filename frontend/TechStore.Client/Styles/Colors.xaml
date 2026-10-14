@@ -1,0 +1,100 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary.ThemeDictionaries>
+<ResourceDictionary x:Key="Light">
+<SolidColorBrush x:Key="TechStoreCanvasBrush" Color="#F8FAFC" />
+<SolidColorBrush x:Key="TechStoreSurfaceBrush" Color="#FFFFFF" />
+<SolidColorBrush x:Key="TechStoreSubtleBrush" Color="#F1F5F9" />
+<SolidColorBrush x:Key="TechStoreTextBrush" Color="#0F172A" />
+<SolidColorBrush x:Key="TechStoreSecondaryTextBrush" Color="#475569" />
+<SolidColorBrush x:Key="TechStoreStrokeBrush" Color="#E2E8F0" />
+<SolidColorBrush x:Key="TechStoreInputStrokeBrush" Color="#64748B" />
+<SolidColorBrush x:Key="TechStorePrimaryBrush" Color="#2563EB" />
+<SolidColorBrush x:Key="TechStorePrimaryHoverBrush" Color="#1D4ED8" />
+<SolidColorBrush x:Key="TechStorePrimaryPressedBrush" Color="#1E40AF" />
+<SolidColorBrush x:Key="TechStoreOnPrimaryBrush" Color="#FFFFFF" />
+<SolidColorBrush x:Key="TechStoreFocusBrush" Color="#2563EB" />
+<SolidColorBrush x:Key="TechStoreNeutralTextBrush" Color="#475569" />
+<SolidColorBrush x:Key="TechStoreNeutralFillBrush" Color="#F1F5F9" />
+<SolidColorBrush x:Key="TechStoreNeutralStrokeBrush" Color="#CBD5E1" />
+<SolidColorBrush x:Key="TechStoreInfoTextBrush" Color="#1D4ED8" />
+<SolidColorBrush x:Key="TechStoreInfoFillBrush" Color="#EFF6FF" />
+<SolidColorBrush x:Key="TechStoreInfoStrokeBrush" Color="#BFDBFE" />
+<SolidColorBrush x:Key="TechStoreSuccessTextBrush" Color="#047857" />
+<SolidColorBrush x:Key="TechStoreSuccessFillBrush" Color="#ECFDF5" />
+<SolidColorBrush x:Key="TechStoreSuccessStrokeBrush" Color="#A7F3D0" />
+<SolidColorBrush x:Key="TechStoreWarningTextBrush" Color="#B45309" />
+<SolidColorBrush x:Key="TechStoreWarningFillBrush" Color="#FFFBEB" />
+<SolidColorBrush x:Key="TechStoreWarningStrokeBrush" Color="#FDE68A" />
+<SolidColorBrush x:Key="TechStoreDangerTextBrush" Color="#B91C1C" />
+<SolidColorBrush x:Key="TechStoreDangerFillBrush" Color="#FEF2F2" />
+<SolidColorBrush x:Key="TechStoreDangerStrokeBrush" Color="#FECACA" />
+<SolidColorBrush x:Key="TechStoreAccentTextBrush" Color="#6D28D9" />
+<SolidColorBrush x:Key="TechStoreAccentFillBrush" Color="#F5F3FF" />
+<SolidColorBrush x:Key="TechStoreAccentStrokeBrush" Color="#DDD6FE" />
+</ResourceDictionary>
+<ResourceDictionary x:Key="Dark">
+<SolidColorBrush x:Key="TechStoreCanvasBrush" Color="#0F172A" />
+<SolidColorBrush x:Key="TechStoreSurfaceBrush" Color="#1E293B" />
+<SolidColorBrush x:Key="TechStoreSubtleBrush" Color="#334155" />
+<SolidColorBrush x:Key="TechStoreTextBrush" Color="#F8FAFC" />
+<SolidColorBrush x:Key="TechStoreSecondaryTextBrush" Color="#CBD5E1" />
+<SolidColorBrush x:Key="TechStoreStrokeBrush" Color="#475569" />
+<SolidColorBrush x:Key="TechStoreInputStrokeBrush" Color="#94A3B8" />
+<SolidColorBrush x:Key="TechStorePrimaryBrush" Color="#2563EB" />
+<SolidColorBrush x:Key="TechStorePrimaryHoverBrush" Color="#1D4ED8" />
+<SolidColorBrush x:Key="TechStorePrimaryPressedBrush" Color="#1E40AF" />
+<SolidColorBrush x:Key="TechStoreOnPrimaryBrush" Color="#FFFFFF" />
+<SolidColorBrush x:Key="TechStoreFocusBrush" Color="#93C5FD" />
+<SolidColorBrush x:Key="TechStoreNeutralTextBrush" Color="#E2E8F0" />
+<SolidColorBrush x:Key="TechStoreNeutralFillBrush" Color="#334155" />
+<SolidColorBrush x:Key="TechStoreNeutralStrokeBrush" Color="#64748B" />
+<SolidColorBrush x:Key="TechStoreInfoTextBrush" Color="#BFDBFE" />
+<SolidColorBrush x:Key="TechStoreInfoFillBrush" Color="#172554" />
+<SolidColorBrush x:Key="TechStoreInfoStrokeBrush" Color="#3B82F6" />
+<SolidColorBrush x:Key="TechStoreSuccessTextBrush" Color="#6EE7B7" />
+<SolidColorBrush x:Key="TechStoreSuccessFillBrush" Color="#064E3B" />
+<SolidColorBrush x:Key="TechStoreSuccessStrokeBrush" Color="#10B981" />
+<SolidColorBrush x:Key="TechStoreWarningTextBrush" Color="#FCD34D" />
+<SolidColorBrush x:Key="TechStoreWarningFillBrush" Color="#451A03" />
+<SolidColorBrush x:Key="TechStoreWarningStrokeBrush" Color="#D97706" />
+<SolidColorBrush x:Key="TechStoreDangerTextBrush" Color="#FCA5A5" />
+<SolidColorBrush x:Key="TechStoreDangerFillBrush" Color="#450A0A" />
+<SolidColorBrush x:Key="TechStoreDangerStrokeBrush" Color="#EF4444" />
+<SolidColorBrush x:Key="TechStoreAccentTextBrush" Color="#DDD6FE" />
+<SolidColorBrush x:Key="TechStoreAccentFillBrush" Color="#2E1065" />
+<SolidColorBrush x:Key="TechStoreAccentStrokeBrush" Color="#8B5CF6" />
+</ResourceDictionary>
+<ResourceDictionary x:Key="HighContrast">
+<StaticResource x:Key="TechStoreCanvasBrush" ResourceKey="SystemColorWindowColorBrush" />
+<StaticResource x:Key="TechStoreSurfaceBrush" ResourceKey="SystemColorWindowColorBrush" />
+<StaticResource x:Key="TechStoreSubtleBrush" ResourceKey="SystemColorWindowColorBrush" />
+<StaticResource x:Key="TechStoreTextBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreSecondaryTextBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreStrokeBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreInputStrokeBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStorePrimaryBrush" ResourceKey="SystemColorHighlightColorBrush" />
+<StaticResource x:Key="TechStorePrimaryHoverBrush" ResourceKey="SystemColorHighlightColorBrush" />
+<StaticResource x:Key="TechStorePrimaryPressedBrush" ResourceKey="SystemColorHighlightColorBrush" />
+<StaticResource x:Key="TechStoreOnPrimaryBrush" ResourceKey="SystemColorHighlightTextColorBrush" />
+<StaticResource x:Key="TechStoreFocusBrush" ResourceKey="SystemColorHighlightColorBrush" />
+<StaticResource x:Key="TechStoreNeutralTextBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreNeutralFillBrush" ResourceKey="SystemColorWindowColorBrush" />
+<StaticResource x:Key="TechStoreNeutralStrokeBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreInfoTextBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreInfoFillBrush" ResourceKey="SystemColorWindowColorBrush" />
+<StaticResource x:Key="TechStoreInfoStrokeBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreSuccessTextBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreSuccessFillBrush" ResourceKey="SystemColorWindowColorBrush" />
+<StaticResource x:Key="TechStoreSuccessStrokeBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreWarningTextBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreWarningFillBrush" ResourceKey="SystemColorWindowColorBrush" />
+<StaticResource x:Key="TechStoreWarningStrokeBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreDangerTextBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreDangerFillBrush" ResourceKey="SystemColorWindowColorBrush" />
+<StaticResource x:Key="TechStoreDangerStrokeBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreAccentTextBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+<StaticResource x:Key="TechStoreAccentFillBrush" ResourceKey="SystemColorWindowColorBrush" />
+<StaticResource x:Key="TechStoreAccentStrokeBrush" ResourceKey="SystemColorWindowTextColorBrush" />
+</ResourceDictionary>
+</ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

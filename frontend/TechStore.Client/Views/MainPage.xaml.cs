@@ -1,4 +1,4 @@
-namespace TechStore.Client;
+namespace TechStore.Client.Views;
 
 public sealed partial class MainPage : Page
 {

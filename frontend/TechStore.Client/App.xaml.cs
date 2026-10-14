@@ -1,11 +1,22 @@
 using System;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Uno.Resizetizer;
+using TechStore.Client.Services.Api;
+using TechStore.Client.Views.Development;
+using TechStore.Client.Services.Development;
+using TechStore.Client.Services.Window;
+using TechStore.Client.Views.Shell;
 
 namespace TechStore.Client;
 
 public partial class App : Application
 {
+    private static ILoggerFactory? _loggerFactory;
+    private ServiceProviderLifetime? _applicationServices;
+
     /// <summary>
     /// Initializes the singleton application object. This is the first line of authored code
     /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -13,37 +24,48 @@ public partial class App : Application
     public App()
     {
         this.InitializeComponent();
+        InitializeLogging();
     }
 
     protected Window? MainWindow { get; private set; }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        MainWindow = new Window();
-#if DEBUG
-        MainWindow.UseStudio();
-#endif
-
-
-        // Do not repeat app initialization when the Window already has content,
-        // just ensure that the window is active
-        if (MainWindow.Content is not Frame rootFrame)
+        try
         {
-            // Create a Frame to act as the navigation context and navigate to the first page
-            rootFrame = new Frame();
-
-            // Place the frame in the current Window
-            MainWindow.Content = rootFrame;
-
-            rootFrame.NavigationFailed += OnNavigationFailed;
+            _applicationServices ??= new ServiceProviderLifetime(CreateServiceProvider());
+            _applicationServices.Services.GetRequiredService<ApiClientOptions>().Validate();
+        }
+        catch (Exception exception)
+        {
+            _applicationServices?.Dispose();
+            _applicationServices = null;
+            if (_loggerFactory is not null)
+            {
+                FrontendStartupDiagnostics.LogConfigurationFailure(
+                    _loggerFactory.CreateLogger<App>(),
+                    exception);
+            }
+            Console.Error.WriteLine(FrontendStartupDiagnostics.CreateConfigurationFailureMessage(exception));
+            throw;
         }
 
-        if (rootFrame.Content == null)
+        MainWindow = new Window();
+        MainWindow.Closed += OnMainWindowClosed;
+
+        if (MainWindow.Content is null)
         {
-            // When the navigation stack isn't restored navigate to the first page,
-            // configuring the new page by passing required information as a navigation
-            // parameter
-            rootFrame.Navigate(typeof(MainPage), args.Arguments);
+            if (_applicationServices.Services.GetRequiredService<GalleryOptions>().Enabled)
+                MainWindow.Content = _applicationServices.Services.GetRequiredService<ComponentGalleryPage>();
+            else
+#if DEBUG
+            {
+                _applicationServices.Services.GetRequiredService<ShellRoutePageFactory>().VerifyAllRoutesResolve();
+                MainWindow.Content = _applicationServices.Services.GetRequiredService<ShellPage>();
+            }
+#else
+                MainWindow.Content = _applicationServices.Services.GetRequiredService<ShellPage>();
+#endif
         }
 
         MainWindow.SetWindowIcon();
@@ -51,14 +73,49 @@ public partial class App : Application
         MainWindow.Activate();
     }
 
-    /// <summary>
-    /// Invoked when Navigation to a certain page fails
-    /// </summary>
-    /// <param name="sender">The Frame which failed navigation</param>
-    /// <param name="e">Details about the navigation failure</param>
-    void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
+    private static ServiceProvider CreateServiceProvider()
     {
-        throw new InvalidOperationException($"Failed to load {e.SourcePageType.FullName}: {e.Exception}");
+        var configuration = new ConfigurationBuilder()
+            .AddEnvironmentVariables()
+            .Build();
+        var services = new ServiceCollection();
+        services.AddFrontendFoundation(configuration, loggerFactory: _loggerFactory);
+        services.AddFrontendUi(configuration);
+        return services.BuildServiceProvider(new ServiceProviderOptions
+        {
+#if DEBUG
+            ValidateOnBuild = true,
+            ValidateScopes = true
+#else
+            ValidateOnBuild = false,
+            ValidateScopes = false
+#endif
+        });
+    }
+
+    private async void OnMainWindowClosed(object sender, WindowEventArgs args)
+    {
+        var applicationServices = Interlocked.Exchange(ref _applicationServices, null);
+        if (applicationServices?.Services.GetService<IWindowLifetime>() is { } windowLifetime)
+            windowLifetime.Close();
+        if (MainWindow?.Content is ShellPage shellPage)
+            shellPage.CloseShell();
+
+        try
+        {
+            if (applicationServices is not null)
+                await applicationServices.DisposeAsync();
+        }
+        catch (Exception exception)
+        {
+            _loggerFactory?.CreateLogger<App>().LogError(exception, "Failed to finish frontend shutdown cleanly.");
+        }
+        finally
+        {
+            var loggerFactory = Interlocked.Exchange(ref _loggerFactory, null);
+            global::Uno.Extensions.LogExtensionPoint.AmbientLoggerFactory = NullLoggerFactory.Instance;
+            loggerFactory?.Dispose();
+        }
     }
 
     /// <summary>
@@ -66,7 +123,11 @@ public partial class App : Application
     /// </summary>
     public static void InitializeLogging()
     {
-#if DEBUG
+        if (_loggerFactory is not null)
+        {
+            return;
+        }
+
         // Logging is disabled by default for release builds, as it incurs a significant
         // initialization cost from Microsoft.Extensions.Logging setup. If startup performance
         // is a concern for your application, keep this disabled. If you're running on the web or
@@ -74,8 +135,9 @@ public partial class App : Application
         //
         // For more performance documentation: https://platform.uno/docs/articles/Uno-UI-Performance.html
 
-        var factory = LoggerFactory.Create(builder =>
+        _loggerFactory = LoggerFactory.Create(builder =>
         {
+#if DEBUG
 #if __WASM__
             builder.AddProvider(new global::Uno.Extensions.Logging.WebAssembly.WebAssemblyConsoleLoggerProvider());
 #elif __IOS__
@@ -86,6 +148,7 @@ public partial class App : Application
 #else
             builder.AddConsole();
 #endif
+#endif
 
             // Exclude logs below this level
             builder.SetMinimumLevel(LogLevel.Information);
@@ -94,6 +157,7 @@ public partial class App : Application
             builder.AddFilter("Uno", LogLevel.Warning);
             builder.AddFilter("Windows", LogLevel.Warning);
             builder.AddFilter("Microsoft", LogLevel.Warning);
+            builder.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
 
             // Generic Xaml events
             // builder.AddFilter("Microsoft.UI.Xaml", LogLevel.Debug );
@@ -123,11 +187,10 @@ public partial class App : Application
             // builder.AddFilter("Uno.Foundation.WebAssemblyRuntime", LogLevel.Debug );
         });
 
-        global::Uno.Extensions.LogExtensionPoint.AmbientLoggerFactory = factory;
+        global::Uno.Extensions.LogExtensionPoint.AmbientLoggerFactory = _loggerFactory;
 
 #if HAS_UNO
         global::Uno.UI.Adapter.Microsoft.Extensions.Logging.LoggingAdapter.Initialize();
-#endif
 #endif
     }
 }

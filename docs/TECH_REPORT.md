@@ -36,7 +36,7 @@
 
 | Thành phần | Công nghệ (.NET 10) | Điểm cốt lõi |
 | :--- | :--- | :--- |
-| **Client** | **Uno Platform** (.NET 10) | • Chạy native trên cả Windows (WinUI 3) và macOS (Skia engine).<br>• Dùng chung 100% code XAML và C#.<br>• MVVM chuẩn với `CommunityToolkit.Mvvm`. |
+| **Client** | **Uno Platform** (.NET 10) | • Chạy native trên cả Windows (WinUI 3) và macOS (Skia engine).<br>• Giao diện xây dựng 100% bằng **C# Markup (`Uno.Extensions.Markup`)**, compile-time type-safety, không dùng file XAML.<br>• MVVM chuẩn với `CommunityToolkit.Mvvm` và Client Repositories. |
 | **Backend** | **ASP.NET Core Web API** (.NET 10) | • RESTful API chuẩn, hiệu năng cao, Swagger/OpenAPI tự động sinh tài liệu. |
 | **Database** | **PostgreSQL 16+** | • Chạy native hoặc Docker trên cả Mac và Windows.<br>• Schema chuẩn hóa 21 bảng, 10 Enums, 100% FK indexed, composite FKs `(variant_id, product_id)`.<br>• Cột `specs JSONB` đánh chỉ mục GIN (`jsonb_path_ops`).<br>• PostgreSQL 16 `UNIQUE NULLS NOT DISTINCT` và số dư kho khả dụng.<br>• Sổ cái biến động kho bất biến `inventory_movements`, Transaction & Row Locking (`FOR UPDATE`) chống bán âm kho. |
 | **ORM** | **EF Core 10** (`Npgsql`) | • Code-First Migrations, LINQ an toàn, cấu hình Fluent API assembly scanning. |

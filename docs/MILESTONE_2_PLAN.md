@@ -215,53 +215,59 @@ graph TD
 
 ---
 
-### SPRINT 2: Chuẩn hóa UI & Cả 6 Kỹ sư Phát triển Full-Stack Feature Slices
+### SPRINT 2: Chuẩn hóa UI với C# Markup, Convert UI Cũ & Cả 6 Kỹ sư Phát triển Full-Stack Feature Slices
 *Thời lượng dự kiến:* Sprint trọng tâm.  
-*Điều kiện tiên quyết chuyển Sprint:* UI/UX Prototype Stitch đã được chuyển hóa thành XAML styles/controls; Base API của các module đã pass kiểm tra cục bộ; Swagger API sẵn sàng.  
-*Phương pháp:* Cả 6 kỹ sư đảm nhận trọn vẹn 1 Feature theo chiều dọc (Full-Stack: Backend Service/Controller + Frontend View/ViewModel/ApiClient).
+*Quyết định Kỹ thuật Chiến lược:* Nhóm thống nhất chuyển đổi 100% tầng giao diện người dùng (Client Views, Dialogs, Controls) sang **C# Markup (`Uno.Extensions.Markup`)**, thay thế hoàn toàn XAML để đạt compile-time type-safety và dễ refactor. Kiến trúc **MVVM + Client Repository** được giữ nguyên hoàn toàn.  
+*Nhiệm vụ Chuyển đổi Đồng bộ (XAML -> C# Markup):* Trong Sprint 2, cả 6 kỹ sư vừa phát triển tính năng mới vừa đảm nhận trách nhiệm **convert toàn bộ các View/Dialog/Control XAML cũ thuộc phân hệ của mình sang C# Markup và xóa bỏ hoàn toàn các file `.xaml` / `.xaml.cs` cũ tương ứng** nhằm làm sạch codebase và đảm bảo 100% tính đồng bộ.  
+*Điều kiện tiên quyết chuyển Sprint:* Kích hoạt package `Uno.Extensions.Markup` trong client project; Design Tokens và Theme/Styles được dựng dưới dạng C# classes (`AppColors`, `AppTypography`); Base API của các module đã pass kiểm tra cục bộ; Swagger API sẵn sàng.  
+*Phương pháp:* Cả 6 kỹ sư đảm nhận trọn vẹn 1 Feature theo chiều dọc (Full-Stack: Backend Service/Controller + Frontend C# Markup View/ViewModel/ApiClient).
 
-#### 1. Dev 1 (Lead - Full-Stack Feature 1: Quản trị Hệ thống, Tài khoản & Shell)
+#### 1. Dev 1 (Lead - Full-Stack Feature 1: Quản trị Hệ thống, Tài khoản & Convert Shell/Settings C# Markup)
 - **Backend:** Hoàn thiện toàn bộ các Use Cases: `UC-AUTH-01` (Đăng nhập), `UC-AUTH-02` (Profile), `UC-AUTH-03` (Đăng xuất), `UC-STORE-01` (Xem cấu hình shop), `UC-STORE-02` (Cập nhật cấu hình shop).
-- **Frontend:**
-  - Xây dựng màn hình đăng nhập kết nối nghiệp vụ xác thực Admin.
-  - Xây dựng màn hình cài đặt xem và sửa thông tin cửa hàng, hiển thị thông tin phiên bản hệ thống.
-  - Hoàn thiện khung điều hướng chính: Active menu highlighting, hiển thị thông tin Admin đăng nhập, nút đăng xuất.
+- **Frontend (C# Markup Foundation, Convert UI Cũ & Screens Mới):**
+  - Cùng Dev 6 cấu hình package Uno C# Markup trong `frontend/TechStore.Client/` và `Directory.Packages.props`.
+  - **Convert UI Cũ:** Chuyển đổi `ShellPage.xaml` / `ShellPage.xaml.cs` cũ sang `ShellPage.cs` thuần C# Markup Fluent API (`NavigationView`, header, footer, active menu highlighting) và xóa file XAML cũ.
+  - **Convert UI Cũ:** Chuyển đổi `SettingsPage.xaml` / `SettingsPage.xaml.cs` cũ sang `SettingsPage.cs` C# Markup: xem/sửa thông tin cửa hàng, hiển thị phiên bản hệ thống, chuyển đổi theme.
+  - Xây dựng màn hình đăng nhập mới `LoginPage.cs` bằng C# Markup kết nối nghiệp vụ xác thực Admin.
 
-#### 2. Dev 2 (Full-Stack Feature 2: Quản lý Sản phẩm - Catalog)
+#### 2. Dev 2 (Full-Stack Feature 2: Quản lý Sản phẩm - Catalog & Convert Catalog Pages C# Markup)
 - **Backend:** Hoàn thiện toàn bộ các Use Cases: `UC-PROD-01` (Nâng cao bộ lọc), `UC-PROD-02` (Chi tiết), `UC-PROD-03` (Thêm mới), `UC-PROD-04` (Cập nhật sản phẩm & specs), `UC-PROD-05` (Ngừng kinh doanh / xóa sản phẩm).
-- **Frontend:**
+- **Frontend (Convert UI Cũ & C# Markup Screens/Dialogs):**
   - Xây dựng API Client kết nối module Sản phẩm.
-  - Xây dựng màn hình danh sách sản phẩm: Phân trang, tìm kiếm realtime theo tên/SKU/hãng, lọc danh mục, nút thêm/sửa/xóa.
-  - Xây dựng hộp thoại chi tiết sản phẩm: Form nhập dữ liệu và bộ soạn thảo thông số kỹ thuật phần cứng động JSONB.
+  - **Convert UI Cũ:** Chuyển đổi `ProductListPage.xaml` / `ProductListPage.xaml.cs` cũ sang `ProductListPage.cs` thuần C# Markup: phân trang, tìm kiếm realtime theo tên/SKU/hãng, lọc danh mục, nút thêm/sửa/xóa và xóa các file XAML cũ.
+  - **Convert UI Cũ:** Chuyển đổi `ProductDetailPage.xaml` / `ProductDetailPage.xaml.cs` cũ sang `ProductDetailPage.cs` và hộp thoại `ProductDetailDialog.cs` bằng C# Markup: form nhập dữ liệu sản phẩm và bộ soạn thảo thông số kỹ thuật phần cứng động JSONB.
 
-#### 3. Dev 3 (Full-Stack Feature 3: Quản lý Danh mục & Tồn kho Ban đầu - Inventory)
+#### 3. Dev 3 (Full-Stack Feature 3: Quản lý Danh mục & Tồn kho Ban đầu - Convert Inventory C# Markup)
 - **Backend:** Hoàn thiện toàn bộ các Use Cases: `UC-CAT-01` (Cây danh mục), `UC-CAT-02` (Thêm danh mục), `UC-CAT-03` (Cập nhật danh mục), `UC-CAT-04` (Xóa danh mục), `UC-INV-01` (Bảng tồn kho), `UC-INV-02` (Số dư ban đầu), `UC-IMEI-01` (Tra cứu IMEI), `UC-IMEI-02` (Nạp IMEI ban đầu).
-- **Frontend:**
+- **Frontend (Convert UI Cũ & C# Markup Screens/Dialogs):**
   - Xây dựng API Client kết nối module Danh mục & Tồn kho.
-  - Xây dựng màn hình danh mục: Hiển thị phân cấp cây danh mục, hộp thoại thêm/sửa danh mục.
-  - Xây dựng màn hình tồn kho: Bảng tổng hợp tồn kho (thực tế, giữ chỗ, khả dụng), hộp thoại khởi tạo số dư ban đầu, hộp thoại quản lý và lọc danh sách Serial/IMEI từng máy.
+  - **Convert UI Cũ:** Chuyển đổi `InventoryPage.xaml` / `InventoryPage.xaml.cs` cũ sang `InventoryPage.cs` thuần C# Markup: bảng tổng hợp tồn kho (thực tế, giữ chỗ, khả dụng), dialog khởi tạo số dư ban đầu, dialog quản lý và lọc danh sách Serial/IMEI từng thiết bị; xóa file XAML cũ.
+  - Xây dựng màn hình danh mục mới `CategoryListPage.cs` bằng C# Markup: hiển thị phân cấp cây danh mục, dialog thêm/sửa danh mục.
 
-#### 4. Dev 4 (Full-Stack Feature 4: Tạo & Quản lý Đơn hàng - Orders)
+#### 4. Dev 4 (Full-Stack Feature 4: Tạo & Quản lý Đơn hàng - Convert OrderList & C# Markup POS)
 - **Backend:** Hoàn thiện toàn bộ các Use Cases: `UC-ORD-01` (Lập đơn POS), `UC-ORD-02` (Danh sách đơn), `UC-ORD-03` (Chi tiết đơn), `UC-ORD-04` (Chuyển trạng thái đơn và đồng bộ trạng thái IMEI/kho).
-- **Frontend:**
+- **Frontend (Convert UI Cũ & C# Markup Screens/Dialogs):**
   - Xây dựng API Client kết nối module Đơn hàng.
-  - Xây dựng màn hình lập đơn hàng tại quầy: Chọn khách hàng, chọn sản phẩm, chọn IMEI tồn kho, tính tổng tiền tự động, chọn hình thức thanh toán.
-  - Xây dựng màn hình danh sách đơn hàng: Bộ lọc trạng thái đơn, badge màu trạng thái.
-  - Xây dựng hộp thoại chi tiết đơn hàng: Xem danh sách món và mã Serial/IMEI của từng máy đã bán.
+  - **Convert UI Cũ:** Chuyển đổi `OrderListPage.xaml` / `OrderListPage.xaml.cs` cũ sang `OrderListPage.cs` thuần C# Markup: bộ lọc trạng thái đơn, badge màu trạng thái (`StatusBadge`) và xóa file XAML cũ.
+  - Xây dựng màn hình lập đơn hàng tại quầy mới `OrderCreatePage.cs` bằng C# Markup: form chọn khách hàng, chọn sản phẩm, chọn IMEI tồn kho, tính tổng tiền tự động realtime, chọn hình thức thanh toán.
+  - Xây dựng hộp thoại chi tiết đơn hàng `OrderDetailDialog.cs` bằng C# Markup: xem danh sách sản phẩm và mã Serial/IMEI của từng máy đã bán.
 
-#### 5. Dev 5 (Full-Stack Feature 5: Quản lý Khách hàng - Customers)
+#### 5. Dev 5 (Full-Stack Feature 5: Quản lý Khách hàng - Convert CustomerList & C# Markup Dialogs)
 - **Backend:** Triển khai toàn bộ các Use Cases: `UC-CUST-01` (Tìm kiếm & xem danh sách), `UC-CUST-02` (Chi tiết & tích lũy), `UC-CUST-03` (Thêm mới khách), `UC-CUST-04` (Cập nhật khách), `UC-CUST-05` (Lịch sử đơn hàng), `UC-CUST-06` (Vô hiệu hóa / xóa khách).
-- **Frontend:**
+- **Frontend (Convert UI Cũ, C# Markup Screens & Design Alignment):**
   - Xây dựng API Client kết nối module Khách hàng.
-  - Xây dựng màn hình danh sách khách hàng: Tìm kiếm nhanh theo SĐT hoặc Tên, lọc hạng thành viên, nút thêm khách mới.
-  - Xây dựng hộp thoại chi tiết khách hàng: Xem/sửa thông tin cá nhân và tab lịch sử các đơn hàng đã mua.
-  - Chuẩn hóa toàn bộ giao diện khách hàng bám sát thiết kế Google Stitch.
+  - **Convert UI Cũ:** Chuyển đổi `CustomerListPage.xaml` / `CustomerListPage.xaml.cs` cũ sang `CustomerListPage.cs` thuần C# Markup: tìm kiếm nhanh theo SĐT hoặc Tên, lọc hạng thành viên, nút thêm khách mới và xóa file XAML cũ.
+  - Xây dựng hộp thoại chi tiết khách hàng mới `CustomerDetailDialog.cs` bằng C# Markup: xem/sửa thông tin cá nhân và tab lịch sử các đơn hàng đã mua.
+  - Phối hợp giám sát toàn nhóm loại bỏ hoàn toàn các phụ thuộc XAML cũ, đảm bảo toàn bộ View đồng bộ theo Design Tokens C# Markup (`AppColors`, `AppTypography`).
 
-#### 6. Dev 6 (Full-Stack Feature 6: Báo cáo Thống kê & Dữ liệu Demo - Analytics & Seeding)
+#### 6. Dev 6 (Full-Stack Feature 6: Báo cáo Thống kê & Convert Dashboard/Base Controls C# Markup)
 - **Backend:** Hoàn thiện toàn bộ các Use Cases: `UC-STAT-01` (KPIs tổng hợp), `UC-STAT-02` (Đơn mới nhất & tồn kho thấp), `UC-STAT-03` (Biểu đồ doanh thu theo ngày), hoàn thiện 100% `UC-SEED-01` (`DataSeeder.cs` nạp $\ge 20$ SP, $\ge 5$ danh mục, $\ge 10$ khách, $\ge 20$ đơn, $\ge 50$ IMEI).
-- **Frontend:**
+- **Frontend (Convert Base Controls, Styles & Dashboard C# Markup):**
+  - **Convert Styles Cũ:** Chuyển đổi toàn bộ XAML Resource Dictionaries cũ (`Colors.xaml`, `Typography.xaml`, `ControlStyles.xaml`, `Icons.xaml`, `Metrics.xaml`) sang các C# classes và extensions (`AppColors.cs`, `AppTypography.cs`, etc.) và xóa các file XAML styles cũ.
+  - **Convert Base Controls Cũ:** Chuyển đổi toàn bộ Base Controls (`StatCard`, `SearchBoxControl`, `EmptyStateControl`, `StatusBadge`) từ XAML UserControl sang C# Markup component.
+  - **Convert UI Cũ:** Chuyển đổi `DashboardPage.xaml` / `DashboardPage.xaml.cs` cũ sang `DashboardPage.cs` thuần C# Markup: cụm thẻ chỉ số KPI (`StatCard`), biểu đồ doanh thu, bảng các đơn hàng mới nhất và xóa file XAML cũ.
+  - **Convert UI Cũ:** Chuyển đổi `ComponentGalleryPage.xaml` / `MainPage.xaml` sang C# Markup để hỗ trợ showcase và verify controls.
   - Xây dựng API Client kết nối module Báo cáo Thống kê.
-  - Xây dựng màn hình Dashboard: Cụm thẻ chỉ số KPI (doanh thu, đơn hàng, sản phẩm, cảnh báo tồn), biểu đồ doanh thu trực quan, bảng các đơn hàng mới nhất.
 
 ---
 

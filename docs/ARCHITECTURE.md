@@ -248,24 +248,24 @@ tests/                                 # KIỂM THỬ TỰ ĐỘNG
 ### 2.5. Giải thích Kiến trúc MVVM và Feature-First MVVM
 
 #### A. Mô hình MVVM (Model - View - ViewModel) là gì?
-**MVVM** là mẫu kiến trúc phần mềm tiêu chuẩn cho các ứng dụng giao diện XAML (.NET MAUI, WPF, WinUI 3, Uno Platform), chia ứng dụng thành 3 thành phần tách biệt:
+**MVVM** là mẫu kiến trúc phần mềm tiêu chuẩn cho các ứng dụng giao diện hiện đại trên Uno Platform / WinUI 3, kết hợp giữa mô hình **MVVM** và **C# Markup (`Uno.Extensions.Markup`)**, chia ứng dụng thành 3 thành phần tách biệt:
 
 ```text
 ┌─────────────────────────┐        Data Binding / Commands       ┌─────────────────────────┐            Calls / DTOs            ┌─────────────────────────┐
-│       VIEW (XAML)       │ ◄──────────────────────────────────► │     VIEWMODEL (C#)      │ ─────────────────────────────────► │      MODEL (C# DTO)     │
+│   VIEW (C# MARKUP)      │ ◄──────────────────────────────────► │     VIEWMODEL (C#)      │ ─────────────────────────────────► │      MODEL (C# DTO)     │
 │                         │                                      │                         │                                    │                         │
 │ • Giao diện người dùng  │                                      │ • Trạng thái hiển thị   │                                    │ • Dữ liệu nghiệp vụ     │
-│ • XAML layout & styling │                                      │ • Xử lý lệnh bấm nút    │                                    │ • Các class từ shared/  │
-│ • Không chứa code logic │                                      │ • Gọi API qua Services  │                                    │ • Không phụ thuộc ai    │
+│ • C# Markup Fluent UI   │                                      │ • Xử lý lệnh bấm nút    │                                    │ • Các class từ shared/  │
+│ • 100% Compile Safety   │                                      │ • Gọi API qua Services  │                                    │ • Không phụ thuộc ai    │
 └─────────────────────────┘                                      └─────────────────────────┘                                    └─────────────────────────┘
 ```
 
 1. **Model:** Đại diện cho dữ liệu nghiệp vụ (các DTOs như `ProductDto`, `OrderDto` từ `shared/`). Không chứa logic giao diện.
-2. **View (XAML):** Chịu trách nhiệm hiển thị giao diện người dùng nhìn thấy (`Page.xaml`, `Dialog.xaml`). View kết nối với ViewModel hoàn toàn thông qua cơ chế **Data Binding** (`{x:Bind ...}`), tuyệt đối không viết code logic vào file code-behind (`.xaml.cs`).
-3. **ViewModel (C#):** Là "bộ não" điều khiển View. ViewModel chứa dữ liệu đang hiển thị (Properties), lệnh khi người dùng bấm nút (Commands), và gọi tầng Services để tải/lưu dữ liệu từ API. ViewModel hoàn toàn không phụ thuộc vào control UI cụ thể nào, giúp dễ dàng viết **Unit Test độc lập**.
-4. **Công cụ hỗ trợ:** Dự án sử dụng thư viện chính chủ **`CommunityToolkit.Mvvm`** với tính năng Source Generator:
+2. **View (C# Markup):** Chịu trách nhiệm hiển thị giao diện người dùng nhìn thấy (`Page.cs`, `Dialog.cs`). View được viết bằng Fluent C# Markup (không dùng file `.xaml` và không có `.xaml.cs` code-behind). View kết nối với ViewModel hoàn toàn thông qua cơ chế **Data Binding** bằng C# extension methods (`.Text(x => x.Bind(() => vm.Title))`).
+3. **ViewModel (C#):** Là "bộ não" điều khiển View. ViewModel chứa dữ liệu đang hiển thị (Properties), lệnh khi người dùng bấm nút (Commands), và gọi tầng Services/Repositories để tải/lưu dữ liệu từ API. ViewModel hoàn toàn không phụ thuộc vào control UI cụ thể nào, giúp dễ dàng viết **Unit Test độc lập**.
+4. **Công cụ hỗ trợ:** Dự án sử dụng thư viện chính chủ **`CommunityToolkit.Mvvm`** kết hợp **`Uno.Extensions.Markup`**:
    * Thêm `[ObservableProperty]` lên biến private $\rightarrow$ Tự động sinh property có thông báo thay đổi `INotifyPropertyChanged`.
-   * Thêm `[RelayCommand]` lên hàm async $\rightarrow$ Tự động sinh `ICommand` để gắn vào nút bấm trên XAML.
+   * Thêm `[RelayCommand]` lên hàm async $\rightarrow$ Tự động sinh `ICommand` để gắn vào nút bấm trên C# Markup.
 
 ---
 

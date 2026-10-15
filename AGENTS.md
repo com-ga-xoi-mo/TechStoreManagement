@@ -85,13 +85,13 @@ SalesManagement/
 │   ├── Directory.Packages.props   # Central Package Management package definitions
 │   └── TechStore.Client/          # Uno Platform multi-targeted client project
 │       ├── App.xaml / App.xaml.cs # DI bootstrap (AddFrontendFoundation, AddFrontendUi) and window lifecycle
-│       ├── Views/                 # XAML pages & code-behinds (Catalog, Customers, Dashboard, Inventory, Orders, Settings, Shell)
+│       ├── Views/                 # C# Markup UI pages (Catalog, Customers, Dashboard, Inventory, Orders, Settings, Shell)
 │       ├── ViewModels/            # MVVM ViewModels extending PageViewModel (Catalog, Customers, Dashboard, Inventory, Orders)
 │       ├── Repositories/          # Client data repositories mapping DTOs to client Models (Catalog, Analytics)
 │       ├── Models/                # Client-side presentation models (ProductSummary, ProductDetail, DashboardSnapshot)
 │       ├── Services/              # Client services (Api, Navigation, Session, Theme, Dialog, Window)
-│       ├── Controls/              # Reusable controls (StatCard, StatusBadge, SearchBoxControl, EmptyStateControl, Charts)
-│       ├── Styles/                # XAML resource dictionaries (Colors, Typography, Icons, Metrics, ControlStyles)
+│       ├── Controls/              # Reusable controls implemented with C# Markup (StatCard, StatusBadge, SearchBoxControl, EmptyStateControl, Charts)
+│       ├── Styles/                # C# theme definitions & design tokens (AppColors, AppTypography, AppIcons, AppMetrics, ControlStyles)
 │       └── Platforms/             # Desktop (Skia macOS/Linux) and Windows entry points
 │
 ├── shared/                        # Shared contracts across API, Client, and Tests (no NuGet dependencies)
@@ -281,19 +281,23 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - `refresh_tokens`: `(user_id, token_hash)` WHERE `is_revoked = false` (`token_hash` stores SHA-256 hash).
 - **Strict Data Types:** All temporal columns use UTC `timestamptz`; all monetary amounts use `numeric(18, 2)`. Identifiers use lowercase `snake_case`.
 
-### 6. Frontend MVVM & State Management Pattern
+### 6. Frontend MVVM & C# Markup Pattern
 - **Base Architecture (`docs/MVVM_REPOSITORY_BASE_PROJECT.md`):**
-  - Uses **MVVM combined with Client Repositories**: `View (XAML)` → `ViewModel` → `Client Repository` → `ApiClient` → `HTTP REST API`.
+  - Uses **MVVM combined with Client Repositories & C# Markup**: `View (C# Markup)` → `ViewModel` → `Client Repository` → `ApiClient` → `HTTP REST API`.
   - **Client Repositories** (`frontend/TechStore.Client/Repositories/`) isolate ViewModels from networking, HTTP headers, serialization, and error codes by converting DTOs into presentation models (`frontend/TechStore.Client/Models/`).
   - **`PageViewModel` Base Class:** ViewModels inherit from `PageViewModel`, providing observable `PageContentState` (`Idle`, `Loading`, `Empty`, `Content`, `Error`), `PageActivationLease` for lifecycle cleanup, cancellation token management (`ActivationToken`), and `RetryCommand`.
   - **CommunityToolkit.Mvvm:** Backing fields use `[ObservableProperty]` to generate change notifications; async actions use `[RelayCommand]`.
+  - **C# Markup Fluent Declarations (`Uno.Extensions.Markup`):**
+    - Views are written 100% in C# classes inheriting from `Page` (no `.xaml` or `.xaml.cs` code-behind split).
+    - Data binding is declared with type-safe extensions: `.Text(x => x.Bind(() => vm.Title))` or `.Command(x => x.Bind(() => vm.SubmitCommand))`.
+    - Styles and theme resources are referenced via type-safe C# tokens (`AppColors.Primary`, `AppTypography.HeadingLarge`).
   - **Zero UI Controls in ViewModels:** ViewModels never reference WinUI or Uno controls, enabling 100% headless testing in standard unit test runners.
 
 ### 7. Asynchronous Programming Pattern
 - Pure non-blocking `async`/`await` end-to-end.
 - Always propagate `CancellationToken cancellationToken = default` down to EF Core calls (`ToListAsync`, `FirstOrDefaultAsync`, `SaveChangesAsync`) and HTTP calls.
 - Never use `.Result`, `.Wait()`, or `.GetAwaiter().GetResult()` (causes thread pool starvation and deadlocks).
-- Avoid `async void`, except for WinUI XAML event handlers where the framework delegate signature requires it.
+- Avoid `async void`, except for top-level event handlers where the framework delegate signature strictly requires it.
 
 ### 8. Error Handling & API Responses
 - Centralized exception handling middleware returns RFC 7807 `ProblemDetails` or structured JSON payloads.
@@ -378,6 +382,6 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - `FakeUnitOfWork`: Tracks `SaveChangesCount`, `BeginTransactionCount`, `CommitCount`, `RollbackCount`, and can simulate exceptions (`DuplicateKeyException`).
   - `FakeProductRepository`, `FakeOrderRepository`, `FakeInventoryStockRepository`, `FakeSerialImeiRepository`, `FakeCustomerRepository`: Maintain in-memory state for deterministic execution.
   - `FixedTimeProvider`: Replaces system clock with fixed UTC timestamps.
-- **Headless Frontend Testing:** `TechStore.Client.UnitTests.csproj` is a pure C# console test project targeting `net10.0`. It links production code via `<Compile Include="..." Link="..." />` without compiling WinUI XAML or requiring an active UI thread, enabling rapid cross-platform CI execution.
+- **Headless Frontend Testing:** `TechStore.Client.UnitTests.csproj` is a pure C# console test project targeting `net10.0`. It links production code via `<Compile Include="..." Link="..." />` without compiling WinUI UI trees or requiring an active UI thread, enabling rapid cross-platform CI execution.
 - **Fixture Partitioning:** Complex service tests are split across C# `partial class` files (e.g. `OrderServiceTests.Fixture.cs`, `OrderServiceTests.Create.cs`, `OrderServiceTests.Query.cs`, `OrderServiceTests.Transitions.cs`).
 - **Coverage Expectations:** Every business rule, status transition, inventory availability check, validation rule, and concurrency/duplicate key mapping must have corresponding automated unit test coverage.

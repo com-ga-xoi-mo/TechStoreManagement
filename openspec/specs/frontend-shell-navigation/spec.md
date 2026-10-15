@@ -18,7 +18,7 @@ Client SHALL mở Shell với cấu hình hợp lệ khi không bật gallery, k
 - **THEN** Shell vẫn mở offline ở Tổng quan với banner dữ liệu minh họa, không tạo phiên đăng nhập hoặc request Analytics
 
 ### Requirement: Six coherent admin destinations
-Shell SHALL có đúng sáu điểm vào Tổng quan, Sản phẩm, Danh mục và Kho, Đơn hàng, Khách hàng, Cài đặt. Selected menu, tiêu đề và nội dung SHALL cùng phản ánh route đã chuyển thành công. Sản phẩm SHALL mở Catalog đọc thật và chứa route chi tiết theo productId; Tổng quan SHALL thể hiện preview có nhãn khi demo bật, hoặc chưa tích hợp khi tắt; các trang nghiệp vụ chưa triển khai SHALL ghi rõ trạng thái khung thay vì bịa dữ liệu.
+Shell SHALL có đúng sáu điểm vào Tổng quan, Sản phẩm, Danh mục và Kho, Đơn hàng, Khách hàng, Cài đặt, được cấu trúc và khởi tạo bằng C# Markup Fluent UI (`NavigationView`). Selected menu, tiêu đề và nội dung SHALL cùng phản ánh route đã chuyển thành công. Sản phẩm SHALL mở Catalog đọc thật và chứa route chi tiết theo productId; Tổng quan SHALL thể hiện preview có nhãn khi demo bật, hoặc chưa tích hợp khi tắt; các trang nghiệp vụ chưa triển khai SHALL ghi rõ trạng thái khung thay vì bịa dữ liệu.
 
 #### Scenario: Visit every destination
 - **WHEN** lần lượt chọn sáu điểm vào bằng chuột hoặc keyboard

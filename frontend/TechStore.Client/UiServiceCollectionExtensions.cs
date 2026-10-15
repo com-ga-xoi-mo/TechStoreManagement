@@ -1,15 +1,17 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TechStore.Client.Repositories.Catalog;
+using TechStore.Client.Repositories.Identity;
 using TechStore.Client.Services.Development;
 using TechStore.Client.Services.Dialog;
 using TechStore.Client.Services.Navigation;
 using TechStore.Client.Services.Theme;
 using TechStore.Client.Services.Window;
-using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.ViewModels.Catalog;
 using TechStore.Client.ViewModels.Customers;
 using TechStore.Client.ViewModels.Dashboard;
 using TechStore.Client.ViewModels.Development;
+using TechStore.Client.ViewModels.Identity;
 using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.ViewModels.Orders;
 using TechStore.Client.ViewModels.Settings;
@@ -18,6 +20,7 @@ using TechStore.Client.Views.Catalog;
 using TechStore.Client.Views.Customers;
 using TechStore.Client.Views.Dashboard;
 using TechStore.Client.Views.Development;
+using TechStore.Client.Views.Identity;
 using TechStore.Client.Views.Inventory;
 using TechStore.Client.Views.Orders;
 using TechStore.Client.Views.Settings;
@@ -52,6 +55,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<OrderListViewModel>();
         services.AddTransient<CustomerListViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<LoginViewModel>();
 
         services.AddTransient<DashboardPage>();
         services.AddTransient<ProductListPage>();
@@ -60,12 +64,15 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<OrderListPage>();
         services.AddTransient<CustomerListPage>();
         services.AddTransient<SettingsPage>();
+        services.AddTransient<LoginPage>();
 
         services.AddTransient<ComponentGalleryViewModel>();
         services.AddTransient<ShellDiagnosticViewModel>();
         services.AddTransient<ComponentGalleryPage>();
         services.AddTransient<IProductRepository, ProductRepository>();
         services.AddTransient<ICategoryRepository, CategoryRepository>();
+        services.AddTransient<IAuthRepository, AuthRepository>();
+        services.AddTransient<IStoreSettingsRepository, StoreSettingsRepository>();
         return services;
     }
 }

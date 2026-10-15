@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddSingleton(_ => ApiClientOptions.FromConfiguration(configuration));
+        services.AddSingleton<ISessionStorage, FileSessionStorage>();
         services.AddSingleton<ISessionStore, InMemorySessionStore>();
         services.AddTransient<BearerTokenHandler>();
         services.AddLogging(builder =>

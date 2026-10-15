@@ -4,6 +4,13 @@ namespace TechStore.UnitTests;
 
 public class FakeUnitOfWork : IUnitOfWork
 {
+    private readonly AppDbContext _dbContext;
+
+    public FakeUnitOfWork(AppDbContext? dbContext = null)
+    {
+        _dbContext = dbContext!;
+    }
+
     public int SaveChangesCount { get; private set; }
     public int BeginTransactionCount { get; private set; }
     public int CommitCount { get; private set; }
@@ -14,7 +21,7 @@ public class FakeUnitOfWork : IUnitOfWork
     // Exceptions thrown by successive saves, one per call, before ExceptionToThrowOnSave applies.
     public Queue<Exception> SaveExceptionQueue { get; } = new();
 
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCount++;
         if (SaveExceptionQueue.Count > 0)
@@ -25,7 +32,13 @@ public class FakeUnitOfWork : IUnitOfWork
         {
             throw ExceptionToThrowOnSave;
         }
-        return Task.FromResult(1);
+
+        if (_dbContext != null)
+        {
+            return await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return 1;
     }
 
     public Task BeginTransactionAsync(CancellationToken cancellationToken = default)

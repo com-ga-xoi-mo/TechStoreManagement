@@ -1,4 +1,5 @@
 using TechStore.Client.Services.Navigation;
+using TechStore.Client.Services.Session;
 using TechStore.Client.Services.Theme;
 using TechStore.Client.ViewModels.Settings;
 using TechStore.Client.ViewModels.Shell;
@@ -11,7 +12,8 @@ public sealed class ShellViewModelTests
     public void NavigationSuccess_UpdatesSelectedRouteAndTitle()
     {
         var navigation = new NavigationService(new DestinationPreparer());
-        var viewModel = new ShellViewModel(navigation);
+        var session = new InMemorySessionStore();
+        var viewModel = new ShellViewModel(navigation, session);
 
         viewModel.NavigateCommand.Execute(ShellDestination.Products);
 
@@ -26,7 +28,8 @@ public sealed class ShellViewModelTests
     public void NavigationFailure_PreservesTitleAndSelectionAndUsesSafeError()
     {
         var navigation = new NavigationService(new DestinationPreparer(allow: false));
-        var viewModel = new ShellViewModel(navigation);
+        var session = new InMemorySessionStore();
+        var viewModel = new ShellViewModel(navigation, session);
 
         viewModel.NavigateCommand.Execute(ShellDestination.Products);
 

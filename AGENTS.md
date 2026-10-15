@@ -47,7 +47,7 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 - **`backend/Orders/`**: Order processing, sold IMEI linkage, order status lifecycle transitions, returns, and refunds (`IOrderService`, `IOrderRepository`, `OrdersController`).
 - **`backend/Customers/`**: Customer profiles, loyalty point accrual, discount vouchers, and revenue analytics (`ICustomerRepository`, `CustomerRepository`).
 - **`backend/Sales/`**: POS counter register sessions, cashier cart calculation, and dynamic VietQR generation (`PosSession`, `VietQrTransaction`).
-- **`backend/Identity/`**: User credentials, refresh tokens, RBAC authorization, initial database seeding (`DataSeeder`, `IDataSeeder`).
+- **`backend/Identity/`**: User credentials, refresh tokens, store configuration settings, RBAC authorization, initial database seeding (`IAuthService`, `IStoreSettingsService`, `AuthController`, `StoreController`, `DataSeeder`, `IDataSeeder`).
 - **`backend/Common/`**: Core infrastructure including `AppDbContext`, `IUnitOfWork` / `UnitOfWork` (saves and transactions), `DuplicateKeyException`, `BaseEntity`, and HTTP exception handling.
 - **`frontend/TechStore.Client/`**: Cross-platform desktop application organized into `Views/`, `ViewModels/`, `Models/`, `Repositories/`, `Services/`, `Controls/`, and `Styles/`.
 - **`shared/`**: Common domain contracts consumed across backend, client, and test projects (`DTOs/`, `Requests/`, `Enums/`).
@@ -355,6 +355,8 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 - **Frontend UI Framework:** **Uno Platform 6.7** (`Uno.Sdk: 6.7.30`) multi-targeting:
   - `net10.0-desktop`: Skia rendering for macOS, Linux, and Windows.
   - `net10.0-windows10.0.26100`: WinAppSDK / WinUI 3 for native Windows 10/11 execution.
+  - **Features Enabled (`UnoFeatures`):** `Mvvm`, `SkiaRenderer`, `CSharpMarkup`. Views, dialogs, and controls are transitioning 100% to C# Markup using `Uno.Extensions.Markup.WinUI` and `CommunityToolkit.WinUI.Controls.SettingsControls` aligned with Google Stitch design prototypes (`stitch_techstore_retail_admin_dashboard/`).
+- **Session & Persistence:** `ISessionStore` / `InMemorySessionStore` paired with `ISessionStorage` / `FileSessionStorage` (`%LocalAppData%/TechStore/session.json` on Windows or `~/.local/share/TechStore/session.json` on Unix) to support persistent login across desktop app restarts.
 - **Package Management:**
   - **Frontend:** Enforces **Central Package Management (CPM)** via `frontend/Directory.Build.props` and `frontend/Directory.Packages.props`.
   - **Backend, Shared, and Tests:** Use explicit inline package versions in their respective `.csproj` files.

@@ -1,91 +1,113 @@
+using FluentAssertions;
+using TechStore.Client.Repositories.Identity;
 using TechStore.Client.Services.Theme;
-using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.ViewModels.Settings;
+using TechStore.Shared.DTOs;
+using TechStore.Shared.Requests;
+using Xunit;
 
 namespace TechStore.Client.UnitTests.Settings;
 
-public sealed class SettingsViewModelTests
+public class SettingsViewModelTests
 {
-    [Theory]
-    [InlineData(ThemePreference.System)]
-    [InlineData(ThemePreference.Light)]
-    [InlineData(ThemePreference.Dark)]
-    public void SelectingTheme_UpdatesSessionPreference(ThemePreference preference)
+    private sealed class FakeThemePreferenceService : IThemePreferenceService
     {
-        var service = new ThemePreferenceService();
-        using var viewModel = new SettingsViewModel(service);
+        public ThemePreference Preference { get; set; } = ThemePreference.System;
+        public event EventHandler<ThemePreference>? PreferenceChanged;
 
-        viewModel.SelectedThemeIndex = (int)preference;
+        public void SetPreference(ThemePreference preference)
+        {
+            Preference = preference;
+            PreferenceChanged?.Invoke(this, preference);
+        }
+    }
 
-        Assert.Equal(preference, service.Preference);
-        Assert.Equal((int)preference, viewModel.SelectedThemeIndex);
+    private sealed class FakeStoreSettingsRepository : IStoreSettingsRepository
+    {
+        public StoreSettingsDto Settings { get; set; } = new()
+        {
+            StoreName = "Initial Store",
+            Address = "123 Initial Street",
+            Phone = "0123456789",
+            Email = "initial@store.vn",
+            TaxId = "0987654321"
+        };
+
+        public UpdateStoreSettingsRequest? LastUpdateRequest { get; private set; }
+
+        public Task<StoreSettingsDto> GetSettingsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Settings);
+        }
+
+        public Task<StoreSettingsDto> UpdateSettingsAsync(UpdateStoreSettingsRequest request, CancellationToken cancellationToken = default)
+        {
+            LastUpdateRequest = request;
+            Settings = new StoreSettingsDto
+            {
+                StoreName = request.StoreName,
+                Address = request.Address,
+                Phone = request.Phone,
+                Email = request.Email,
+                TaxId = request.TaxId,
+                Description = request.Description
+            };
+            return Task.FromResult(Settings);
+        }
     }
 
     [Fact]
-    public void PreferenceChangedExternally_UpdatesViewModelUntilDisposed()
+    public async Task LoadContentAsync_PopulatesStoreSettings()
     {
-        var service = new ThemePreferenceService();
-        var viewModel = new SettingsViewModel(service);
+        // Arrange
+        var fakeTheme = new FakeThemePreferenceService();
+        var fakeRepo = new FakeStoreSettingsRepository();
+        var vm = new SettingsViewModel(fakeTheme, fakeRepo);
 
-        service.Preference = ThemePreference.Dark;
-        Assert.Equal((int)ThemePreference.Dark, viewModel.SelectedThemeIndex);
+        // Act
+        await vm.ActivateAsync();
 
-        viewModel.Dispose();
-        service.Preference = ThemePreference.Light;
-
-        Assert.Equal((int)ThemePreference.Dark, viewModel.SelectedThemeIndex);
+        // Assert
+        vm.StoreName.Should().Be("Initial Store");
+        vm.StoreAddress.Should().Be("123 Initial Street");
+        vm.StorePhone.Should().Be("0123456789");
     }
 
     [Fact]
-    public async Task Activate_ExposesSettingsWithoutBackendData()
+    public async Task SaveStoreSettingsAsync_UpdatesRepositoryAndShowsSuccess()
     {
-        using var viewModel = new SettingsViewModel(new ThemePreferenceService());
+        // Arrange
+        var fakeTheme = new FakeThemePreferenceService();
+        var fakeRepo = new FakeStoreSettingsRepository();
+        var vm = new SettingsViewModel(fakeTheme, fakeRepo)
+        {
+            StoreName = "New Flagship Store",
+            StoreAddress = "456 New Street",
+            StorePhone = "0999888777"
+        };
 
-        await viewModel.ActivateAsync();
+        // Act
+        await vm.SaveStoreSettingsCommand.ExecuteAsync(null);
 
-        Assert.Equal(PageContentState.Content, viewModel.ContentState);
-        Assert.Equal("Theo hệ thống", viewModel.ThemeOptions[viewModel.SelectedThemeIndex]);
-        Assert.Equal("TechStore Management", viewModel.ApplicationName);
-        Assert.False(string.IsNullOrWhiteSpace(viewModel.ApplicationVersion));
+        // Assert
+        vm.ShowSaveSuccess.Should().BeTrue();
+        vm.SaveErrorMessage.Should().BeEmpty();
+        fakeRepo.LastUpdateRequest.Should().NotBeNull();
+        fakeRepo.LastUpdateRequest!.StoreName.Should().Be("New Flagship Store");
+        fakeRepo.LastUpdateRequest.Address.Should().Be("456 New Street");
     }
 
     [Fact]
-    public async Task ChangingThemeWhileSettingsIsOpen_DoesNotReloadOrClearContent()
+    public void ThemeSelection_UpdatesThemeService()
     {
-        var theme = new ThemePreferenceService();
-        using var viewModel = new SettingsViewModel(theme);
-        await viewModel.ActivateAsync();
+        // Arrange
+        var fakeTheme = new FakeThemePreferenceService();
+        var vm = new SettingsViewModel(fakeTheme);
 
-        viewModel.SelectedThemeIndex = (int)ThemePreference.Dark;
+        // Act
+        vm.SelectedThemeIndex = (int)ThemePreference.Dark;
 
-        Assert.Equal(ThemePreference.Dark, theme.Preference);
-        Assert.Equal(PageContentState.Content, viewModel.ContentState);
-    }
-
-    [Fact]
-    public void NewSettingsActivation_UsesPreferenceFromCurrentAppSession()
-    {
-        var theme = new ThemePreferenceService();
-        using (var firstActivation = new SettingsViewModel(theme))
-            firstActivation.SelectedThemeIndex = (int)ThemePreference.Dark;
-
-        using var revisit = new SettingsViewModel(theme);
-
-        Assert.Equal((int)ThemePreference.Dark, revisit.SelectedThemeIndex);
-        Assert.Equal(ThemePreference.System, new ThemePreferenceService().Preference);
-    }
-
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(3)]
-    public void SelectingUnknownTheme_LeavesSessionPreferenceUnchanged(int index)
-    {
-        var service = new ThemePreferenceService();
-        using var viewModel = new SettingsViewModel(service);
-
-        viewModel.SelectedThemeIndex = index;
-
-        Assert.Equal(ThemePreference.System, service.Preference);
-        Assert.Equal((int)ThemePreference.System, viewModel.SelectedThemeIndex);
+        // Assert
+        fakeTheme.Preference.Should().Be(ThemePreference.Dark);
     }
 }

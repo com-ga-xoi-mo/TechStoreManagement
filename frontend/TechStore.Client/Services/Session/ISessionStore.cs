@@ -8,6 +8,8 @@ public interface ISessionStore
 
     void SetAccessToken(string accessToken);
 
+    void SetSession(string accessToken, string refreshToken, string username, string fullName, string role);
+
     void Clear();
 
     bool TryExpire(long expectedGeneration);

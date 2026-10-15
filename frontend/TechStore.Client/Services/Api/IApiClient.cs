@@ -15,4 +15,9 @@ public interface IApiClient
         string relativePath,
         TRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<TResponse> PutAsync<TRequest, TResponse>(
+        string relativePath,
+        TRequest request,
+        CancellationToken cancellationToken = default);
 }

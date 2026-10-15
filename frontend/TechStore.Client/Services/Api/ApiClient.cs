@@ -47,6 +47,19 @@ public sealed class ApiClient : IApiClient
             cancellationToken);
     }
 
+    public Task<TResponse> PutAsync<TRequest, TResponse>(
+        string relativePath,
+        TRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return SendForBodyAsync<TResponse>(
+            HttpMethod.Put,
+            relativePath,
+            JsonContent.Create(request, options: JsonOptions),
+            cancellationToken);
+    }
+
     public async Task PostAsync<TRequest>(
         string relativePath,
         TRequest request,

@@ -5,9 +5,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Uno.Resizetizer;
 using TechStore.Client.Services.Api;
+using TechStore.Client.Services.Session;
 using TechStore.Client.Views.Development;
 using TechStore.Client.Services.Development;
 using TechStore.Client.Services.Window;
+using TechStore.Client.Views.Identity;
 using TechStore.Client.Views.Shell;
 
 namespace TechStore.Client;
@@ -26,6 +28,8 @@ public partial class App : Application
         this.InitializeComponent();
         InitializeLogging();
     }
+
+    public IServiceProvider? Services => _applicationServices?.Services;
 
     protected Window? MainWindow { get; private set; }
 
@@ -55,17 +59,40 @@ public partial class App : Application
 
         if (MainWindow.Content is null)
         {
-            if (_applicationServices.Services.GetRequiredService<GalleryOptions>().Enabled)
-                MainWindow.Content = _applicationServices.Services.GetRequiredService<ComponentGalleryPage>();
-            else
-#if DEBUG
+            var sessionStore = _applicationServices.Services.GetRequiredService<ISessionStore>();
+            sessionStore.SessionChanged += (s, e) =>
             {
-                _applicationServices.Services.GetRequiredService<ShellRoutePageFactory>().VerifyAllRoutesResolve();
-                MainWindow.Content = _applicationServices.Services.GetRequiredService<ShellPage>();
+                if (MainWindow is not null)
+                {
+                    if (e.Status == SessionStatus.Active)
+                    {
+                        MainWindow.Content = _applicationServices.Services.GetRequiredService<ShellPage>();
+                    }
+                    else
+                    {
+                        MainWindow.Content = _applicationServices.Services.GetRequiredService<LoginPage>();
+                    }
+                }
+            };
+
+            if (_applicationServices.Services.GetRequiredService<GalleryOptions>().Enabled)
+            {
+                MainWindow.Content = _applicationServices.Services.GetRequiredService<ComponentGalleryPage>();
             }
-#else
-                MainWindow.Content = _applicationServices.Services.GetRequiredService<ShellPage>();
+            else
+            {
+#if DEBUG
+                _applicationServices.Services.GetRequiredService<ShellRoutePageFactory>().VerifyAllRoutesResolve();
 #endif
+                if (sessionStore.Current.Status == SessionStatus.Active)
+                {
+                    MainWindow.Content = _applicationServices.Services.GetRequiredService<ShellPage>();
+                }
+                else
+                {
+                    MainWindow.Content = _applicationServices.Services.GetRequiredService<LoginPage>();
+                }
+            }
         }
 
         MainWindow.SetWindowIcon();

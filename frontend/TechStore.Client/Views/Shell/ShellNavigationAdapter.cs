@@ -29,15 +29,16 @@ public sealed class ShellNavigationAdapter(
         _navigationView.ItemInvoked += OnItemInvoked;
         navigation.RouteChanged += OnRouteChanged;
 
-        if (!preparer.Prepare(navigation.CurrentRoute) || preparer.TakePrepared() is not { } initial)
+        if (preparer.Prepare(navigation.CurrentRoute) && preparer.TakePrepared() is { } initial)
         {
-            DetachEvents();
-            throw new InvalidOperationException("The initial Dashboard page could not be created.");
+            _current = initial;
+            _contentHost.Content = initial.Page;
+            SynchronizeSelection(navigation.CurrentDestination);
         }
-
-        _current = initial;
-        _contentHost.Content = initial.Page;
-        SynchronizeSelection(navigation.CurrentDestination);
+        else
+        {
+            logger.LogWarning("Initial navigation route {Route} could not be prepared at attach time.", navigation.CurrentRoute);
+        }
     }
 
     public void Dispose()

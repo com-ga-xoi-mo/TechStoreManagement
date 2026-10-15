@@ -161,6 +161,9 @@ public sealed class ProductRepositoryTests
         public Task<TResponse> PostAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
+        public Task<TResponse> PutAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task PostAsync<TRequest>(string relativePath, TRequest request, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
     }

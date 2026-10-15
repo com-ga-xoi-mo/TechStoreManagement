@@ -42,6 +42,7 @@
     <UnoFeatures>
       Mvvm;
       SkiaRenderer;
+      CSharpMarkup;
     </UnoFeatures>
   </PropertyGroup>
 

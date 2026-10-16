@@ -1,6 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Identity.Entities;
+using TechStore.Api.Identity.Repositories;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -8,25 +8,23 @@ namespace TechStore.Api.Identity.Services;
 
 public class StoreSettingsService : IStoreSettingsService
 {
-    private readonly AppDbContext _dbContext;
+    private readonly IStoreSettingRepository _storeSettingRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TimeProvider _timeProvider;
 
     public StoreSettingsService(
-        AppDbContext dbContext,
+        IStoreSettingRepository storeSettingRepository,
         IUnitOfWork unitOfWork,
         TimeProvider timeProvider)
     {
-        _dbContext = dbContext;
-        _unitOfWork = unitOfWork;
-        _timeProvider = timeProvider;
+        _storeSettingRepository = storeSettingRepository ?? throw new ArgumentNullException(nameof(storeSettingRepository));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public async Task<StoreSettingsDto> GetSettingsAsync(CancellationToken cancellationToken = default)
     {
-        var setting = await _dbContext.StoreSettings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cancellationToken);
+        var setting = await _storeSettingRepository.GetCurrentSettingsAsync(asNoTracking: true, cancellationToken);
 
         if (setting == null)
         {
@@ -65,7 +63,7 @@ public class StoreSettingsService : IStoreSettingsService
         }
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
-        var setting = await _dbContext.StoreSettings.FirstOrDefaultAsync(cancellationToken);
+        var setting = await _storeSettingRepository.GetCurrentSettingsAsync(asNoTracking: false, cancellationToken);
 
         if (setting == null)
         {
@@ -81,7 +79,7 @@ public class StoreSettingsService : IStoreSettingsService
                 CreatedAt = now,
                 UpdatedAt = now
             };
-            _dbContext.StoreSettings.Add(setting);
+            _storeSettingRepository.Add(setting);
         }
         else
         {

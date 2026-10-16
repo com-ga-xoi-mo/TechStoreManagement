@@ -1,8 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using TechStore.Api.Common.Data;
 using TechStore.Api.Identity.Configurations;
 using TechStore.Api.Identity.Entities;
 using TechStore.Api.Identity.Services;
@@ -14,14 +12,11 @@ namespace TechStore.UnitTests;
 
 public class AuthServiceTests
 {
-    private (AppDbContext DbContext, FakeUnitOfWork UnitOfWork, AuthService AuthService) CreateSut()
+    private (FakeUserRepository UserRepository, FakeRefreshTokenRepository RefreshTokenRepository, FakeUnitOfWork UnitOfWork, AuthService AuthService) CreateSut()
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        var dbContext = new AppDbContext(options);
-        var unitOfWork = new FakeUnitOfWork(dbContext);
+        var userRepository = new FakeUserRepository();
+        var refreshTokenRepository = new FakeRefreshTokenRepository();
+        var unitOfWork = new FakeUnitOfWork();
         var jwtOptions = Options.Create(new JwtOptions
         {
             SecretKey = "Test_Secret_Key_At_Least_32_Bytes_Long_2026!",
@@ -32,20 +27,19 @@ public class AuthServiceTests
         });
 
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero));
-        var authService = new AuthService(dbContext, unitOfWork, jwtOptions, timeProvider);
+        var authService = new AuthService(userRepository, refreshTokenRepository, unitOfWork, jwtOptions, timeProvider);
 
-        return (dbContext, unitOfWork, authService);
+        return (userRepository, refreshTokenRepository, unitOfWork, authService);
     }
 
     [Fact]
     public async Task LoginAsync_ValidAdminCredentials_ReturnsTokenAndProfile()
     {
         // Arrange
-        var (dbContext, unitOfWork, authService) = CreateSut();
+        var (userRepository, refreshTokenRepository, unitOfWork, authService) = CreateSut();
         var passwordHasher = new PasswordHasher<User>();
 
         var role = new Role { Id = Guid.NewGuid(), Name = RoleType.Admin };
-        dbContext.Roles.Add(role);
 
         var adminUser = new User
         {
@@ -56,17 +50,14 @@ public class AuthServiceTests
             IsActive = true
         };
         adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "Admin@123");
-        dbContext.Users.Add(adminUser);
-
-        dbContext.UserRoles.Add(new UserRole
+        adminUser.UserRoles.Add(new UserRole
         {
             UserId = adminUser.Id,
             RoleId = role.Id,
             User = adminUser,
             Role = role
         });
-
-        await dbContext.SaveChangesAsync();
+        userRepository.Add(adminUser);
 
         // Act
         var result = await authService.LoginAsync(new LoginRequest
@@ -84,8 +75,8 @@ public class AuthServiceTests
         result.User.Role.Should().Be(RoleType.Admin);
         unitOfWork.SaveChangesCount.Should().BeGreaterThan(0);
 
-        // Verify refresh token was saved in db
-        var savedToken = await dbContext.RefreshTokens.FirstOrDefaultAsync(t => t.UserId == adminUser.Id);
+        // Verify refresh token was saved in repository
+        var savedToken = refreshTokenRepository.Tokens.FirstOrDefault(t => t.UserId == adminUser.Id);
         savedToken.Should().NotBeNull();
         savedToken!.IsRevoked.Should().BeFalse();
     }
@@ -94,7 +85,7 @@ public class AuthServiceTests
     public async Task LoginAsync_InvalidPassword_ReturnsNull()
     {
         // Arrange
-        var (dbContext, _, authService) = CreateSut();
+        var (userRepository, _, _, authService) = CreateSut();
         var passwordHasher = new PasswordHasher<User>();
 
         var user = new User
@@ -106,8 +97,7 @@ public class AuthServiceTests
             IsActive = true
         };
         user.PasswordHash = passwordHasher.HashPassword(user, "CorrectPassword123");
-        dbContext.Users.Add(user);
-        await dbContext.SaveChangesAsync();
+        userRepository.Add(user);
 
         // Act
         var result = await authService.LoginAsync(new LoginRequest
@@ -124,7 +114,7 @@ public class AuthServiceTests
     public async Task LoginAsync_InactiveUser_ReturnsNull()
     {
         // Arrange
-        var (dbContext, _, authService) = CreateSut();
+        var (userRepository, _, _, authService) = CreateSut();
         var passwordHasher = new PasswordHasher<User>();
 
         var user = new User
@@ -136,8 +126,7 @@ public class AuthServiceTests
             IsActive = false
         };
         user.PasswordHash = passwordHasher.HashPassword(user, "Password123");
-        dbContext.Users.Add(user);
-        await dbContext.SaveChangesAsync();
+        userRepository.Add(user);
 
         // Act
         var result = await authService.LoginAsync(new LoginRequest
@@ -154,9 +143,8 @@ public class AuthServiceTests
     public async Task GetProfileAsync_ExistingUser_ReturnsUserProfileDto()
     {
         // Arrange
-        var (dbContext, _, authService) = CreateSut();
+        var (userRepository, _, _, authService) = CreateSut();
         var role = new Role { Id = Guid.NewGuid(), Name = RoleType.Manager };
-        dbContext.Roles.Add(role);
 
         var user = new User
         {
@@ -166,9 +154,8 @@ public class AuthServiceTests
             Email = "manager@techstore.vn",
             IsActive = true
         };
-        dbContext.Users.Add(user);
-        dbContext.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id, User = user, Role = role });
-        await dbContext.SaveChangesAsync();
+        user.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id, User = user, Role = role });
+        userRepository.Add(user);
 
         // Act
         var profile = await authService.GetProfileAsync(user.Id);
@@ -184,7 +171,7 @@ public class AuthServiceTests
     public async Task LogoutAsync_ValidRefreshToken_RevokesToken()
     {
         // Arrange
-        var (dbContext, unitOfWork, authService) = CreateSut();
+        var (userRepository, refreshTokenRepository, unitOfWork, authService) = CreateSut();
         var passwordHasher = new PasswordHasher<User>();
 
         var user = new User
@@ -196,8 +183,7 @@ public class AuthServiceTests
             IsActive = true
         };
         user.PasswordHash = passwordHasher.HashPassword(user, "Password123");
-        dbContext.Users.Add(user);
-        await dbContext.SaveChangesAsync();
+        userRepository.Add(user);
 
         // Login first to generate refresh token
         var loginResult = await authService.LoginAsync(new LoginRequest
@@ -217,8 +203,8 @@ public class AuthServiceTests
         logoutSuccess.Should().BeTrue();
         unitOfWork.SaveChangesCount.Should().BeGreaterThan(0);
 
-        var tokenInDb = await dbContext.RefreshTokens.FirstOrDefaultAsync(t => t.UserId == user.Id);
-        tokenInDb.Should().NotBeNull();
-        tokenInDb!.IsRevoked.Should().BeTrue();
+        var tokenInRepo = refreshTokenRepository.Tokens.FirstOrDefault(t => t.UserId == user.Id);
+        tokenInRepo.Should().NotBeNull();
+        tokenInRepo!.IsRevoked.Should().BeTrue();
     }
 }

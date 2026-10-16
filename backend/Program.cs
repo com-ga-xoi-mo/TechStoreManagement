@@ -8,6 +8,7 @@ using TechStore.Api.Catalog.Services;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Customers.Repositories;
 using TechStore.Api.Identity.Configurations;
+using TechStore.Api.Identity.Repositories;
 using TechStore.Api.Identity.Services;
 using TechStore.Api.Inventory.Repositories;
 using TechStore.Api.Inventory.Services;
@@ -87,6 +88,11 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 // Orders Module services
 builder.Services.TryAddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IOrderService, OrderService>();
+
+// Identity Module repositories
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IStoreSettingRepository, StoreSettingRepository>();
 
 // Identity Module services
 builder.Services.AddScoped<IAuthService, AuthService>();

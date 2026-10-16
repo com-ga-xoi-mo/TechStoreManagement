@@ -5,7 +5,7 @@ using TechStore.Api.Identity.Services;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
-namespace TechStore.Api.Identity.Controllers;
+namespace TechStore.Api.Identity;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -13,9 +13,9 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
 
-    public AuthController(IAuthService _authService)
+    public AuthController(IAuthService authService)
     {
-        this._authService = _authService;
+        _authService = authService;
     }
 
     [HttpPost("login")]

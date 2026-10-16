@@ -1,14 +1,16 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.Extensions.Logging;
 using TechStore.Client.Services.Navigation;
 using TechStore.Client.Services.Session;
 using TechStore.Client.Services.Theme;
 using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Shell;
+using Uno.Extensions.Markup;
 using Windows.UI;
 
 namespace TechStore.Client.Views.Shell;
@@ -33,6 +35,7 @@ public sealed class ShellPage : Page
         ILogger<ShellPage> logger)
     {
         ViewModel = viewModel;
+        DataContext = viewModel;
         _navigationAdapter = navigationAdapter;
         _dialogPresenter = dialogPresenter;
         _themePreference = themePreference;
@@ -47,7 +50,7 @@ public sealed class ShellPage : Page
 
     private void BuildUi()
     {
-        Background = new SolidColorBrush(StitchTokens.SurfaceCanvas);
+        this.Background(new SolidColorBrush(StitchTokens.SurfaceCanvas));
 
         ShellNavigationView = new NavigationView
         {
@@ -73,56 +76,43 @@ public sealed class ShellPage : Page
             }
         };
 
-        // Align menu items to spread gracefully
         ShellNavigationView.Resources["NavigationViewItemMargin"] = new Thickness(0, 4, 0, 4);
 
         // Pane Header: TechStore Logo & Title
-        var logoIcon = new Border
-        {
-            Width = 36,
-            Height = 36,
-            CornerRadius = new CornerRadius(10),
-            Background = new SolidColorBrush(StitchTokens.Primary),
-            Child = new TextBlock
-            {
-                Text = "T",
-                Foreground = new SolidColorBrush(Colors.White),
-                FontSize = 20,
-                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
-
-        var titleBlock = new StackPanel
-        {
-            VerticalAlignment = VerticalAlignment.Center,
-            Spacing = 1,
-            Children =
-            {
-                new TextBlock
-                {
-                    Text = "TechStore",
-                    FontSize = 16,
-                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    Foreground = new SolidColorBrush(StitchTokens.ContentTitle)
-                },
-                new TextBlock
-                {
-                    Text = "QUẢN TRỊ HỆ THỐNG",
-                    FontSize = 11,
-                    Foreground = new SolidColorBrush(StitchTokens.ContentMuted)
-                }
-            }
-        };
-
-        ShellNavigationView.PaneHeader = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 12,
-            Padding = new Thickness(16, 12, 12, 16),
-            Children = { logoIcon, titleBlock }
-        };
+        ShellNavigationView.PaneHeader = new StackPanel()
+            .Orientation(Orientation.Horizontal)
+            .Spacing(12)
+            .Padding(new Thickness(16, 12, 12, 16))
+            .Children(
+                new Border()
+                    .Width(36)
+                    .Height(36)
+                    .CornerRadius(new CornerRadius(10))
+                    .Background(new SolidColorBrush(StitchTokens.Primary))
+                    .Child(
+                        new TextBlock()
+                            .Text("T")
+                            .Foreground(new SolidColorBrush(Colors.White))
+                            .FontSize(20)
+                            .FontWeight(Microsoft.UI.Text.FontWeights.Bold)
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                    ),
+                new StackPanel()
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .Spacing(1)
+                    .Children(
+                        new TextBlock()
+                            .Text("TechStore")
+                            .FontSize(16)
+                            .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
+                            .Foreground(new SolidColorBrush(StitchTokens.ContentTitle)),
+                        new TextBlock()
+                            .Text("QUẢN TRỊ HỆ THỐNG")
+                            .FontSize(11)
+                            .Foreground(new SolidColorBrush(StitchTokens.ContentMuted))
+                    )
+            );
 
         // Menu Items
         ShellNavigationView.MenuItems.Add(CreateNavItem("Tổng quan", "Dashboard", Symbol.Home));
@@ -135,61 +125,31 @@ public sealed class ShellPage : Page
         ShellNavigationView.FooterMenuItems.Add(CreateNavItem("Cài đặt", "Settings", Symbol.Setting));
 
         // Pane Footer: User Session Profile
-        var avatarBorder = new Border
-        {
-            Width = 36,
-            Height = 36,
-            CornerRadius = new CornerRadius(18),
-            Background = new SolidColorBrush(Color.FromArgb(0xFF, 0xE2, 0xE8, 0xF0)),
-            Child = new TextBlock
-            {
-                Text = ViewModel.UserAvatarInitials,
-                FontSize = 12,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = new SolidColorBrush(StitchTokens.ContentTitle)
-            }
-        };
-
-        var userNameText = new TextBlock
-        {
-            Text = ViewModel.UserDisplayName,
-            FontSize = 13,
-            FontWeight = Microsoft.UI.Text.FontWeights.Medium,
-            Foreground = new SolidColorBrush(StitchTokens.ContentBody)
-        };
-
-        var userRoleText = new TextBlock
-        {
-            Text = ViewModel.UserRoleDescription,
-            FontSize = 11,
-            Foreground = new SolidColorBrush(StitchTokens.ContentMuted)
-        };
-
-        var logoutStack = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Spacing = 8,
-            Children =
-            {
-                new FontIcon { Glyph = "\uE8AC", FontSize = 12, Foreground = new SolidColorBrush(StitchTokens.ErrorRed) },
-                new TextBlock { Text = "Đăng xuất tài khoản", FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(StitchTokens.ErrorRed) }
-            }
-        };
-
-        var logoutButton = new Button
-        {
-            Content = logoutStack,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            Background = new SolidColorBrush(StitchTokens.ErrorBg),
-            BorderBrush = new SolidColorBrush(StitchTokens.ErrorBorder),
-            BorderThickness = new Thickness(1),
-            Padding = new Thickness(12, 6, 12, 6),
-            CornerRadius = new CornerRadius(8),
-            Margin = new Thickness(0, 8, 0, 0)
-        };
+        var logoutButton = new Button()
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
+            .Background(new SolidColorBrush(StitchTokens.ErrorBg))
+            .BorderBrush(new SolidColorBrush(StitchTokens.ErrorBorder))
+            .BorderThickness(new Thickness(1))
+            .Padding(new Thickness(12, 6, 12, 6))
+            .CornerRadius(new CornerRadius(8))
+            .Margin(new Thickness(0, 8, 0, 0))
+            .Content(
+                new StackPanel()
+                    .Orientation(Orientation.Horizontal)
+                    .HorizontalAlignment(HorizontalAlignment.Center)
+                    .Spacing(8)
+                    .Children(
+                        new FontIcon()
+                            .Glyph("\uE8AC")
+                            .FontSize(12)
+                            .Foreground(new SolidColorBrush(StitchTokens.ErrorRed)),
+                        new TextBlock()
+                            .Text("Đăng xuất tài khoản")
+                            .FontSize(12)
+                            .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
+                            .Foreground(new SolidColorBrush(StitchTokens.ErrorRed))
+                    )
+            );
         ToolTipService.SetToolTip(logoutButton, "Đăng xuất khỏi hệ thống");
         logoutButton.Click += (s, e) =>
         {
@@ -200,171 +160,133 @@ public sealed class ShellPage : Page
             }
         };
 
-        var userTextStack = new StackPanel
-        {
-            VerticalAlignment = VerticalAlignment.Center,
-            Spacing = 2,
-            Children = { userNameText, userRoleText }
-        };
+        var userInfoRow = new Grid()
+            .ColumnSpacing(10)
+            .ColumnDefinitions(
+                new ColumnDefinition().Width(GridLength.Auto),
+                new ColumnDefinition().Width(new GridLength(1, GridUnitType.Star))
+            )
+            .Children(
+                new Border()
+                    .Width(36)
+                    .Height(36)
+                    .CornerRadius(new CornerRadius(18))
+                    .Background(new SolidColorBrush(Color.FromArgb(0xFF, 0xE2, 0xE8, 0xF0)))
+                    .Child(
+                        new TextBlock()
+                            .FontSize(12)
+                            .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
+                            .HorizontalAlignment(HorizontalAlignment.Center)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .Foreground(new SolidColorBrush(StitchTokens.ContentTitle))
+                            .Text(x => x.Binding(() => ViewModel.UserAvatarInitials))
+                    )
+                    .Grid(column: 0),
+                new StackPanel()
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .Spacing(2)
+                    .Children(
+                        new TextBlock()
+                            .FontSize(13)
+                            .FontWeight(Microsoft.UI.Text.FontWeights.Medium)
+                            .Foreground(new SolidColorBrush(StitchTokens.ContentBody))
+                            .Text(x => x.Binding(() => ViewModel.UserDisplayName)),
+                        new TextBlock()
+                            .FontSize(11)
+                            .Foreground(new SolidColorBrush(StitchTokens.ContentMuted))
+                            .Text(x => x.Binding(() => ViewModel.UserRoleDescription))
+                    )
+                    .Grid(column: 1)
+            );
 
-        // Top row: Avatar + Name & Role
-        var userInfoRow = new Grid
-        {
-            ColumnSpacing = 10,
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = GridLength.Auto },
-                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
-            }
-        };
-        Grid.SetColumn(avatarBorder, 0);
-        Grid.SetColumn(userTextStack, 1);
-        userInfoRow.Children.Add(avatarBorder);
-        userInfoRow.Children.Add(userTextStack);
-
-        // Container Stack: Dòng thông tin người dùng ở trên, nút Đăng xuất full-width ở hàng dưới
-        var paneFooterContainer = new StackPanel
-        {
-            Spacing = 4,
-            Children = { userInfoRow, logoutButton }
-        };
-
-        ShellNavigationView.PaneFooter = new Border
-        {
-            BorderBrush = new SolidColorBrush(StitchTokens.SurfaceBorder),
-            BorderThickness = new Thickness(0, 1, 0, 0),
-            Padding = new Thickness(14, 12, 14, 12),
-            Child = paneFooterContainer
-        };
-
-        // Listen for session updates
-        ViewModel.PropertyChanged += (s, e) =>
-        {
-            if (e.PropertyName == nameof(ViewModel.UserDisplayName))
-                userNameText.Text = ViewModel.UserDisplayName;
-            if (e.PropertyName == nameof(ViewModel.UserRoleDescription))
-                userRoleText.Text = ViewModel.UserRoleDescription;
-            if (e.PropertyName == nameof(ViewModel.UserAvatarInitials))
-                ((TextBlock)avatarBorder.Child).Text = ViewModel.UserAvatarInitials;
-        };
+        ShellNavigationView.PaneFooter = new Border()
+            .BorderBrush(new SolidColorBrush(StitchTokens.SurfaceBorder))
+            .BorderThickness(new Thickness(0, 1, 0, 0))
+            .Padding(new Thickness(14, 12, 14, 12))
+            .Child(
+                new StackPanel()
+                    .Spacing(4)
+                    .Children(userInfoRow, logoutButton)
+            );
 
         // Main Content Area
-        var titleText = new TextBlock
-        {
-            Text = ViewModel.CurrentTitle,
-            FontSize = 20,
-            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-            Foreground = new SolidColorBrush(StitchTokens.ContentTitle)
-        };
-
-        var subtitleText = new TextBlock
-        {
-            Text = "Không gian quản trị TechStore",
-            FontSize = 12,
-            Foreground = new SolidColorBrush(StitchTokens.ContentMuted)
-        };
-
-        ViewModel.PropertyChanged += (s, e) =>
-        {
-            if (e.PropertyName == nameof(ViewModel.CurrentTitle))
-                titleText.Text = ViewModel.CurrentTitle;
-        };
-
-        var headerTitleStack = new StackPanel
-        {
-            Spacing = 3,
-            Children = { titleText, subtitleText }
-        };
-
-        var badgeBorder = new Border
-        {
-            VerticalAlignment = VerticalAlignment.Center,
-            CornerRadius = new CornerRadius(16),
-            Padding = new Thickness(12, 6, 12, 6),
-            Background = new SolidColorBrush(Color.FromArgb(0xFF, 0xFE, 0xF3, 0xC7)),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0xFF, 0xFB, 0xBF, 0x24)),
-            BorderThickness = new Thickness(1),
-            Child = new TextBlock
-            {
-                Text = "BẢN PHÁT TRIỂN · TECHSTORE",
-                FontSize = 11,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                Foreground = new SolidColorBrush(Color.FromArgb(0xFF, 0x92, 0x40, 0x0E))
-            }
-        };
-
-        var topHeaderGrid = new Grid
-        {
-            ColumnSpacing = 16,
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
-                new ColumnDefinition { Width = GridLength.Auto }
-            }
-        };
-        Grid.SetColumn(headerTitleStack, 0);
-        Grid.SetColumn(badgeBorder, 1);
-        topHeaderGrid.Children.Add(headerTitleStack);
-        topHeaderGrid.Children.Add(badgeBorder);
-
-        var errorText = new TextBlock
-        {
-            FontSize = 12,
-            Foreground = new SolidColorBrush(StitchTokens.ErrorRed),
-            Visibility = Visibility.Collapsed
-        };
+        var errorText = new TextBlock()
+            .FontSize(12)
+            .Foreground(new SolidColorBrush(StitchTokens.ErrorRed))
+            .Text(x => x.Binding(() => ViewModel.NavigationError))
+            .Visibility(x => x.Binding(() => ViewModel.HasNavigationError).Convert((bool hasErr) => hasErr ? Visibility.Visible : Visibility.Collapsed));
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetLiveSetting(errorText, AutomationLiveSetting.Polite);
 
-        ViewModel.PropertyChanged += (s, e) =>
-        {
-            if (e.PropertyName is nameof(ViewModel.NavigationError) or nameof(ViewModel.HasNavigationError))
-            {
-                errorText.Text = ViewModel.NavigationError;
-                errorText.Visibility = ViewModel.HasNavigationError ? Visibility.Visible : Visibility.Collapsed;
-            }
-        };
+        var topStack = new StackPanel()
+            .Spacing(8)
+            .Children(
+                new Grid()
+                    .ColumnSpacing(16)
+                    .ColumnDefinitions(
+                        new ColumnDefinition().Width(new GridLength(1, GridUnitType.Star)),
+                        new ColumnDefinition().Width(GridLength.Auto)
+                    )
+                    .Children(
+                        new StackPanel()
+                            .Spacing(3)
+                            .Children(
+                                new TextBlock()
+                                    .FontSize(20)
+                                    .FontWeight(Microsoft.UI.Text.FontWeights.Bold)
+                                    .Foreground(new SolidColorBrush(StitchTokens.ContentTitle))
+                                    .Text(x => x.Binding(() => ViewModel.CurrentTitle)),
+                                new TextBlock()
+                                    .Text("Không gian quản trị TechStore")
+                                    .FontSize(12)
+                                    .Foreground(new SolidColorBrush(StitchTokens.ContentMuted))
+                            )
+                            .Grid(column: 0),
+                        new Border()
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .CornerRadius(new CornerRadius(16))
+                            .Padding(new Thickness(12, 6, 12, 6))
+                            .Background(new SolidColorBrush(Color.FromArgb(0xFF, 0xFE, 0xF3, 0xC7)))
+                            .BorderBrush(new SolidColorBrush(Color.FromArgb(0xFF, 0xFB, 0xBF, 0x24)))
+                            .BorderThickness(new Thickness(1))
+                            .Child(
+                                new TextBlock()
+                                    .Text("BẢN PHÁT TRIỂN · TECHSTORE")
+                                    .FontSize(11)
+                                    .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
+                                    .Foreground(new SolidColorBrush(Color.FromArgb(0xFF, 0x92, 0x40, 0x0E)))
+                            )
+                            .Grid(column: 1)
+                    ),
+                errorText
+            );
 
-        var topStack = new StackPanel
-        {
-            Spacing = 8,
-            Children = { topHeaderGrid, errorText }
-        };
-
-        PageHost = new ContentControl
-        {
-            IsTabStop = true,
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch
-        };
+        PageHost = new ContentControl()
+            .IsTabStop(true)
+            .HorizontalContentAlignment(HorizontalAlignment.Stretch)
+            .VerticalContentAlignment(VerticalAlignment.Stretch);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(PageHost, "Nội dung trang");
 
-        var mainContentGrid = new Grid
-        {
-            Padding = new Thickness(24, 16, 24, 16),
-            RowSpacing = 12,
-            RowDefinitions =
-            {
-                new RowDefinition { Height = GridLength.Auto },
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }
-            }
-        };
-        Grid.SetRow(topStack, 0);
-        Grid.SetRow(PageHost, 1);
-        mainContentGrid.Children.Add(topStack);
-        mainContentGrid.Children.Add(PageHost);
+        ShellNavigationView.Content = new Grid()
+            .Padding(new Thickness(24, 16, 24, 16))
+            .RowSpacing(12)
+            .RowDefinitions(
+                new RowDefinition().Height(GridLength.Auto),
+                new RowDefinition().Height(new GridLength(1, GridUnitType.Star))
+            )
+            .Children(
+                topStack.Grid(row: 0),
+                PageHost.Grid(row: 1)
+            );
 
-        ShellNavigationView.Content = mainContentGrid;
-        Content = ShellNavigationView;
+        this.Content(ShellNavigationView);
     }
 
     private static NavigationViewItem CreateNavItem(string content, string tag, Symbol symbol)
     {
-        var item = new NavigationViewItem
-        {
-            Content = content,
-            Tag = tag,
-            Icon = new SymbolIcon(symbol)
-        };
+        var item = new NavigationViewItem()
+            .Content(content)
+            .Icon(new SymbolIcon(symbol));
+        item.Tag = tag;
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(item, content);
         return item;
     }

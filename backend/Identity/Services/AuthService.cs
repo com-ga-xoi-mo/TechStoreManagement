@@ -3,12 +3,12 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Identity.Configurations;
 using TechStore.Api.Identity.Entities;
+using TechStore.Api.Identity.Repositories;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
@@ -17,23 +17,26 @@ namespace TechStore.Api.Identity.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly AppDbContext _dbContext;
+    private readonly IUserRepository _userRepository;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly JwtOptions _jwtOptions;
     private readonly PasswordHasher<User> _passwordHasher;
     private readonly TimeProvider _timeProvider;
 
     public AuthService(
-        AppDbContext dbContext,
+        IUserRepository userRepository,
+        IRefreshTokenRepository refreshTokenRepository,
         IUnitOfWork unitOfWork,
         IOptions<JwtOptions> jwtOptions,
         TimeProvider timeProvider)
     {
-        _dbContext = dbContext;
-        _unitOfWork = unitOfWork;
-        _jwtOptions = jwtOptions.Value;
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _refreshTokenRepository = refreshTokenRepository ?? throw new ArgumentNullException(nameof(refreshTokenRepository));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _jwtOptions = jwtOptions?.Value ?? throw new ArgumentNullException(nameof(jwtOptions));
         _passwordHasher = new PasswordHasher<User>();
-        _timeProvider = timeProvider;
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public async Task<LoginResponseDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -45,10 +48,7 @@ public class AuthService : IAuthService
 
         var normalizedUsername = request.Username.Trim().ToLowerInvariant();
 
-        var user = await _dbContext.Users
-            .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Username.ToLower() == normalizedUsername, cancellationToken);
+        var user = await _userRepository.GetByNormalizedUsernameAsync(normalizedUsername, cancellationToken);
 
         if (user == null || !user.IsActive)
         {
@@ -102,7 +102,7 @@ public class AuthService : IAuthService
             CreatedAt = now
         };
 
-        _dbContext.RefreshTokens.Add(refreshTokenEntity);
+        _refreshTokenRepository.Add(refreshTokenEntity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new LoginResponseDto
@@ -127,11 +127,7 @@ public class AuthService : IAuthService
 
     public async Task<UserProfileDto?> GetProfileAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var user = await _dbContext.Users
-            .AsNoTracking()
-            .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        var user = await _userRepository.GetByIdWithRolesAsync(userId, cancellationToken);
 
         if (user == null || !user.IsActive)
         {
@@ -160,8 +156,7 @@ public class AuthService : IAuthService
         if (!string.IsNullOrWhiteSpace(request.RefreshToken))
         {
             var tokenHash = HashToken(request.RefreshToken);
-            var token = await _dbContext.RefreshTokens
-                .FirstOrDefaultAsync(t => t.UserId == userId && t.TokenHash == tokenHash && !t.IsRevoked, cancellationToken);
+            var token = await _refreshTokenRepository.GetActiveTokenAsync(userId, tokenHash, cancellationToken);
 
             if (token != null)
             {
@@ -172,9 +167,7 @@ public class AuthService : IAuthService
         else
         {
             // If no specific refresh token provided, revoke all active refresh tokens for this user
-            var activeTokens = await _dbContext.RefreshTokens
-                .Where(t => t.UserId == userId && !t.IsRevoked)
-                .ToListAsync(cancellationToken);
+            var activeTokens = await _refreshTokenRepository.GetActiveTokensByUserIdAsync(userId, cancellationToken);
 
             foreach (var token in activeTokens)
             {

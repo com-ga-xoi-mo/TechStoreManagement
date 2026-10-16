@@ -18,7 +18,7 @@ Client SHALL mở Shell với cấu hình hợp lệ khi không bật gallery, k
 - **THEN** Shell vẫn mở offline ở Tổng quan với banner dữ liệu minh họa, không tạo phiên đăng nhập hoặc request Analytics
 
 ### Requirement: Six coherent admin destinations
-Shell SHALL có đúng sáu điểm vào Tổng quan, Sản phẩm, Danh mục và Kho, Đơn hàng, Khách hàng, Cài đặt, được cấu trúc và khởi tạo bằng C# Markup Fluent UI (`NavigationView`). Selected menu, tiêu đề và nội dung SHALL cùng phản ánh route đã chuyển thành công. Đồng thời Pane Footer của Shell SHALL hiển thị trạng thái tài khoản đang đăng nhập (FullName, Role) khi có phiên làm việc hoạt động, hoặc trạng thái "Chưa đăng nhập" khi chưa có phiên. Sản phẩm SHALL mở Catalog đọc thật và chứa route chi tiết theo productId; Tổng quan SHALL thể hiện preview có nhãn khi demo bật, hoặc chưa tích hợp khi tắt; các trang nghiệp vụ chưa triển khai SHALL ghi rõ trạng thái khung thay vì bịa dữ liệu.
+Shell SHALL có đúng sáu điểm vào Tổng quan, Sản phẩm, Danh mục và Kho, Đơn hàng, Khách hàng, Cài đặt, được cấu trúc và khởi tạo bằng C# Markup Fluent API (`Uno.Extensions.Markup.WinUI` trên `NavigationView`). Selected menu, tiêu đề, và nội dung SHALL cùng phản ánh route đã chuyển thành công. Đồng thời Pane Footer của Shell SHALL hiển thị trạng thái tài khoản đang đăng nhập (FullName, Role) và nút Đăng xuất thông qua declarative bindings của C# Markup thay vì manual PropertyChanged handlers. Sản phẩm SHALL mở Catalog đọc thật và chứa route chi tiết theo productId; Tổng quan SHALL thể hiện preview có nhãn khi demo bật, hoặc chưa tích hợp khi tắt; các trang nghiệp vụ chưa triển khai SHALL ghi rõ trạng thái khung thay vì bịa dữ liệu.
 
 #### Scenario: Visit every destination
 - **WHEN** lần lượt chọn sáu điểm vào bằng chuột hoặc keyboard
@@ -83,7 +83,7 @@ Trang SHALL thể hiện Loading, Empty, Content hoặc Error theo kết quả h
 - **THEN** activation mới bắt đầu ở kỳ mặc định; demo bật tải snapshot fixture mới, demo tắt tiếp tục báo chưa tích hợp, không khôi phục state cũ
 
 ### Requirement: Session local settings
-Cài đặt SHALL cho chọn System/Light/Dark, xem thông tin ứng dụng không nhạy cảm, đồng thời cho phép Quản trị viên xem và chỉnh sửa thông tin cấu hình cửa hàng TechStore (tên cửa hàng, địa chỉ, hotline, mã số thuế) thông qua C# Markup với CommunityToolkit SettingsControls. Theme SHALL áp dụng ngay trong Shell/dialog, giữ khi chuyển trang trong phiên và mặc định System ở phiên mới. Thao tác theme không cần backend; các thay đổi cấu hình cửa hàng phát sinh lưu trữ qua API cấu hình.
+Cài đặt SHALL cho chọn System/Light/Dark, xem thông tin ứng dụng không nhạy cảm, đồng thời cho phép Quản trị viên xem và chỉnh sửa thông tin cấu hình cửa hàng TechStore (tên cửa hàng, địa chỉ, hotline, mã số thuế) thông qua Uno C# Markup Fluent API (`Uno.Extensions.Markup`) kết hợp với CommunityToolkit SettingsControls. Toàn bộ form fields, thông báo lưu thành công và nút lưu SHALL sử dụng declarative two-way bindings. Theme SHALL áp dụng ngay trong Shell/dialog, giữ khi chuyển trang trong phiên và mặc định System ở phiên mới. Thao tác theme không cần backend; các thay đổi cấu hình cửa hàng phát sinh lưu trữ qua API cấu hình.
 
 #### Scenario: Theme survives navigation
 - **WHEN** chọn Dark, chuyển Sản phẩm rồi trở lại Cài đặt

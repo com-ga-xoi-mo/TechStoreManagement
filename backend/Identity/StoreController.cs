@@ -4,7 +4,7 @@ using TechStore.Api.Identity.Services;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
-namespace TechStore.Api.Identity.Controllers;
+namespace TechStore.Api.Identity;
 
 [ApiController]
 [Route("api/settings/[controller]")]

@@ -1,6 +1,4 @@
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using TechStore.Api.Common.Data;
 using TechStore.Api.Identity.Entities;
 using TechStore.Api.Identity.Services;
 using TechStore.Shared.Requests;
@@ -10,18 +8,14 @@ namespace TechStore.UnitTests;
 
 public class StoreSettingsTests
 {
-    private (AppDbContext DbContext, FakeUnitOfWork UnitOfWork, StoreSettingsService Service) CreateSut()
+    private (FakeStoreSettingRepository Repository, FakeUnitOfWork UnitOfWork, StoreSettingsService Service) CreateSut()
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        var dbContext = new AppDbContext(options);
-        var unitOfWork = new FakeUnitOfWork(dbContext);
+        var repository = new FakeStoreSettingRepository();
+        var unitOfWork = new FakeUnitOfWork();
         var timeProvider = new FixedTimeProvider(new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero));
-        var service = new StoreSettingsService(dbContext, unitOfWork, timeProvider);
+        var service = new StoreSettingsService(repository, unitOfWork, timeProvider);
 
-        return (dbContext, unitOfWork, service);
+        return (repository, unitOfWork, service);
     }
 
     [Fact]
@@ -45,7 +39,7 @@ public class StoreSettingsTests
     public async Task UpdateSettingsAsync_ValidRequest_PersistsAndReturnsUpdatedSettings()
     {
         // Arrange
-        var (dbContext, unitOfWork, service) = CreateSut();
+        var (repository, unitOfWork, service) = CreateSut();
         var updateRequest = new UpdateStoreSettingsRequest
         {
             StoreName = "TechStore Flagship HCM",
@@ -66,9 +60,9 @@ public class StoreSettingsTests
         result.Phone.Should().Be("0909123456");
         unitOfWork.SaveChangesCount.Should().Be(1);
 
-        var inDb = await dbContext.StoreSettings.FirstOrDefaultAsync();
-        inDb.Should().NotBeNull();
-        inDb!.StoreName.Should().Be("TechStore Flagship HCM");
+        var current = await repository.GetCurrentSettingsAsync();
+        current.Should().NotBeNull();
+        current!.StoreName.Should().Be("TechStore Flagship HCM");
     }
 
     [Theory]

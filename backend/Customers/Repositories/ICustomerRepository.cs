@@ -7,4 +7,9 @@ namespace TechStore.Api.Customers.Repositories;
 public interface ICustomerRepository
 {
     Task<Customer?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Customer?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<Customer> Items, int TotalCount)> SearchAsync(CustomerSearchCriteria criteria, CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<CustomerLoyaltyPoint> Items, int TotalCount)> GetLoyaltyPointsAsync(CustomerLoyaltyPointSearchCriteria criteria, CancellationToken cancellationToken = default);
+    Task<bool> PhoneExistsAsync(string phone, Guid? excludingCustomerId = null, CancellationToken cancellationToken = default);
+    void Add(Customer customer);
 }

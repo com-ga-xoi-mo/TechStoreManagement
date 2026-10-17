@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Uno.Resizetizer;
 using TechStore.Client.Services.Api;
+using TechStore.Client.Styles;
 using TechStore.Client.Services.Session;
 using TechStore.Client.Views.Development;
 using TechStore.Client.Services.Development;
@@ -26,6 +27,9 @@ public partial class App : Application
     public App()
     {
         this.InitializeComponent();
+        // Shared design tokens (colors, typography, metrics, icons, control styles) are defined in C#.
+        // Merge after XamlControlsResources (loaded by InitializeComponent) and before any page exists.
+        AppResources.Register(this);
         InitializeLogging();
     }
 

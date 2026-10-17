@@ -14,7 +14,10 @@
 <TextBlock Text="TechStore / Hệ thống giao diện" Style="{StaticResource TechStoreHeadingTextStyle}" />
 <TextBlock Text="Thư viện giao diện — dữ liệu minh họa" Style="{StaticResource TechStoreCaptionTextStyle}" Foreground="{ThemeResource TechStoreSecondaryTextBrush}" />
 </StackPanel>
-<ComboBox Grid.Column="1" Header="Giao diện" ItemsSource="{x:Bind ViewModel.Themes}" SelectedIndex="{x:Bind ViewModel.ThemeIndex, Mode=TwoWay}" MinWidth="160" Style="{StaticResource TechStoreComboBoxStyle}" AutomationProperties.AutomationId="ThemeSelector" />
+<StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Bottom">
+<Button Content="Mở mẫu C# Markup" Click="OnOpenMarkupReference" Style="{StaticResource TechStoreButtonStyle}" AutomationProperties.AutomationId="OpenMarkupReference" />
+<ComboBox Header="Giao diện" ItemsSource="{x:Bind ViewModel.Themes}" SelectedIndex="{x:Bind ViewModel.ThemeIndex, Mode=TwoWay}" MinWidth="160" Style="{StaticResource TechStoreComboBoxStyle}" AutomationProperties.AutomationId="ThemeSelector" />
+</StackPanel>
 </Grid></Border>
 <ScrollViewer x:Name="GalleryScrollViewer" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch">
 <StackPanel Spacing="16" Padding="0,0,12,12">

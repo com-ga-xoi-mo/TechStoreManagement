@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using TechStore.Client.Services.Development;
 using TechStore.Client.Views.Shell;
 using TechStore.Client.ViewModels.Development;
 namespace TechStore.Client.Views.Development;
@@ -11,12 +12,15 @@ public sealed partial class ComponentGalleryPage : Page
     public ComponentGalleryViewModel ViewModel { get; }
     public ShellDiagnosticViewModel DiagnosticViewModel { get; }
     private readonly ContentDialogPresenter _dialogPresenter;
+    private readonly IMarkupReferenceNavigator? _markupReference;
 
     public ComponentGalleryPage(
         ComponentGalleryViewModel viewModel,
         ShellDiagnosticViewModel diagnosticViewModel,
-        ContentDialogPresenter dialogPresenter)
+        ContentDialogPresenter dialogPresenter,
+        IMarkupReferenceNavigator? markupReference = null)
     {
+        _markupReference = markupReference;
         ViewModel = viewModel;
         DiagnosticViewModel = diagnosticViewModel;
         _dialogPresenter = dialogPresenter;
@@ -39,6 +43,7 @@ public sealed partial class ComponentGalleryPage : Page
         _dialogPresenter.Detach();
         DiagnosticViewModel.Deactivate();
     }
+    private void OnOpenMarkupReference(object sender, RoutedEventArgs args) => _markupReference?.ShowReference();
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName == nameof(ViewModel.ThemeIndex)) ApplyTheme();

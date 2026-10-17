@@ -34,6 +34,13 @@
     <Compile Include="../../frontend/TechStore.Client/ViewModels/**/*.cs" Link="Production/ViewModels/%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Services/Theme/**/*.cs" Link="Production/Services/Theme/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Services/Dialog/**/*.cs" Link="Production/Services/Dialog/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Controls/Presentation/**/*.cs" Link="Production/Controls/Presentation/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Controls/StatusTone.cs" Link="Production/Controls/StatusTone.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Styles/AppColors.cs" Link="Production/Styles/AppColors.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Styles/AppTypography.cs" Link="Production/Styles/AppTypography.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Styles/AppMetrics.cs" Link="Production/Styles/AppMetrics.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Styles/AppIcons.cs" Link="Production/Styles/AppIcons.cs" />
+    <Compile Include="../../frontend/TechStore.Client/Styles/AppControlStyles.cs" Link="Production/Styles/AppControlStyles.cs" />
     <ProjectReference Include="..\..\shared\TechStore.Shared.csproj" />
     <Compile Include="..\..\frontend\TechStore.Client\Services\Api\**\*.cs"
              Link="Production\Services\Api\%(RecursiveDir)%(Filename)%(Extension)" />

@@ -81,6 +81,7 @@ public partial class App : Application
 
             if (_applicationServices.Services.GetRequiredService<GalleryOptions>().Enabled)
             {
+                _applicationServices.Services.GetRequiredService<MarkupReferenceNavigator>().Host = MainWindow;
                 MainWindow.Content = _applicationServices.Services.GetRequiredService<ComponentGalleryPage>();
             }
             else

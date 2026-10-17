@@ -31,7 +31,8 @@ public static class UiServiceCollectionExtensions
 {
     public static IServiceCollection AddFrontendUi(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton(GalleryOptions.FromConfiguration(configuration));
+        var galleryOptions = GalleryOptions.FromConfiguration(configuration);
+        services.AddSingleton(galleryOptions);
         services.AddDashboardAnalytics(DashboardPreviewOptions.FromConfiguration(configuration));
         services.AddSingleton<IWindowLifetime, WindowLifetime>();
         services.AddSingleton<IThemePreferenceService, ThemePreferenceService>();
@@ -69,6 +70,14 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ComponentGalleryViewModel>();
         services.AddTransient<ShellDiagnosticViewModel>();
         services.AddTransient<ComponentGalleryPage>();
+        if (galleryOptions.Enabled)
+        {
+            // The C# Markup reference specimen is reachable only from the gallery.
+            services.AddSingleton<MarkupReferenceNavigator>();
+            services.AddSingleton<IMarkupReferenceNavigator>(provider => provider.GetRequiredService<MarkupReferenceNavigator>());
+            services.AddTransient<MarkupReferenceViewModel>();
+            services.AddTransient<MarkupReferencePage>();
+        }
         services.AddTransient<IProductRepository, ProductRepository>();
         services.AddTransient<ICategoryRepository, CategoryRepository>();
         services.AddTransient<IAuthRepository, AuthRepository>();

@@ -1,0 +1,52 @@
+[HARNESS] Initializing Uno Skia Desktop Probe Host...
+fail: Uno.UI.RemoteControl.RemoteControlClient[0]
+      Some endpoint for uno's dev-server has been configured in your application, but all are invalid (port is missing?). This can usually be fixed with a **rebuild** of your application. If not, make sure you have the latest version of the uno's extensions installed in your IDE and restart your IDE.
+fail: Uno.WinUI.Runtime.Skia.X11.X11NativeOverlappedPresenter[0]
+      Couldn't get OverlappedPresenterState: _NET_WM_STATE does not exist on the window. Make sure you use an EWMH-compliant WM.
+fail: Uno.WinUI.Runtime.Skia.X11.X11NativeOverlappedPresenter[0]
+      Couldn't get OverlappedPresenterState: _NET_WM_STATE does not exist on the window. Make sure you use an EWMH-compliant WM.
+================================================================================
+TECHSTORE C# THEME BINDING RUNTIME PROBE (Uno 6.7.30 / Skia)
+Mode: NEGATIVE CONTROL (--negative, intentional failure)
+Window Content: Loaded=True, ActualTheme=Light, Size=1024x640
+================================================================================
+[Step 1] Registering Minimal C# Theme Dictionaries with distinct probe values...
+[Step 2] Probing Static Resource Lookup...
+[Step 3] Probing R1 (Live Specimens across Light -> Dark -> System) & R2 (System Theme)...
+warn: Microsoft.UI.Xaml.Documents.UnicodeText[0]
+      No implementation of ISpellCheckingService was found. Spell checking will be disabled. To enable spell checking, add the 'SpellChecking' UnoFeature.
+[Step 4] Probing R3 (Mixed Consumers: XAML StatusBadge + C# Consumer with distinct probe keys)...
+[Step 5] Probing R4 (Layout & Dispatch Validation)...
+
+================================================================================
+AGGREGATE PROBE RESULTS
+================================================================================
+[FAIL] C# ResourceDictionary.ThemeDictionaries Direct Lookup
+       API:      Application.Current.Resources["ProbePrimaryBrush"] & ["ProbeTextBrush"]
+       Expected: Primary=#FF0066FF, Text=#FFFF0000
+       Actual:   Primary=#FF0066FF, Text=#FF0F172A
+       Notes:    Direct lookup resolves static snapshot matching current system/app theme (Light).
+[FAIL] R1: Live Specimens Dynamic Adaptation (C# Style Setter on TextBlock, PathIcon, 6 Tones)
+       API:      Style with Setter(TextBlock.ForegroundProperty, ProbeTextBrush) + ThemeResourceAdapter on live specimens across Light -> Dark -> System
+       Expected: Exact palette colors at every theme; Style Setter applied (LocalValue=Unset); non-empty geometry; preserved tone state & control identity
+       Actual:   LightText=#FF0F172A (StyleSetter=#FF0F172A, LocalUnset=True), LightIcon=#FF1D4ED8; DarkText=#FFF8FAFC (StyleSetter=#FFF8FAFC); DarkWarningBg=#FF451A03; GeometryFigures=1; Identity=True
+       Notes:    Matrix verified: StyleSetter across Light/Dark/System; Light tones (Neutral: MISMATCH, Info: MISMATCH, Success: MISMATCH, Warning: MISMATCH, Danger: MISMATCH, Accent: MISMATCH); Dark tones (Neutral: MISMATCH, Info: MISMATCH, Success: MISMATCH, Warning: MISMATCH, Danger: MISMATCH, Accent: MISMATCH). Input state='UserTypingPreserved123'.
+[FAIL] R2: System Theme Resolution & Assertion (RequestedTheme = Default)
+       API:      ancestor.RequestedTheme = Default -> Read ActualTheme (Light) & compare against ExpectedPalette[Light]
+       Expected: Expected for ActualTheme=Light: Text=#FFEEFFAA, Icon=#FFBBCCDD, SuccessBg=#FF998877
+       Actual:   Actual: Text=#FF0F172A, Icon=#FF1D4ED8, SuccessBg=#FFECFDF5
+       Notes:    Asserted strictly against independent expected palette for ActualTheme=Light; non-null alone rejected.
+[FAIL] R3: Mixed Consumers (XAML StatusBadge & C# Consumer) with Distinct Semantic Key
+       API:      Application.Current.Resources.MergedDictionaries with probe-distinct TechStoreInfoFillBrush (#E0EAFF / #0F1D4A)
+       Expected: Light Fill=#FF999999, Dark Fill=#FF888888
+       Actual:   C# Consumer: Light=#FFE0EAFF, Dark=#FF0F1D4A (Pass=False) | XAML StatusBadge: Light=#FFE0EAFF, Dark=#FF0F1D4A (Pass=False)
+       Notes:    Strict conjunction: xamlLight(False) && xamlDark(False) && csharpLight(False) && csharpDark(False). Both consumers resolve and adapt to probe-distinct C# semantic keys across Light and Dark.
+[FAIL] R4: DispatcherQueue.TryEnqueue & Layout Dispatch Validation
+       API:      DispatcherQueue.TryEnqueue(Low, ...) return status verification with finite cancellation token
+       Expected: TryEnqueue=True with active layout completion
+       Actual:   TryEnqueue=True
+       Notes:    Guarantees UI message pump is active and layout dispatcher is responsive.
+================================================================================
+NEGATIVE CONTROL RESULT: SUCCESSFUL CATCH (Failures detected as expected). Exit code 1.
+[CLEANUP] Detaching adapters and restoring resource dictionaries...
+[HARNESS] Probe suite completed with exit code 1.

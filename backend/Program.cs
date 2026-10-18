@@ -5,6 +5,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Catalog.Services;
+using TechStore.Api.Analytics.Repositories;
+using TechStore.Api.Analytics.Services;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Customers.Repositories;
 using TechStore.Api.Identity.Configurations;
@@ -58,6 +60,7 @@ if (!string.IsNullOrEmpty(connectionString))
 
 // Data Seeder registration
 builder.Services.AddScoped<IDataSeeder, DataSeeder>();
+builder.Services.AddScoped<IDemoSeedRepository, DemoSeedRepository>();
 
 // Unit of Work registration
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -88,6 +91,10 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 // Orders Module services
 builder.Services.TryAddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IOrderService, OrderService>();
+
+// Analytics Module
+builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
 // Identity Module repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();

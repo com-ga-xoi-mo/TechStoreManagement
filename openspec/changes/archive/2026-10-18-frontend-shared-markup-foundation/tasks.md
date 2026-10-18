@@ -1,0 +1,11 @@
+# Tasks
+
+Apply change này trọn phạm vi trong một lượt liên tục. Không chia thành nhóm/checkpoint để dừng giữa implementation. Hoàn tất các deliverables implementation trước, sau đó mới chạy verification cuối. Không commit/push.
+
+Branch hiện tại đã fast-forward tới `dev`; resources, controls và một phần gallery đã được tích hợp qua change khác. Đọc source/specs hiện tại, tái sử dụng implementation đạt yêu cầu và chỉ sửa/bổ sung phần thiếu. Không làm lại code đã có chỉ để khớp task wording.
+
+- [x] 1. Đối chiếu toàn bộ requirements với source trên branch hiện tại: resource dictionaries/bootstrap, StitchTokens facade, bốn shared controls, ComponentGalleryPage, MainPage, public keys/types/DPs/commands, theme và consumer compatibility. Ghi mapping hiện trạng/thiếu trong handoff; xác minh inventory cũ còn đúng sau merge dev.
+- [x] 2. Hoàn thành toàn bộ implementation còn thiếu trong phạm vi change: resources và bootstrap; contracts/theme compatibility; controls; ComponentGalleryPage và MainPage; xóa đúng XAML đã thay thế. Giữ ownership Dev 1 và đường startup hiện hành. Không chạy theo các checkpoint trung gian; implementation hoàn tất toàn scope rồi mới chuyển qua verification.
+- [x] 3. Sau khi task 2 hoàn tất, chạy verification cuối: build desktop, Frontend.UnitTests và runtime smoke cần thiết cho theme Light/Dark/System, resource lookup, Style Setter, icon, sáu tones, mixed XAML/C# consumers, commands/control behavior, gallery/MainPage và startup. Bao gồm probe positive/negative/timeout thích hợp. Ghi lệnh, exit code, expected/actual, OS/renderer/viewport và fingerprint gắn với source đã kiểm tra. Windows native chưa chạy ghi unverified, không suy từ Skia.
+- [x] 4. Cập nhật evidence/handoff theo kết quả verification sau implementation; đối chiếu từng requirement/scenario, liệt kê phần pass/fail/unverified và usage/integration notes cho Dev 1–5. Không coi evidence trước khi merge dev là verification của source hiện tại.
+- [x] 5. Owner UI acceptance riêng: owner xác nhận đã kiểm tra implementation trước archive; record ngày 2026-10-18, target Linux x86_64 / Uno Skia X11 (1024x640 DIP), build/source fingerprint như liệt kê trong `evidence.md` mục 6. Windows native vẫn unverified. Không tự suy ra nghiệm thu Windows từ Skia.

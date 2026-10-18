@@ -12,20 +12,20 @@ public sealed class FixtureAnalyticsRepository : IAnalyticsRepository
 
     private static readonly LowStockItem[] LowStock =
     [
-        new("iPhone 15 Pro Max", "256GB Titan", 2, 5),
-        new("MacBook Air M3", "13 inch · 16GB", 1, 4),
-        new("Galaxy S24 Ultra", "512GB Gray", 3, 6),
-        new("iPad Air M2", "11 inch Wi-Fi", 2, 5),
-        new("Asus Zenbook 14 OLED UX3405", "16GB RAM", 1, 3)
+        new("iPhone 15 Pro Max", "256GB Titan", 2, 0, 2, 5),
+        new("MacBook Air M3", "13 inch · 16GB", 1, 0, 1, 4),
+        new("Galaxy S24 Ultra", "512GB Gray", 3, 0, 3, 6),
+        new("iPad Air M2", "11 inch Wi-Fi", 2, 0, 2, 5),
+        new("Asus Zenbook 14 OLED UX3405", "16GB RAM", 1, 0, 1, 3)
     ];
 
     private static readonly RecentOrder[] Recent =
     [
-        new("DEMO-8921", "Nguyễn Văn An", "iPhone 15 Pro Max 256GB Titan Tự Nhiên", "IMEI minh họa", 34_990_000m, OrderStatus.Completed, At(14, 10, 42)),
-        new("DEMO-8920", "Trần Thị Mai", "MacBook Air M3 13 inch 16GB / 512GB", null, 32_490_000m, OrderStatus.Processing, At(14, 9, 18)),
-        new("DEMO-8919", "Lê Hoàng Long", "Samsung Galaxy S24 Ultra 512GB", "IMEI minh họa", 29_990_000m, OrderStatus.Pending, At(13, 17, 5)),
-        new("DEMO-8918", "Phạm Minh Đức", "Asus Zenbook 14 OLED UX3405", null, 26_890_000m, OrderStatus.Completed, At(12, 15, 31)),
-        new("DEMO-8917", "Vũ Quỳnh Trang", "Tai nghe AirPods Pro 2 USB-C", null, 5_890_000m, OrderStatus.Completed, At(11, 11, 12))
+        new("DEMO-8921", "Nguyễn Văn An", "iPhone 15 Pro Max 256GB Titan Tự Nhiên", 34_990_000m, OrderStatus.Completed, At(14, 10, 42)),
+        new("DEMO-8920", "Trần Thị Mai", "MacBook Air M3 13 inch 16GB / 512GB", 32_490_000m, OrderStatus.Processing, At(14, 9, 18)),
+        new("DEMO-8919", "Lê Hoàng Long", "Samsung Galaxy S24 Ultra 512GB", 29_990_000m, OrderStatus.Pending, At(13, 17, 5)),
+        new("DEMO-8918", "Phạm Minh Đức", "Asus Zenbook 14 OLED UX3405", 26_890_000m, OrderStatus.Completed, At(12, 15, 31)),
+        new("DEMO-8917", "Vũ Quỳnh Trang", "Tai nghe AirPods Pro 2 USB-C", 5_890_000m, OrderStatus.Completed, At(11, 11, 12))
     ];
 
     public Task<DashboardReadResult> GetDashboardAsync(
@@ -67,7 +67,7 @@ public sealed class FixtureAnalyticsRepository : IAnalyticsRepository
             start,
             end,
             asOf,
-            DashboardSourceKind.Demo,
+            DashboardSourceKind.Preview,
             summary,
             Array.AsReadOnly(dailyRevenue),
             Array.AsReadOnly(LowStock.ToArray()),

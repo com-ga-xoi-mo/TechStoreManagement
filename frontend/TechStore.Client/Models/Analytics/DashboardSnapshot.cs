@@ -13,7 +13,8 @@ public sealed record DashboardSnapshot(
 
 public enum DashboardSourceKind
 {
-    Demo
+    Preview,
+    Live
 }
 
 public sealed record DashboardSummary(
@@ -28,15 +29,16 @@ public sealed record DailyRevenuePoint(DateOnly Date, decimal Revenue);
 
 public sealed record LowStockItem(
     string ProductName,
-    string VariantDescription,
+    string? VariantName,
+    int Quantity,
+    int ReservedQuantity,
     int AvailableQuantity,
-    int ReorderThreshold);
+    int MinStockAlert);
 
 public sealed record RecentOrder(
-    string DemoDisplayId,
-    string CustomerDisplayName,
+    string OrderCode,
+    string? CustomerName,
     string ProductSummary,
-    string? SerialLabel,
     decimal Total,
     Shared.Enums.OrderStatus Status,
     DateTimeOffset CreatedAt);

@@ -1,84 +1,67 @@
 using FluentAssertions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Common.Data;
-using TechStore.Api.Identity.Entities;
-using TechStore.Shared.Enums;
 using Xunit;
 
 namespace TechStore.UnitTests;
 
 public class DataSeederTests
 {
-    private AppDbContext CreateDbContext()
+    [Fact]
+    public async Task SeedAsync_Should_LockReconcileSaveAndCommitWithinOneUnitOfWork()
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql("Host=localhost;Port=5432;Database=techstore_db;Username=techstore_user;Password=TechStorePassword123!")
-            .Options;
-        return new AppDbContext(options);
+        // Arrange
+        var repository = new FakeDemoSeedRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var seeder = new DataSeeder(repository, unitOfWork);
+
+        // Act
+        await seeder.SeedAsync();
+
+        // Assert
+        repository.LockCount.Should().Be(1);
+        repository.ReconcileCount.Should().Be(1);
+        unitOfWork.BeginTransactionCount.Should().Be(1);
+        unitOfWork.SaveChangesCount.Should().Be(1);
+        unitOfWork.CommitCount.Should().Be(1);
+        unitOfWork.RollbackCount.Should().Be(0);
     }
 
     [Fact]
-    public async Task DataSeeder_Should_Seed_Data_And_Be_Idempotent()
+    public async Task SeedAsync_WhenNaturalKeyConflictOccurs_ShouldRollback()
     {
-        await using var dbContext = CreateDbContext();
-        try
+        // Arrange
+        var repository = new FakeDemoSeedRepository { ExceptionToThrow = new InvalidOperationException("natural key conflict") };
+        var unitOfWork = new FakeUnitOfWork();
+        var seeder = new DataSeeder(repository, unitOfWork);
+
+        // Act
+        var action = () => seeder.SeedAsync();
+
+        // Assert
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("natural key conflict");
+        unitOfWork.BeginTransactionCount.Should().Be(1);
+        unitOfWork.SaveChangesCount.Should().Be(0);
+        unitOfWork.CommitCount.Should().Be(0);
+        unitOfWork.RollbackCount.Should().Be(1);
+    }
+
+    private sealed class FakeDemoSeedRepository : IDemoSeedRepository
+    {
+        public int LockCount { get; private set; }
+        public int ReconcileCount { get; private set; }
+        public Exception? ExceptionToThrow { get; init; }
+
+        public Task AcquireSeedLockAsync(CancellationToken cancellationToken)
         {
-            if (!await dbContext.Database.CanConnectAsync())
-            {
-                // PostgreSQL database container is not running; skip live DB test
-                return;
-            }
+            LockCount++;
+            return Task.CompletedTask;
         }
-        catch
+
+        public Task ReconcileAsync(CancellationToken cancellationToken)
         {
-            // Database not reachable in local environment
-            return;
+            ReconcileCount++;
+            if (ExceptionToThrow is not null) throw ExceptionToThrow;
+            return Task.CompletedTask;
         }
-
-        var seeder = new DataSeeder(dbContext);
-
-        // Act 1: Run seeding
-        await seeder.SeedAsync();
-
-        // Assert: Roles exist
-        var rolesCount = await dbContext.Roles.CountAsync();
-        rolesCount.Should().Be(4);
-
-        // Assert: Admin user exists with correct password
-        var admin = await dbContext.Users.FirstOrDefaultAsync(u => u.Username == "admin");
-        admin.Should().NotBeNull();
-        admin!.Id.Should().Be(Guid.Parse("11111111-1111-1111-1111-111111111111"));
-        admin.Email.Should().Be("admin@techstore.vn");
-        var hasher = new PasswordHasher<User>();
-        var verifyResult = hasher.VerifyHashedPassword(admin, admin.PasswordHash, "Admin@123");
-        verifyResult.Should().Be(PasswordVerificationResult.Success);
-        // Assert: Categories & Products
-        var categoriesCount = await dbContext.Categories.CountAsync();
-        categoriesCount.Should().BeGreaterThanOrEqualTo(2);
-
-        var productsCount = await dbContext.Products.CountAsync();
-        productsCount.Should().BeGreaterThanOrEqualTo(5);
-
-        // Assert: Customers & Vouchers
-        var customersCount = await dbContext.Customers.CountAsync();
-        customersCount.Should().BeGreaterThanOrEqualTo(2);
-
-        var vouchersCount = await dbContext.Vouchers.CountAsync();
-        vouchersCount.Should().BeGreaterThanOrEqualTo(1);
-
-        // Assert: Orders
-        var ordersCount = await dbContext.Orders.CountAsync();
-        ordersCount.Should().BeGreaterThanOrEqualTo(2);
-
-        // Act 2: Idempotency check - run seeding again
-        await seeder.SeedAsync();
-
-        // Assert: Counts remain identical
-        var rolesCountAfter = await dbContext.Roles.CountAsync();
-        rolesCountAfter.Should().Be(rolesCount);
-
-        var productsCountAfter = await dbContext.Products.CountAsync();
-        productsCountAfter.Should().Be(productsCount);
     }
 }

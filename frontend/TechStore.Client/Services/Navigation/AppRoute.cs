@@ -6,7 +6,8 @@ public enum AppRouteKind
 {
     Root,
     ProductList,
-    ProductDetail
+    ProductDetail,
+    OrderCreate
 }
 
 /// <summary>Value-only route state. It deliberately carries no page, ViewModel, service, or scope.</summary>
@@ -20,14 +21,16 @@ public sealed class AppRoute : IEquatable<AppRoute>
         Guid? focusProductId = null)
     {
         if (!Enum.IsDefined(destination)) throw new ArgumentOutOfRangeException(nameof(destination));
-        if (kind != AppRouteKind.Root && destination != ShellDestination.Products)
+        if (kind is AppRouteKind.ProductList or AppRouteKind.ProductDetail && destination != ShellDestination.Products)
             throw new ArgumentException("Catalog routes must stay under the Products Shell destination.", nameof(destination));
+        if (kind == AppRouteKind.OrderCreate && destination != ShellDestination.Orders)
+            throw new ArgumentException("The order create route must stay under the Orders Shell destination.", nameof(destination));
         if (kind == AppRouteKind.ProductDetail && (!productId.HasValue || productId.Value == Guid.Empty))
             throw new ArgumentException("A product detail route requires a non-empty product id.", nameof(productId));
         if (kind != AppRouteKind.ProductDetail && productId is not null)
             throw new ArgumentException("Only product detail routes can carry a product id.", nameof(productId));
-        if (kind == AppRouteKind.Root && (returnQuery is not null || focusProductId is not null))
-            throw new ArgumentException("Root routes cannot carry Catalog return context.");
+        if (kind is AppRouteKind.Root or AppRouteKind.OrderCreate && (returnQuery is not null || focusProductId is not null))
+            throw new ArgumentException("Root and order routes cannot carry Catalog return context.");
         if (returnQuery is not null && returnQuery.Specs is null)
             throw new ArgumentException("The Catalog return query must contain a spec collection.", nameof(returnQuery));
 
@@ -49,6 +52,7 @@ public sealed class AppRoute : IEquatable<AppRoute>
     public static AppRoute Root(ShellDestination destination) => new(destination, AppRouteKind.Root);
     public static AppRoute Products(ProductQuery? returnQuery = null, Guid? focusProductId = null) =>
         new(ShellDestination.Products, AppRouteKind.ProductList, returnQuery: returnQuery, focusProductId: focusProductId);
+    public static AppRoute OrderCreate() => new(ShellDestination.Orders, AppRouteKind.OrderCreate);
     public static AppRoute ProductDetail(Guid productId, ProductQuery? returnQuery = null, Guid? focusProductId = null) =>
         new(ShellDestination.Products, AppRouteKind.ProductDetail, productId, returnQuery, focusProductId);
 

@@ -47,6 +47,18 @@ public static class OrderPresentation
     public static string FormatMoney(decimal amount) =>
         amount.ToString("#,##0.##", Vietnamese) + " ₫";
 
+    /// <summary>Local wall-clock time as <c>20/10/2026 15:30</c>; the API sends UTC.</summary>
+    public static string FormatDateTime(DateTime value)
+    {
+        var local = value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(value, DateTimeKind.Utc).ToLocalTime()
+            : value.ToLocalTime();
+        return local.ToString("dd/MM/yyyy HH:mm", Vietnamese);
+    }
+
+    public static string FormatOptionalDateTime(DateTime? value) =>
+        value.HasValue ? FormatDateTime(value.Value) : "—";
+
     public static string CustomerDisplay(string? customerName) =>
         string.IsNullOrWhiteSpace(customerName) ? WalkInCustomer : customerName.Trim();
 }

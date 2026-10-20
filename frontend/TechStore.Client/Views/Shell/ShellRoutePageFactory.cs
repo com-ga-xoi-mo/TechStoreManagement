@@ -36,6 +36,8 @@ public sealed class ShellRoutePageFactory(
                 listPage.SetRoute(route.ReturnQuery, route.FocusProductId);
             if (page is ProductDetailPage detailPage)
                 detailPage.SetRoute(route.ProductId!.Value, route.ReturnQuery, route.FocusProductId);
+            if (page is ProductEditorPage editorPage)
+                editorPage.SetRoute(route.Kind == AppRouteKind.ProductEdit ? route.ProductId : null, route.ReturnQuery);
 
             var lease = routePage.ViewModel.CreateActivationLease(
                 scope.DisposeAsync,
@@ -64,6 +66,8 @@ public sealed class ShellRoutePageFactory(
 
         // Routes that are not a Shell root are only reached by navigation, so resolve them here too.
         using var orderCreate = Create(AppRoute.OrderCreate());
+        using var productCreate = Create(AppRoute.ProductCreate());
+        using var productEdit = Create(AppRoute.ProductEdit(Guid.NewGuid()));
     }
 
     private static Page ResolvePage(AppRoute route, IServiceProvider services) => route.Kind switch
@@ -72,6 +76,7 @@ public sealed class ShellRoutePageFactory(
         AppRouteKind.ProductList => services.GetRequiredService<ProductListPage>(),
         AppRouteKind.ProductDetail => services.GetRequiredService<ProductDetailPage>(),
         AppRouteKind.OrderCreate => services.GetRequiredService<OrderCreatePage>(),
+        AppRouteKind.ProductCreate or AppRouteKind.ProductEdit => services.GetRequiredService<ProductEditorPage>(),
         _ => throw new ArgumentOutOfRangeException(nameof(route), route.Kind, "Unknown route kind.")
     };
 

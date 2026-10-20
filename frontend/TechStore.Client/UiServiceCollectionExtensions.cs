@@ -53,6 +53,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<ProductListViewModel>();
         services.AddTransient<ProductDetailViewModel>();
+        services.AddTransient<ProductEditorViewModel>();
         services.AddTransient<InventoryViewModel>();
         services.AddTransient<OrderListViewModel>();
         services.AddTransient<OrderCreateViewModel>();
@@ -63,6 +64,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<DashboardPage>();
         services.AddTransient<ProductListPage>();
         services.AddTransient<ProductDetailPage>();
+        services.AddTransient<ProductEditorPage>();
         services.AddTransient<InventoryPage>();
         services.AddTransient<OrderListPage>();
         services.AddTransient<OrderCreatePage>();

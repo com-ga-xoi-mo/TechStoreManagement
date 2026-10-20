@@ -365,7 +365,7 @@ public sealed class ProductListPage : Page, IRoutePage
         var imageGrid = CatalogViewParts.ProductImage(x => x.Binding(() => product.ImageUrl), _apiBase, 34);
 
         var nameBlock = new TextBlock()
-            .Text(product.Name)
+            .Text(x => x.Binding(() => product.Name))
             .Style(AppResources.GetStyle(AppTypography.SectionText))
             .Foreground(AppColors.Brushes.Text)
             .MaxLines(2)
@@ -373,30 +373,30 @@ public sealed class ProductListPage : Page, IRoutePage
         AutomationProperties.SetName(nameBlock, "Tên sản phẩm");
 
         var skuBrandBlock = new TextBlock()
-            .Text($"{product.Sku} · {product.Brand}")
+            .Text(x => x.Binding(() => product).Convert((ProductSummary p) => p is null ? string.Empty : $"{p.Sku} · {p.Brand}"))
             .Style(AppResources.GetStyle(AppTypography.CaptionText))
             .Foreground(AppColors.Brushes.SecondaryText)
             .TextWrapping(TextWrapping.Wrap);
 
         var categoryBlock = new TextBlock()
-            .Text(product.CategoryName)
+            .Text(x => x.Binding(() => product.CategoryName))
             .Style(AppResources.GetStyle(AppTypography.CaptionText))
             .Foreground(AppColors.Brushes.SecondaryText)
             .MaxLines(1)
             .TextTrimming(TextTrimming.CharacterEllipsis);
 
         var statusBadge = new StatusBadge()
-            .Label(CatalogPresentation.ActiveLabel(product.IsActive))
-            .Tone(CatalogPresentation.ActiveTone(product.IsActive));
+            .Label(x => x.Binding(() => product.IsActive).Convert((bool a) => CatalogPresentation.ActiveLabel(a)))
+            .Tone(x => x.Binding(() => product.IsActive).Convert((bool a) => CatalogPresentation.ActiveTone(a)));
 
         var variantCountBlock = new TextBlock()
-            .Text(CatalogPresentation.VariantCountLabel(product.VariantCount))
+            .Text(x => x.Binding(() => product.VariantCount).Convert((int count) => CatalogPresentation.VariantCountLabel(count)))
             .Style(AppResources.GetStyle(AppTypography.CaptionText))
             .Foreground(AppColors.Brushes.SecondaryText)
             .VerticalAlignment(VerticalAlignment.Center);
 
         var priceRangeBlock = new TextBlock()
-            .Text(CatalogPresentation.PriceRange(product.PriceFrom, product.PriceTo))
+            .Text(x => x.Binding(() => product).Convert((ProductSummary p) => p is null ? string.Empty : CatalogPresentation.PriceRange(p.PriceFrom, p.PriceTo)))
             .Style(AppResources.GetStyle(AppTypography.SectionText))
             .Foreground(AppColors.Brushes.Text);
 
@@ -435,10 +435,10 @@ public sealed class ProductListPage : Page, IRoutePage
             .HorizontalContentAlignment(HorizontalAlignment.Stretch)
             .VerticalContentAlignment(VerticalAlignment.Stretch)
             .Command(ViewModel.OpenProductCommand)
-            .CommandParameter(product)
+            .CommandParameter(x => x.Binding(() => product))
             .Content(border);
         button.Background = null;
-        AutomationProperties.SetName(button, product.Name);
+        AutomationProperties.SetName(button, "Thẻ sản phẩm");
         return button;
     }
 

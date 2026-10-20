@@ -352,7 +352,8 @@ public sealed class OrderCreatePage : Page, IRoutePage
                                     .Children(
                                         Caption("Tạm tính"),
                                         new TextBlock()
-                                            .Style(AppTypography.Styles.MetricText)
+                                            .Style(AppResources.GetStyle(AppTypography.MetricText))
+                                            .Foreground(AppColors.Brushes.Text)
                                             .Text(x => x.Binding(() => ViewModel.EstimatedTotalText)))),
                         new TextBlock()
                             .Style(AppControlStyles.Styles.FieldError)

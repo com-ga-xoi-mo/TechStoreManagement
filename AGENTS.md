@@ -55,7 +55,7 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 ### 3. Data Flow
 1. **User Interaction**: UI triggers a bound command (C# Markup `.Command(x => x.Binding(() => ViewModel.XCommand))`, or `{x:Bind}` on the pages not yet converted) on a ViewModel in `frontend/TechStore.Client/ViewModels/<Module>/`.
 2. **ViewModel Execution**: The ViewModel executes a command decorated with `[RelayCommand]`, coordinates loading/error/content state via `PageViewModel` (`PageContentState`), and invokes a client repository in `frontend/TechStore.Client/Repositories/`.
-3. **Client Repository & HTTP Transport**: The client repository converts request parameters into query URIs, calls `IApiClient` / `ApiClient` (`GetAsync`, `PostAsync`, `PutAsync`, `PatchAsync`; backed by `HttpClient` configured with `BearerTokenHandler`), and maps response DTOs to client domain models (`frontend/TechStore.Client/Models/`).
+3. **Client Repository & HTTP Transport**: The client repository converts request parameters into query URIs, calls `IApiClient` / `ApiClient` (`GetAsync`, `PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync`; backed by `HttpClient` configured with `BearerTokenHandler`), and maps response DTOs to client domain models (`frontend/TechStore.Client/Models/`).
 4. **API Routing & RBAC**: The request reaches an `[ApiController]`, passes through JWT authentication and role authorization checks, then calls the corresponding domain service interface (controllers never call repositories directly).
 5. **Business Logic & Concurrency**: The domain service validates input and applies business rules. When the use case locks rows or performs multi-step writes, it initiates a transaction via `IUnitOfWork.BeginTransactionAsync`.
 6. **Data Access**: The service invokes repository interfaces (`backend/<Module>/Repositories/`). Repositories are the only classes that interact with `AppDbContext`: they query (using `AsNoTracking` for reads), acquire row locks (`SELECT ... FOR UPDATE`), and stage entity additions or removals, but never save.
@@ -85,7 +85,7 @@ SalesManagement/
 │   ├── Directory.Packages.props   # Central Package Management package definitions
 │   └── TechStore.Client/          # Uno Platform multi-targeted client project
 │       ├── App.xaml / App.xaml.cs # DI bootstrap (AddFrontendFoundation, AddFrontendUi) and window lifecycle
-│       ├── Views/                 # UI pages: C# Markup (Identity, Settings, Shell, Development/MarkupReferencePage) and legacy XAML (Catalog, Customers, Dashboard, Inventory, Orders, Development/ComponentGalleryPage, MainPage)
+│       ├── Views/                 # UI pages: C# Markup (Catalog, Identity, Settings, Shell, Development/MarkupReferencePage) and legacy XAML (Customers, Dashboard, Inventory, Orders, Development/ComponentGalleryPage, MainPage)
 │       ├── ViewModels/            # MVVM ViewModels extending PageViewModel (Catalog, Customers, Dashboard, Inventory, Orders)
 │       ├── Repositories/          # Client data repositories mapping DTOs to client Models (Catalog, Analytics)
 │       ├── Models/                # Client-side presentation models (ProductSummary, ProductDetail, DashboardSnapshot)
@@ -298,7 +298,8 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - `AutoSuggestBox.QuerySubmitted` in `SearchBoxControl` to raise `SearchCommand` (no command exists for submit);
   - returning focus to the text box when "Xóa" is pressed (focus cannot be bound);
   - `PasswordBox` sync in `LoginPage` via `PasswordChanged` (and `ViewModel.PropertyChanged` for show/hide), because `PasswordBox.Password` is not a DependencyProperty;
-  - a DependencyProperty changed-callback in a shared control that only computes derived display properties through `Controls/Presentation` helpers.
+  - a DependencyProperty changed-callback in a shared control that only computes derived display properties through `Controls/Presentation` helpers;
+  - focus restore in Catalog pages (`ProductListPage` returns focus to the product card or heading after coming back from detail via `ViewModel.PropertyChanged` on `Snapshot`; `ProductDetailPage`/`ProductEditorPage` focus their heading on `Loaded`), because focus cannot be bound — see `openspec/changes/catalog-product-management-ui/design.md` D8.
   Any new exception must be added to design D2 first.
 - **Theme tokens (`frontend/TechStore.Client/Styles/`):**
   - Values live in C#: `AppColors`, `AppTypography`, `AppMetrics`, `AppIcons`, `AppControlStyles`. Key names are string constants (`AppColors.Canvas == "TechStoreCanvasBrush"`, pure C#, unit-tested). `AppResources.Register(this)` merges them into `Application.Resources` in the `App` constructor, after `XamlControlsResources`. `App.xaml` has no `Styles/*.xaml`.
@@ -322,9 +323,9 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 
   |State|Views|
   |:---|:---|
-  |C# Markup with theme-aware tokens|`MarkupReferencePage`, `OrderListPage`, `OrderCreatePage`, `OrderDetailDialog`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
+  |C# Markup with theme-aware tokens|`MarkupReferencePage`, `OrderListPage`, `OrderCreatePage`, `OrderDetailDialog`, `ProductListPage`, `ProductDetailPage`, `ProductEditorPage`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
   |C# Markup, colors still static (`StitchTokens` / `Color.FromArgb`), light only|`LoginPage`, `ShellPage`, `SettingsPage` (backlog: move to the theme accessors, then delete `StitchTokens`)|
-  |Still XAML|`ProductListPage`, `ProductDetailPage`, `DashboardPage`, `InventoryPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
+  |Still XAML|`DashboardPage`, `InventoryPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
 
 ### 7. Asynchronous Programming Pattern
 - Pure non-blocking `async`/`await` end-to-end.

@@ -373,7 +373,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 - `docs/database/schema.dbml`: Authoritative relational database schema definition.
 
 ### 3. Key Domain & UI Implementations
-- `backend/Catalog/Services/ProductService.cs`: Product creation, SKU validation, JSONB spec parsing/merging, and paged catalog queries.
+- `backend/Catalog/Services/ProductService.cs`: Product creation, update with variant upsert, activation status, unused-product deletion, SKU validation, JSONB spec parsing/merging, and paged catalog queries.
 - `backend/Orders/Services/OrderService.cs`: Order lifecycle state machine, fulfillment reservations, and sale confirmation.
 - `backend/Inventory/Repositories/InventoryStockRepository.cs`: Row-level locked stock queries (`GetForUpdateAsync`).
 - `frontend/TechStore.Client/ViewModels/Pages/PageViewModel.cs`: Base ViewModel providing observable loading states and activation leases.

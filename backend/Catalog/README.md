@@ -16,6 +16,12 @@
 - **Quy tắc SKU & Barcode:**
   - Sản phẩm không có biến thể: bán trực tiếp theo SKU sản phẩm, `variant_id = NULL`.
   - Sản phẩm có biến thể: SKU sản phẩm đóng vai trò mã tra cứu model (lookup code), từng biến thể sở hữu SKU bán lẻ, giá bán riêng (`product_variants.price`) và barcode riêng.
+  - SKU sản phẩm và SKU biến thể đã tạo không được sửa.
+  - Sản phẩm có biến thể không có barcode cấp sản phẩm.
+- **Vòng đời & RBAC:**
+  - Ngừng kinh doanh = `PATCH /api/products/{id}/status`; xóa thật chỉ khi chưa có tồn kho/IMEI/phiếu nhập/đơn hàng.
+  - Không đổi `is_serial_tracked` và không thêm biến thể đầu tiên khi sản phẩm đã được sử dụng.
+  - Ghi sản phẩm yêu cầu role Admin hoặc Manager.
 - **Kiểu dữ liệu:** `base_price` và `cost_price` trên `products`, `price` trên `product_variants` dùng kiểu `numeric(18, 2)`.
 
 ## 3. Cấu trúc Thành phần Module

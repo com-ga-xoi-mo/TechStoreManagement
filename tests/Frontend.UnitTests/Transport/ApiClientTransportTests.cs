@@ -252,6 +252,69 @@ public sealed class ApiClientTransportTests
         Assert.True(content.Disposed);
     }
 
+    [Fact]
+    public async Task PatchAsync_SendsPatchWithJsonBodyAndDeserializesResponse()
+    {
+        // Arrange
+        var handler = new RecordingHttpMessageHandler((_, _) =>
+            Task.FromResult(JsonResponse("{\"id\":9,\"extra\":true}")));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        // Act
+        var result = await api.PatchAsync<CreateRequest, CreateResponse>("orders/1/status", new("Completed"));
+
+        // Assert
+        Assert.Equal(9, result.Id);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Patch, request.Method);
+        Assert.Equal("https://localhost:7207/api/orders/1/status", request.RequestUri?.ToString());
+        Assert.Equal("application/json; charset=utf-8", request.ContentHeaders["Content-Type"].Single());
+        Assert.Equal("{\"name\":\"Completed\"}", request.Body);
+    }
+
+    [Fact]
+    public async Task PatchAsync_MapsConflictProblemDetailsAndDoesNotRetry()
+    {
+        // Arrange
+        const string json = """{"title":"Conflict","detail":"Device is no longer available.","status":409,"errors":{"items[0].serialImeiId":["Device is Sold."]}}""";
+        var handler = new RecordingHttpMessageHandler((_, _) =>
+            Task.FromResult(JsonResponse(json, HttpStatusCode.Conflict)));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        // Act
+        var error = await Assert.ThrowsAsync<ApiException>(
+            () => api.PatchAsync<CreateRequest, CreateResponse>("orders/1/status", new("Completed")));
+
+        // Assert
+        Assert.Equal(ApiErrorKind.Http, error.Kind);
+        Assert.Equal((int)HttpStatusCode.Conflict, error.StatusCode);
+        Assert.Equal("Device is no longer available.", error.Detail);
+        Assert.Equal("Device is Sold.", Assert.Single(error.FieldErrors["items[0].serialImeiId"]));
+        Assert.Single(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData("https://attacker.test/steal")]
+    [InlineData("//attacker.test/steal")]
+    [InlineData("\\\\attacker.test\\steal")]
+    public async Task PatchAsync_RejectsForeignOrAbsoluteRoutesBeforeSending(string path)
+    {
+        // Arrange
+        var handler = new RecordingHttpMessageHandler((_, _) => Task.FromResult(JsonResponse("{}")));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        // Act
+        var error = await Assert.ThrowsAsync<ArgumentException>(
+            () => api.PatchAsync<CreateRequest, CreateResponse>(path, new("Completed")));
+
+        // Assert
+        Assert.Contains("relative", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(handler.Requests);
+    }
+
     private static HttpClient CreateClient(HttpMessageHandler handler) => new(handler)
     {
         Timeout = Timeout.InfiniteTimeSpan

@@ -1,0 +1,602 @@
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using TechStore.Client.Controls.Presentation;
+using TechStore.Client.Models.Catalog;
+using TechStore.Client.Repositories.Catalog;
+using TechStore.Client.Services.Api;
+using TechStore.Client.Services.Dialog;
+using TechStore.Client.Services.Navigation;
+using TechStore.Client.Services.Session;
+using TechStore.Client.ViewModels.Pages;
+
+namespace TechStore.Client.ViewModels.Catalog;
+
+public sealed partial class ProductEditorViewModel : PageViewModel
+{
+    private static readonly Regex VariantErrorRegex = new(@"^variants\[(\d+)\]\.(\w+)$", RegexOptions.Compiled);
+
+    private readonly IProductRepository _products;
+    private readonly IProductCommandRepository _commands;
+    private readonly ICategoryRepository _categories;
+    private readonly INavigationService _navigation;
+    private readonly IDialogService _dialogs;
+    private readonly ISessionStore _sessionStore;
+
+    private ProductQuery? _returnQuery;
+    private ProductDraft? _baseline;
+
+    [ObservableProperty] private bool isEditMode;
+    [ObservableProperty] private bool isNotFound;
+    [ObservableProperty] private bool isSaving;
+    [ObservableProperty] private string generalError = string.Empty;
+    [ObservableProperty] private string pageTitle = "Thêm sản phẩm mới";
+    [ObservableProperty] private bool canManage;
+
+    [ObservableProperty] private Guid? productId;
+    [ObservableProperty] private Guid? selectedCategoryId;
+    [ObservableProperty] private string name = string.Empty;
+    [ObservableProperty] private string sku = string.Empty;
+    [ObservableProperty] private string brand = string.Empty;
+    [ObservableProperty] private string basePriceText = string.Empty;
+    [ObservableProperty] private string costPriceText = string.Empty;
+    [ObservableProperty] private string barcode = string.Empty;
+    [ObservableProperty] private string description = string.Empty;
+    [ObservableProperty] private string imageUrl = string.Empty;
+    [ObservableProperty] private bool isSerialTracked = true;
+    [ObservableProperty] private IReadOnlyList<CategoryOption> categories = [];
+
+    // Margin properties
+    [ObservableProperty] private string marginText = string.Empty;
+    [ObservableProperty] private bool hasMargin;
+    [ObservableProperty] private bool isMarginLoss;
+
+    // Field errors
+    [ObservableProperty] private string? nameError;
+    [ObservableProperty] private string? skuError;
+    [ObservableProperty] private string? brandError;
+    [ObservableProperty] private string? categoryError;
+    [ObservableProperty] private string? basePriceError;
+    [ObservableProperty] private string? costPriceError;
+    [ObservableProperty] private string? barcodeError;
+    [ObservableProperty] private string? descriptionError;
+    [ObservableProperty] private string? imageUrlError;
+    [ObservableProperty] private string? specsError;
+
+    public bool HasNameError => !string.IsNullOrWhiteSpace(NameError);
+    public bool HasSkuError => !string.IsNullOrWhiteSpace(SkuError);
+    public bool HasBrandError => !string.IsNullOrWhiteSpace(BrandError);
+    public bool HasCategoryError => !string.IsNullOrWhiteSpace(CategoryError);
+    public bool HasBasePriceError => !string.IsNullOrWhiteSpace(BasePriceError);
+    public bool HasCostPriceError => !string.IsNullOrWhiteSpace(CostPriceError);
+    public bool HasBarcodeError => !string.IsNullOrWhiteSpace(BarcodeError);
+    public bool HasDescriptionError => !string.IsNullOrWhiteSpace(DescriptionError);
+    public bool HasImageUrlError => !string.IsNullOrWhiteSpace(ImageUrlError);
+    public bool HasSpecsError => !string.IsNullOrWhiteSpace(SpecsError);
+    public bool HasGeneralError => !string.IsNullOrWhiteSpace(GeneralError);
+
+    public bool HasVariants => Variants.Count > 0;
+    public bool IsBarcodeEnabled => !HasVariants;
+
+    public ObservableCollection<SpecRowItem> Specs { get; } = [];
+    public ObservableCollection<VariantRowItem> Variants { get; } = [];
+
+    public bool CanSave => !IsSaving && ContentState == PageContentState.Content && CanManage;
+
+    public ProductEditorViewModel(
+        IProductRepository products,
+        IProductCommandRepository commands,
+        ICategoryRepository categories,
+        INavigationService navigation,
+        IDialogService dialogs,
+        ISessionStore sessionStore)
+    {
+        _products = products ?? throw new ArgumentNullException(nameof(products));
+        _commands = commands ?? throw new ArgumentNullException(nameof(commands));
+        _categories = categories ?? throw new ArgumentNullException(nameof(categories));
+        _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
+        _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
+        _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+
+        _sessionStore.SessionChanged += OnSessionChanged;
+        CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
+
+        Variants.CollectionChanged += OnVariantsCollectionChanged;
+    }
+
+    protected override bool ManagesLoadState => true;
+
+    private void OnVariantsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (HasVariants)
+        {
+            Barcode = string.Empty;
+        }
+        OnPropertyChanged(nameof(HasVariants));
+        OnPropertyChanged(nameof(IsBarcodeEnabled));
+    }
+
+    partial void OnNameErrorChanged(string? value) => OnPropertyChanged(nameof(HasNameError));
+    partial void OnSkuErrorChanged(string? value) => OnPropertyChanged(nameof(HasSkuError));
+    partial void OnBrandErrorChanged(string? value) => OnPropertyChanged(nameof(HasBrandError));
+    partial void OnCategoryErrorChanged(string? value) => OnPropertyChanged(nameof(HasCategoryError));
+    partial void OnBasePriceErrorChanged(string? value) => OnPropertyChanged(nameof(HasBasePriceError));
+    partial void OnCostPriceErrorChanged(string? value) => OnPropertyChanged(nameof(HasCostPriceError));
+    partial void OnBarcodeErrorChanged(string? value) => OnPropertyChanged(nameof(HasBarcodeError));
+    partial void OnDescriptionErrorChanged(string? value) => OnPropertyChanged(nameof(HasDescriptionError));
+    partial void OnImageUrlErrorChanged(string? value) => OnPropertyChanged(nameof(HasImageUrlError));
+    partial void OnSpecsErrorChanged(string? value) => OnPropertyChanged(nameof(HasSpecsError));
+    partial void OnGeneralErrorChanged(string value) => OnPropertyChanged(nameof(HasGeneralError));
+
+    partial void OnIsSavingChanged(bool value) => SaveCommand.NotifyCanExecuteChanged();
+    partial void OnCanManageChanged(bool value) => SaveCommand.NotifyCanExecuteChanged();
+
+    protected override void OnContentStateChanged()
+    {
+        base.OnContentStateChanged();
+        SaveCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnBasePriceTextChanged(string value) => UpdateMargin();
+    partial void OnCostPriceTextChanged(string value) => UpdateMargin();
+
+    private void UpdateMargin()
+    {
+        if (ProductInputParser.TryParseMoney(BasePriceText, out var basePrice)
+            && ProductInputParser.TryParseMoney(CostPriceText, out var costPrice))
+        {
+            var info = CatalogPresentation.MarginText(basePrice, costPrice);
+            if (info is not null)
+            {
+                MarginText = info.Text;
+                IsMarginLoss = info.IsLoss;
+                HasMargin = true;
+                return;
+            }
+        }
+
+        MarginText = string.Empty;
+        HasMargin = false;
+        IsMarginLoss = false;
+    }
+
+    public void SetRoute(Guid? productId, ProductQuery? returnQuery)
+    {
+        if (ContentState != PageContentState.Idle)
+            throw new InvalidOperationException("An editor route must be configured before activation.");
+
+        ProductId = productId;
+        _returnQuery = returnQuery;
+        IsEditMode = productId.HasValue;
+        PageTitle = IsEditMode ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới";
+    }
+
+    protected override async Task<bool> LoadContentAsync(CancellationToken cancellationToken)
+    {
+        Specs.Clear();
+        Variants.Clear();
+        GeneralError = string.Empty;
+        ClearAllErrors();
+        ContentState = PageContentState.Loading;
+
+        try
+        {
+            Categories = await _categories.GetTreeAsync(cancellationToken);
+
+            if (IsEditMode && ProductId is { } id)
+            {
+                var product = await _products.GetByIdAsync(id, cancellationToken);
+                if (product is null)
+                {
+                    IsNotFound = true;
+                    ContentState = PageContentState.Empty;
+                    return false;
+                }
+
+                IsNotFound = false;
+                SelectedCategoryId = product.CategoryId;
+                Name = product.Name;
+                PageTitle = $"Chỉnh sửa: {product.Name}";
+                Sku = product.Sku;
+                Brand = product.Brand;
+                BasePriceText = product.BasePrice.ToString("0.##", CultureInfo.InvariantCulture);
+                CostPriceText = product.CostPrice.ToString("0.##", CultureInfo.InvariantCulture);
+                Barcode = product.Barcode ?? string.Empty;
+                Description = product.Description ?? string.Empty;
+                ImageUrl = product.ImageUrl ?? string.Empty;
+                IsSerialTracked = product.IsSerialTracked;
+
+                foreach (var spec in ProductInputParser.SpecsFromJson(product.Specs))
+                {
+                    Specs.Add(SpecRowItem.From(spec));
+                }
+
+                foreach (var v in product.Variants)
+                {
+                    var item = new VariantRowItem(v.Id)
+                    {
+                        VariantName = v.VariantName,
+                        Sku = v.Sku,
+                        PriceText = v.Price.ToString("0.##", CultureInfo.InvariantCulture),
+                        Barcode = v.Barcode ?? string.Empty,
+                        IsActive = v.IsActive
+                    };
+
+                    foreach (var s in ProductInputParser.SpecsFromJson(v.Specs))
+                    {
+                        item.Specs.Add(SpecRowItem.From(s));
+                    }
+
+                    Variants.Add(item);
+                }
+            }
+            else
+            {
+                IsNotFound = false;
+                SelectedCategoryId = null;
+                Name = string.Empty;
+                PageTitle = "Thêm sản phẩm mới";
+                Sku = string.Empty;
+                Brand = string.Empty;
+                BasePriceText = string.Empty;
+                CostPriceText = string.Empty;
+                Barcode = string.Empty;
+                Description = string.Empty;
+                ImageUrl = string.Empty;
+                IsSerialTracked = true;
+            }
+
+            _baseline = BuildDraft();
+            UpdateMargin();
+            ContentState = PageContentState.Content;
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = GetSafeErrorMessage(ex);
+            ContentState = PageContentState.Error;
+            return false;
+        }
+    }
+
+    public ProductDraft BuildDraft() => new(
+        CategoryId: SelectedCategoryId,
+        Name: Name,
+        Sku: Sku,
+        Brand: Brand,
+        BasePrice: BasePriceText,
+        CostPrice: CostPriceText,
+        Barcode: Barcode,
+        Description: Description,
+        ImageUrl: ImageUrl,
+        IsSerialTracked: IsSerialTracked,
+        Specs: Specs.Select(s => s.ToDraft()).ToList(),
+        Variants: Variants.Select(v => v.ToDraft()).ToList());
+
+    public bool HasUnsavedChanges
+    {
+        get
+        {
+            if (_baseline is null) return false;
+            var current = BuildDraft();
+
+            if (current.CategoryId != _baseline.CategoryId
+                || current.Name != _baseline.Name
+                || current.Sku != _baseline.Sku
+                || current.Brand != _baseline.Brand
+                || current.BasePrice != _baseline.BasePrice
+                || current.CostPrice != _baseline.CostPrice
+                || current.Barcode != _baseline.Barcode
+                || current.Description != _baseline.Description
+                || current.ImageUrl != _baseline.ImageUrl
+                || current.IsSerialTracked != _baseline.IsSerialTracked)
+            {
+                return true;
+            }
+
+            if (!current.Specs.SequenceEqual(_baseline.Specs))
+            {
+                return true;
+            }
+
+            if (current.Variants.Count != _baseline.Variants.Count)
+            {
+                return true;
+            }
+
+            for (var i = 0; i < current.Variants.Count; i++)
+            {
+                var curV = current.Variants[i];
+                var baseV = _baseline.Variants[i];
+                if (curV.Id != baseV.Id
+                    || curV.VariantName != baseV.VariantName
+                    || curV.Sku != baseV.Sku
+                    || curV.Price != baseV.Price
+                    || curV.Barcode != baseV.Barcode
+                    || curV.IsActive != baseV.IsActive
+                    || !curV.Specs.SequenceEqual(baseV.Specs))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    [RelayCommand]
+    private void AddSpec() => Specs.Add(new SpecRowItem());
+
+    [RelayCommand]
+    private void RemoveSpec(SpecRowItem? row)
+    {
+        if (row is not null) Specs.Remove(row);
+    }
+
+    [RelayCommand]
+    private void AddVariant() => Variants.Add(new VariantRowItem(null));
+
+    [RelayCommand]
+    private void RemoveVariant(VariantRowItem? row)
+    {
+        if (row is not null && !row.IsSaved)
+        {
+            Variants.Remove(row);
+        }
+    }
+
+    [RelayCommand]
+    private void AddVariantSpec(VariantRowItem? variant)
+    {
+        variant?.Specs.Add(new SpecRowItem());
+    }
+
+    [RelayCommand]
+    private void RemoveVariantSpec(SpecRowItem? spec)
+    {
+        if (spec is null) return;
+        var owner = Variants.FirstOrDefault(v => v.Specs.Contains(spec));
+        owner?.Specs.Remove(spec);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    private async Task SaveAsync()
+    {
+        if (!CanSave) return;
+        ClearAllErrors();
+        GeneralError = string.Empty;
+
+        var draft = BuildDraft();
+        var validation = ProductDraftValidator.Validate(draft, isCreate: !IsEditMode);
+
+        ApplyFieldErrors(validation.FieldErrors);
+
+        for (var i = 0; i < validation.ProductSpecRowErrors.Count && i < Specs.Count; i++)
+        {
+            Specs[i].Error = validation.ProductSpecRowErrors[i];
+        }
+
+        for (var v = 0; v < validation.VariantSpecRowErrors.Count && v < Variants.Count; v++)
+        {
+            for (var s = 0; s < validation.VariantSpecRowErrors[v].Count && s < Variants[v].Specs.Count; s++)
+            {
+                Variants[v].Specs[s].Error = validation.VariantSpecRowErrors[v][s];
+            }
+        }
+
+        if (!validation.IsValid) return;
+
+        IsSaving = true;
+        try
+        {
+            if (!IsEditMode)
+            {
+                var created = await _commands.CreateAsync(validation.Create!, ActivationToken);
+                _navigation.Navigate(AppRoute.ProductDetail(created.Id, _returnQuery, created.Id));
+            }
+            else
+            {
+                var updated = await _commands.UpdateAsync(ProductId!.Value, validation.Update!, ActivationToken);
+                _navigation.Navigate(AppRoute.ProductDetail(updated.Id, _returnQuery, updated.Id));
+            }
+        }
+        catch (OperationCanceledException) when (ActivationToken.IsCancellationRequested)
+        {
+            // Ignore cancelled operation
+        }
+        catch (ApiException ex)
+        {
+            if (ex.StatusCode == 400 && ex.FieldErrors.Count > 0)
+            {
+                var joinedErrors = ex.FieldErrors.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => string.Join(" ", kvp.Value),
+                    StringComparer.OrdinalIgnoreCase);
+                ApplyFieldErrors(joinedErrors);
+            }
+            else
+            {
+                GeneralError = CatalogApiErrors.Describe(ex, "Sản phẩm");
+            }
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void ApplyFieldErrors(IReadOnlyDictionary<string, string> errors)
+    {
+        foreach (var (key, error) in errors)
+        {
+            var match = VariantErrorRegex.Match(key);
+            if (match.Success)
+            {
+                if (int.TryParse(match.Groups[1].Value, out var index) && index >= 0 && index < Variants.Count)
+                {
+                    var field = match.Groups[2].Value;
+                    switch (field)
+                    {
+                        case "variantName":
+                            Variants[index].NameError = error;
+                            break;
+                        case "sku":
+                            Variants[index].SkuError = error;
+                            break;
+                        case "price":
+                            Variants[index].PriceError = error;
+                            break;
+                        case "barcode":
+                            Variants[index].BarcodeError = error;
+                            break;
+                        case "specs":
+                            Variants[index].SpecsError = error;
+                            break;
+                        default:
+                            AppendGeneralError(error);
+                            break;
+                    }
+                }
+                else
+                {
+                    AppendGeneralError(error);
+                }
+                continue;
+            }
+
+            switch (key.ToLowerInvariant())
+            {
+                case "categoryid":
+                    CategoryError = error;
+                    break;
+                case "name":
+                    NameError = error;
+                    break;
+                case "sku":
+                    SkuError = error;
+                    break;
+                case "brand":
+                    BrandError = error;
+                    break;
+                case "baseprice":
+                    BasePriceError = error;
+                    break;
+                case "costprice":
+                    CostPriceError = error;
+                    break;
+                case "barcode":
+                    BarcodeError = error;
+                    break;
+                case "description":
+                    DescriptionError = error;
+                    break;
+                case "imageurl":
+                    ImageUrlError = error;
+                    break;
+                case "specs":
+                    SpecsError = error;
+                    break;
+                default:
+                    AppendGeneralError(error);
+                    break;
+            }
+        }
+    }
+
+    private void AppendGeneralError(string error)
+    {
+        if (string.IsNullOrWhiteSpace(GeneralError))
+        {
+            GeneralError = error;
+        }
+        else
+        {
+            GeneralError += " " + error;
+        }
+    }
+
+    private void ClearAllErrors()
+    {
+        NameError = null;
+        SkuError = null;
+        BrandError = null;
+        CategoryError = null;
+        BasePriceError = null;
+        CostPriceError = null;
+        BarcodeError = null;
+        DescriptionError = null;
+        ImageUrlError = null;
+        SpecsError = null;
+
+        foreach (var spec in Specs)
+        {
+            spec.Error = null;
+        }
+
+        foreach (var variant in Variants)
+        {
+            variant.ClearErrors();
+        }
+    }
+
+    [RelayCommand]
+    private async Task CancelAsync()
+    {
+        if (HasUnsavedChanges)
+        {
+            var request = new DialogRequest(
+                "Bỏ thay đổi?",
+                "Các thay đổi chưa lưu sẽ bị mất.",
+                "Bỏ thay đổi",
+                "Tiếp tục chỉnh sửa");
+
+            var result = await _dialogs.ConfirmAsync(request, ActivationToken);
+            if (result != DialogResult.Confirmed) return;
+        }
+
+        if (IsEditMode && ProductId is { } id)
+        {
+            _navigation.Navigate(AppRoute.ProductDetail(id, _returnQuery, id));
+        }
+        else
+        {
+            _navigation.Navigate(AppRoute.Products(_returnQuery));
+        }
+    }
+
+    [RelayCommand]
+    private void BackToList() => _navigation.Navigate(AppRoute.Products(_returnQuery));
+
+    protected override void OnDeactivated()
+    {
+        base.OnDeactivated();
+        _sessionStore.SessionChanged -= OnSessionChanged;
+    }
+
+    private void OnSessionChanged(object? sender, SessionChangedEventArgs args)
+    {
+        CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
+        if (!CanManage)
+        {
+            GeneralError = "Bạn không có quyền thực hiện thao tác này.";
+        }
+        SaveCommand.NotifyCanExecuteChanged();
+    }
+
+    protected override string GetSafeErrorMessage(Exception exception) => exception switch
+    {
+        ApiException { StatusCode: 401 } => "Phiên truy cập đã hết hạn. Hãy đăng nhập lại để tiếp tục.",
+        ApiException { StatusCode: 403 } => "Bạn không có quyền thực hiện thao tác này.",
+        ApiException { Kind: ApiErrorKind.Timeout } => "Yêu cầu Catalog quá thời gian chờ. Hãy thử lại.",
+        ApiException { Kind: ApiErrorKind.Network } => "Không thể kết nối Catalog API. Hãy kiểm tra kết nối rồi thử lại.",
+        ApiException { Kind: ApiErrorKind.InvalidResponse } => "Catalog API trả dữ liệu không đúng định dạng.",
+        _ => "Không thể tải dữ liệu sản phẩm. Hãy thử lại."
+    };
+}

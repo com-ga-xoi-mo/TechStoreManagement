@@ -41,7 +41,8 @@ Ràng buộc từ AGENTS.md: ViewModel không tham chiếu control WinUI; View C
 
 ### D3. Danh sách: tiêu chí gửi theo nút, giống Catalog
 `OrderListViewModel` giữ nháp (`SearchText`, `StatusFilter`, `SelectedSort`, `SelectedPageSize`) tách khỏi tiêu chí đã áp dụng (`OrderQuery`); chỉ nút Tìm hoặc Enter mới áp dụng và đưa về trang 1. Dùng `RunLatestRequestAsync` của `PageViewModel` để request cũ bị hủy khi có request mới. Bộ lọc trạng thái là chọn một ("Tất cả" + 6 trạng thái), sort chỉ `createdAt` và `totalAmount` (asc/desc) đúng bộ server cho phép.
-- Khi tải lại, danh sách tạm thay bằng trạng thái đang tải (hành vi mặc định của `PageViewModel`), không giữ hàng cũ. Đơn giản hơn nhiều so với `ManagesLoadState` của Catalog và đủ cho Milestone 2.
+- Từ khóa chỉ áp dụng khi gửi; trạng thái, sắp xếp, kích thước trang áp dụng ngay (giống Catalog) và giữ từ khóa đã áp dụng.
+- ViewModel dùng `ManagesLoadState => true` như Catalog: hành vi mặc định của `PageViewModel` ghi đè trạng thái Lỗi bằng Rỗng khi lần tải đầu thất bại, nên ViewModel tự đặt Đang tải/Nội dung/Rỗng/Lỗi (lỗi qua `OnLatestRequestFailed`). Hệ quả tốt: hàng cũ vẫn còn trong lúc tải lại.
 - Trang vượt biên (xóa đơn khiến `page > totalPages`): quay về trang 1 một lần, không lặp.
 
 ### D4. Nút chuyển trạng thái nằm ở hàng danh sách; chi tiết là hộp thoại chỉ đọc
@@ -65,7 +66,9 @@ Mỗi hành động qua `IDialogService.ConfirmAsync` trước khi gọi `PATCH`
 `OrderCreateViewModel` giữ `Lines` (danh sách `OrderDraftLine`) và thuộc tính tính toán `EstimatedTotal`. Quy tắc phản chiếu server để báo lỗi sớm, nhưng server vẫn quyết định:
 - Sản phẩm có biến thể thì bắt buộc chọn biến thể đang hoạt động; đơn giá = giá biến thể, nếu không có biến thể thì `basePrice`.
 - Sản phẩm theo dõi IMEI (`isSerialTracked`): mỗi dòng đúng một máy, số lượng cố định 1, mỗi máy chỉ xuất hiện một lần trong đơn; muốn bán 3 máy thì thêm 3 dòng.
-- Sản phẩm không theo dõi IMEI: số lượng nguyên dương; giảm giá dòng từ 0 đến thành tiền dòng.
+- Sản phẩm không theo dõi IMEI: số lượng nguyên dương, tối đa 10.000; giảm giá dòng từ 0 đến thành tiền dòng. Thêm lại cùng sản phẩm/biến thể thì gộp vào dòng cũ (server từ chối hai dòng trùng).
+- Dòng đã thêm không sửa tại chỗ: muốn đổi thì xóa và thêm lại. Nhờ vậy giá trị sai bị chặn ngay ở khu vực thêm dòng, còn lỗi từ server mới gắn vào từng dòng.
+- Sau khi đơn đã được tạo (kể cả khi bước hoàn tất lỗi), nháp bị khóa: không thêm, xóa hay gửi lại.
 - Tổng tạm tính = Σ(đơn giá × số lượng − giảm giá) bằng `decimal`, hiển thị nhãn "Tạm tính"; sau khi tạo, hiển thị tổng server trả về. Thuế và giảm giá cấp đơn bằng 0 như server ở Milestone 2.
 - Tìm sản phẩm dùng `IProductRepository.SearchAsync` (đọc chéo module, hợp lệ theo AGENTS) với `isActive=true`, lấy chi tiết bằng `GetByIdAsync` để có biến thể và `isSerialTracked`. Tồn kho sản phẩm không theo dõi IMEI không tra trước; thiếu hàng sẽ do server trả 400 dưới `items[i].quantity` và hiện đúng dòng đó.
 

@@ -16,11 +16,15 @@ Client SHALL lấy danh sách đơn từ `GET /api/orders` và chi tiết từ `
 - **THEN** trang hiển thị trạng thái rỗng kèm lối vào "Lập đơn mới", phân biệt với lỗi tải
 
 ### Requirement: Submitted list criteria
-Client SHALL hỗ trợ lọc theo trạng thái (Tất cả hoặc một trong sáu trạng thái), từ khóa `q` (mã đơn, tên hoặc số điện thoại khách), sắp xếp `createdAt` hoặc `totalAmount` theo `asc`/`desc`, kích thước trang 20/50/100. Mặc định `createdAt:desc`, trang 1, kích thước 20. Tiêu chí SHALL chỉ áp dụng khi người dùng bấm tìm hoặc nhấn Enter.
+Client SHALL hỗ trợ lọc theo trạng thái (Tất cả hoặc một trong sáu trạng thái), từ khóa `q` (mã đơn, tên hoặc số điện thoại khách), sắp xếp `createdAt` hoặc `totalAmount` theo `asc`/`desc`, kích thước trang 20/50/100. Mặc định `createdAt:desc`, trang 1, kích thước 20. Từ khóa SHALL chỉ áp dụng khi người dùng bấm tìm hoặc nhấn Enter; đổi trạng thái, sắp xếp hoặc kích thước trang SHALL áp dụng ngay và quay về trang 1 mà vẫn giữ từ khóa đã áp dụng.
 
 #### Scenario: Draft versus applied criteria
-- **WHEN** người dùng sửa ô tìm kiếm hoặc bộ lọc nhưng chưa gửi
-- **THEN** danh sách vẫn thuộc tiêu chí đã áp dụng; khi gửi, tiêu chí mới được áp dụng từ trang 1 và `q` rỗng bị bỏ khỏi truy vấn
+- **WHEN** người dùng gõ vào ô tìm kiếm nhưng chưa gửi
+- **THEN** danh sách vẫn thuộc từ khóa đã áp dụng; khi gửi, từ khóa mới được áp dụng từ trang 1 và `q` rỗng bị bỏ khỏi truy vấn
+
+#### Scenario: Selection controls apply at once
+- **WHEN** người dùng chọn một trạng thái, thứ tự sắp xếp hoặc kích thước trang khác
+- **THEN** client tải lại từ trang 1 với lựa chọn mới và từ khóa đã áp dụng trước đó, bỏ qua chữ đang gõ chưa gửi
 
 #### Scenario: Keyword with reserved characters
 - **WHEN** từ khóa chứa dấu cách, chữ có dấu, `&`, `+`, `%` hoặc `#`
@@ -103,8 +107,16 @@ Màn hình lập đơn SHALL cho tìm sản phẩm đang hoạt động, chọn 
 - **THEN** tổng tạm tính hiển thị 30.900.000 ₫
 
 #### Scenario: Invalid discount or quantity
-- **WHEN** người dùng nhập giảm giá âm, lớn hơn thành tiền dòng, hoặc số lượng bằng 0 hay không phải số nguyên
-- **THEN** client báo lỗi tại dòng đó và không cho gửi đơn
+- **WHEN** người dùng nhập giảm giá âm, lớn hơn thành tiền dòng, hoặc số lượng bằng 0, lớn hơn 10.000 hay không phải số nguyên
+- **THEN** client báo lỗi ngay tại khu vực thêm dòng và không thêm dòng vào đơn
+
+#### Scenario: Same product added twice
+- **WHEN** người dùng thêm lại cùng một sản phẩm và biến thể không theo dõi IMEI
+- **THEN** client gộp vào dòng đã có bằng cách cộng số lượng và giảm giá, và từ chối nếu tổng vượt giới hạn số lượng hoặc giảm giá vượt thành tiền
+
+#### Scenario: Inactive product or variant
+- **WHEN** sản phẩm đã ngừng kinh doanh, không còn tồn tại, hoặc mọi biến thể đều ngừng hoạt động
+- **THEN** client không cho chọn sản phẩm đó và nêu lý do
 
 ### Requirement: Submitting an order
 Màn hình lập đơn SHALL có hai hành động. "Lưu đơn nháp" gửi `POST /api/orders` và dừng ở trạng thái `Pending`. "Thanh toán & hoàn tất" gửi `POST` rồi `PATCH` sang `Completed`. Đơn rỗng SHALL không được gửi. Client MUST NOT tự gửi lại yêu cầu ghi, và SHALL ngăn gửi trùng khi một đơn đã được tạo.

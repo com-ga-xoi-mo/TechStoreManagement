@@ -11,9 +11,9 @@ Mục Đơn hàng trên Shell SHALL chứa trang danh sách đơn và trang lậ
 - **WHEN** người dùng bấm quay về danh sách hoặc một đơn được tạo thành công
 - **THEN** Shell hiển thị lại danh sách đơn, mục Đơn hàng vẫn được chọn và danh sách được tải lại để có đơn mới
 
-#### Scenario: Create route under a wrong destination
-- **WHEN** mã cố tạo route lập đơn dưới destination khác Đơn hàng
-- **THEN** việc tạo route bị từ chối và không có trang nào được dựng
+#### Scenario: Create route cannot leave Orders
+- **WHEN** mã tạo route lập đơn
+- **THEN** route luôn thuộc destination Đơn hàng, không mang ngữ cảnh Catalog, và việc dựng nó dưới destination khác bị từ chối
 
 #### Scenario: Catalog routes unchanged
 - **WHEN** người dùng điều hướng trong Sản phẩm (danh sách, chi tiết, quay lại)

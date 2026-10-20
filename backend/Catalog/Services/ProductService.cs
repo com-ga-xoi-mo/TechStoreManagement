@@ -238,8 +238,52 @@ public class ProductService(
     public Task<ProductCommandResult> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();
 
-    public Task<ProductCommandResult> SetStatusAsync(Guid id, UpdateProductStatusRequest request, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
+    public async Task<ProductCommandResult> SetStatusAsync(
+        Guid id,
+        UpdateProductStatusRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request?.IsActive == null)
+        {
+            return ProductCommandResult.ValidationFailed(new Dictionary<string, string[]>
+            {
+                ["isActive"] = ["isActive is required."]
+            });
+        }
+
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var product = await productRepository.GetForUpdateAsync(id, cancellationToken);
+            if (product == null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.NotFound();
+            }
+
+            var category = await categoryRepository.GetByIdAsync(product.CategoryId, cancellationToken);
+            var categoryName = category?.Name ?? string.Empty;
+
+            if (product.IsActive == request.IsActive.Value)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.Success(ProductDtoMapper.ToDto(product, categoryName));
+            }
+
+            product.IsActive = request.IsActive.Value;
+            product.UpdatedAt = DateTime.UtcNow;
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+
+            return ProductCommandResult.Success(ProductDtoMapper.ToDto(product, categoryName));
+        }
+        catch
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
 
     public Task<ProductCommandResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();

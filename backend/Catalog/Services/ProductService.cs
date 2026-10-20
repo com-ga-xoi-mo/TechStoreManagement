@@ -20,54 +20,7 @@ public class ProductService(
             return ProductDetailResult.NotFound();
         }
 
-        var prodSpecs = ProductSpecHelper.ParseJsonSpecs(product.Specs);
-
-        var variantDtos = product.Variants
-            .OrderBy(v => v.Price)
-            .ThenBy(v => v.Sku)
-            .Select(v =>
-            {
-                var vSpecs = ProductSpecHelper.ParseJsonSpecs(v.Specs);
-                var effective = ProductSpecHelper.MergeEffectiveSpecs(prodSpecs, vSpecs);
-
-                return new ProductVariantDto
-                {
-                    Id = v.Id,
-                    ProductId = v.ProductId,
-                    VariantName = v.VariantName,
-                    Sku = v.Sku,
-                    Barcode = v.Barcode,
-                    Price = v.Price,
-                    Specs = vSpecs,
-                    EffectiveSpecs = effective,
-                    IsActive = v.IsActive,
-                    CreatedAt = v.CreatedAt,
-                    UpdatedAt = v.UpdatedAt
-                };
-            })
-            .ToList();
-
-        var dto = new ProductDto
-        {
-            Id = product.Id,
-            CategoryId = product.CategoryId,
-            CategoryName = product.Category?.Name ?? string.Empty,
-            Name = product.Name,
-            Sku = product.Sku,
-            Barcode = product.Barcode,
-            Brand = product.Brand,
-            BasePrice = product.BasePrice,
-            CostPrice = product.CostPrice,
-            Description = product.Description,
-            ImageUrl = product.ImageUrl,
-            Specs = prodSpecs,
-            IsSerialTracked = product.IsSerialTracked,
-            IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt,
-            Variants = variantDtos
-        };
-
+        var dto = ProductDtoMapper.ToDto(product, product.Category?.Name ?? string.Empty);
         return ProductDetailResult.Success(dto);
     }
 
@@ -278,52 +231,7 @@ public class ProductService(
         }
 
         // 6. Build and return created ProductDto
-        var variantDtos = product.Variants
-            .OrderBy(v => v.Price)
-            .ThenBy(v => v.Sku)
-            .Select(v =>
-            {
-                var vSpecs = ProductSpecHelper.ParseJsonSpecs(v.Specs);
-                var effective = ProductSpecHelper.MergeEffectiveSpecs(prodSpecsDict, vSpecs);
-
-                return new ProductVariantDto
-                {
-                    Id = v.Id,
-                    ProductId = v.ProductId,
-                    VariantName = v.VariantName,
-                    Sku = v.Sku,
-                    Barcode = v.Barcode,
-                    Price = v.Price,
-                    Specs = vSpecs,
-                    EffectiveSpecs = effective,
-                    IsActive = v.IsActive,
-                    CreatedAt = v.CreatedAt,
-                    UpdatedAt = v.UpdatedAt
-                };
-            })
-            .ToList();
-
-        var createdDto = new ProductDto
-        {
-            Id = product.Id,
-            CategoryId = product.CategoryId,
-            CategoryName = category.Name,
-            Name = product.Name,
-            Sku = product.Sku,
-            Barcode = product.Barcode,
-            Brand = product.Brand,
-            BasePrice = product.BasePrice,
-            CostPrice = product.CostPrice,
-            Description = product.Description,
-            ImageUrl = product.ImageUrl,
-            Specs = prodSpecsDict,
-            IsSerialTracked = product.IsSerialTracked,
-            IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt,
-            Variants = variantDtos
-        };
-
+        var createdDto = ProductDtoMapper.ToDto(product, category.Name);
         return CreateProductResult.Success(createdDto);
     }
 }

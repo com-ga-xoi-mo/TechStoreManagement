@@ -11,7 +11,7 @@ Backend Orders API (UC-ORD-01..04) đã merge (PR #7) nhưng màn hình Đơn h�
 - Thêm `OrderDetailDialog.cs` (chỉ đọc): danh sách dòng hàng kèm IMEI/serial, tổng tiền, các mốc thời gian.
 - Bổ sung `PatchAsync` vào `IApiClient` / `ApiClient` (cần cho đổi trạng thái đơn); cập nhật 3 stub `IApiClient` trong test.
 - Mở rộng `AppRoute` và `ShellRoutePageFactory` cho route `OrderCreate`; đăng ký DI cho repository, ViewModel, page.
-- Test headless: repository, ViewModel (danh sách, lập đơn, đổi trạng thái), `PatchAsync`, route mới.
+- Test headless: repository, ViewModel (danh sách, lập đơn, đổi trạng thái), `PatchAsync`, route mới; thêm một bài test tích hợp opt-in chạy ViewModel thật với API và PostgreSQL thật.
 - Ngoài phạm vi: chọn khách hàng (chưa có API/UI Khách hàng của Dev 5, đơn lập là khách lẻ nhưng request đã hỗ trợ `customerId`), hoàn trả/hoàn tiền, in hóa đơn, voucher, thuế, thanh toán VietQR/thẻ thật, sửa backend Orders.
 
 ## Capabilities
@@ -26,7 +26,7 @@ Backend Orders API (UC-ORD-01..04) đã merge (PR #7) nhưng màn hình Đơn h�
 ## Impact
 
 - **Mã client mới**: `Repositories/Orders/`, `Models/Orders/`, `ViewModels/Orders/`, `Views/Orders/` (thay `OrderListPage.xaml*`).
-- **Mã client sửa**: `Services/Api/IApiClient.cs`, `Services/Api/ApiClient.cs`, `Services/Navigation/AppRoute.cs`, `Views/Shell/ShellRoutePageFactory.cs`, `Views/Shell/ContentDialogPresenter.cs` (chỉ thêm truy cập root cho dialog chi tiết), `UiServiceCollectionExtensions.cs`.
+- **Mã client sửa**: `Services/Api/IApiClient.cs`, `Services/Api/ApiClient.cs`, `Services/Navigation/AppRoute.cs`, `Views/Shell/ShellRoutePageFactory.cs`, `Views/Shell/ContentDialogPresenter.cs` (chỉ thêm `TryShowAsync` cho dialog chi tiết), `UiServiceCollectionExtensions.cs`.
 - **Tệp dùng chung có nguy cơ xung đột với Dev 1/2/3/6**: `IApiClient`, `AppRoute`, `ShellRoutePageFactory`, `UiServiceCollectionExtensions`. Thay đổi giữ nhỏ và chỉ thêm, merge theo thứ tự PR.
 - **Backend/shared**: không đổi. Dùng `OrderDto`, `OrderItemDto`, `OrderSummaryDto`, `PagedResultDto`, `CreateOrderRequest`, `UpdateOrderStatusRequest`, `SerialImeiDto` hiện có.
 - **Phụ thuộc**: PR #12 (Dev 6) đang chuyển `ShellPage`/Dashboard và có thể đụng `Program.cs` client; không phụ thuộc cứng nhưng cần rebase trước khi merge.

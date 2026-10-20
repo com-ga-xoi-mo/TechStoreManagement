@@ -59,8 +59,10 @@ Mỗi hành động qua `IDialogService.ConfirmAsync` trước khi gọi `PATCH`
 - Alternative: nút hành động trong dialog chi tiết. Bỏ vì xung đột modal như trên.
 
 ### D5. Hộp thoại chi tiết qua presenter riêng, không sửa `IDialogService`
-`IDialogService`/`DialogRequest` chỉ có tiêu đề và chữ. Thêm `IOrderDetailPresenter.ShowAsync(OrderDetail, CancellationToken)` trong `Services/Dialog/` (độc lập UI, nằm trong glob test); bản cài đặt `OrderDetailDialogPresenter` ở `Views/Orders/` dựng `OrderDetailDialog : ContentDialog` bằng C# Markup và mở trên XAML root của Shell. Root lấy từ `ContentDialogPresenter` qua một thuộc tính chỉ đọc mới (thay đổi duy nhất ở tệp dùng chung này). Presenter bỏ qua yêu cầu nếu đang có dialog khác mở và trả `Dismissed`.
+`IDialogService`/`DialogRequest` chỉ có tiêu đề và chữ. Thêm `IOrderDetailPresenter.ShowAsync(OrderDetail, CancellationToken)` trong `Services/Dialog/` (độc lập UI, nằm trong glob test); bản cài đặt `OrderDetailDialogPresenter` ở `Views/Orders/` dựng `OrderDetailDialog : ContentDialog` bằng C# Markup rồi mở qua `ContentDialogPresenter.TryShowAsync`, phương thức mới (thay đổi duy nhất ở tệp dùng chung này) dùng chung XAML root, chủ đề, khôi phục focus và cờ "đang có dialog" với các hộp thoại chữ. Nếu đang có dialog khác hoặc Shell chưa sẵn sàng, `TryShowAsync` trả `false` và yêu cầu bị bỏ qua.
+- Hộp thoại chi tiết chỉ đọc và dựng một lần từ `OrderDetail` bằng giá trị đã định dạng (không có ViewModel riêng, không binding), nên không có đường dẫn binding nào có thể sai.
 - Alternative: mở rộng `DialogRequest` có nội dung tùy ý. Bỏ vì phải sửa hợp đồng và mọi bản giả `IDialogService` trong test của người khác.
+- Alternative: chỉ lộ `XamlRoot` rồi để presenter tự mở. Bỏ vì sẽ tách cờ "đang có dialog" khỏi nơi nó được quản lý.
 
 ### D6. Lập đơn: một ViewModel, dòng nháp là record bất biến
 `OrderCreateViewModel` giữ `Lines` (danh sách `OrderDraftLine`) và thuộc tính tính toán `EstimatedTotal`. Quy tắc phản chiếu server để báo lỗi sớm, nhưng server vẫn quyết định:
@@ -90,7 +92,9 @@ Thêm `PatchAsync<TRequest, TResponse>` cùng đường đi với `PutAsync` (c�
 `OrderPresentation` (trong `Controls/Presentation/`, đã được test liên kết) cung cấp: nhãn tiếng Việt và `StatusTone` của trạng thái, nhãn phương thức thanh toán, định dạng tiền `vi-VN` dạng `15.500.000 ₫` bằng `decimal` (không chuyển qua `double`). Tone: Pending = Warning, Processing = Info, Completed = Success, Cancelled = Neutral, PartiallyRefunded = Accent, Refunded = Danger.
 
 ### D11. View C# Markup: chỉ khai báo, kiểm chứng khi chạy
-`OrderListPage`, `OrderCreatePage`, `OrderDetailDialog` theo mẫu `MarkupReferencePage`: `ViewModel` public, `DataContext = viewModel`, màu đặt trực tiếp bằng `AppColors.Brushes.*`, style từ `AppControlStyles`/`AppTypography`, binding bằng lambda. Đường dẫn binding không được trình biên dịch kiểm tra, nên mỗi trang phải được chạy thật và thử đổi chủ đề Sáng/Tối. Việc đầu tiên khi làm giao diện là dựng một danh sách tối thiểu để xác nhận cách khai báo mẫu danh sách (item template) trong Uno C# Markup chạy được, rồi mới dựng phần còn lại.
+`OrderListPage`, `OrderCreatePage`, `OrderDetailDialog` theo mẫu `MarkupReferencePage`: `ViewModel` public, `DataContext = viewModel`, màu đặt trực tiếp bằng `AppColors.Brushes.*`, style từ `AppControlStyles`/`AppTypography`, binding bằng lambda. Đường dẫn binding không được trình biên dịch kiểm tra, nên mỗi trang phải được chạy thật và thử đổi chủ đề Sáng/Tối.
+- Danh sách dùng `ItemsControl` + `DataTemplate(Func<UIElement>)`, mỗi ô gắn bằng `SetBinding(new Binding { Path = ... })` theo tên thuộc tính của dòng (cùng cách Dev 6 dùng trong `DashboardPage.cs` ở PR #12; tôi tự viết `OrderViewParts` chứ không phụ thuộc nhánh của họ). Nút trong dòng gán `Command` trực tiếp từ ViewModel trang và `CommandParameter` bằng binding tới dòng hoặc tới thuộc tính hành động. Ba nút hành động cố định (`PayAction`, `CompleteAction`, `CancelAction`) để mỗi nút có style riêng.
+- Đã xác nhận: build sạch, và bản Debug dựng được cả hai trang khi khởi động (`VerifyAllRoutesResolve`, nay gồm cả route lập đơn). Chưa xác nhận bằng mắt: hàng hiển thị đúng, ComboBox hai chiều với `int`/đối tượng, chủ đề Sáng/Tối; việc này nằm ở tác vụ 8.3b.
 
 ## Risks / Trade-offs
 

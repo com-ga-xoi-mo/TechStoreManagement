@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Services.Api;
+using TechStore.Client.Services.Dialog;
 using TechStore.Client.Services.Navigation;
 using TechStore.Client.Services.Session;
 using TechStore.Client.ViewModels.Pages;
@@ -12,6 +13,8 @@ namespace TechStore.Client.ViewModels.Catalog;
 public sealed partial class ProductDetailViewModel : PageViewModel
 {
     private readonly IProductRepository _products;
+    private readonly IProductCommandRepository _commands;
+    private readonly IDialogService _dialogs;
     private readonly INavigationService _navigation;
     private readonly ISessionStore _sessionStore;
     private ProductQuery? _returnCriteria;
@@ -20,23 +23,49 @@ public sealed partial class ProductDetailViewModel : PageViewModel
     [ObservableProperty] private Guid productId;
     [ObservableProperty] private ProductDetail? product;
     [ObservableProperty] private bool isNotFound;
+    [ObservableProperty] private bool canManage;
+    [ObservableProperty] private bool isBusy;
+    [ObservableProperty] private string actionError = string.Empty;
+
     public bool HasSpecs => Product?.Specs.Count > 0;
     public bool HasVariants => Product?.Variants.Count > 0;
     public bool HasNoSpecs => !HasSpecs;
     public bool HasNoVariants => !HasVariants;
+    public bool HasActionError => !string.IsNullOrWhiteSpace(ActionError);
+    public string ToggleStatusText => Product?.IsActive == true ? "Ngừng kinh doanh" : "Mở bán lại";
 
     public ProductDetailViewModel(
         IProductRepository products,
         INavigationService navigation,
-        ISessionStore sessionStore)
+        ISessionStore sessionStore,
+        IProductCommandRepository commands,
+        IDialogService dialogs)
     {
         _products = products ?? throw new ArgumentNullException(nameof(products));
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+        _commands = commands ?? throw new ArgumentNullException(nameof(commands));
+        _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
         _sessionStore.SessionChanged += OnSessionChanged;
+        CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
     }
 
     protected override bool ManagesLoadState => true;
+
+    private bool CanRunAction() => CanManage && !IsBusy && Product is not null;
+
+    partial void OnCanManageChanged(bool value) => NotifyActionCommands();
+
+    partial void OnIsBusyChanged(bool value) => NotifyActionCommands();
+
+    partial void OnActionErrorChanged(string value) => OnPropertyChanged(nameof(HasActionError));
+
+    private void NotifyActionCommands()
+    {
+        EditCommand.NotifyCanExecuteChanged();
+        ToggleStatusCommand.NotifyCanExecuteChanged();
+        DeleteCommand.NotifyCanExecuteChanged();
+    }
 
     /// <summary>Called before activation; it performs no I/O and clears any previously visible product.</summary>
     public void SetRoute(Guid id, ProductQuery? returnCriteria, Guid? focusProductId)
@@ -47,6 +76,7 @@ public sealed partial class ProductDetailViewModel : PageViewModel
         ProductId = id;
         Product = null;
         IsNotFound = false;
+        ActionError = string.Empty;
         _returnCriteria = returnCriteria;
         _focusProductId = focusProductId;
     }
@@ -57,6 +87,7 @@ public sealed partial class ProductDetailViewModel : PageViewModel
         Product = null;
         IsNotFound = false;
         ErrorMessage = string.Empty;
+        ActionError = string.Empty;
         ContentState = PageContentState.Loading;
         return RunLatestRequestAsync(
             token => _products.GetByIdAsync(requestedId, token),
@@ -92,15 +123,19 @@ public sealed partial class ProductDetailViewModel : PageViewModel
         OnPropertyChanged(nameof(HasVariants));
         OnPropertyChanged(nameof(HasNoSpecs));
         OnPropertyChanged(nameof(HasNoVariants));
+        OnPropertyChanged(nameof(ToggleStatusText));
+        NotifyActionCommands();
     }
 
     protected override void OnDeactivated() => _sessionStore.SessionChanged -= OnSessionChanged;
 
     private void OnSessionChanged(object? sender, SessionChangedEventArgs args)
     {
+        CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
         CancelTrackedRequests();
         Product = null;
         IsNotFound = false;
+        ActionError = string.Empty;
         _returnCriteria = null;
         _focusProductId = null;
         ContentState = args.Status == SessionStatus.Expired ? PageContentState.Error : PageContentState.Idle;
@@ -111,6 +146,98 @@ public sealed partial class ProductDetailViewModel : PageViewModel
 
     [RelayCommand]
     private void Back() => _navigation.Navigate(AppRoute.Products(_returnCriteria, _focusProductId ?? ProductId));
+
+    [RelayCommand(CanExecute = nameof(CanRunAction))]
+    private void Edit()
+    {
+        if (!CanRunAction()) return;
+        _navigation.Navigate(AppRoute.ProductEdit(ProductId, _returnCriteria));
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunAction))]
+    private async Task ToggleStatusAsync()
+    {
+        if (!CanRunAction() || Product is null) return;
+        ActionError = string.Empty;
+
+        var isActive = Product.IsActive;
+        var request = isActive
+            ? new DialogRequest(
+                "Ngừng kinh doanh?",
+                $"Sản phẩm {Product.Name} sẽ không còn được chọn khi lập đơn. Bạn có thể mở bán lại sau.",
+                "Ngừng kinh doanh",
+                "Hủy")
+            : new DialogRequest(
+                "Mở bán lại?",
+                $"Sản phẩm {Product.Name} sẽ được chọn lại khi lập đơn.",
+                "Mở bán lại",
+                "Hủy");
+
+        var confirmation = await _dialogs.ConfirmAsync(request, ActivationToken);
+        if (confirmation != DialogResult.Confirmed) return;
+
+        IsBusy = true;
+        try
+        {
+            var result = await _commands.SetStatusAsync(ProductId, !isActive, ActivationToken);
+            if (result.Id == ProductId)
+            {
+                Product = result;
+            }
+        }
+        catch (OperationCanceledException) when (ActivationToken.IsCancellationRequested)
+        {
+            // Ignore cancelled activation
+        }
+        catch (ApiException ex)
+        {
+            ActionError = CatalogApiErrors.Describe(ex, "Sản phẩm");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunAction))]
+    private async Task DeleteAsync()
+    {
+        if (!CanRunAction() || Product is null) return;
+        ActionError = string.Empty;
+
+        var request = new DialogRequest(
+            "Xóa sản phẩm?",
+            "Chỉ xóa được sản phẩm chưa phát sinh tồn kho, nhập hàng hay đơn hàng. Thao tác này không hoàn tác được. Nếu sản phẩm đã có giao dịch, hãy dùng Ngừng kinh doanh.",
+            "Xóa vĩnh viễn",
+            "Hủy");
+
+        var confirmation = await _dialogs.ConfirmAsync(request, ActivationToken);
+        if (confirmation != DialogResult.Confirmed) return;
+
+        IsBusy = true;
+        try
+        {
+            await _commands.DeleteAsync(ProductId, ActivationToken);
+            _navigation.Navigate(AppRoute.Products(_returnCriteria));
+        }
+        catch (OperationCanceledException) when (ActivationToken.IsCancellationRequested)
+        {
+            // Ignore cancelled activation
+        }
+        catch (ApiException ex)
+        {
+            var msg = CatalogApiErrors.Describe(ex, "Sản phẩm");
+            if (ex.StatusCode == 409)
+            {
+                msg += " Bạn có thể dùng Ngừng kinh doanh để ẩn sản phẩm khỏi bán hàng.";
+            }
+            ActionError = msg;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
 
     protected override string GetSafeErrorMessage(Exception exception) => exception switch
     {

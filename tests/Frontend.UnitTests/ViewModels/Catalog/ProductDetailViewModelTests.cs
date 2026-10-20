@@ -81,7 +81,7 @@ public sealed class ProductDetailViewModelTests
         var navigation = new NavigationService(new AllowingPreparer());
         var criteria = new ProductQuery { Query = "Pixel", Page = 4, PageSize = 50, Sort = "name:asc" };
         var repository = new FakeProductRepository((id, _) => Task.FromResult<ProductDetail?>(Detail(id)));
-        var viewModel = new ProductDetailViewModel(repository, navigation, new InMemorySessionStore());
+        var viewModel = new ProductDetailViewModel(repository, navigation, new InMemorySessionStore(), new RecordingProductCommands(), new ScriptedDialogService());
         viewModel.SetRoute(ProductId, criteria, ProductId);
         await viewModel.ActivateAsync();
 
@@ -96,7 +96,7 @@ public sealed class ProductDetailViewModelTests
     private static Guid ProductId => Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
     private static ProductDetailViewModel Create(FakeProductRepository repository) =>
-        new(repository, new NavigationService(new AllowingPreparer()), new InMemorySessionStore());
+        new(repository, new NavigationService(new AllowingPreparer()), new InMemorySessionStore(), new RecordingProductCommands(), new ScriptedDialogService());
 
     private static ProductDetail Detail(Guid id) => new(
         id, Guid.NewGuid(), "Mobile", "Test phone", "SKU-1", null, "Brand", 100m, 80m,

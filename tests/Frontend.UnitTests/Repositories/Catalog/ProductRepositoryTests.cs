@@ -169,5 +169,8 @@ public sealed class ProductRepositoryTests
 
         public Task<TResponse> PatchAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
+
+        public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 }

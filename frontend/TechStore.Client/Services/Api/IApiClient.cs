@@ -25,4 +25,8 @@ public interface IApiClient
         string relativePath,
         TRequest request,
         CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(
+        string relativePath,
+        CancellationToken cancellationToken = default);
 }

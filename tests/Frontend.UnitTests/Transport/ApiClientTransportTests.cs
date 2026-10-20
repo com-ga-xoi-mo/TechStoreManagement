@@ -315,6 +315,66 @@ public sealed class ApiClientTransportTests
         Assert.Empty(handler.Requests);
     }
 
+    [Fact]
+    public async Task DeleteAsync_SendsDeleteWithoutBodyAndAccepts204()
+    {
+        // Arrange
+        var handler = new RecordingHttpMessageHandler((_, _) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent)));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        // Act
+        await api.DeleteAsync("products/1");
+
+        // Assert
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, request.Method);
+        Assert.Equal("https://localhost:7207/api/products/1", request.RequestUri?.ToString());
+        Assert.True(string.IsNullOrEmpty(request.Body));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_MapsConflictProblemDetailsAndDoesNotRetry()
+    {
+        // Arrange
+        const string json = """{"title":"Conflict","detail":"Product is in use.","status":409}""";
+        var handler = new RecordingHttpMessageHandler((_, _) =>
+            Task.FromResult(JsonResponse(json, HttpStatusCode.Conflict)));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        // Act
+        var error = await Assert.ThrowsAsync<ApiException>(
+            () => api.DeleteAsync("products/1"));
+
+        // Assert
+        Assert.Equal(ApiErrorKind.Http, error.Kind);
+        Assert.Equal((int)HttpStatusCode.Conflict, error.StatusCode);
+        Assert.Equal("Product is in use.", error.Detail);
+        Assert.Single(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData("https://attacker.test/steal")]
+    [InlineData("//attacker.test/steal")]
+    [InlineData("\\\\attacker.test\\steal")]
+    public async Task DeleteAsync_RejectsForeignOrAbsoluteRoutesBeforeSending(string path)
+    {
+        // Arrange
+        var handler = new RecordingHttpMessageHandler((_, _) => Task.FromResult(JsonResponse("{}")));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        // Act
+        var error = await Assert.ThrowsAsync<ArgumentException>(
+            () => api.DeleteAsync(path));
+
+        // Assert
+        Assert.Contains("relative", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(handler.Requests);
+    }
+
     private static HttpClient CreateClient(HttpMessageHandler handler) => new(handler)
     {
         Timeout = Timeout.InfiniteTimeSpan

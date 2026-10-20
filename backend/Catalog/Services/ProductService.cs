@@ -285,6 +285,36 @@ public class ProductService(
         }
     }
 
-    public Task<ProductCommandResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
+    public async Task<ProductCommandResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var product = await productRepository.GetForUpdateAsync(id, cancellationToken);
+            if (product == null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.NotFound();
+            }
+
+            var inUse = await productRepository.IsInUseAsync(product.Id, cancellationToken);
+            if (inUse)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.Conflict("Product is in use by stock, purchase or order records. Deactivate it instead.");
+            }
+
+            productRepository.Remove(product);
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+
+            return ProductCommandResult.Success(null);
+        }
+        catch
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
 }

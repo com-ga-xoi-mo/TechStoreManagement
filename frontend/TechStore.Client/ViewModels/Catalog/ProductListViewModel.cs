@@ -46,6 +46,7 @@ public sealed partial class ProductListViewModel : PageViewModel
     [ObservableProperty] private string? categoryError;
     [ObservableProperty] private bool isOutOfRange;
     [ObservableProperty] private Guid? focusProductId;
+    [ObservableProperty] private bool canManage;
     [ObservableProperty] private string resultContext = string.Empty;
     [ObservableProperty] private IReadOnlyList<CategoryOption> categories = [];
 
@@ -82,6 +83,7 @@ public sealed partial class ProductListViewModel : PageViewModel
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _sessionStore.SessionChanged += OnSessionChanged;
+        CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
     }
 
     protected override bool ManagesLoadState => true;
@@ -182,6 +184,15 @@ public sealed partial class ProductListViewModel : PageViewModel
         if (product is null || product.Id == Guid.Empty) return;
         _navigation.Navigate(AppRoute.ProductDetail(product.Id, AppliedCriteria, product.Id));
     }
+
+    [RelayCommand]
+    private void CreateProduct()
+    {
+        if (!CanManage) return;
+        _navigation.Navigate(AppRoute.ProductCreate(AppliedCriteria));
+    }
+
+    public void ClearFocusRequest() => FocusProductId = null;
 
     private async Task ApplyDraftAsync()
     {
@@ -505,6 +516,7 @@ public sealed partial class ProductListViewModel : PageViewModel
 
     private void OnSessionChanged(object? sender, SessionChangedEventArgs args)
     {
+        CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
         CancelTrackedRequests();
         ClearSnapshot();
         AppliedCriteria = new ProductQuery();

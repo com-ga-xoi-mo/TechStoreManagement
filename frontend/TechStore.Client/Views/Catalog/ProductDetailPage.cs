@@ -201,12 +201,12 @@ public sealed class ProductDetailPage : Page, IRoutePage
                                     .ColumnDefinitions("180, *")
                                     .Children(
                                         new TextBlock()
-                                            .Text(pair.Key)
+                                            .Text(x => x.Binding(() => pair.Key))
                                             .Style(AppResources.GetStyle(AppTypography.CaptionText))
                                             .Foreground(AppColors.Brushes.SecondaryText),
                                         new TextBlock()
                                             .Grid(column: 1)
-                                            .Text(CatalogPresentation.SpecValueText(pair.Value))
+                                            .Text(x => x.Binding(() => pair.Value).Convert((JsonElement elem) => CatalogPresentation.SpecValueText(elem)))
                                             .Style(AppResources.GetStyle(AppTypography.BodyText))
                                             .Foreground(AppColors.Brushes.Text)
                                             .TextWrapping(TextWrapping.Wrap))),
@@ -248,25 +248,25 @@ public sealed class ProductDetailPage : Page, IRoutePage
                                                             .Spacing(4)
                                                             .Children(
                                                                 new TextBlock()
-                                                                    .Text(v.VariantName)
+                                                                    .Text(x => x.Binding(() => v.VariantName))
                                                                     .Style(AppResources.GetStyle(AppTypography.BodyText))
                                                                     .Foreground(AppColors.Brushes.Text),
                                                                 new TextBlock()
-                                                                    .Text($"SKU: {v.Sku}   ·   Barcode: {CatalogPresentation.OptionalText(v.Barcode)}")
+                                                                    .Text(x => x.Binding(() => v).Convert((ProductVariant pv) => pv is null ? string.Empty : $"SKU: {pv.Sku}   ·   Barcode: {CatalogPresentation.OptionalText(pv.Barcode)}"))
                                                                     .Style(AppResources.GetStyle(AppTypography.CaptionText))
                                                                     .Foreground(AppColors.Brushes.SecondaryText)
                                                                     .TextWrapping(TextWrapping.Wrap)),
                                                         new TextBlock()
                                                             .Grid(column: 1)
-                                                            .Text(CatalogPresentation.FormatMoney(v.Price))
+                                                            .Text(x => x.Binding(() => v.Price).Convert((decimal pr) => CatalogPresentation.FormatMoney(pr)))
                                                             .Style(AppResources.GetStyle(AppTypography.SectionText))
                                                             .Foreground(AppColors.Brushes.Text)
                                                             .VerticalAlignment(VerticalAlignment.Center)),
                                                 new ItemsControl()
-                                                    .ItemsSource(v.EffectiveSpecs)
+                                                    .ItemsSource(x => x.Binding(() => v.EffectiveSpecs))
                                                     .ItemTemplate<KeyValuePair<string, JsonElement>>(p =>
                                                         new TextBlock()
-                                                            .Text($"{p.Key}: {CatalogPresentation.SpecValueText(p.Value)}")
+                                                            .Text(x => x.Binding(() => p).Convert((KeyValuePair<string, JsonElement> pair) => $"{pair.Key}: {CatalogPresentation.SpecValueText(pair.Value)}"))
                                                             .Style(AppResources.GetStyle(AppTypography.CaptionText))
                                                             .Foreground(AppColors.Brushes.SecondaryText)
                                                             .TextWrapping(TextWrapping.Wrap))))),

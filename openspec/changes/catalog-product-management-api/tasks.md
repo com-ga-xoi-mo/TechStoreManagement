@@ -33,9 +33,9 @@ Read `design.md` (decisions D1–D11) and `specs/product-catalog/spec.md` before
 
 ## 4. Create rule: no product barcode when variants exist
 
-- [ ] 4.1 In `backend/Catalog/Services/CreateProductValidator.cs`, after the `// 12. Variants` block and before `return`, add step `// 13. Barcode is only for products without variants`: `if (request.Variants is { Count: > 0 } && !string.IsNullOrWhiteSpace(request.Barcode)) AddError("barcode", "A product with variants cannot have a product barcode. Put barcodes on the variants.");`; verify the backend project builds
-- [ ] 4.2 Add tests to `tests/Backend.UnitTests/ProductServiceTests.cs` next to the other `CreateProductValidator_*` tests, using the existing `CreateValidRequest()` helper: (a) `CreateProductValidator_BarcodeWithVariants_ReturnsBarcodeError` (barcode `"8934567890123"` + one valid variant → errors contain key `barcode`), (b) `CreateProductValidator_BarcodeWithoutVariants_Passes` (barcode, `Variants = null` → no errors), (c) `CreateProductValidator_BarcodeWithEmptyVariantList_Passes` (`Variants = new()` → no errors), (d) `CreateProductValidator_WhitespaceBarcodeWithVariants_Passes`; verify the backend test command passes (baseline + 4)
-- [ ] 4.3 Commit: `feat(catalog): reject product barcode on products with variants`
+- [x] 4.1 In `backend/Catalog/Services/CreateProductValidator.cs`, after the `// 12. Variants` block and before `return`, add step `// 13. Barcode is only for products without variants`: `if (request.Variants is { Count: > 0 } && !string.IsNullOrWhiteSpace(request.Barcode)) AddError("barcode", "A product with variants cannot have a product barcode. Put barcodes on the variants.");`; verify the backend project builds
+- [x] 4.2 Add tests to `tests/Backend.UnitTests/ProductServiceTests.cs` next to the other `CreateProductValidator_*` tests, using the existing `CreateValidRequest()` helper: (a) `CreateProductValidator_BarcodeWithVariants_ReturnsBarcodeError` (barcode `"8934567890123"` + one valid variant → errors contain key `barcode`), (b) `CreateProductValidator_BarcodeWithoutVariants_Passes` (barcode, `Variants = null` → no errors), (c) `CreateProductValidator_BarcodeWithEmptyVariantList_Passes` (`Variants = new()` → no errors), (d) `CreateProductValidator_WhitespaceBarcodeWithVariants_Passes`; verify the backend test command passes (baseline + 4)
+- [x] 4.3 Commit: `feat(catalog): reject product barcode on products with variants`
 
 ## 5. Pure update validator (`UpdateProductValidator`)
 

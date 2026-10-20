@@ -305,6 +305,94 @@ public sealed class ProductListViewModelTests
         Assert.Equal(1, repository.SearchCount);
     }
 
+    [Theory]
+    [InlineData("Admin", true)]
+    [InlineData("SalesStaff", false)]
+    public void CanManage_WithRole_ReturnsExpectedValue(string role, bool expected)
+    {
+        var session = new InMemorySessionStore();
+        session.SetSession("t", "r", "admin", "Admin", role);
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query)));
+
+        var viewModel = CreateViewModel(repository, session: session);
+
+        Assert.Equal(expected, viewModel.CanManage);
+    }
+
+    [Fact]
+    public void CanManage_AnonymousSession_ReturnsFalse()
+    {
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query)));
+
+        var viewModel = CreateViewModel(repository);
+
+        Assert.False(viewModel.CanManage);
+    }
+
+    [Fact]
+    public void CanManage_TurnsFalseAfterSessionClear()
+    {
+        var session = new InMemorySessionStore();
+        session.SetSession("t", "r", "admin", "Admin", "Admin");
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query)));
+        var viewModel = CreateViewModel(repository, session: session);
+        Assert.True(viewModel.CanManage);
+
+        session.Clear();
+
+        Assert.False(viewModel.CanManage);
+    }
+
+    [Fact]
+    public async Task CreateProductCommand_WithAdmin_NavigatesToProductCreateCarryingAppliedQuery()
+    {
+        var navigation = new NavigationService(new AllowingPreparer());
+        navigation.Navigate(AppRoute.Products());
+        var session = new InMemorySessionStore();
+        session.SetSession("t", "r", "admin", "Admin", "Admin");
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query)));
+        var viewModel = new ProductListViewModel(repository, new FakeCategoryRepository(), session, navigation);
+        viewModel.SetRoute(new ProductQuery { Query = "laptop", Page = 2 }, null);
+        await viewModel.ActivateAsync();
+
+        viewModel.CreateProductCommand.Execute(null);
+
+        Assert.Equal(AppRouteKind.ProductCreate, navigation.CurrentRoute.Kind);
+        Assert.Equal("laptop", navigation.CurrentRoute.ReturnQuery?.Query);
+        Assert.Equal(2, navigation.CurrentRoute.ReturnQuery?.Page);
+    }
+
+    [Fact]
+    public async Task CreateProductCommand_WithSalesStaff_DoesNotNavigate()
+    {
+        var navigation = new NavigationService(new AllowingPreparer());
+        navigation.Navigate(AppRoute.Products());
+        var session = new InMemorySessionStore();
+        session.SetSession("t", "r", "cashier", "Cashier", "SalesStaff");
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query)));
+        var viewModel = new ProductListViewModel(repository, new FakeCategoryRepository(), session, navigation);
+        viewModel.SetRoute(new ProductQuery { Query = "laptop" }, null);
+        await viewModel.ActivateAsync();
+
+        viewModel.CreateProductCommand.Execute(null);
+
+        Assert.Equal(AppRouteKind.ProductList, navigation.CurrentRoute.Kind);
+    }
+
+    [Fact]
+    public void ClearFocusRequest_SetsFocusProductIdToNull()
+    {
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query)));
+        var viewModel = CreateViewModel(repository);
+        var focusId = Guid.NewGuid();
+        viewModel.SetRoute(new ProductQuery(), focusId);
+        Assert.Equal(focusId, viewModel.FocusProductId);
+
+        viewModel.ClearFocusRequest();
+
+        Assert.Null(viewModel.FocusProductId);
+    }
+
     private static ProductListViewModel CreateViewModel(
         FakeProductRepository products,
         FakeCategoryRepository? categories = null,

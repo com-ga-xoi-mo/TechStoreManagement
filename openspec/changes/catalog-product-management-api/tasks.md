@@ -126,9 +126,9 @@ The live run creates its **own** test data (SKUs `TEST-WRITE-001`, `TEST-WRITE-0
 
 ## 13. Final integration checks
 
-- [ ] 13.1 Run `dotnet build TechStore.sln` and `dotnet test TechStore.sln`; verify 0 errors, 0 failed tests, and the backend passed count is the baseline from 1.3 plus the new tests
-- [ ] 13.2 Run `openspec validate catalog-product-management-api --strict`; verify it reports the change as valid
-- [ ] 13.3 Review the diff against `dev` (`git diff dev --stat`): verify that no file under `backend/Common/`, `backend/Orders/`, `backend/Inventory/`, `backend/Common/Data/Migrations/` or `frontend/` changed, and that `GetWithVariantsAsync`/`SearchAsync` in `ProductRepository.cs` are unchanged (`git diff dev -- backend/Catalog/Repositories/ProductRepository.cs` shows only additions)
+- [x] 13.1 Run `dotnet build TechStore.sln` and `dotnet test TechStore.sln`; verify 0 errors, 0 failed tests, and the backend passed count is the baseline from 1.3 plus the new tests (324 passed)
+- [x] 13.2 Run `openspec validate catalog-product-management-api --strict`; verify it reports the change as valid
+- [x] 13.3 Review the diff against `dev` (`git diff dev --stat`): verify that no file under `backend/Common/`, `backend/Orders/`, `backend/Inventory/`, `backend/Common/Data/Migrations/` or `frontend/` changed, and that `GetWithVariantsAsync`/`SearchAsync` in `ProductRepository.cs` are unchanged (`git diff dev -- backend/Catalog/Repositories/ProductRepository.cs` shows only additions)
 - [ ] 13.4 **Do not push and do not open a pull request.** Commit all work on `feat/catalog-product-management-api` and stop here; verify `git status` is clean and `git ls-remote --heads origin feat/catalog-product-management-api` prints nothing. The merge with the UI branch `feat/catalog-product-management-ui`, the rename of the merged branch to `feat/catalog-product-management`, the push and the single pull request into `dev` are done in the final task group of change `catalog-product-management-ui`. That pull request must list the new endpoints and the RBAC change on `POST /api/products`, and contain a "Coordination notes" heading whose bullets are copied word for word from this change's `design.md` section "Coordination notes"
 
 ## Workflow follow-up

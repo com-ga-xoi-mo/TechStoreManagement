@@ -200,6 +200,77 @@ public sealed class NavigationStateTests
         Assert.Equal(NavigationOutcome.AlreadyCurrent, service.Navigate(AppRoute.OrderCreate()));
     }
 
+    [Fact]
+    public void AppRoute_ProductCreateBelongsToProductsAndKeepsReturnQuery()
+    {
+        var query = new ProductQuery { Query = "phone", Specs = ["ram:16"] };
+        var route = AppRoute.ProductCreate(query);
+
+        Assert.Equal(ShellDestination.Products, route.Destination);
+        Assert.Equal(AppRouteKind.ProductCreate, route.Kind);
+        Assert.Null(route.ProductId);
+        Assert.Null(route.FocusProductId);
+        Assert.NotNull(route.ReturnQuery);
+        Assert.Equal("phone", route.ReturnQuery.Query);
+        Assert.Equal("ram:16", Assert.Single(route.ReturnQuery.Specs));
+    }
+
+    [Fact]
+    public void AppRoute_ProductEditRequiresANonEmptyId()
+    {
+        Assert.Throws<ArgumentException>(() => AppRoute.ProductEdit(Guid.Empty));
+    }
+
+    [Fact]
+    public void AppRoute_ProductEditEqualityUsesId()
+    {
+        var id = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var otherId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var query = new ProductQuery { Query = "mouse", Specs = [] };
+
+        var first = AppRoute.ProductEdit(id, query);
+        var equal = AppRoute.ProductEdit(id, new ProductQuery { Query = "mouse", Specs = [] });
+        var differentId = AppRoute.ProductEdit(otherId, query);
+        var detail = AppRoute.ProductDetail(id, query);
+
+        Assert.Equal(first, equal);
+        Assert.Equal(first.GetHashCode(), equal.GetHashCode());
+        Assert.NotEqual(first, differentId);
+        Assert.NotEqual(first, detail);
+    }
+
+    [Fact]
+    public void NavigationService_MovingBetweenProductRoutesKeepsTheProductsDestination()
+    {
+        var service = new NavigationService(new FakePreparer());
+        Assert.Equal(NavigationOutcome.Navigated, service.Navigate(ShellDestination.Products));
+
+        var destinationChanges = 0;
+        var routeChanges = new List<AppRouteKind>();
+        service.DestinationChanged += (_, _) => destinationChanges++;
+        service.RouteChanged += (_, route) => routeChanges.Add(route.Kind);
+
+        var productId = Guid.NewGuid();
+
+        // list -> create -> list -> detail -> edit
+        Assert.Equal(NavigationOutcome.Navigated, service.Navigate(AppRoute.ProductCreate()));
+        Assert.Equal(ShellDestination.Products, service.CurrentDestination);
+
+        Assert.Equal(NavigationOutcome.Navigated, service.Navigate(AppRoute.Products()));
+        Assert.Equal(ShellDestination.Products, service.CurrentDestination);
+
+        Assert.Equal(NavigationOutcome.Navigated, service.Navigate(AppRoute.ProductDetail(productId)));
+        Assert.Equal(ShellDestination.Products, service.CurrentDestination);
+
+        Assert.Equal(NavigationOutcome.Navigated, service.Navigate(AppRoute.ProductEdit(productId)));
+        Assert.Equal(ShellDestination.Products, service.CurrentDestination);
+
+        Assert.Equal(0, destinationChanges);
+        Assert.Equal(
+            [AppRouteKind.ProductCreate, AppRouteKind.ProductList, AppRouteKind.ProductDetail, AppRouteKind.ProductEdit],
+            routeChanges);
+    }
+
     private sealed class FakePreparer : IDestinationPreparer
     {
         public ShellDestination? LastPrepared { get; private set; }

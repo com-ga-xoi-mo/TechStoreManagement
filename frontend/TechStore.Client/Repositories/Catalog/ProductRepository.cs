@@ -3,10 +3,11 @@ using System.Text.Json;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Services.Api;
 using TechStore.Shared.DTOs;
+using TechStore.Shared.Requests;
 
 namespace TechStore.Client.Repositories.Catalog;
 
-public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
+public sealed class ProductRepository(IApiClient apiClient) : IProductRepository, IProductCommandRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -47,6 +48,42 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
             return null;
         }
 
+        return ParseDetail(json, id);
+    }
+
+    public async Task<ProductDetail> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var json = await apiClient.PostAsync<CreateProductRequest, JsonElement>("api/products", request, cancellationToken);
+        return ParseDetail(json, null);
+    }
+
+    public async Task<ProductDetail> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("A product id is required.", nameof(id));
+        ArgumentNullException.ThrowIfNull(request);
+        var json = await apiClient.PutAsync<UpdateProductRequest, JsonElement>($"api/products/{id:D}", request, cancellationToken);
+        return ParseDetail(json, id);
+    }
+
+    public async Task<ProductDetail> SetStatusAsync(Guid id, bool isActive, CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("A product id is required.", nameof(id));
+        var json = await apiClient.PatchAsync<UpdateProductStatusRequest, JsonElement>(
+            $"api/products/{id:D}/status",
+            new UpdateProductStatusRequest { IsActive = isActive },
+            cancellationToken);
+        return ParseDetail(json, id);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("A product id is required.", nameof(id));
+        await apiClient.DeleteAsync($"api/products/{id:D}", cancellationToken);
+    }
+
+    private static ProductDetail ParseDetail(JsonElement json, Guid? expectedId)
+    {
         ValidateDetailShape(json);
         ProductDto response;
         try
@@ -59,7 +96,7 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
             throw InvalidResponse("The product detail response did not match the API contract.", exception);
         }
 
-        if (response.Id != id)
+        if (expectedId is { } id && response.Id != id)
             throw InvalidResponse("The product detail id did not match the requested id.");
 
         ValidateDetail(response);

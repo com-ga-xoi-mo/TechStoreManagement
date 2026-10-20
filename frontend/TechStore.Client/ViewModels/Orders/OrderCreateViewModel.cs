@@ -44,7 +44,7 @@ public sealed partial class OrderCreateViewModel : PageViewModel
 
     // ---- line editor ----
     [ObservableProperty] private string productSearchText = string.Empty;
-    [ObservableProperty] private IReadOnlyList<ProductSummary> productResults = [];
+    [ObservableProperty] private IReadOnlyList<ProductChoice> productResults = [];
     [ObservableProperty] private string productSearchMessage = string.Empty;
     [ObservableProperty] private bool isSearchingProducts;
     [ObservableProperty] private bool isLoadingProduct;
@@ -86,6 +86,7 @@ public sealed partial class OrderCreateViewModel : PageViewModel
     public IReadOnlyList<PaymentOption> PaymentOptions => PaymentOption.All;
 
     public bool HasProduct => SelectedProduct is not null;
+    public string SelectedProductName => SelectedProduct?.Name ?? string.Empty;
     public bool IsSerialTracked => SelectedProduct?.IsSerialTracked == true;
     public bool ShowVariantPicker => Variants.Count > 0;
     public bool ShowDevicePicker => HasProduct && IsSerialTracked && (!ShowVariantPicker || SelectedVariant is not null);
@@ -116,6 +117,7 @@ public sealed partial class OrderCreateViewModel : PageViewModel
     partial void OnSelectedProductChanged(ProductDetail? value)
     {
         OnPropertyChanged(nameof(HasProduct));
+        OnPropertyChanged(nameof(SelectedProductName));
         OnPropertyChanged(nameof(IsSerialTracked));
         OnPropertyChanged(nameof(ShowDevicePicker));
         OnPropertyChanged(nameof(ShowQuantity));
@@ -134,7 +136,7 @@ public sealed partial class OrderCreateViewModel : PageViewModel
             _ = LoadDevicesAsync(SelectedProduct.Id, value.Id);
     }
 
-    partial void OnProductResultsChanged(IReadOnlyList<ProductSummary> value) => OnPropertyChanged(nameof(HasProductResults));
+    partial void OnProductResultsChanged(IReadOnlyList<ProductChoice> value) => OnPropertyChanged(nameof(HasProductResults));
 
     partial void OnProductSearchMessageChanged(string value) => OnPropertyChanged(nameof(HasProductSearchMessage));
 
@@ -184,7 +186,7 @@ public sealed partial class OrderCreateViewModel : PageViewModel
             var page = await _products.SearchAsync(query, ActivationToken);
             if (version != _productSearchVersion) return;
 
-            ProductResults = page.Items;
+            ProductResults = page.Items.Select(ProductChoice.From).ToArray();
             if (page.Items.Count == 0)
                 ProductSearchMessage = "Không tìm thấy sản phẩm đang kinh doanh phù hợp.";
             else if (page.TotalCount > page.Items.Count)
@@ -203,6 +205,16 @@ public sealed partial class OrderCreateViewModel : PageViewModel
         {
             if (version == _productSearchVersion) IsSearchingProducts = false;
         }
+    }
+
+    [RelayCommand]
+    private void ClearProductSearch()
+    {
+        Interlocked.Increment(ref _productSearchVersion);
+        ProductSearchText = string.Empty;
+        ProductResults = [];
+        ProductSearchMessage = string.Empty;
+        IsSearchingProducts = false;
     }
 
     [RelayCommand]

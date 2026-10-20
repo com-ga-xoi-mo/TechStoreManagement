@@ -61,6 +61,7 @@ public sealed partial class OrderListViewModel : PageViewModel
     public bool ShowPagination => Snapshot is { TotalCount: > 0 };
     public bool ShowEmptyState => IsEmpty && Snapshot is not null;
     public bool ShowInitialLoading => IsLoading && Snapshot is null;
+    public bool ShowList => Rows.Count > 0 && !IsError;
     public string ResultSummary => Snapshot is null
         ? string.Empty
         : $"{TotalCount:N0} đơn · trang {CurrentPage}/{Math.Max(TotalPages, 1)}";
@@ -71,10 +72,13 @@ public sealed partial class OrderListViewModel : PageViewModel
     {
         OnPropertyChanged(nameof(ShowEmptyState));
         OnPropertyChanged(nameof(ShowInitialLoading));
+        OnPropertyChanged(nameof(ShowList));
         OnPropertyChanged(nameof(HasPreviousPage));
         OnPropertyChanged(nameof(HasNextPage));
         NotifyPagingCommands();
     }
+
+    partial void OnRowsChanged(IReadOnlyList<OrderRow> value) => OnPropertyChanged(nameof(ShowList));
 
     partial void OnActionMessageChanged(string value) => OnPropertyChanged(nameof(HasActionMessage));
 

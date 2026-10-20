@@ -1,4 +1,5 @@
 using TechStore.Client.Controls.Presentation;
+using TechStore.Client.Models.Catalog;
 using TechStore.Client.Models.Orders;
 using TechStore.Shared.Enums;
 
@@ -33,4 +34,16 @@ public sealed record DraftLineItem(OrderDraftLine Line, string? Error = null)
     public string Discount => Line.DiscountAmount > 0 ? "−" + OrderPresentation.FormatMoney(Line.DiscountAmount) : "—";
 
     public string Total => OrderPresentation.FormatMoney(Line.EstimatedTotal);
+}
+
+/// <summary>A product search hit with its text already formatted. The command parameter is <see cref="Summary"/>.</summary>
+public sealed record ProductChoice(ProductSummary Summary, string Title, string Subtitle, string PriceText)
+{
+    public static ProductChoice From(ProductSummary product) => new(
+        product,
+        product.Name,
+        $"{product.Sku} · {product.Brand}{(product.IsSerialTracked ? " · Theo dõi IMEI" : string.Empty)}",
+        product.PriceFrom == product.PriceTo
+            ? OrderPresentation.FormatMoney(product.PriceFrom)
+            : $"{OrderPresentation.FormatMoney(product.PriceFrom)} – {OrderPresentation.FormatMoney(product.PriceTo)}");
 }

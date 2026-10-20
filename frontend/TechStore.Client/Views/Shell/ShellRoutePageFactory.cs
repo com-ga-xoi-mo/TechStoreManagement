@@ -61,6 +61,9 @@ public sealed class ShellRoutePageFactory(
         {
             using var page = Create(destination.Id);
         }
+
+        // Routes that are not a Shell root are only reached by navigation, so resolve them here too.
+        using var orderCreate = Create(AppRoute.OrderCreate());
     }
 
     private static Page ResolvePage(AppRoute route, IServiceProvider services) => route.Kind switch
@@ -68,6 +71,7 @@ public sealed class ShellRoutePageFactory(
         AppRouteKind.Root => ResolveRootPage(route.Destination, services),
         AppRouteKind.ProductList => services.GetRequiredService<ProductListPage>(),
         AppRouteKind.ProductDetail => services.GetRequiredService<ProductDetailPage>(),
+        AppRouteKind.OrderCreate => services.GetRequiredService<OrderCreatePage>(),
         _ => throw new ArgumentOutOfRangeException(nameof(route), route.Kind, "Unknown route kind.")
     };
 

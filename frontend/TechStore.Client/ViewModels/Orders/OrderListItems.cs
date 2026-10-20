@@ -49,6 +49,17 @@ public sealed record OrderRow(
 {
     public bool HasActions => Actions.Count > 0;
 
+    /// <summary>Second line under the customer: how it was paid and how many lines it has.</summary>
+    public string PaymentSummary => $"{Payment} · {ItemCount}";
+
+    // The three possible buttons are fixed so the row template can give each its own style.
+    public OrderRowAction? PayAction => Actions.FirstOrDefault(a => a.Action.Target == OrderStatus.Processing);
+    public OrderRowAction? CompleteAction => Actions.FirstOrDefault(a => a.Action.Target == OrderStatus.Completed);
+    public OrderRowAction? CancelAction => Actions.FirstOrDefault(a => a.Action.Target == OrderStatus.Cancelled);
+    public bool HasPayAction => PayAction is not null;
+    public bool HasCompleteAction => CompleteAction is not null;
+    public bool HasCancelAction => CancelAction is not null;
+
     public static OrderRow From(OrderSummary order) => new(
         order,
         order.OrderCode,

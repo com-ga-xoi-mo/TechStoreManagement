@@ -81,12 +81,7 @@ public sealed class ContentDialogPresenter(IThemePreferenceService themePreferen
         {
             XamlRoot = root,
             Title = request.Title,
-            RequestedTheme = themePreference.Preference switch
-            {
-                ThemePreference.Light => ElementTheme.Light,
-                ThemePreference.Dark => ElementTheme.Dark,
-                _ => ElementTheme.Default
-            },
+            RequestedTheme = ToElementTheme(themePreference.Preference),
             Content = new TextBlock
             {
                 Text = request.Message,
@@ -125,6 +120,77 @@ public sealed class ContentDialogPresenter(IThemePreferenceService themePreferen
             RestoreFocus(root, previousFocus);
         }
     }
+
+    /// <summary>
+    /// Shows a dialog built by the caller under the same root, theme, single-dialog guard and focus recovery as
+    /// the text dialogs. Returns <c>false</c> without showing anything when the Shell is not ready or another
+    /// dialog is already open (WinUI allows only one at a time).
+    /// </summary>
+    public async Task<bool> TryShowAsync(Func<ContentDialog> create, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(create);
+        var root = _root;
+        var dispatcher = _dispatcher;
+        if (!IsReady || root is null || dispatcher is null || cancellationToken.IsCancellationRequested) return false;
+
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!dispatcher.TryEnqueue(() => _ = ShowCustomOnUiAsync(root, dispatcher, create, cancellationToken, completion)))
+            return false;
+        return await completion.Task;
+    }
+
+    private async Task ShowCustomOnUiAsync(
+        XamlRoot root,
+        DispatcherQueue dispatcher,
+        Func<ContentDialog> create,
+        CancellationToken cancellationToken,
+        TaskCompletionSource<bool> completion)
+    {
+        if (cancellationToken.IsCancellationRequested || _activeDialog is not null)
+        {
+            completion.TrySetResult(false);
+            return;
+        }
+
+        var previousFocus = FocusManager.GetFocusedElement(root);
+        ContentDialog dialog;
+        try
+        {
+            dialog = create();
+            dialog.XamlRoot = root;
+            dialog.RequestedTheme = ToElementTheme(themePreference.Preference);
+        }
+        catch (Exception exception)
+        {
+            completion.TrySetException(exception);
+            return;
+        }
+
+        _activeDialog = dialog;
+        using var cancellationRegistration = cancellationToken.Register(() =>
+            dispatcher.TryEnqueue(() => TryHide(dialog)));
+        try
+        {
+            await dialog.ShowAsync();
+            completion.TrySetResult(true);
+        }
+        catch (Exception exception)
+        {
+            completion.TrySetException(exception);
+        }
+        finally
+        {
+            if (ReferenceEquals(_activeDialog, dialog)) _activeDialog = null;
+            RestoreFocus(root, previousFocus);
+        }
+    }
+
+    private static ElementTheme ToElementTheme(ThemePreference preference) => preference switch
+    {
+        ThemePreference.Light => ElementTheme.Light,
+        ThemePreference.Dark => ElementTheme.Dark,
+        _ => ElementTheme.Default
+    };
 
     private void RestoreFocus(XamlRoot root, object? previousFocus)
     {

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Repositories.Identity;
+using TechStore.Client.Repositories.Orders;
 using TechStore.Client.Services.Development;
 using TechStore.Client.Services.Dialog;
 using TechStore.Client.Services.Navigation;
@@ -54,6 +55,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ProductDetailViewModel>();
         services.AddTransient<InventoryViewModel>();
         services.AddTransient<OrderListViewModel>();
+        services.AddTransient<OrderCreateViewModel>();
         services.AddTransient<CustomerListViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<LoginViewModel>();
@@ -63,6 +65,8 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ProductDetailPage>();
         services.AddTransient<InventoryPage>();
         services.AddTransient<OrderListPage>();
+        services.AddTransient<OrderCreatePage>();
+        services.AddSingleton<IOrderDetailPresenter, OrderDetailDialogPresenter>();
         services.AddTransient<CustomerListPage>();
         services.AddTransient<SettingsPage>();
         services.AddTransient<LoginPage>();
@@ -80,6 +84,8 @@ public static class UiServiceCollectionExtensions
         }
         services.AddTransient<IProductRepository, ProductRepository>();
         services.AddTransient<ICategoryRepository, CategoryRepository>();
+        services.AddTransient<IOrderRepository, OrderRepository>();
+        services.AddTransient<IOrderDeviceRepository, OrderDeviceRepository>();
         services.AddTransient<IAuthRepository, AuthRepository>();
         services.AddTransient<IStoreSettingsRepository, StoreSettingsRepository>();
         return services;

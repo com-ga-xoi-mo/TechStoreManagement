@@ -76,6 +76,7 @@ public sealed partial class DashboardViewModel : PageViewModel
     public string ProductsText => Snapshot?.Summary.ProductCount.ToString("N0", VietnameseCulture) ?? "—";
     public string LowStockText => Snapshot?.Summary.LowStockCount.ToString("N0", VietnameseCulture) ?? "—";
     public string RevenueTrendText => FormatChange(Snapshot?.Summary.RevenueChangePercent);
+    public string RevenueDetailText => Snapshot?.Summary.RevenueChangePercent is null ? string.Empty : "so với kỳ trước";
     public string OrdersTrendText => FormatChange(Snapshot?.Summary.OrderCountChangePercent);
     public string ProductDetailText => Snapshot is null
         ? "Số sản phẩm đang hoạt động tại thời điểm đọc"
@@ -172,6 +173,7 @@ public sealed partial class DashboardViewModel : PageViewModel
         OnPropertyChanged(nameof(LowStockTrendText));
         OnPropertyChanged(nameof(LowStockDetailText));
         OnPropertyChanged(nameof(RevenueTrendText));
+        OnPropertyChanged(nameof(RevenueDetailText));
         OnPropertyChanged(nameof(OrdersTrendText));
         OnPropertyChanged(nameof(IsDemoMode));
         OnPropertyChanged(nameof(IsLiveMode));
@@ -262,6 +264,7 @@ public sealed partial class DashboardViewModel : PageViewModel
         OnPropertyChanged(nameof(LowStockTrendText));
         OnPropertyChanged(nameof(LowStockDetailText));
         OnPropertyChanged(nameof(RevenueTrendText));
+        OnPropertyChanged(nameof(RevenueDetailText));
         OnPropertyChanged(nameof(OrdersTrendText));
         OnPropertyChanged(nameof(ShowDashboardPanels));
         OnPropertyChanged(nameof(ShowPreviewPanels));

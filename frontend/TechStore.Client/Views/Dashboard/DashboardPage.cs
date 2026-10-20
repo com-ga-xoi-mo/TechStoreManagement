@@ -140,7 +140,8 @@ public sealed class DashboardPage : Page, IRoutePage
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.Children.Add(new StatCard().MinHeight(142).Title("Tổng doanh thu").ValueText(x => x.Binding(() => _viewModel.RevenueText))
             .UnitText("₫").TrendText(x => x.Binding(() => _viewModel.RevenueTrendText))
-            .Tone(x => x.Binding(() => _viewModel.RevenueTrendText).Convert(GetTrendTone)).DetailText("so với kỳ trước")
+            .Tone(x => x.Binding(() => _viewModel.RevenueTrendText).Convert(GetTrendTone))
+            .DetailText(x => x.Binding(() => _viewModel.RevenueDetailText))
             .IconSource(GetIcon(AppIcons.MoneyIcon)!).IsLoading(x => x.Binding(() => _viewModel.IsLoading)).Grid(column: 0));
         grid.Children.Add(new StatCard().MinHeight(142).Title("Số đơn hàng").ValueText(x => x.Binding(() => _viewModel.OrdersText))
             .UnitText("đơn").TrendText(x => x.Binding(() => _viewModel.OrdersTrendText))

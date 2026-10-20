@@ -404,6 +404,82 @@ public class ProductServiceTests
         errors.Should().ContainKey("costPrice");
     }
 
+    [Fact]
+    public void CreateProductValidator_BarcodeWithVariants_ReturnsBarcodeError()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.Barcode = "8934567890123";
+        request.Variants =
+        [
+            new TechStore.Shared.Requests.CreateProductVariantRequest
+            {
+                VariantName = "Titanium",
+                Sku = "IP15PM-256-TI",
+                Price = 30000000m
+            }
+        ];
+
+        // Act
+        var errors = CreateProductValidator.Validate(request);
+
+        // Assert
+        errors.Should().ContainKey("barcode");
+    }
+
+    [Fact]
+    public void CreateProductValidator_BarcodeWithoutVariants_Passes()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.Barcode = "8934567890123";
+        request.Variants = null;
+
+        // Act
+        var errors = CreateProductValidator.Validate(request);
+
+        // Assert
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CreateProductValidator_BarcodeWithEmptyVariantList_Passes()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.Barcode = "8934567890123";
+        request.Variants = new();
+
+        // Act
+        var errors = CreateProductValidator.Validate(request);
+
+        // Assert
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CreateProductValidator_WhitespaceBarcodeWithVariants_Passes()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.Barcode = "   ";
+        request.Variants =
+        [
+            new TechStore.Shared.Requests.CreateProductVariantRequest
+            {
+                VariantName = "Titanium",
+                Sku = "IP15PM-256-TI",
+                Price = 30000000m
+            }
+        ];
+
+        // Act
+        var errors = CreateProductValidator.Validate(request);
+
+        // Assert
+        errors.Should().BeEmpty();
+    }
+
     // -------------------------------------------------------------
     // Task 5.2: GetByIdAsync Tests
     // -------------------------------------------------------------

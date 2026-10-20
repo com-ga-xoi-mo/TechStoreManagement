@@ -187,6 +187,12 @@ public static class CreateProductValidator
             }
         }
 
+        // 13. Barcode is only for products without variants
+        if (request.Variants is { Count: > 0 } && !string.IsNullOrWhiteSpace(request.Barcode))
+        {
+            AddError("barcode", "A product with variants cannot have a product barcode. Put barcodes on the variants.");
+        }
+
         return errors.ToDictionary(k => k.Key, v => v.Value.ToArray());
     }
 }

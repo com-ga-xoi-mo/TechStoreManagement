@@ -1,3 +1,5 @@
+using TechStore.Client.Styles;
+
 namespace TechStore.Client.Models.Customers;
 
 public sealed record CustomerTierVisual(
@@ -19,9 +21,9 @@ public static class CustomerTierPresentation
 
     public static CustomerTierVisual FromTier(string? tier) => tier switch
     {
-        "Silver" => new("Silver", "Bạc", "◈ Bạc", "TechStoreNeutralFillBrush", "TechStoreNeutralTextBrush"),
-        "Gold" => new("Gold", "Vàng", "★ Vàng", "TechStoreWarningFillBrush", "TechStoreWarningTextBrush"),
-        "Platinum" => new("Platinum", "Bạch kim", "✦ Bạch kim", "TechStoreAccentFillBrush", "TechStoreAccentTextBrush"),
-        _ => new("Standard", "Tiêu chuẩn", "♙ Tiêu chuẩn", "TechStoreInfoFillBrush", "TechStoreInfoTextBrush")
+        "Silver" => new("Silver", "Bạc", "◈ Bạc", AppColors.NeutralFill, AppColors.NeutralText),
+        "Gold" => new("Gold", "Vàng", "★ Vàng", AppColors.WarningFill, AppColors.WarningText),
+        "Platinum" => new("Platinum", "Bạch kim", "✦ Bạch kim", AppColors.AccentFill, AppColors.AccentText),
+        _ => new("Standard", "Tiêu chuẩn", "♙ Tiêu chuẩn", AppColors.InfoFill, AppColors.InfoText)
     };
 }

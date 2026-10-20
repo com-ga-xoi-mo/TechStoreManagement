@@ -28,4 +28,9 @@ public interface IApiClient
         string relativePath,
         TRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<TResponse> PatchAsync<TRequest, TResponse>(
+        string relativePath,
+        TRequest request,
+        CancellationToken cancellationToken = default);
 }

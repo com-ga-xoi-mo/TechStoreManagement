@@ -53,9 +53,9 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 - **`shared/`**: Common domain contracts consumed across backend, client, and test projects (`DTOs/`, `Requests/`, `Enums/`).
 
 ### 3. Data Flow
-1. **User Interaction**: UI triggers an `{x:Bind}` event command on a ViewModel in `frontend/TechStore.Client/ViewModels/<Module>/`.
+1. **User Interaction**: UI triggers a bound command (C# Markup `.Command(x => x.Binding(() => ViewModel.XCommand))`, or `{x:Bind}` on the pages not yet converted) on a ViewModel in `frontend/TechStore.Client/ViewModels/<Module>/`.
 2. **ViewModel Execution**: The ViewModel executes a command decorated with `[RelayCommand]`, coordinates loading/error/content state via `PageViewModel` (`PageContentState`), and invokes a client repository in `frontend/TechStore.Client/Repositories/`.
-3. **Client Repository & HTTP Transport**: The client repository converts request parameters into query URIs, calls `IApiClient` / `ApiClient` (backed by `HttpClient` configured with `BearerTokenHandler`), and maps response DTOs to client domain models (`frontend/TechStore.Client/Models/`).
+3. **Client Repository & HTTP Transport**: The client repository converts request parameters into query URIs, calls `IApiClient` / `ApiClient` (`GetAsync`, `PostAsync`, `PutAsync`, `PatchAsync`; backed by `HttpClient` configured with `BearerTokenHandler`), and maps response DTOs to client domain models (`frontend/TechStore.Client/Models/`).
 4. **API Routing & RBAC**: The request reaches an `[ApiController]`, passes through JWT authentication and role authorization checks, then calls the corresponding domain service interface (controllers never call repositories directly).
 5. **Business Logic & Concurrency**: The domain service validates input and applies business rules. When the use case locks rows or performs multi-step writes, it initiates a transaction via `IUnitOfWork.BeginTransactionAsync`.
 6. **Data Access**: The service invokes repository interfaces (`backend/<Module>/Repositories/`). Repositories are the only classes that interact with `AppDbContext`: they query (using `AsNoTracking` for reads), acquire row locks (`SELECT ... FOR UPDATE`), and stage entity additions or removals, but never save.
@@ -85,13 +85,13 @@ SalesManagement/
 │   ├── Directory.Packages.props   # Central Package Management package definitions
 │   └── TechStore.Client/          # Uno Platform multi-targeted client project
 │       ├── App.xaml / App.xaml.cs # DI bootstrap (AddFrontendFoundation, AddFrontendUi) and window lifecycle
-│       ├── Views/                 # C# Markup UI pages (Catalog, Customers, Dashboard, Inventory, Orders, Settings, Shell)
+│       ├── Views/                 # UI pages: C# Markup (Identity, Settings, Shell, Development/MarkupReferencePage) and legacy XAML (Catalog, Customers, Dashboard, Inventory, Orders, Development/ComponentGalleryPage, MainPage)
 │       ├── ViewModels/            # MVVM ViewModels extending PageViewModel (Catalog, Customers, Dashboard, Inventory, Orders)
 │       ├── Repositories/          # Client data repositories mapping DTOs to client Models (Catalog, Analytics)
 │       ├── Models/                # Client-side presentation models (ProductSummary, ProductDetail, DashboardSnapshot)
 │       ├── Services/              # Client services (Api, Navigation, Session, Theme, Dialog, Window)
-│       ├── Controls/              # Reusable controls implemented with C# Markup (StatCard, StatusBadge, SearchBoxControl, EmptyStateControl, Charts)
-│       ├── Styles/                # C# theme definitions & design tokens (AppColors, AppTypography, AppIcons, AppMetrics, ControlStyles)
+│       ├── Controls/              # Shared controls in C# Markup (StatCard, StatusBadge, SearchBoxControl, EmptyStateControl), Presentation/ (pure display rules), Charts/
+│       ├── Styles/                # C# design tokens: AppColors, AppTypography, AppMetrics, AppIcons, AppControlStyles (+ *.Resources.cs accessors), AppResources (registration); StitchTokens (legacy static colors)
 │       └── Platforms/             # Desktop (Skia macOS/Linux) and Windows entry points
 │
 ├── shared/                        # Shared contracts across API, Client, and Tests (no NuGet dependencies)
@@ -282,16 +282,49 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 - **Strict Data Types:** All temporal columns use UTC `timestamptz`; all monetary amounts use `numeric(18, 2)`. Identifiers use lowercase `snake_case`.
 
 ### 6. Frontend MVVM & C# Markup Pattern
-- **Base Architecture (`docs/MVVM_REPOSITORY_BASE_PROJECT.md`):**
+- **Base Architecture:**
   - Uses **MVVM combined with Client Repositories & C# Markup**: `View (C# Markup)` → `ViewModel` → `Client Repository` → `ApiClient` → `HTTP REST API`.
   - **Client Repositories** (`frontend/TechStore.Client/Repositories/`) isolate ViewModels from networking, HTTP headers, serialization, and error codes by converting DTOs into presentation models (`frontend/TechStore.Client/Models/`).
   - **`PageViewModel` Base Class:** ViewModels inherit from `PageViewModel`, providing observable `PageContentState` (`Idle`, `Loading`, `Empty`, `Content`, `Error`), `PageActivationLease` for lifecycle cleanup, cancellation token management (`ActivationToken`), and `RetryCommand`.
   - **CommunityToolkit.Mvvm:** Backing fields use `[ObservableProperty]` to generate change notifications; async actions use `[RelayCommand]`.
-  - **C# Markup Fluent Declarations (`Uno.Extensions.Markup`):**
-    - Views are written 100% in C# classes inheriting from `Page` (no `.xaml` or `.xaml.cs` code-behind split).
-    - Data binding is declared with type-safe extensions: `.Text(x => x.Bind(() => vm.Title))` or `.Command(x => x.Bind(() => vm.SubmitCommand))`.
-    - Styles and theme resources are referenced via type-safe C# tokens (`AppColors.Primary`, `AppTypography.HeadingLarge`).
   - **Zero UI Controls in ViewModels:** ViewModels never reference WinUI or Uno controls, enabling 100% headless testing in standard unit test runners.
+- **C# Markup syntax (the one working pattern; copy from `Views/Development/MarkupReferencePage.cs`, matches `LoginPage.cs` / `SettingsPage.cs`):**
+  - Views are C# classes inheriting from `Page` (no `.xaml` / `.xaml.cs`). The page receives its ViewModel in the constructor, keeps a `ViewModel` property and sets `DataContext = viewModel`.
+  - Binding: `.Text(x => x.Binding(() => ViewModel.Title))`; two-way: `.Text(x => x.Binding(() => ViewModel.Query).Mode(BindingMode.TwoWay))`; type change: `.Visibility(x => x.Binding(() => ViewModel.IsError).Convert((bool v) => v ? Visibility.Visible : Visibility.Collapsed))`; command: `.Command(x => x.Binding(() => ViewModel.SubmitCommand))`. The old `x.Bind(...)` form is not used.
+  - Typed WinUI properties bind the same way, e.g. `this.RequestedTheme(x => x.Binding(() => ViewModel.ThemeIndex).Convert((int i) => ...))`.
+  - The binding path is derived from the lambda text at run time, so a wrong path still builds. Always run the page and check the binding, not only the build.
+- **Forbidden in View/Control files when syncing data with the ViewModel:** `PropertyChanged +=`, `TextChanged +=`, `Checked +=`, `Click +=`, `Color.FromArgb`, `new SolidColorBrush(...)`, and setting `Visibility`/`Text` from event handlers. Use bindings, converters and commands instead.
+- **Allowed exceptions (documented in `openspec/changes/csharp-markup-foundation/design.md` D2):**
+  - `AutoSuggestBox.QuerySubmitted` in `SearchBoxControl` to raise `SearchCommand` (no command exists for submit);
+  - returning focus to the text box when "Xóa" is pressed (focus cannot be bound);
+  - `PasswordBox` sync in `LoginPage` via `PasswordChanged` (and `ViewModel.PropertyChanged` for show/hide), because `PasswordBox.Password` is not a DependencyProperty;
+  - a DependencyProperty changed-callback in a shared control that only computes derived display properties through `Controls/Presentation` helpers.
+  Any new exception must be added to design D2 first.
+- **Theme tokens (`frontend/TechStore.Client/Styles/`):**
+  - Values live in C#: `AppColors`, `AppTypography`, `AppMetrics`, `AppIcons`, `AppControlStyles`. Key names are string constants (`AppColors.Canvas == "TechStoreCanvasBrush"`, pure C#, unit-tested). `AppResources.Register(this)` merges them into `Application.Resources` in the `App` constructor, after `XamlControlsResources`. `App.xaml` has no `Styles/*.xaml`.
+  - Typed accessors for C# Markup return theme references, so colors follow Light/Dark: `.Background(AppColors.Brushes.Canvas)`, `.Foreground(AppColors.Brushes.SecondaryText)`, `.Style(AppTypography.Styles.HeadingText)`, `.Style(AppControlStyles.Styles.PrimaryButton)`, `AppMetrics.Values.CardRadius`. Do not use a static `Brush` or `Color` for themed UI. When the same element also sets its own theme color (e.g. `.Foreground(AppColors.Brushes.SecondaryText)`), apply the style with `.Style(AppResources.GetStyle(AppTypography.CaptionText))` instead of `AppTypography.Styles.*`, so the style cannot override that color (see `MarkupReferencePage`).
+  - **Theme colors and Styles (verified on Skia, see `design.md` D3 and "Việc về sau"):** in Uno C# Markup, a Style `Setter` whose value is a theme color (`new Style<T>().Setters(s => s.Background(AppColors.Brushes.Surface))`) is resolved once and does NOT update when the theme changes at run time. Rules:
+    1. **In C# Markup views and controls, set theme colors directly on the element**: `.Background(AppColors.Brushes.Surface)`, `.Foreground(AppColors.Brushes.Text)`. This updates live on Light/Dark switch.
+    2. **Markup `Style<T>` holds only non-color properties** (font, size, line height, padding, corner radius, min height). Do not put theme colors in a Markup style.
+    3. **`AppResources.AddThemedStyles` is legacy compatibility only.** It builds the 10 existing styles that carry theme colors (`TechStore*TextStyle`, `TechStoreFieldErrorStyle`, `TechStoreTableHeaderStyle`, `TechStorePanelStyle`, `TechStoreDangerButtonStyle`) through `XamlReader.Load`, because the remaining XAML pages use them by name and need live theme updates. **Do not add new styles to it.** If a converted page needs the same look, use a Markup style for the non-color part plus colors on the element.
+    4. **When converting a XAML page**, check with `git grep -n "<StyleKey>" -- '*.xaml'` whether any other XAML page still uses each themed style. When none does, move that style out of `AddThemedStyles`: color parts to the elements, the rest to a Markup `Style<T>`. When `AddThemedStyles` becomes empty, delete it. Icons (`AddIcons`) keep `XamlReader` until `PathIconSource.Foreground` can follow the theme from code.
+    5. **Always check theme switching at run time** after touching colors or styles: run the app, switch Sáng/Tối in Settings (or in the gallery with `TECHSTORE_UI_GALLERY=1`) while the page is open, and confirm text, panels and buttons stay readable. Build and headless tests cannot catch this bug.
+    6. On a Uno upgrade, re-test rule 1–2 in the gallery; if Markup style setters start following the theme, `AddThemedStyles` can be removed earlier.
+  - Remaining XAML pages keep using the same keys (`{ThemeResource TechStoreCanvasBrush}`, `{StaticResource TechStorePanelStyle}`).
+  - HighContrast maps to system colors in the token tables (tested); it cannot be exercised on Skia/Linux.
+- **Shared controls (`Controls/`):** `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl` are `UserControl`s built in C# Markup with an unchanged DependencyProperty API.
+  - In a C# Markup page, set properties with the fluent extensions, bind like any element: `new SearchBoxControl().Text(x => x.Binding(() => ViewModel.Query).Mode(BindingMode.TwoWay)).SearchCommand(x => x.Binding(() => ViewModel.SearchCommand))`, `new StatusBadge().Label("Hoàn thành").Tone(StatusTone.Success)`. These extensions compile without an extra assembly attribute.
+  - Inside a control, bind through a private `Self => this` property and set `DataContext(this)` on the control's root element (not on the control), so the consumer's `DataContext` is untouched.
+  - Display rules (loading > error > content, `—` for missing values, action visibility, tone to color keys) live in the pure `Controls/Presentation/` helpers, which are linked into the headless tests.
+  - After the first load, re-apply code-set theme brushes (`Loaded += ApplyThemeColors`), because a style setter can override a brush applied earlier.
+- **Reference and gallery:** run with `TECHSTORE_UI_GALLERY=1` and press "Mở mẫu C# Markup" to see `MarkupReferencePage` (sample data, no backend). It is registered only when the gallery is enabled.
+- **Conversion status of views:**
+
+  |State|Views|
+  |:---|:---|
+  |C# Markup with theme-aware tokens|`MarkupReferencePage`, `OrderListPage`, `OrderCreatePage`, `OrderDetailDialog`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
+  |C# Markup, colors still static (`StitchTokens` / `Color.FromArgb`), light only|`LoginPage`, `ShellPage`, `SettingsPage` (backlog: move to the theme accessors, then delete `StitchTokens`)|
+  |Still XAML|`ProductListPage`, `ProductDetailPage`, `DashboardPage`, `InventoryPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
 
 ### 7. Asynchronous Programming Pattern
 - Pure non-blocking `async`/`await` end-to-end.

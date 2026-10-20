@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using TechStore.Client.Models.Customers;
+using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Customers;
 using Uno.Extensions.Markup;
 
@@ -12,20 +13,20 @@ namespace TechStore.Client.Views.Customers;
 
 public sealed class CustomerDetailDialogView : UserControl
 {
-    private const string Surface = "TechStoreSurfaceBrush";
-    private const string Subtle = "TechStoreSubtleBrush";
-    private const string Text = "TechStoreTextBrush";
-    private const string SecondaryText = "TechStoreSecondaryTextBrush";
-    private const string Stroke = "TechStoreStrokeBrush";
-    private const string Primary = "TechStorePrimaryBrush";
-    private const string InfoFill = "TechStoreInfoFillBrush";
-    private const string InfoText = "TechStoreInfoTextBrush";
-    private const string WarningFill = "TechStoreWarningFillBrush";
-    private const string WarningText = "TechStoreWarningTextBrush";
-    private const string SuccessFill = "TechStoreSuccessFillBrush";
-    private const string SuccessText = "TechStoreSuccessTextBrush";
-    private const string DangerFill = "TechStoreDangerFillBrush";
-    private const string DangerText = "TechStoreDangerTextBrush";
+    private const string Surface = AppColors.Surface;
+    private const string Subtle = AppColors.Subtle;
+    private const string Text = AppColors.Text;
+    private const string SecondaryText = AppColors.SecondaryText;
+    private const string Stroke = AppColors.Stroke;
+    private const string Primary = AppColors.Primary;
+    private const string InfoFill = AppColors.InfoFill;
+    private const string InfoText = AppColors.InfoText;
+    private const string WarningFill = AppColors.WarningFill;
+    private const string WarningText = AppColors.WarningText;
+    private const string SuccessFill = AppColors.SuccessFill;
+    private const string SuccessText = AppColors.SuccessText;
+    private const string DangerFill = AppColors.DangerFill;
+    private const string DangerText = AppColors.DangerText;
 
     public CustomerDetailViewModel ViewModel { get; }
     public IRelayCommand DeactivateCommand { get; }

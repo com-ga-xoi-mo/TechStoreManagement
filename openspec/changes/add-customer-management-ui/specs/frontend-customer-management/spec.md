@@ -29,9 +29,9 @@ The customer screen SHALL show paginated customers with identity, tier, points, 
 - **WHEN** the customer list is displayed
 - **THEN** each row shows completed-order spending total and most recent completed purchase time without making per-customer detail requests
 
-#### Scenario: Open customer details from the list
-- **WHEN** an Admin activates the eye-icon action on a customer row
-- **THEN** the client opens that customer's details, with the initials centered in the circular avatar and without requiring horizontal scrolling to reach the action
+#### Scenario: View or edit a customer from the list
+- **WHEN** an Admin activates the eye or pencil action on a customer row
+- **THEN** the client opens that customer's details or edit form respectively, with both compact actions grouped beneath the centered action header and reachable without horizontal scrolling at the target width
 
 #### Scenario: Present tier colors consistently
 - **WHEN** a customer row or detail profile is displayed

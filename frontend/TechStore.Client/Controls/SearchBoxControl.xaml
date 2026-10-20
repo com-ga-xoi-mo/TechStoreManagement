@@ -1,7 +1,0 @@
-<UserControl x:Class="TechStore.Client.Controls.SearchBoxControl" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" IsTabStop="False">
-<StackPanel Spacing="6">
-<TextBlock x:Name="SearchLabel" Text="{x:Bind Label, Mode=OneWay}" Style="{StaticResource TechStoreBodyTextStyle}" />
-<Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-<AutoSuggestBox x:Name="QueryBox" PlaceholderText="{x:Bind PlaceholderText, Mode=OneWay}" QueryIcon="Find" TextChanged="OnTextChanged" QuerySubmitted="OnQuerySubmitted" Style="{StaticResource TechStoreAutoSuggestBoxStyle}" AutomationProperties.AutomationId="GallerySearch" />
-<Button Grid.Column="1" Content="Xóa" Click="OnClear" Style="{StaticResource TechStoreButtonStyle}" AutomationProperties.Name="Xóa nội dung tìm kiếm" />
-</Grid></StackPanel></UserControl>

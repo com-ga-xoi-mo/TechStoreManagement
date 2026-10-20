@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using TechStore.Client.Models.Customers;
+using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Customers;
 using Uno.Extensions.Markup;
 
@@ -12,14 +13,14 @@ namespace TechStore.Client.Views.Customers;
 
 public sealed class CustomerDeactivationDialogView : UserControl
 {
-    private const string Surface = "TechStoreSurfaceBrush";
-    private const string Subtle = "TechStoreSubtleBrush";
-    private const string Text = "TechStoreTextBrush";
-    private const string SecondaryText = "TechStoreSecondaryTextBrush";
-    private const string Stroke = "TechStoreStrokeBrush";
-    private const string DangerFill = "TechStoreDangerFillBrush";
-    private const string DangerText = "TechStoreDangerTextBrush";
-    private const string SuccessText = "TechStoreSuccessTextBrush";
+    private const string Surface = AppColors.Surface;
+    private const string Subtle = AppColors.Subtle;
+    private const string Text = AppColors.Text;
+    private const string SecondaryText = AppColors.SecondaryText;
+    private const string Stroke = AppColors.Stroke;
+    private const string DangerFill = AppColors.DangerFill;
+    private const string DangerText = AppColors.DangerText;
+    private const string SuccessText = AppColors.SuccessText;
 
     public CustomerListViewModel ViewModel { get; }
     public IAsyncRelayCommand ConfirmCommand { get; }

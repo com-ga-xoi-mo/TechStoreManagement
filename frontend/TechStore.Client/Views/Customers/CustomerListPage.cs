@@ -1,5 +1,4 @@
 using System.Globalization;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -12,7 +11,6 @@ using TechStore.Client.ViewModels.Customers;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.Views.Shell;
 using Uno.Extensions.Markup;
-using Windows.UI;
 
 namespace TechStore.Client.Views.Customers;
 
@@ -31,7 +29,7 @@ public sealed class CustomerListPage : Page, IRoutePage
     private readonly ComboBox _activityFilter;
     private readonly CustomerFormViewModel _formViewModel;
     private readonly CustomerDetailViewModel _detailViewModel;
-    private double _customerTableWidth = CustomerTableMinimumWidth;
+    private readonly StackPanel _table;
     private bool _isShowingCreateDialog;
     private bool _isShowingDetailDialog;
     private bool _isShowingDeactivationDialog;
@@ -54,9 +52,9 @@ public sealed class CustomerListPage : Page, IRoutePage
         ShowCreateDialogCommand = new AsyncRelayCommand(ShowCreateDialogAsync);
         ShowCustomerDetailsCommand = new AsyncRelayCommand<CustomerSummary>(ShowCustomerDetailsFromRowAsync);
         ShowCustomerEditCommand = new AsyncRelayCommand<CustomerSummary>(ShowCustomerEditFromRowAsync);
-        Background = new SolidColorBrush(StitchTokens.SurfaceCanvas);
+        this.Background(AppColors.Brushes.Canvas);
 
-        _countText = Text("", 13, StitchTokens.ContentMuted)
+        _countText = Text("", 13, AppColors.SecondaryText)
             .Text(x => x.Binding(() => ViewModel.CountLabel));
         var titleRow = new Grid
         {
@@ -67,12 +65,12 @@ public sealed class CustomerListPage : Page, IRoutePage
             }
         };
         var heading = new StackPanel { Spacing = 3 };
-        heading.Children.Add(Text("Hệ thống CRM & Khách hàng", 11, StitchTokens.ContentMuted, true));
+        heading.Children.Add(Text("Hệ thống CRM & Khách hàng", 11, AppColors.SecondaryText, true));
         var titleLine = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, VerticalAlignment = VerticalAlignment.Center };
-        titleLine.Children.Add(Text("Danh sách Khách hàng", 25, StitchTokens.ContentTitle, true));
+        titleLine.Children.Add(Text("Danh sách Khách hàng", 25, AppColors.Text, true));
         titleLine.Children.Add(_countText);
         heading.Children.Add(titleLine);
-        heading.Children.Add(Text("Quản lý hồ sơ, hạng thành viên và lịch sử mua hàng.", 13, StitchTokens.ContentMuted));
+        heading.Children.Add(Text("Quản lý hồ sơ, hạng thành viên và lịch sử mua hàng.", 13, AppColors.SecondaryText));
         var addButton = PrimaryButton("＋  Thêm khách hàng");
         // Modal lifetime commands belong to this View, not its data-context ViewModel.
         addButton.Command(ShowCreateDialogCommand);
@@ -137,6 +135,7 @@ public sealed class CustomerListPage : Page, IRoutePage
             .ItemsSource(x => x.Binding(() => ViewModel.Customers))
             .ItemTemplate<CustomerSummary>(customer => BuildCustomerRow(customer));
         var table = new StackPanel { Spacing = 0 };
+        _table = table;
         table.MinWidth = CustomerTableMinimumWidth;
         table.Width = CustomerTableMinimumWidth;
         table.Children.Add(BuildHeaderRow());
@@ -147,7 +146,7 @@ public sealed class CustomerListPage : Page, IRoutePage
         _emptyState = BuildMessageCard("Chưa có khách hàng", "Hãy thử đổi từ khóa hoặc bộ lọc để tìm khách hàng.", "○");
         _emptyState.Visibility(x => x.Binding(() => ViewModel.ShowEmptyState)
             .Convert((bool visible) => visible ? Visibility.Visible : Visibility.Collapsed));
-        _errorText = Text("", 13, StitchTokens.ErrorText);
+        _errorText = Text("", 13, AppColors.DangerText);
         _errorText.Text(x => x.Binding(() => ViewModel.ErrorMessage));
         _errorState = BuildErrorCard(_errorText)
             .Visibility(x => x.Binding(() => ViewModel.IsError)
@@ -176,24 +175,17 @@ public sealed class CustomerListPage : Page, IRoutePage
         {
             var width = Math.Max(tableScroll.ViewportWidth, CustomerTableMinimumWidth);
             if (Math.Abs(table.Width - width) > 0.5)
-            {
-                _customerTableWidth = width;
                 table.Width = width;
-                foreach (var child in table.Children)
-                    if (child is FrameworkElement element)
-                        element.Width = width;
-            }
         }
         tableScroll.SizeChanged += (_, _) => SizeTableToViewport();
         tableScroll.Loaded += (_, _) => SizeTableToViewport();
         var tableCard = new Border
         {
-            Background = new SolidColorBrush(StitchTokens.SurfaceWhite),
-            BorderBrush = new SolidColorBrush(StitchTokens.SurfaceBorder),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(10),
             Child = tableScroll
-        };
+        }.Background(AppColors.Brushes.Surface)
+            .BorderBrush(AppColors.Brushes.Stroke);
         var contentLayer = new Grid();
         contentLayer.Children.Add(tableCard);
         contentLayer.Children.Add(_loading);
@@ -252,12 +244,12 @@ public sealed class CustomerListPage : Page, IRoutePage
     private Grid BuildHeaderRow()
     {
         var grid = CreateTableGrid();
-        grid.Background = new SolidColorBrush(Color.FromArgb(0xFF, 0xF1, 0xF5, 0xF9));
+        grid.Background(AppColors.Brushes.Subtle);
         grid.Padding = new Thickness(0, 13, 0, 13);
         var headers = new[] { "KHÁCH HÀNG", "SĐT", "HẠNG", "ĐIỂM TÍCH LŨY", "CHI TIÊU", "LẦN MUA GẦN NHẤT", "THAO TÁC" };
         for (var i = 0; i < headers.Length; i++)
         {
-            var text = Text(headers[i], 10, StitchTokens.ContentMuted, true);
+            var text = Text(headers[i], 10, AppColors.SecondaryText, true);
             text.TextWrapping = TextWrapping.Wrap;
             if (i is 3 or 4) text.TextAlignment = TextAlignment.Right;
             if (i == 6)
@@ -274,7 +266,7 @@ public sealed class CustomerListPage : Page, IRoutePage
     {
         var row = CreateTableGrid();
         row.Padding = new Thickness(0, 10, 0, 10);
-        row.BorderBrush = new SolidColorBrush(StitchTokens.SurfaceBorder);
+        row.BorderBrush(AppColors.Brushes.Stroke);
         row.BorderThickness = new Thickness(0, 0, 0, 1);
         row.MinHeight = 62;
 
@@ -282,25 +274,24 @@ public sealed class CustomerListPage : Page, IRoutePage
         identity.Children.Add(BuildTierAvatar(customer));
         var nameButton = new Button
         {
-            Content = Text("", 13, StitchTokens.ContentTitle, true)
+            Content = Text("", 13, AppColors.Text, true)
                 .Text(x => x.Binding(() => customer.FullName)),
-            Background = new SolidColorBrush(Colors.Transparent),
             BorderThickness = new Thickness(0),
             Padding = new Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Left
-        };
+        }.Background(AppColors.Brushes.Surface);
         AutomationProperties.SetName(nameButton, "Mở hồ sơ khách hàng");
         nameButton.Command(ShowCustomerDetailsCommand);
         nameButton.CommandParameter(x => x.Binding());
         identity.Children.Add(nameButton);
         AddCell(row, identity, 0);
-        AddCell(row, Text("", 12, StitchTokens.ContentBody).Text(x => x.Binding(() => customer.Phone)), 1);
+        AddCell(row, Text("", 12, AppColors.Text).Text(x => x.Binding(() => customer.Phone)), 1);
         AddCell(row, BuildTierBadge(customer), 2);
-        AddCell(row, RightText("", StitchTokens.ContentBody).Text(x => x.Binding(() => customer.LoyaltyPoints)
+        AddCell(row, RightText("", AppColors.Text).Text(x => x.Binding(() => customer.LoyaltyPoints)
             .Convert((int points) => $"{points.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} điểm")), 3);
-        AddCell(row, RightText("", StitchTokens.ContentTitle, true).Text(x => x.Binding(() => customer.TotalSpent)
+        AddCell(row, RightText("", AppColors.Text, true).Text(x => x.Binding(() => customer.TotalSpent)
             .Convert((decimal amount) => $"{amount.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} ₫")), 4);
-        var lastPurchase = Text("", 12, StitchTokens.ContentMuted)
+        var lastPurchase = Text("", 12, AppColors.SecondaryText)
             .Text(x => x.Binding(() => customer.LastPurchaseAt).Convert(FormatLastPurchase));
         lastPurchase.TextTrimming = TextTrimming.CharacterEllipsis;
         AddCell(row, lastPurchase, 5);
@@ -318,16 +309,14 @@ public sealed class CustomerListPage : Page, IRoutePage
             {
                 Glyph = "\uE70F",
                 FontSize = 13,
-                Foreground = new SolidColorBrush(StitchTokens.Primary)
-            },
+            }.Foreground(AppColors.Brushes.Primary),
             Width = 30,
             Height = 30,
             Padding = new Thickness(0),
-            Background = new SolidColorBrush(Colors.Transparent),
             BorderThickness = new Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
-        };
+        }.Background(AppColors.Brushes.Surface);
         AutomationProperties.SetName(edit, "Chỉnh sửa thông tin khách hàng");
         edit.Command(ShowCustomerEditCommand);
         edit.CommandParameter(x => x.Binding());
@@ -338,16 +327,14 @@ public sealed class CustomerListPage : Page, IRoutePage
             {
                 Glyph = "\uE890",
                 FontSize = 13,
-                Foreground = new SolidColorBrush(StitchTokens.Primary)
-            },
+            }.Foreground(AppColors.Brushes.Primary),
             Width = 30,
             Height = 30,
             Padding = new Thickness(0),
-            Background = new SolidColorBrush(Colors.Transparent),
             BorderThickness = new Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
-        };
+        }.Background(AppColors.Brushes.Surface);
         AutomationProperties.SetName(details, "Xem hồ sơ khách hàng");
         details.Command(ShowCustomerDetailsCommand);
         details.CommandParameter(x => x.Binding());
@@ -424,13 +411,13 @@ public sealed class CustomerListPage : Page, IRoutePage
             },
             Padding = new Thickness(12, 10, 12, 0)
         };
-        var rangeText = Text("", 12, StitchTokens.ContentMuted)
+        var rangeText = Text("", 12, AppColors.SecondaryText)
             .Text(x => x.Binding(() => ViewModel.RangeLabel));
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
         var previous = new Button { Content = "Trang trước", Padding = new Thickness(12, 6, 12, 6) }
             .Command(x => x.Binding(() => ViewModel.PreviousPageCommand))
             .IsEnabled(x => x.Binding(() => ViewModel.HasPreviousPage));
-        var pageText = Text("", 12, StitchTokens.ContentBody, true)
+        var pageText = Text("", 12, AppColors.Text, true)
             .Text(x => x.Binding(() => ViewModel.PageLabel));
         var next = new Button { Content = "Trang sau", Padding = new Thickness(12, 6, 12, 6) }
             .Command(x => x.Binding(() => ViewModel.NextPageCommand))
@@ -447,45 +434,43 @@ public sealed class CustomerListPage : Page, IRoutePage
     private Border BuildMessageCard(string title, string description, string glyph)
     {
         var content = new StackPanel { Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        content.Children.Add(Text(glyph, 24, StitchTokens.ContentMuted, true));
-        content.Children.Add(Text(title, 16, StitchTokens.ContentTitle, true));
-        content.Children.Add(Text(description, 13, StitchTokens.ContentMuted));
+        content.Children.Add(Text(glyph, 24, AppColors.SecondaryText, true));
+        content.Children.Add(Text(title, 16, AppColors.Text, true));
+        content.Children.Add(Text(description, 13, AppColors.SecondaryText));
         return new Border
         {
-            Background = new SolidColorBrush(StitchTokens.SurfaceWhite),
             CornerRadius = new CornerRadius(10),
             Padding = new Thickness(28),
             Child = content,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Center
-        };
+        }.Background(AppColors.Brushes.Surface);
     }
 
     private Border BuildErrorCard(TextBlock errorText)
     {
         var content = new StackPanel { Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         content.Children.Add(errorText);
-        var retry = new Button { Content = "Thử tải lại", Padding = new Thickness(14, 7, 14, 7) };
+        var retry = new Button { Content = "Thử tải lại", Padding = new Thickness(14, 7, 14, 7) }
+            .Foreground(AppColors.Brushes.DangerText);
         retry.Command(x => x.Binding(() => ViewModel.RetryCommand));
         content.Children.Add(retry);
         return new Border
         {
-            Background = new SolidColorBrush(StitchTokens.ErrorBg),
-            BorderBrush = new SolidColorBrush(StitchTokens.ErrorBorder),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(20),
             Child = content,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Center
-        };
+        }.Background(AppColors.Brushes.DangerFill)
+            .BorderBrush(AppColors.Brushes.DangerStroke);
     }
 
     private Grid CreateTableGrid()
     {
         var grid = new Grid
         {
-            Width = _customerTableWidth,
             MinWidth = CustomerTableMinimumWidth,
             ColumnDefinitions =
             {
@@ -498,6 +483,12 @@ public sealed class CustomerListPage : Page, IRoutePage
                 new ColumnDefinition { Width = new GridLength(0.95, GridUnitType.Star), MinWidth = 128 }
             }
         };
+        grid.SetBinding(FrameworkElement.WidthProperty, new Binding
+        {
+            Source = _table,
+            Path = new PropertyPath(nameof(FrameworkElement.Width)),
+            Mode = BindingMode.OneWay
+        });
         return grid;
     }
 
@@ -512,30 +503,29 @@ public sealed class CustomerListPage : Page, IRoutePage
         grid.Children.Add(element);
     }
 
-    private static TextBlock RightText(string value, Color color, bool bold = false)
+    private static TextBlock RightText(string value, string colorKey, bool bold = false)
     {
-        var text = Text(value, 12, color, bold);
+        var text = Text(value, 12, colorKey, bold);
         text.TextAlignment = TextAlignment.Right;
         return text;
     }
 
-    private static TextBlock Text(string value, double size, Color color, bool bold = false) =>
+    private static TextBlock Text(string value, double size, string colorKey, bool bold = false) =>
         new TextBlock()
             .Text(value)
             .FontSize(size)
-            .Foreground(new SolidColorBrush(color))
+            .Foreground(ThemeResource.Get<Brush>(colorKey))
             .FontWeight(bold ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal)
             .VerticalAlignment(VerticalAlignment.Center);
 
     private static Button PrimaryButton(string text) => new Button
     {
-        Content = Text(text, 13, Colors.White, true),
-        Background = new SolidColorBrush(StitchTokens.Primary),
-        Foreground = new SolidColorBrush(Colors.White),
+        Content = Text(text, 13, AppColors.OnPrimary, true),
         Padding = new Thickness(16, 10, 16, 10),
         CornerRadius = new CornerRadius(7),
         HorizontalAlignment = HorizontalAlignment.Right
-    };
+    }.Background(AppColors.Brushes.Primary)
+        .Foreground(AppColors.Brushes.OnPrimary);
 
     private static string FormatLastPurchase(DateTime? date)
     {

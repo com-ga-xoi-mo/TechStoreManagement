@@ -137,6 +137,69 @@ public sealed class NavigationStateTests
         Assert.Equal(AppRoute.Root(ShellDestination.Settings), state.CurrentRoute);
     }
 
+    [Fact]
+    public void AppRoute_OrderCreateBelongsToOrdersAndCarriesNoCatalogContext()
+    {
+        var route = AppRoute.OrderCreate();
+
+        Assert.Equal(ShellDestination.Orders, route.Destination);
+        Assert.Equal(AppRouteKind.OrderCreate, route.Kind);
+        Assert.Null(route.ProductId);
+        Assert.Null(route.ReturnQuery);
+        Assert.Null(route.FocusProductId);
+    }
+
+    [Fact]
+    public void AppRoute_OrderCreateIsEqualToItselfAndDifferentFromTheOrdersRoot()
+    {
+        var first = AppRoute.OrderCreate();
+        var second = AppRoute.OrderCreate();
+
+        Assert.Equal(first, second);
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+        Assert.NotEqual(first, AppRoute.Root(ShellDestination.Orders));
+    }
+
+    [Fact]
+    public void AppRoute_RefusesToBuildAnOrderCreateRouteUnderAnotherDestination()
+    {
+        var constructor = typeof(AppRoute).GetConstructors(
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Single();
+
+        var error = Assert.Throws<System.Reflection.TargetInvocationException>(() => constructor.Invoke(
+            [ShellDestination.Products, AppRouteKind.OrderCreate, null, null, null]));
+
+        Assert.IsType<ArgumentException>(error.InnerException);
+    }
+
+    [Fact]
+    public void NavigationService_MovingBetweenOrdersListAndCreateKeepsTheOrdersDestination()
+    {
+        var service = new NavigationService(new FakePreparer());
+        Assert.Equal(NavigationOutcome.Navigated, service.Navigate(ShellDestination.Orders));
+        var destinationChanges = 0;
+        var routeChanges = new List<AppRouteKind>();
+        service.DestinationChanged += (_, _) => destinationChanges++;
+        service.RouteChanged += (_, route) => routeChanges.Add(route.Kind);
+
+        Assert.Equal(NavigationOutcome.Navigated, service.Navigate(AppRoute.OrderCreate()));
+        Assert.Equal(ShellDestination.Orders, service.CurrentDestination);
+        Assert.Equal(NavigationOutcome.Navigated, service.Navigate(AppRoute.Root(ShellDestination.Orders)));
+        Assert.Equal(ShellDestination.Orders, service.CurrentDestination);
+
+        Assert.Equal(0, destinationChanges);
+        Assert.Equal([AppRouteKind.OrderCreate, AppRouteKind.Root], routeChanges);
+    }
+
+    [Fact]
+    public void NavigationService_OpeningOrderCreateAgainWhileOnItIsAlreadyCurrent()
+    {
+        var service = new NavigationService(new FakePreparer());
+        service.Navigate(AppRoute.OrderCreate());
+
+        Assert.Equal(NavigationOutcome.AlreadyCurrent, service.Navigate(AppRoute.OrderCreate()));
+    }
+
     private sealed class FakePreparer : IDestinationPreparer
     {
         public ShellDestination? LastPrepared { get; private set; }

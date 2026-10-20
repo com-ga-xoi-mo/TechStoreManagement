@@ -235,8 +235,193 @@ public class ProductService(
         return CreateProductResult.Success(createdDto);
     }
 
-    public Task<ProductCommandResult> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
+    public async Task<ProductCommandResult> UpdateAsync(
+        Guid id,
+        UpdateProductRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        // Step A - pure validation and lock
+        var validationErrors = UpdateProductValidator.Validate(request);
+        if (validationErrors.Count > 0)
+        {
+            return ProductCommandResult.ValidationFailed(validationErrors);
+        }
+
+        var errors = new Dictionary<string, List<string>>();
+        void AddError(string field, string message)
+        {
+            if (!errors.TryGetValue(field, out var list))
+            {
+                list = [];
+                errors[field] = list;
+            }
+            list.Add(message);
+        }
+
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var product = await productRepository.GetForUpdateAsync(id, cancellationToken);
+            if (product == null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.NotFound();
+            }
+
+            var category = await categoryRepository.GetByIdAsync(request.CategoryId!.Value, cancellationToken);
+            if (category == null || !category.IsActive)
+            {
+                AddError("categoryId", $"Category '{request.CategoryId!.Value}' does not exist or is inactive.");
+            }
+
+            // Step B - variant item checks against stored data
+            var existingById = product.Variants.ToDictionary(v => v.Id);
+            if (request.Variants != null)
+            {
+                for (var i = 0; i < request.Variants.Count; i++)
+                {
+                    var item = request.Variants[i];
+                    if (item == null) continue;
+
+                    if (item.Id.HasValue)
+                    {
+                        if (!existingById.TryGetValue(item.Id.Value, out var existing))
+                        {
+                            AddError($"variants[{i}].id", $"Variant '{item.Id.Value}' does not belong to this product.");
+                        }
+                        else if (!string.IsNullOrWhiteSpace(item.Sku) && !string.Equals(item.Sku.Trim(), existing.Sku, StringComparison.OrdinalIgnoreCase))
+                        {
+                            AddError($"variants[{i}].sku", "The SKU of an existing variant cannot be changed.");
+                        }
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrWhiteSpace(item.Sku) && string.Equals(item.Sku.Trim(), product.Sku, StringComparison.OrdinalIgnoreCase))
+                        {
+                            AddError($"variants[{i}].sku", $"SKU '{item.Sku.Trim()}' is already used by the product.");
+                        }
+                    }
+                }
+            }
+
+            var newCount = request.Variants?.Count(v => v is { Id: null }) ?? 0;
+            if (product.Variants.Count + newCount > 0 && !string.IsNullOrWhiteSpace(request.Barcode))
+            {
+                AddError("barcode", "A product with variants cannot have a product barcode. Put barcodes on the variants.");
+            }
+
+            if (errors.Count > 0)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.ValidationFailed(errors.ToDictionary(k => k.Key, v => v.Value.ToArray()));
+            }
+
+            // Step C - usage guards (409)
+            var serialChange = request.IsSerialTracked!.Value != product.IsSerialTracked;
+            var firstVariant = product.Variants.Count == 0 && newCount > 0;
+            if (serialChange || firstVariant)
+            {
+                var inUse = await productRepository.IsInUseAsync(product.Id, cancellationToken);
+                if (inUse)
+                {
+                    await unitOfWork.RollbackAsync(cancellationToken);
+                    if (serialChange)
+                    {
+                        return ProductCommandResult.Conflict("Serial tracking cannot be changed because the product already has stock, purchase or order records.");
+                    }
+                    else
+                    {
+                        return ProductCommandResult.Conflict("Variants cannot be added because the product already has product-level stock, purchase or order records.");
+                    }
+                }
+            }
+
+            // Step D - SKU conflicts for new variants
+            var newSkus = request.Variants?
+                .Where(v => v is { Id: null } && !string.IsNullOrWhiteSpace(v.Sku))
+                .Select(v => v.Sku!.Trim())
+                .ToList() ?? [];
+
+            if (newSkus.Count > 0)
+            {
+                var conflicts = await productRepository.FindExistingSkusAsync(newSkus, cancellationToken);
+                if (conflicts.Count > 0)
+                {
+                    await unitOfWork.RollbackAsync(cancellationToken);
+                    return ProductCommandResult.Conflict($"One or more SKUs are already in use: {string.Join(", ", conflicts)}.");
+                }
+            }
+
+            // Step E - apply product fields
+            product.CategoryId = request.CategoryId!.Value;
+            product.Name = request.Name!.Trim();
+            product.Brand = request.Brand!.Trim();
+            product.Barcode = string.IsNullOrWhiteSpace(request.Barcode) ? null : request.Barcode.Trim();
+            product.BasePrice = request.BasePrice!.Value;
+            product.CostPrice = request.CostPrice!.Value;
+            product.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            product.ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim();
+            product.Specs = ProductSpecHelper.SerializeSpecs(request.Specs);
+            product.IsSerialTracked = request.IsSerialTracked!.Value;
+            var now = DateTime.UtcNow;
+            product.UpdatedAt = now;
+
+            // Step F - apply variants
+            if (request.Variants != null)
+            {
+                foreach (var item in request.Variants)
+                {
+                    if (item == null) continue;
+
+                    if (item.Id.HasValue)
+                    {
+                        var existing = existingById[item.Id.Value];
+                        existing.VariantName = item.VariantName!.Trim();
+                        existing.Barcode = string.IsNullOrWhiteSpace(item.Barcode) ? null : item.Barcode.Trim();
+                        existing.Price = item.Price!.Value;
+                        existing.Specs = ProductSpecHelper.SerializeSpecs(item.Specs);
+                        existing.IsActive = item.IsActive ?? existing.IsActive;
+                        existing.UpdatedAt = now;
+                    }
+                    else
+                    {
+                        var variant = new ProductVariant
+                        {
+                            Id = Guid.NewGuid(),
+                            ProductId = product.Id,
+                            VariantName = item.VariantName!.Trim(),
+                            Sku = item.Sku!.Trim(),
+                            Barcode = string.IsNullOrWhiteSpace(item.Barcode) ? null : item.Barcode.Trim(),
+                            Price = item.Price!.Value,
+                            Specs = ProductSpecHelper.SerializeSpecs(item.Specs),
+                            IsActive = item.IsActive ?? true,
+                            CreatedAt = now,
+                            UpdatedAt = null
+                        };
+
+                        product.Variants.Add(variant);
+                        productRepository.AddVariant(variant);
+                    }
+                }
+            }
+
+            // Step G - persist
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+
+            return ProductCommandResult.Success(ProductDtoMapper.ToDto(product, category!.Name));
+        }
+        catch (DuplicateKeyException)
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            return ProductCommandResult.Conflict("A SKU in this request is already in use.");
+        }
+        catch
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
 
     public async Task<ProductCommandResult> SetStatusAsync(
         Guid id,

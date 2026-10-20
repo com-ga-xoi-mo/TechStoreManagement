@@ -38,7 +38,18 @@ public class CustomerService(
     public async Task<CustomerOperationResult<CustomerDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var customer = await customerRepository.GetByIdAsync(id, cancellationToken);
-        return customer == null ? CustomerOperationResult<CustomerDto>.NotFound() : CustomerOperationResult<CustomerDto>.Success(Map(customer));
+        if (customer == null) return CustomerOperationResult<CustomerDto>.NotFound();
+        var metrics = await customerRepository.GetOrderMetricsAsync(id, cancellationToken);
+        var profile = Map(customer);
+        if (metrics is not null)
+        {
+            profile.OrderCount = metrics.OrderCount;
+            profile.CompletedOrderCount = metrics.CompletedOrderCount;
+            profile.CancelledOrderCount = metrics.CancelledOrderCount;
+            profile.TotalSpent = metrics.TotalSpent;
+            profile.LastPurchaseAt = metrics.LastPurchaseAt;
+        }
+        return CustomerOperationResult<CustomerDto>.Success(profile);
     }
 
     public async Task<CustomerOperationResult<PagedResultDto<CustomerLoyaltyPointDto>>> GetLoyaltyPointsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default)
@@ -61,13 +72,30 @@ public class CustomerService(
         var (normalizedPage, normalizedSize) = NormalizePaging(page, pageSize);
         var criteria = new OrderSearchCriteria(null, id, null, null, null, OrderSortField.CreatedAt, true, normalizedPage, normalizedSize);
         var (items, count) = await orderRepository.SearchAsync(criteria, cancellationToken);
-        var summaries = items.Select(o => new OrderSummaryDto
+        var summaries = items.Select(o =>
         {
-            Id = o.Id, OrderCode = o.OrderCode, Status = o.Status.ToString(), PaymentMethod = o.PaymentMethod.ToString(),
-            CustomerId = o.CustomerId, CustomerName = o.Customer?.FullName, TotalAmount = o.TotalAmount,
-            ItemCount = o.Items.Count, CreatedAt = o.CreatedAt, PaidAt = o.PaidAt, CompletedAt = o.CompletedAt
+            var primaryItem = o.Items.OrderBy(i => i.Id).FirstOrDefault();
+            return new OrderSummaryDto
+            {
+                Id = o.Id, OrderCode = o.OrderCode, Status = o.Status.ToString(), PaymentMethod = o.PaymentMethod.ToString(),
+                CustomerId = o.CustomerId, CustomerName = o.Customer?.FullName, TotalAmount = o.TotalAmount,
+                ItemCount = o.Items.Count, CreatedAt = o.CreatedAt, PaidAt = o.PaidAt, CompletedAt = o.CompletedAt,
+                PrimaryProductName = primaryItem?.ProductName,
+                PrimaryVariantName = primaryItem?.VariantName,
+                PrimaryCategoryName = primaryItem?.Product?.Category?.Name
+            };
         }).ToList();
         return CustomerOperationResult<PagedResultDto<OrderSummaryDto>>.Success(new(summaries, normalizedPage, normalizedSize, count, TotalPages(count, normalizedSize)));
+    }
+
+    public async Task<CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>> GetPurchasedItemsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default)
+    {
+        if (await customerRepository.GetByIdAsync(id, cancellationToken) == null)
+            return CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>.NotFound();
+        var (normalizedPage, normalizedSize) = NormalizePaging(page, pageSize);
+        var (items, count) = await customerRepository.GetPurchasedItemsAsync(new(id, normalizedPage, normalizedSize), cancellationToken);
+        return CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>.Success(
+            new(items, normalizedPage, normalizedSize, count, TotalPages(count, normalizedSize)));
     }
 
     public async Task<CustomerOperationResult<CustomerDto>> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default)
@@ -107,13 +135,19 @@ public class CustomerService(
         return CustomerOperationResult<CustomerDto>.Success(Map(customer));
     }
 
-    public async Task<CustomerOperationResult<bool>> DeactivateAsync(Guid id, CancellationToken cancellationToken = default)
+    public Task<CustomerOperationResult<bool>> DeactivateAsync(Guid id, CancellationToken cancellationToken = default) =>
+        SetActiveAsync(id, false, cancellationToken);
+
+    public Task<CustomerOperationResult<bool>> ActivateAsync(Guid id, CancellationToken cancellationToken = default) =>
+        SetActiveAsync(id, true, cancellationToken);
+
+    private async Task<CustomerOperationResult<bool>> SetActiveAsync(Guid id, bool isActive, CancellationToken cancellationToken)
     {
         var customer = await customerRepository.GetTrackedByIdAsync(id, cancellationToken);
         if (customer == null) return CustomerOperationResult<bool>.NotFound();
-        if (customer.IsActive)
+        if (customer.IsActive != isActive)
         {
-            customer.IsActive = false;
+            customer.IsActive = isActive;
             customer.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
@@ -128,17 +162,21 @@ public class CustomerService(
         var phone = request.Phone?.Trim();
         var email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
         var address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
-        if (string.IsNullOrWhiteSpace(name)) Error("fullName", "Full name is required.");
-        if (string.IsNullOrWhiteSpace(phone)) Error("phone", "Phone is required.");
-        if (email != null && (!MailAddress.TryCreate(email, out var parsed) || !string.Equals(parsed.Address, email, StringComparison.OrdinalIgnoreCase))) Error("email", "Email must be a valid email address.");
-        if (request.DateOfBirth.HasValue && request.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue) > now.Date) Error("dateOfBirth", "Date of birth cannot be in the future.");
+        if (string.IsNullOrWhiteSpace(name)) Error("fullName", "Vui l\u00F2ng nh\u1EADp h\u1ECD t\u00EAn kh\u00E1ch h\u00E0ng.");
+        if (string.IsNullOrWhiteSpace(phone)) Error("phone", "Vui l\u00F2ng nh\u1EADp s\u1ED1 \u0111i\u1EC7n tho\u1EA1i.");
+        else if (phone.Length > 10 || phone.Any(character => character is < '0' or > '9'))
+            Error("phone", "S\u1ED1 \u0111i\u1EC7n tho\u1EA1i ch\u1EC9 g\u1ED3m ch\u1EEF s\u1ED1 v\u00E0 t\u1ED1i \u0111a 10 s\u1ED1.");
+        if (email != null && (!MailAddress.TryCreate(email, out var parsed) || !string.Equals(parsed.Address, email, StringComparison.OrdinalIgnoreCase))) Error("email", "Email kh\u00F4ng \u0111\u00FAng \u0111\u1ECBnh d\u1EA1ng.");
+        if (request.DateOfBirth.HasValue && request.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue) > now.Date) Error("dateOfBirth", "Ng\u00E0y sinh kh\u00F4ng \u0111\u01B0\u1EE3c n\u1EB1m trong t\u01B0\u01A1ng lai.");
         return (name, phone, email, address, errors.ToDictionary(k => k.Key, v => v.Value.ToArray()));
     }
 
-    private static CustomerSummaryDto MapSummary(Customer c) => new()
+    private static CustomerSummaryDto MapSummary(CustomerSearchResult result) => new()
     {
-        Id = c.Id, FullName = c.FullName, Phone = c.Phone, LoyaltyPoints = c.LoyaltyPoints,
-        Tier = c.Tier.ToString(), IsActive = c.IsActive, CreatedAt = c.CreatedAt
+        Id = result.Customer.Id, FullName = result.Customer.FullName, Phone = result.Customer.Phone,
+        LoyaltyPoints = result.Customer.LoyaltyPoints, Tier = result.Customer.Tier.ToString(),
+        IsActive = result.Customer.IsActive, CreatedAt = result.Customer.CreatedAt,
+        OrderCount = result.OrderCount, TotalSpent = result.TotalSpent, LastPurchaseAt = result.LastPurchaseAt
     };
 
     private static CustomerDto Map(Customer c) => new()

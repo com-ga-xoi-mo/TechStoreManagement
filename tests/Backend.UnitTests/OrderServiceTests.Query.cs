@@ -1,4 +1,5 @@
 using FluentAssertions;
+using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Customers.Entities;
 using TechStore.Api.Inventory.Entities;
 using TechStore.Api.Orders.Entities;
@@ -198,7 +199,9 @@ public partial class OrderServiceTests
     public async Task SearchAsync_Results_AreMappedToSummaries()
     {
         // Arrange
-        var (order, _, _) = AddOrder(OrderStatus.Completed);
+        var (order, _, product) = AddOrder(OrderStatus.Completed);
+        product.Category = new Category { Name = "Smartphones" };
+        product.CategoryId = product.Category.Id;
         order.Customer = new Customer { FullName = "Nguyen Van A" };
         order.CustomerId = order.Customer.Id;
         order.PaymentMethod = PaymentMethod.VietQr;
@@ -214,5 +217,7 @@ public partial class OrderServiceTests
         summary.CustomerName.Should().Be("Nguyen Van A");
         summary.ItemCount.Should().Be(1);
         summary.TotalAmount.Should().Be(30_000_000m);
+        summary.PrimaryProductName.Should().Be("iPhone 15 Pro");
+        summary.PrimaryCategoryName.Should().Be("Smartphones");
     }
 }

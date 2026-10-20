@@ -65,17 +65,6 @@ public sealed class ShellPage : Page
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Stretch
         };
-        ShellNavigationView.ItemInvoked += (s, e) =>
-        {
-            if (e.InvokedItemContainer is NavigationViewItem item && item.Tag is string route)
-            {
-                if (ShellDestinations.TryGet(route, out var dest))
-                {
-                    ViewModel.NavigateCommand.Execute(dest.Id);
-                }
-            }
-        };
-
         ShellNavigationView.Resources["NavigationViewItemMargin"] = new Thickness(0, 4, 0, 4);
 
         // Pane Header: TechStore Logo & Title

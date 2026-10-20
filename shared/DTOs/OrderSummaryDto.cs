@@ -10,6 +10,9 @@ public class OrderSummaryDto
     public string? CustomerName { get; set; }
     public decimal TotalAmount { get; set; }
     public int ItemCount { get; set; }
+    public string? PrimaryProductName { get; set; }
+    public string? PrimaryVariantName { get; set; }
+    public string? PrimaryCategoryName { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? PaidAt { get; set; }
     public DateTime? CompletedAt { get; set; }

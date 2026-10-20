@@ -60,14 +60,28 @@ public sealed class ApiClient : IApiClient
             cancellationToken);
     }
 
-    public async Task PostAsync<TRequest>(
+    public Task PostAsync<TRequest>(
         string relativePath,
         TRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        using var content = JsonContent.Create(request, options: JsonOptions);
-        using var requestMessage = CreateRequest(HttpMethod.Post, relativePath, content);
+        return SendWithoutResponseAsync(HttpMethod.Post, relativePath, JsonContent.Create(request, options: JsonOptions), cancellationToken);
+    }
+
+    public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default) =>
+        SendWithoutResponseAsync(HttpMethod.Delete, relativePath, content: null, cancellationToken);
+
+    public Task PatchAsync(string relativePath, CancellationToken cancellationToken = default) =>
+        SendWithoutResponseAsync(HttpMethod.Patch, relativePath, content: null, cancellationToken);
+
+    private async Task SendWithoutResponseAsync(
+        HttpMethod method,
+        string relativePath,
+        HttpContent? content,
+        CancellationToken cancellationToken)
+    {
+        using var requestMessage = CreateRequest(method, relativePath, content);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(_options.TimeoutSeconds));
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
         try

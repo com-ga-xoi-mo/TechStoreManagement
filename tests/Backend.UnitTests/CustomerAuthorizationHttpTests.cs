@@ -59,6 +59,13 @@ public class CustomerAuthorizationHttpTests : IClassFixture<CustomerApiFactory>
         var ordersRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/customers/{customerId}/orders");
         ordersRequest.Headers.Authorization = new("Bearer", CreateToken("Admin"));
         (await _client.SendAsync(ordersRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        (await _client.GetAsync($"/api/customers/{customerId}/purchased-items")).StatusCode.Should().Be(System.Net.HttpStatusCode.Unauthorized);
+        var salesItemsRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/customers/{customerId}/purchased-items");
+        salesItemsRequest.Headers.Authorization = new("Bearer", CreateToken("SalesStaff"));
+        (await _client.SendAsync(salesItemsRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.Forbidden);
+        var adminItemsRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/customers/{customerId}/purchased-items");
+        adminItemsRequest.Headers.Authorization = new("Bearer", CreateToken("Admin"));
+        (await _client.SendAsync(adminItemsRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
 
         var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/customers") { Content = JsonContent.Create(new CreateCustomerRequest { FullName = "API Test", Phone = "123" }) };
         createRequest.Headers.Authorization = new("Bearer", CreateToken("Admin"));
@@ -69,9 +76,21 @@ public class CustomerAuthorizationHttpTests : IClassFixture<CustomerApiFactory>
         var updateRequest = new HttpRequestMessage(HttpMethod.Put, $"/api/customers/{customerId}") { Content = JsonContent.Create(new UpdateCustomerRequest { FullName = "API Test", Phone = "123" }) };
         updateRequest.Headers.Authorization = new("Bearer", CreateToken("Admin"));
         (await _client.SendAsync(updateRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-        var deactivateRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/customers/{customerId}");
+        var deactivateRequest = new HttpRequestMessage(HttpMethod.Patch, $"/api/customers/{customerId}/deactivate");
         deactivateRequest.Headers.Authorization = new("Bearer", CreateToken("Admin"));
         (await _client.SendAsync(deactivateRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+
+        var activateRequest = new HttpRequestMessage(HttpMethod.Patch, $"/api/customers/{customerId}/activate");
+        activateRequest.Headers.Authorization = new("Bearer", CreateToken("Admin"));
+        (await _client.SendAsync(activateRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+
+        var forbiddenActivation = new HttpRequestMessage(HttpMethod.Patch, $"/api/customers/{customerId}/activate");
+        forbiddenActivation.Headers.Authorization = new("Bearer", CreateToken("SalesStaff"));
+        (await _client.SendAsync(forbiddenActivation)).StatusCode.Should().Be(System.Net.HttpStatusCode.Forbidden);
+
+        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/customers/{customerId}");
+        deleteRequest.Headers.Authorization = new("Bearer", CreateToken("Admin"));
+        (await _client.SendAsync(deleteRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.MethodNotAllowed);
     }
 
     private static string CreateToken(string role)
@@ -108,10 +127,12 @@ public sealed class TestCustomerService : ICustomerService
     public Task<CustomerOperationResult<CustomerDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<CustomerDto>.NotFound());
     public Task<CustomerOperationResult<PagedResultDto<CustomerLoyaltyPointDto>>> GetLoyaltyPointsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<PagedResultDto<CustomerLoyaltyPointDto>>.Success(new([], 1, 20, 0, 0)));
     public Task<CustomerOperationResult<PagedResultDto<OrderSummaryDto>>> GetOrdersAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<PagedResultDto<OrderSummaryDto>>.Success(new([], 1, 20, 0, 0)));
+    public Task<CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>> GetPurchasedItemsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>.Success(new([], 1, 20, 0, 0)));
     public Task<CustomerOperationResult<CustomerDto>> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default) =>
         Task.FromResult(string.IsNullOrWhiteSpace(request.FullName)
             ? CustomerOperationResult<CustomerDto>.Invalid(new() { ["fullName"] = ["Full name is required."] })
             : CustomerOperationResult<CustomerDto>.Success(new CustomerDto { Id = Guid.NewGuid(), FullName = request.FullName, Phone = request.Phone ?? "" }));
     public Task<CustomerOperationResult<CustomerDto>> UpdateAsync(Guid id, UpdateCustomerRequest request, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<CustomerDto>.Success(new CustomerDto { Id = id, FullName = request.FullName ?? "", Phone = request.Phone ?? "" }));
     public Task<CustomerOperationResult<bool>> DeactivateAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<bool>.Success(true));
+    public Task<CustomerOperationResult<bool>> ActivateAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<bool>.Success(true));
 }

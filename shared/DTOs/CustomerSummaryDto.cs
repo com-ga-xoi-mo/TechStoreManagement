@@ -9,4 +9,7 @@ public class CustomerSummaryDto
     public string Tier { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public int OrderCount { get; set; }
+    public decimal TotalSpent { get; set; }
+    public DateTime? LastPurchaseAt { get; set; }
 }

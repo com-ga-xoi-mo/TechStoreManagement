@@ -28,6 +28,10 @@ public class CustomersController(ICustomerService customerService) : ControllerB
     public async Task<IActionResult> GetOrders(Guid id, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken) =>
         ToAction(await customerService.GetOrdersAsync(id, page, pageSize, cancellationToken));
 
+    [HttpGet("{id:guid}/purchased-items")]
+    public async Task<IActionResult> GetPurchasedItems(Guid id, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken) =>
+        ToAction(await customerService.GetPurchasedItemsAsync(id, page, pageSize, cancellationToken));
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCustomerRequest request, CancellationToken cancellationToken)
     {
@@ -40,10 +44,18 @@ public class CustomersController(ICustomerService customerService) : ControllerB
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCustomerRequest request, CancellationToken cancellationToken) =>
         ToAction(await customerService.UpdateAsync(id, request, cancellationToken));
 
-    [HttpDelete("{id:guid}")]
+    [HttpPatch("{id:guid}/deactivate")]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         var result = await customerService.DeactivateAsync(id, cancellationToken);
+        if (result.IsSuccess) return NoContent();
+        return ToAction(result);
+    }
+
+    [HttpPatch("{id:guid}/activate")]
+    public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await customerService.ActivateAsync(id, cancellationToken);
         if (result.IsSuccess) return NoContent();
         return ToAction(result);
     }

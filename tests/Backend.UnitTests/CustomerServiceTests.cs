@@ -1,11 +1,13 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Authorization;
+using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Customers;
 using TechStore.Api.Customers.Entities;
 using TechStore.Api.Customers.Services;
 using TechStore.Api.Orders.Entities;
 using TechStore.Api.Orders.Repositories;
+using TechStore.Shared.DTOs;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
 
@@ -34,6 +36,80 @@ public class CustomerServiceTests
         result.Data!.TotalCount.Should().Be(2);
         result.Data.TotalPages.Should().Be(2);
         result.Data.Items.Should().ContainSingle().Which.Id.Should().Be(new[] { first.Id, third.Id }.Min());
+    }
+
+    [Fact]
+    public async Task SearchAsync_Should_ReturnOrderAggregatesAcrossStatusesAndOnlySumCompletedOrders()
+    {
+        var customer = AddCustomer("Aggregate", "0904");
+        _customers.Orders.AddRange(
+            new Order { CustomerId = customer.Id, Status = OrderStatus.Completed, TotalAmount = 100m, CompletedAt = Now.AddDays(-2) },
+            new Order { CustomerId = customer.Id, Status = OrderStatus.Completed, TotalAmount = 50.25m, CompletedAt = Now.AddDays(-1) },
+            new Order { CustomerId = customer.Id, Status = OrderStatus.Pending, TotalAmount = 800m },
+            new Order { CustomerId = customer.Id, Status = OrderStatus.Cancelled, TotalAmount = 400m });
+
+        var result = await _service.SearchAsync(new CustomerSearchRequest());
+
+        var summary = result.Data!.Items.Should().ContainSingle().Subject;
+        summary.OrderCount.Should().Be(4);
+        summary.TotalSpent.Should().Be(150.25m);
+        summary.LastPurchaseAt.Should().Be(Now.AddDays(-1));
+    }
+
+    [Fact]
+    public async Task SearchAsync_Should_ReturnZeroSpendingAndNoLastPurchaseWithoutCompletedOrders()
+    {
+        var customer = AddCustomer("No completed orders", "0905");
+        _customers.Orders.Add(new Order { CustomerId = customer.Id, Status = OrderStatus.Cancelled, TotalAmount = 200m });
+
+        var result = await _service.SearchAsync(new CustomerSearchRequest());
+
+        var summary = result.Data!.Items.Should().ContainSingle().Subject;
+        summary.OrderCount.Should().Be(1);
+        summary.TotalSpent.Should().Be(0m);
+        summary.LastPurchaseAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetPurchasedItems_Should_ReturnNewestFirstPageAndPreserveOptionalSerialFields()
+    {
+        var customer = AddCustomer("Devices", "0906");
+        var older = new CustomerPurchasedItemDto
+        {
+            OrderCode = "ORD-OLD", ProductName = "Laptop", VariantName = "16 GB", SerialNumber = "SN-1",
+            Imei = null, CompletedAt = Now.AddDays(-2)
+        };
+        var newer = new CustomerPurchasedItemDto
+        {
+            OrderCode = "ORD-NEW", ProductName = "Phone", VariantName = "256 GB", SerialNumber = null,
+            Imei = null, CompletedAt = Now.AddDays(-1)
+        };
+        _customers.PurchasedItems.Add((customer.Id, older));
+        _customers.PurchasedItems.Add((customer.Id, newer));
+
+        var result = await _service.GetPurchasedItemsAsync(customer.Id, 1, 1);
+
+        result.Data!.Items.Should().ContainSingle().Which.OrderCode.Should().Be("ORD-NEW");
+        result.Data.Page.Should().Be(1);
+        result.Data.PageSize.Should().Be(1);
+        result.Data.TotalCount.Should().Be(2);
+        var nextPage = await _service.GetPurchasedItemsAsync(customer.Id, 2, 1);
+        nextPage.Data!.Items.Should().ContainSingle().Which.SerialNumber.Should().Be("SN-1");
+        nextPage.Data.Items.Single().Imei.Should().BeNull();
+        _unitOfWork.SaveChangesCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetPurchasedItems_Should_ReturnEmptyPageAndNotFoundForUnknownCustomer()
+    {
+        var customer = AddCustomer("No devices", "0908");
+
+        var empty = await _service.GetPurchasedItemsAsync(customer.Id, null, null);
+        var missing = await _service.GetPurchasedItemsAsync(Guid.NewGuid(), null, null);
+
+        empty.Data!.Items.Should().BeEmpty();
+        empty.Data.TotalCount.Should().Be(0);
+        missing.Found.Should().BeFalse();
     }
 
     [Fact]
@@ -67,10 +143,36 @@ public class CustomerServiceTests
     }
 
     [Fact]
+    public async Task GetById_Should_ReturnAccurateOrderMetricsForDetailCards()
+    {
+        var customer = AddCustomer("Metrics", "0910");
+        _customers.Orders.AddRange(
+            new Order { CustomerId = customer.Id, Status = OrderStatus.Completed, TotalAmount = 100m, CompletedAt = Now.AddDays(-1) },
+            new Order { CustomerId = customer.Id, Status = OrderStatus.Cancelled, TotalAmount = 300m },
+            new Order { CustomerId = customer.Id, Status = OrderStatus.Pending, TotalAmount = 400m });
+
+        var result = await _service.GetByIdAsync(customer.Id);
+
+        result.Data!.OrderCount.Should().Be(3);
+        result.Data.CompletedOrderCount.Should().Be(1);
+        result.Data.CancelledOrderCount.Should().Be(1);
+        result.Data.TotalSpent.Should().Be(100m);
+        result.Data.LastPurchaseAt.Should().Be(Now.AddDays(-1));
+        _unitOfWork.SaveChangesCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GetOrders_Should_ValidateCustomerAndQueryOnlyItsHistory()
     {
         var customer = AddCustomer("Orders", "0907");
-        _orders.CustomSearchResult = (new[] { new Order { OrderCode = "ORD-1", CustomerId = customer.Id, TotalAmount = 1200m, CreatedAt = Now } }, 1);
+        var order = new Order { OrderCode = "ORD-1", CustomerId = customer.Id, TotalAmount = 1200m, CreatedAt = Now };
+        order.Items.Add(new OrderItem
+        {
+            ProductName = "Phone",
+            VariantName = "256 GB",
+            Product = new Product { Category = new Category { Name = "Smartphones" } }
+        });
+        _orders.CustomSearchResult = (new[] { order }, 1);
 
         var result = await _service.GetOrdersAsync(customer.Id, 0, 500);
         var missing = await _service.GetOrdersAsync(Guid.NewGuid(), null, null);
@@ -78,6 +180,9 @@ public class CustomerServiceTests
         result.Data!.Page.Should().Be(1);
         result.Data.PageSize.Should().Be(100);
         result.Data.Items.Should().ContainSingle().Which.OrderCode.Should().Be("ORD-1");
+        result.Data.Items.Single().PrimaryProductName.Should().Be("Phone");
+        result.Data.Items.Single().PrimaryVariantName.Should().Be("256 GB");
+        result.Data.Items.Single().PrimaryCategoryName.Should().Be("Smartphones");
         _orders.LastCriteria!.CustomerId.Should().Be(customer.Id);
         _orders.LastCriteria.Descending.Should().BeTrue();
         missing.Found.Should().BeFalse();
@@ -143,15 +248,36 @@ public class CustomerServiceTests
     {
         var customer = AddCustomer("Keep", "333");
         _customers.PointEntries.Add(new CustomerLoyaltyPoint { CustomerId = customer.Id, PointsChange = 5, BalanceAfter = 5, Reason = "Existing" });
+        _customers.Orders.Add(new Order { CustomerId = customer.Id, OrderCode = "ORD-KEEP", TotalAmount = 100m });
 
         (await _service.DeactivateAsync(customer.Id)).IsSuccess.Should().BeTrue();
         (await _service.DeactivateAsync(customer.Id)).IsSuccess.Should().BeTrue();
 
         _customers.Customers.Should().ContainKey(customer.Id);
         _customers.PointEntries.Should().ContainSingle();
+        _customers.Orders.Should().ContainSingle().Which.CustomerId.Should().Be(customer.Id);
         customer.IsActive.Should().BeFalse();
         _unitOfWork.SaveChangesCount.Should().Be(1);
         (await _service.DeactivateAsync(Guid.NewGuid())).Found.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ActivateAsync_Should_PreserveProfileAndHistoryAndBeIdempotent()
+    {
+        var customer = AddCustomer("Return", "334", active: false);
+        customer.LoyaltyPoints = 25;
+        _customers.PointEntries.Add(new CustomerLoyaltyPoint { CustomerId = customer.Id, PointsChange = 25, BalanceAfter = 25, Reason = "Existing" });
+        _customers.Orders.Add(new Order { CustomerId = customer.Id, OrderCode = "ORD-RETURN", TotalAmount = 250m });
+
+        (await _service.ActivateAsync(customer.Id)).IsSuccess.Should().BeTrue();
+        (await _service.ActivateAsync(customer.Id)).IsSuccess.Should().BeTrue();
+
+        customer.IsActive.Should().BeTrue();
+        customer.LoyaltyPoints.Should().Be(25);
+        _customers.PointEntries.Should().ContainSingle();
+        _customers.Orders.Should().ContainSingle().Which.CustomerId.Should().Be(customer.Id);
+        _unitOfWork.SaveChangesCount.Should().Be(1);
+        (await _service.ActivateAsync(Guid.NewGuid())).Found.Should().BeFalse();
     }
 
     [Fact]

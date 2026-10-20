@@ -10,3 +10,5 @@ public sealed record CustomerSearchCriteria(
     int PageSize);
 
 public sealed record CustomerLoyaltyPointSearchCriteria(Guid CustomerId, int Page, int PageSize);
+
+public sealed record CustomerPurchasedItemSearchCriteria(Guid CustomerId, int Page, int PageSize);

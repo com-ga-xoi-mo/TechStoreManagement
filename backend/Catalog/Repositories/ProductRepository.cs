@@ -138,6 +138,59 @@ public class ProductRepository(AppDbContext dbContext) : IProductRepository
         dbContext.Products.Add(product);
     }
 
+    public async Task<Product?> GetForUpdateAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var product = await dbContext.Products
+            .FromSqlInterpolated($"SELECT * FROM products WHERE id = {id} FOR UPDATE")
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (product != null)
+        {
+            await dbContext.Entry(product).Collection(p => p.Variants).LoadAsync(cancellationToken);
+        }
+
+        return product;
+    }
+
+    public async Task<bool> IsInUseAsync(
+        Guid productId,
+        CancellationToken cancellationToken = default)
+    {
+        if (await dbContext.InventoryStocks.AnyAsync(x => x.ProductId == productId, cancellationToken))
+        {
+            return true;
+        }
+
+        if (await dbContext.SerialImeis.AnyAsync(x => x.ProductId == productId, cancellationToken))
+        {
+            return true;
+        }
+
+        if (await dbContext.PurchaseOrderItems.AnyAsync(x => x.ProductId == productId, cancellationToken))
+        {
+            return true;
+        }
+
+        if (await dbContext.OrderItems.AnyAsync(x => x.ProductId == productId, cancellationToken))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    public void AddVariant(ProductVariant variant)
+    {
+        dbContext.ProductVariants.Add(variant);
+    }
+
+    public void Remove(Product product)
+    {
+        dbContext.Products.Remove(product);
+    }
+
     private static string EscapeLikePattern(string value)
     {
         return value

@@ -8,6 +8,10 @@ public class FakeProductRepository : IProductRepository
     public Dictionary<Guid, Product> Products { get; } = new();
     public List<Product> AddedProducts { get; } = [];
     public HashSet<string> ExistingSkus { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public HashSet<Guid> InUseProductIds { get; } = [];
+    public List<ProductVariant> AddedVariants { get; } = [];
+    public List<Product> RemovedProducts { get; } = [];
+    public int GetForUpdateCallCount { get; private set; }
 
     public int SearchCallCount { get; private set; }
     public ProductSearchCriteria? LastCriteria { get; private set; }
@@ -54,5 +58,32 @@ public class FakeProductRepository : IProductRepository
     {
         AddedProducts.Add(product);
         Products[product.Id] = product;
+    }
+
+    public Task<Product?> GetForUpdateAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        GetForUpdateCallCount++;
+        Products.TryGetValue(id, out var p);
+        return Task.FromResult(p);
+    }
+
+    public Task<bool> IsInUseAsync(
+        Guid productId,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(InUseProductIds.Contains(productId));
+    }
+
+    public void AddVariant(ProductVariant variant)
+    {
+        AddedVariants.Add(variant);
+    }
+
+    public void Remove(Product product)
+    {
+        RemovedProducts.Add(product);
+        Products.Remove(product.Id);
     }
 }

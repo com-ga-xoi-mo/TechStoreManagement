@@ -13,16 +13,16 @@ Read `design.md` (decisions D1–D11) and `specs/product-catalog/spec.md` before
 ## 1. Branch, baseline and coordination
 
 - [x] 1.1 Create the branch from an up-to-date `dev`: `git switch dev && git pull && git switch -c feat/catalog-product-management-api`; verify `git branch --show-current` prints `feat/catalog-product-management-api`
-- [ ] 1.2 Commit only the planning artifacts: `git add openspec/changes/catalog-product-management-api && git commit -m "docs(openspec): record catalog-product-management-api change artifacts"`; verify `git show --stat HEAD` lists only files under `openspec/changes/catalog-product-management-api/`
-- [ ] 1.3 Record the baseline: run `dotnet build TechStore.sln` and the backend test command; verify both succeed and write the number of passed tests into this task line (e.g. "baseline: 312 passed") so later groups can compare
-- [ ] 1.4 No message to send: the notes for Dev 3, Dev 4 and Dev 6 are kept in `design.md` section "Coordination notes" and are copied into the pull request in 13.4. Read that section once so later tasks respect it; verify `grep -n "## Coordination notes" openspec/changes/catalog-product-management-api/design.md` prints one line
+- [x] 1.2 Commit only the planning artifacts: `git add openspec/changes/catalog-product-management-api && git commit -m "docs(openspec): record catalog-product-management-api change artifacts"`; verify `git show --stat HEAD` lists only files under `openspec/changes/catalog-product-management-api/`
+- [x] 1.3 Record the baseline: run `dotnet build TechStore.sln` and the backend test command; verify both succeed and write the number of passed tests into this task line (baseline: 263 passed) so later groups can compare
+- [x] 1.4 No message to send: the notes for Dev 3, Dev 4 and Dev 6 are kept in `design.md` section "Coordination notes" and are copied into the pull request in 13.4. Read that section once so later tasks respect it; verify `grep -n "## Coordination notes" openspec/changes/catalog-product-management-api/design.md` prints one line
 
 ## 2. Shared request contracts (`shared/Requests/`)
 
-- [ ] 2.1 Create `shared/Requests/UpdateProductVariantRequest.cs`, namespace `TechStore.Shared.Requests`, `using System.Text.Json;`, class `UpdateProductVariantRequest` with auto-properties (all nullable, no initializers): `Guid? Id`, `string? VariantName`, `string? Sku`, `string? Barcode`, `decimal? Price`, `Dictionary<string, JsonElement>? Specs`, `bool? IsActive`; verify `dotnet build shared/TechStore.Shared.csproj` succeeds
-- [ ] 2.2 Create `shared/Requests/UpdateProductRequest.cs`, class `UpdateProductRequest` with: `Guid? CategoryId`, `string? Name`, `string? Brand`, `string? Barcode`, `decimal? BasePrice`, `decimal? CostPrice`, `string? Description`, `string? ImageUrl`, `Dictionary<string, JsonElement>? Specs`, `bool? IsSerialTracked`, `List<UpdateProductVariantRequest>? Variants`. There must be **no** `Sku` property (design D1); verify the shared project builds and `grep -n "Sku" shared/Requests/UpdateProductRequest.cs` prints nothing
-- [ ] 2.3 Create `shared/Requests/UpdateProductStatusRequest.cs`, class `UpdateProductStatusRequest` with one property `bool? IsActive`; verify `dotnet build TechStore.sln` succeeds
-- [ ] 2.4 Commit: `feat(shared): add product update and status request contracts`
+- [x] 2.1 Create `shared/Requests/UpdateProductVariantRequest.cs`, namespace `TechStore.Shared.Requests`, `using System.Text.Json;`, class `UpdateProductVariantRequest` with auto-properties (all nullable, no initializers): `Guid? Id`, `string? VariantName`, `string? Sku`, `string? Barcode`, `decimal? Price`, `Dictionary<string, JsonElement>? Specs`, `bool? IsActive`; verify `dotnet build shared/TechStore.Shared.csproj` succeeds
+- [x] 2.2 Create `shared/Requests/UpdateProductRequest.cs`, class `UpdateProductRequest` with: `Guid? CategoryId`, `string? Name`, `string? Brand`, `string? Barcode`, `decimal? BasePrice`, `decimal? CostPrice`, `string? Description`, `string? ImageUrl`, `Dictionary<string, JsonElement>? Specs`, `bool? IsSerialTracked`, `List<UpdateProductVariantRequest>? Variants`. There must be **no** `Sku` property (design D1); verify the shared project builds and `grep -n "Sku" shared/Requests/UpdateProductRequest.cs` prints nothing
+- [x] 2.3 Create `shared/Requests/UpdateProductStatusRequest.cs`, class `UpdateProductStatusRequest` with one property `bool? IsActive`; verify `dotnet build TechStore.sln` succeeds
+- [x] 2.4 Commit: `feat(shared): add product update and status request contracts`
 
 ## 3. Refactor: one Product → ProductDto mapper (no behavior change)
 

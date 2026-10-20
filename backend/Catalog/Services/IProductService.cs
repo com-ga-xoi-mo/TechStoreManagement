@@ -38,9 +38,26 @@ public record CreateProductResult(
         new(false, null, null, conflictingSkus, true);
 }
 
+public enum ProductCommandStatus { Success, NotFound, ValidationFailed, Conflict }
+
+public record ProductCommandResult(
+    ProductCommandStatus Status,
+    ProductDto? Data,
+    Dictionary<string, string[]>? ValidationErrors,
+    string? ConflictMessage)
+{
+    public static ProductCommandResult Success(ProductDto? data) => new(ProductCommandStatus.Success, data, null, null);
+    public static ProductCommandResult NotFound() => new(ProductCommandStatus.NotFound, null, null, null);
+    public static ProductCommandResult ValidationFailed(Dictionary<string, string[]> errors) => new(ProductCommandStatus.ValidationFailed, null, errors, null);
+    public static ProductCommandResult Conflict(string message) => new(ProductCommandStatus.Conflict, null, null, message);
+}
+
 public interface IProductService
 {
     Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<ProductSearchResult> SearchAsync(ProductSearchRequest request, CancellationToken cancellationToken = default);
     Task<CreateProductResult> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default);
+    Task<ProductCommandResult> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default);
+    Task<ProductCommandResult> SetStatusAsync(Guid id, UpdateProductStatusRequest request, CancellationToken cancellationToken = default);
+    Task<ProductCommandResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

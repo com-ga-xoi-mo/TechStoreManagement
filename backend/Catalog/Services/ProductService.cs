@@ -234,4 +234,13 @@ public class ProductService(
         var createdDto = ProductDtoMapper.ToDto(product, category.Name);
         return CreateProductResult.Success(createdDto);
     }
+
+    public Task<ProductCommandResult> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default)
+        => throw new NotImplementedException();
+
+    public Task<ProductCommandResult> SetStatusAsync(Guid id, UpdateProductStatusRequest request, CancellationToken cancellationToken = default)
+        => throw new NotImplementedException();
+
+    public Task<ProductCommandResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+        => throw new NotImplementedException();
 }

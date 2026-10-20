@@ -55,7 +55,7 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 ### 3. Data Flow
 1. **User Interaction**: UI triggers a bound command (C# Markup `.Command(x => x.Binding(() => ViewModel.XCommand))`, or `{x:Bind}` on the pages not yet converted) on a ViewModel in `frontend/TechStore.Client/ViewModels/<Module>/`.
 2. **ViewModel Execution**: The ViewModel executes a command decorated with `[RelayCommand]`, coordinates loading/error/content state via `PageViewModel` (`PageContentState`), and invokes a client repository in `frontend/TechStore.Client/Repositories/`.
-3. **Client Repository & HTTP Transport**: The client repository converts request parameters into query URIs, calls `IApiClient` / `ApiClient` (backed by `HttpClient` configured with `BearerTokenHandler`), and maps response DTOs to client domain models (`frontend/TechStore.Client/Models/`).
+3. **Client Repository & HTTP Transport**: The client repository converts request parameters into query URIs, calls `IApiClient` / `ApiClient` (`GetAsync`, `PostAsync`, `PutAsync`, `PatchAsync`; backed by `HttpClient` configured with `BearerTokenHandler`), and maps response DTOs to client domain models (`frontend/TechStore.Client/Models/`).
 4. **API Routing & RBAC**: The request reaches an `[ApiController]`, passes through JWT authentication and role authorization checks, then calls the corresponding domain service interface (controllers never call repositories directly).
 5. **Business Logic & Concurrency**: The domain service validates input and applies business rules. When the use case locks rows or performs multi-step writes, it initiates a transaction via `IUnitOfWork.BeginTransactionAsync`.
 6. **Data Access**: The service invokes repository interfaces (`backend/<Module>/Repositories/`). Repositories are the only classes that interact with `AppDbContext`: they query (using `AsNoTracking` for reads), acquire row locks (`SELECT ... FOR UPDATE`), and stage entity additions or removals, but never save.
@@ -322,9 +322,9 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 
   |State|Views|
   |:---|:---|
-  |C# Markup with theme-aware tokens|`MarkupReferencePage`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
+  |C# Markup with theme-aware tokens|`MarkupReferencePage`, `OrderListPage`, `OrderCreatePage`, `OrderDetailDialog`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
   |C# Markup, colors still static (`StitchTokens` / `Color.FromArgb`), light only|`LoginPage`, `ShellPage`, `SettingsPage` (backlog: move to the theme accessors, then delete `StitchTokens`)|
-  |Still XAML|`ProductListPage`, `ProductDetailPage`, `DashboardPage`, `InventoryPage`, `OrderListPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
+  |Still XAML|`ProductListPage`, `ProductDetailPage`, `DashboardPage`, `InventoryPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
 
 ### 7. Asynchronous Programming Pattern
 - Pure non-blocking `async`/`await` end-to-end.

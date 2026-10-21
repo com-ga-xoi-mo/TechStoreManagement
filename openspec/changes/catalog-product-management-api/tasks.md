@@ -131,6 +131,14 @@ The live run creates its **own** test data (SKUs `TEST-WRITE-001`, `TEST-WRITE-0
 - [x] 13.3 Review the diff against `dev` (`git diff dev --stat`): verify that no file under `backend/Common/`, `backend/Orders/`, `backend/Inventory/`, `backend/Common/Data/Migrations/` or `frontend/` changed, and that `GetWithVariantsAsync`/`SearchAsync` in `ProductRepository.cs` are unchanged (`git diff dev -- backend/Catalog/Repositories/ProductRepository.cs` shows only additions)
 - [x] 13.4 **Do not push and do not open a pull request.** Commit all work on `feat/catalog-product-management-api` and stop here; verify `git status` is clean and `git ls-remote --heads origin feat/catalog-product-management-api` prints nothing. The merge with the UI branch `feat/catalog-product-management-ui`, the rename of the merged branch to `feat/catalog-product-management`, the push and the single pull request into `dev` are done in the final task group of change `catalog-product-management-ui`. That pull request must list the new endpoints and the RBAC change on `POST /api/products`, and contain a "Coordination notes" heading whose bullets are copied word for word from this change's `design.md` section "Coordination notes"
 
+## 14. Specification filter suggestions (added after review, done in the review session)
+
+- [x] 14.1 Spec delta: ADDED "Specification filter suggestions", MODIFIED "Typed specification filter" (quoted string values); design D12; proposal bullet
+- [x] 14.2 `ProductSpecFilterHelper`: double-quoted values are strings; empty quoted value is a 400; tests in `ProductSpecSuggestionTests`
+- [x] 14.3 `shared/DTOs/ProductSpecKeyDto.cs`; `IProductRepository.GetSpecValueCountsAsync` + SQL in `ProductRepository`; `FakeProductRepository` support
+- [x] 14.4 `IProductService.GetSpecKeysAsync` + `ProductService` grouping, ordering, cap and `filterValue`; `ProductsController` `GET spec-keys` (anonymous); unit tests for the service and the controller attributes
+- [x] 14.5 Live check against PostgreSQL (`GET /api/products/spec-keys`, with `categoryId`, and `spec=bluetooth:"5.2"`); `TEST_BACKEND` passes (358). Live on a scratch backend (port 5177): 17 keys, `storage_gb` first (9 products); Accessories gives only accessory keys; unknown category `[]`; `categoryId=abc` 400; `spec=bluetooth:"5.2"` 2 products, `spec=bluetooth:5.2` 0
+
 ## Workflow follow-up
 
 - After the PR is reviewed and merged, archive the change with `/opsx:archive` so the `product-catalog` delta is synced into `openspec/specs/product-catalog/spec.md`.

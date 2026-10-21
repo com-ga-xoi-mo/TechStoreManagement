@@ -30,6 +30,7 @@ public class ProductsControllerAuthorizationTests
     [Theory]
     [InlineData(nameof(ProductsController.Search))]
     [InlineData(nameof(ProductsController.GetById))]
+    [InlineData(nameof(ProductsController.GetSpecKeys))]
     public void ReadActions_AreNotProtected(string actionName)
     {
         // Arrange & Act

@@ -26,6 +26,12 @@ public interface IProductRepository
     /// </summary>
     Task<bool> IsInUseAsync(Guid productId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Per spec key and per distinct scalar value of the effective specs of all products (optionally one category),
+    /// the number of distinct products; a key's own total has a null value.
+    /// </summary>
+    Task<IReadOnlyList<SpecValueCount>> GetSpecValueCountsAsync(Guid? categoryId, CancellationToken cancellationToken = default);
+
     void Add(Product product);
 
     void AddVariant(ProductVariant variant);

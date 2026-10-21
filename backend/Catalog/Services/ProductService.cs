@@ -24,6 +24,12 @@ public class ProductService(
         return ProductDetailResult.Success(dto);
     }
 
+    public async Task<IReadOnlyList<ProductSpecKeyDto>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default)
+    {
+        var rows = await productRepository.GetSpecValueCountsAsync(categoryId, cancellationToken);
+        return ProductSpecSuggestionBuilder.Build(rows);
+    }
+
     public async Task<ProductSearchResult> SearchAsync(ProductSearchRequest request, CancellationToken cancellationToken = default)
     {
         // 1. Validate spec filters

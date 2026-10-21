@@ -31,6 +31,10 @@ public class ProductsController : ControllerBase
         return Ok(result.Data);
     }
 
+    [HttpGet("spec-keys")]
+    public async Task<IActionResult> GetSpecKeys([FromQuery] Guid? categoryId, CancellationToken cancellationToken) =>
+        Ok(await _productService.GetSpecKeysAsync(categoryId, cancellationToken));
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {

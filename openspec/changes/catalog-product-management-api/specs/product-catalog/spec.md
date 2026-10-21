@@ -168,3 +168,52 @@ A product that has at least one variant, counting variants added by the same req
 #### Scenario: Reads stay open
 - **WHEN** a client calls `GET /api/products` without a token
 - **THEN** the response is 200 as before
+
+### Requirement: Specification filter suggestions
+`GET /api/products/spec-keys` SHALL return, without authentication, each spec key that occurs in the effective specs of stored products (active and inactive), with the number of distinct products having it and its distinct scalar values. Each value SHALL carry a display `label`, its product count and a `filterValue` that, sent as `spec=<key>:<filterValue>`, matches exactly that value. An optional `categoryId` SHALL limit the products to that category only.
+
+#### Scenario: Keys with their values
+- **WHEN** products have specs `{"ram_gb": 16}` and `{"ram_gb": 8, "cpu": "Apple M3"}` and a client calls `GET /api/products/spec-keys`
+- **THEN** the response is 200 with `ram_gb` (2 products, values 8 then 16) before `cpu` (1 product, value `Apple M3`)
+
+#### Scenario: Ordering and limits
+- **WHEN** the response is built
+- **THEN** keys are ordered by product count descending then key; numeric values ascending, then strings in ordinal order, then `false` before `true`; at most 100 values per key; object, array and null values are skipped; an unknown `categoryId` gives an empty list
+
+#### Scenario: Variant specs count
+- **WHEN** a product has specs `{"cpu": "Apple M3"}` and its variant has specs `{"color": "Space Gray"}`
+- **THEN** both `cpu` and `color` are listed for that product
+
+#### Scenario: Category scope
+- **WHEN** a client calls `GET /api/products/spec-keys?categoryId=<accessories>`
+- **THEN** only keys of products directly in that category are returned
+
+#### Scenario: String that looks like a number
+- **WHEN** a product has specs `{"bluetooth": "5.2"}`
+- **THEN** the value has `label` `5.2` and `filterValue` `"5.2"` (quoted), and `GET /api/products?spec=bluetooth:"5.2"` returns the product
+
+## MODIFIED Requirements
+
+### Requirement: Typed specification filter
+The repeatable `spec` parameter (`key:value`, split at the first colon) SHALL filter by containment against effective specs (`product.specs || variant.specs`). A value wrapped in double quotes (`"5.2"`) SHALL match the JSON string inside the quotes. Otherwise, values that parse as numbers match JSON numbers, `true`/`false` match JSON booleans, and other values match JSON strings. All `spec` filters SHALL be satisfied together by the same effective specs.
+
+#### Scenario: Numeric spec value matches JSON number
+- **WHEN** a product has specs `{"ram_gb": 16}` and a client calls `GET /api/products?spec=ram_gb:16`
+- **THEN** the product is returned
+
+#### Scenario: Quoted value matches a JSON string
+- **WHEN** a product has specs `{"bluetooth": "5.2"}` and a client calls `GET /api/products?spec=bluetooth:"5.2"`
+- **THEN** the product is returned, while `spec=bluetooth:5.2` (a number) does not return it
+
+#### Scenario: Product-level spec matched through a variant
+- **WHEN** a product has specs `{"cpu": "Apple M3"}`, its variant has specs `{"color": "Space Gray"}`, and a client calls `GET /api/products?spec=cpu:Apple M3&spec=color:Space Gray`
+- **THEN** the product is returned because the variant's effective specs contain both values
+
+#### Scenario: Variant overrides product value
+- **WHEN** a product has specs `{"color": "Black"}`, its only variant has specs `{"color": "White"}`, and a client calls `GET /api/products?spec=color:Black`
+- **THEN** the product is not returned
+
+#### Scenario: Malformed spec parameter
+- **WHEN** a client sends `spec=ram_gb` (no colon), `spec=:16` (empty key), `spec=RAM:16` (key not snake_case), `spec=ram_gb:` (empty value), `spec=ram_gb:""` (empty quoted value), or the same key twice with different values
+- **THEN** the response is 400 ProblemDetails with an error for `spec`
+

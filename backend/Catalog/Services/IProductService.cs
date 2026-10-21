@@ -56,6 +56,7 @@ public interface IProductService
 {
     Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<ProductSearchResult> SearchAsync(ProductSearchRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ProductSpecKeyDto>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default);
     Task<CreateProductResult> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default);
     Task<ProductCommandResult> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default);
     Task<ProductCommandResult> SetStatusAsync(Guid id, UpdateProductStatusRequest request, CancellationToken cancellationToken = default);

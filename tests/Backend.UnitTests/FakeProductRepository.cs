@@ -54,6 +54,15 @@ public class FakeProductRepository : IProductRepository
         return Task.FromResult<IReadOnlyList<string>>(found);
     }
 
+    public List<SpecValueCount> SpecValueCounts { get; } = [];
+    public Guid? LastSpecCategoryId { get; private set; }
+
+    public Task<IReadOnlyList<SpecValueCount>> GetSpecValueCountsAsync(Guid? categoryId, CancellationToken cancellationToken = default)
+    {
+        LastSpecCategoryId = categoryId;
+        return Task.FromResult<IReadOnlyList<SpecValueCount>>(SpecValueCounts.ToList());
+    }
+
     public void Add(Product product)
     {
         AddedProducts.Add(product);

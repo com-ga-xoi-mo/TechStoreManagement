@@ -159,6 +159,13 @@ After lock and `IsInUseAsync == false`, call new repository method `Remove(Produ
 ### D11. Why reads stay anonymous
 `tests/Frontend.IntegrationTests/CatalogApiIntegrationTests.cs` and the Orders live tests call `GET /api/products` without logging in, and `OrdersController` itself has no `[Authorize]` yet. Locking reads now would break other developers' suites. Requiring login on all reads should be one team-wide change (all controllers + integration tests log in first).
 
+### D12. Specification filter suggestions (added after review)
+The list page's free-text spec filter gave no way to know which keys exist, and filtering is an exact match, so only stored values can ever match. `GET /api/products/spec-keys?categoryId=` lists them.
+- Repository: `GetSpecValueCountsAsync(Guid? categoryId)` runs one read-only SQL through `Database.SqlQuery<SpecValueCount>` (record `Key`, `ValueJson`, `ProductCount`): effective specs built exactly like the search filter (product specs for products without variants, `p.specs || v.specs` per variant), `jsonb_each`, `jsonb_typeof IN ('number','string','boolean')`, `GROUP BY key, value::text`, `COUNT(DISTINCT product_id)`. No tracking, no write.
+- Service: `GetSpecKeysAsync` groups rows by key, sorts (D12 order in the spec), caps 100 values per key and builds `filterValue`: numbers as their raw JSON text, booleans `true`/`false`, strings as-is unless the filter would read them as a number or boolean or they start and end with `"`, in which case they are quoted.
+- Filter parser (`ProductSpecFilterHelper`): a value of at least two characters that starts and ends with `"` becomes the string between the quotes (empty → 400). Before this, a stored string such as `"5.2"` could not be filtered.
+- Contract: `shared/DTOs/ProductSpecKeyDto.cs` (`Key`, `ProductCount`, `Values`) and `ProductSpecValueDto` (`Value` as `JsonElement`, `Label`, `FilterValue`, `ProductCount`). Route `GET api/products/spec-keys` is a literal segment, so it does not clash with `{id:guid}`. Anonymous like the other reads (D11).
+
 ## Risks / Trade-offs
 
 - [`FOR UPDATE` raw SQL cannot run on the EF InMemory provider] → unit tests use `FakeProductRepository`; the real lock is checked by the manual `.http` run against PostgreSQL (task group 9).

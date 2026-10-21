@@ -155,6 +155,32 @@ public class ProductRepository(AppDbContext dbContext) : IProductRepository
         return product;
     }
 
+    public async Task<IReadOnlyList<SpecValueCount>> GetSpecValueCountsAsync(Guid? categoryId, CancellationToken cancellationToken = default)
+    {
+        // Effective specs exactly as the search filter sees them: product specs for a product without variants,
+        // product specs || variant specs for each variant otherwise.
+        return await dbContext.Database
+            .SqlQuery<SpecValueCount>($"""
+                WITH effective AS (
+                    SELECT p.id AS product_id, p.specs AS specs
+                    FROM products AS p
+                    WHERE NOT EXISTS (SELECT 1 FROM product_variants AS v WHERE v.product_id = p.id)
+                      AND (CAST({categoryId} AS uuid) IS NULL OR p.category_id = CAST({categoryId} AS uuid))
+                    UNION ALL
+                    SELECT p.id, p.specs || v.specs
+                    FROM products AS p
+                    JOIN product_variants AS v ON v.product_id = p.id
+                    WHERE CAST({categoryId} AS uuid) IS NULL OR p.category_id = CAST({categoryId} AS uuid)
+                )
+                SELECT e.key AS "Key", e.value::text AS "ValueJson", COUNT(DISTINCT effective.product_id)::int AS "ProductCount"
+                FROM effective
+                CROSS JOIN LATERAL jsonb_each(effective.specs) AS e
+                WHERE jsonb_typeof(e.value) IN ('number', 'string', 'boolean')
+                GROUP BY GROUPING SETS ((e.key, e.value::text), (e.key))
+                """)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> IsInUseAsync(
         Guid productId,
         CancellationToken cancellationToken = default)

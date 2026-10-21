@@ -40,7 +40,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     [ObservableProperty] private string pageTitle = "Thêm sản phẩm mới";
     [ObservableProperty] private bool canManage;
     [ObservableProperty] private string specCatalogMessage = string.Empty;
-    [ObservableProperty] private IReadOnlyList<SpecChoice> brandSuggestions = [];
+    [ObservableProperty] private IReadOnlyList<Choice> brandSuggestions = [];
     [ObservableProperty] private string brandHint = string.Empty;
 
     [ObservableProperty] private Guid? productId;
@@ -145,7 +145,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     partial void OnSpecsErrorChanged(string? value) => OnPropertyChanged(nameof(HasSpecsError));
     partial void OnGeneralErrorChanged(string value) => OnPropertyChanged(nameof(HasGeneralError));
     partial void OnSpecCatalogMessageChanged(string value) => OnPropertyChanged(nameof(HasSpecCatalogMessage));
-    partial void OnBrandSuggestionsChanged(IReadOnlyList<SpecChoice> value) => OnPropertyChanged(nameof(HasBrandSuggestions));
+    partial void OnBrandSuggestionsChanged(IReadOnlyList<Choice> value) => OnPropertyChanged(nameof(HasBrandSuggestions));
     partial void OnBrandHintChanged(string value) => OnPropertyChanged(nameof(HasBrandHint));
     partial void OnBrandChanged(string value) => UpdateBrandSuggestions();
 
@@ -164,7 +164,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
                 .Where(b => SpecKeyGenerator.Slug(b.Name).Contains(slug, StringComparison.Ordinal))
                 .OrderByDescending(b => b.ProductCount)
                 .Take(5)
-                .Select(b => new SpecChoice(b.Name, SpecPresentation.WithCount(b.Name, b.ProductCount)))
+                .Select(b => new Choice(b.Name, SpecPresentation.WithCount(b.Name, b.ProductCount)))
                 .ToList();
     }
 
@@ -187,7 +187,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     [RelayCommand]
     private void PickBrand(object? parameter)
     {
-        if (parameter is SpecChoice choice) Brand = choice.Value;
+        if (parameter is Choice choice) Brand = choice.Value;
     }
 
     partial void OnIsSavingChanged(bool value) => SaveCommand.NotifyCanExecuteChanged();

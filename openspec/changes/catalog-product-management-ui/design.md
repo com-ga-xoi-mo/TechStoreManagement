@@ -229,7 +229,7 @@ Trang 1/1 · 20 kết quả               Mỗi trang [20 v] [Trang trước] [T
 - `SpecCatalog` (pure, `ViewModels/Catalog/`): definitions by key and by accent-insensitive label; `Suggest(text)` returns up to 6 definitions whose label or key contains the text.
 - Editor rows (`SpecRowItem`): `Name` (typed, TwoWay with `UpdateSourceTrigger.PropertyChanged`), `Key`, `KindIndex`, `Value`, `Unit`, `IsKnown`, `IsKeyLocked`, `Suggestions`, `KeyCaption`. Typing a name that matches a definition applies it (key, kind locked, unit); otherwise the key is generated. A row loaded with a key that has no definition keeps its key (locked) and may get a name. `PickSpecSuggestionCommand(object)` sets the row's name. New names go to `ProductDraft.SpecLabels` → `specLabels` of the request; server errors `specLabels.<key>` land on the row with that key. The editor loads definitions on activation; if that fails the editor still works with generated keys.
 - Detail: `ProductDetailViewModel` loads definitions after the product (failure → keys shown) and exposes `SpecLines` and `VariantLines` already formatted, so the page binds plain text.
-- List filter: `SpecFilterRow` options become `SpecChoice(Value, DisplayName)` built with `SpecPresentation`.
+- List filter: `SpecFilterRow` options become `Choice(Value, DisplayName)` built with `SpecPresentation`.
 - No `AutoSuggestBox`: its events are forbidden in Views; suggestions are a list of buttons bound to the row.
 
 ### D17. Brand suggestions (follows API D14)

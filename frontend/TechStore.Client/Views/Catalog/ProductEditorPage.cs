@@ -151,7 +151,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
 
         var brandSuggestions = new ItemsControl()
             .ItemsSource(x => x.Binding(() => ViewModel.BrandSuggestions))
-            .ItemTemplate<SpecChoice>(BuildBrandSuggestion)
+            .ItemTemplate<Choice>(BuildBrandSuggestion)
             .Visibility(x => x.Binding(() => ViewModel.HasBrandSuggestions).Convert((bool v) => CatalogViewParts.ShowIf(v)));
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(brandSuggestions, "Gợi ý thương hiệu");
 
@@ -503,7 +503,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
     }
 
     // `choice` is null while the template is built; it is only used inside binding lambdas.
-    private UIElement BuildBrandSuggestion(SpecChoice choice) =>
+    private UIElement BuildBrandSuggestion(Choice choice) =>
         new Button()
             .Content(x => x.Binding(() => choice.DisplayName))
             .Command(ViewModel.PickBrandCommand)

@@ -36,5 +36,6 @@
   - `SpecLabelValidator.cs`, `ProductSpecSuggestionBuilder.cs` (kiểm `specLabels`; dựng gợi ý lọc thông số).
   - `ICategoryService.cs`, `CategoryService.cs` (Dev 3 - Cây danh mục phân cấp cha - con).
 - **Controllers (đặt tại thư mục gốc của module `backend/Catalog/`)**:
-  - `ProductsController.cs` (Dev 2 - CRUD, tìm kiếm và lọc nâng cao theo JSONB specs; `GET /api/products/spec-keys` gợi ý giá trị lọc, `GET /api/products/spec-definitions` tên thông số).
+  - `ProductsController.cs` (Dev 2 - CRUD, tìm kiếm và lọc nâng cao theo JSONB specs; `GET /api/products/spec-keys` gợi ý giá trị lọc, `GET /api/products/spec-definitions` tên thông số; `GET /api/products/brands` danh sách thương hiệu kèm số sản phẩm).
+- **Thương hiệu:** cột `brand` vẫn là chữ tự do, nhưng khi tạo/sửa sản phẩm, thương hiệu trùng một cách viết đã có (không phân biệt hoa thường) được lưu theo cách viết được nhiều sản phẩm dùng nhất; sản phẩm đang sửa không được tính.
   - `CategoriesController.cs` (Dev 3 - Quản lý và tra cứu cây danh mục).

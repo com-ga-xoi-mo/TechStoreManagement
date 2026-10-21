@@ -9,9 +9,9 @@ public sealed partial class SpecFilterRow : ObservableObject
 {
     private IReadOnlyList<SpecKeyOption> _options = [];
 
-    [ObservableProperty] private IReadOnlyList<SpecChoice> keyChoices = [];
+    [ObservableProperty] private IReadOnlyList<Choice> keyChoices = [];
     [ObservableProperty] private string? selectedKey;
-    [ObservableProperty] private IReadOnlyList<SpecChoice> valueChoices = [];
+    [ObservableProperty] private IReadOnlyList<Choice> valueChoices = [];
     [ObservableProperty] private string? selectedFilterValue;
 
     public bool HasKey => !string.IsNullOrEmpty(SelectedKey);
@@ -23,7 +23,7 @@ public sealed partial class SpecFilterRow : ObservableObject
         var value = SelectedFilterValue;
         _options = options;
         KeyChoices = options
-            .Select(o => new SpecChoice(o.Key, SpecPresentation.WithCount(SpecPresentation.KeyName(o.Key, o.Label), o.ProductCount)))
+            .Select(o => new Choice(o.Key, SpecPresentation.WithCount(SpecPresentation.KeyName(o.Key, o.Label), o.ProductCount)))
             .ToList();
         SelectedKey = key;
         ValueChoices = BuildValueChoices(key);
@@ -39,12 +39,12 @@ public sealed partial class SpecFilterRow : ObservableObject
             SelectedFilterValue = null;
     }
 
-    private IReadOnlyList<SpecChoice> BuildValueChoices(string? key)
+    private IReadOnlyList<Choice> BuildValueChoices(string? key)
     {
         var option = _options.FirstOrDefault(o => o.Key == key);
         if (option is null) return [];
         return option.Values
-            .Select(v => new SpecChoice(v.FilterValue, SpecPresentation.WithCount(SpecPresentation.ValueText(v.Label, v.Kind, option.Unit), v.ProductCount)))
+            .Select(v => new Choice(v.FilterValue, SpecPresentation.WithCount(SpecPresentation.ValueText(v.Label, v.Kind, option.Unit), v.ProductCount)))
             .ToList();
     }
 }

@@ -86,6 +86,10 @@ Verified by project owner on commit `0b4c554` on 2026-10-22:
 - **First Layout Performance on Skia (17.3b):** Replaced `.IconSource(StaticResource.Get<IconSource>(...))` on `EmptyStateControl` with registered instance `.IconSource(AppIcons.Get(...))`, reducing Skia first layout time from ~8.5s down to ~200ms.
 - **Editor Form Stretch & Grid Sizes (17.3g):** Form panel stretched to full width (max 1100), and column definitions updated to whole-number star ratios (`6*, 5*`) per Uno Markup 6.7 parsing rules.
 
+## Not covered by this acceptance
+
+The owner acceptance above was given on commit `0b4c554`. Brand spelling and brand suggestions (API task 16, UI task 17.3h, commits `509c073` and `c3a6ebd`) were added afterwards; they are covered by unit tests, a live API check and a snapshot probe, not by the owner checklist.
+
 ## Owner Confirmation (Task 16.3b / 17.4)
 
 - Commit: `0b4c554`

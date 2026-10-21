@@ -2,8 +2,8 @@ using TechStore.Client.Models.Catalog;
 
 namespace TechStore.Client.ViewModels.Catalog;
 
-/// <summary>A ComboBox item: <see cref="Value"/> is what is stored or sent, <see cref="DisplayName"/> what is shown.</summary>
-public sealed record SpecChoice(string Value, string DisplayName);
+/// <summary>A pickable item (ComboBox entry or suggestion button): <see cref="Value"/> is what is stored or sent, <see cref="DisplayName"/> what is shown.</summary>
+public sealed record Choice(string Value, string DisplayName);
 
 /// <summary>A definition offered under a spec name box; picking it fills <see cref="Row"/>.</summary>
 public sealed record SpecSuggestion(SpecRowItem Row, SpecDefinition Definition)

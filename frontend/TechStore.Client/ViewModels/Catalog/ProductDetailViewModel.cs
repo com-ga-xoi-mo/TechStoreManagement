@@ -1,3 +1,4 @@
+using TechStore.Client.Controls.Presentation;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Models.Catalog;
@@ -15,6 +16,8 @@ public sealed partial class ProductDetailViewModel : PageViewModel
     private readonly IProductRepository _products;
     private readonly IProductCommandRepository _commands;
     private readonly IDialogService _dialogs;
+    private readonly IProductSpecRepository _specs;
+    private SpecCatalog _catalog = SpecCatalog.Empty;
     private readonly INavigationService _navigation;
     private readonly ISessionStore _sessionStore;
     private ProductQuery? _returnCriteria;
@@ -26,6 +29,8 @@ public sealed partial class ProductDetailViewModel : PageViewModel
     [ObservableProperty] private bool canManage;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private string actionError = string.Empty;
+    [ObservableProperty] private IReadOnlyList<SpecLine> specLines = [];
+    [ObservableProperty] private IReadOnlyList<VariantLine> variantLines = [];
 
     public bool HasSpecs => Product?.Specs.Count > 0;
     public bool HasVariants => Product?.Variants.Count > 0;
@@ -39,13 +44,15 @@ public sealed partial class ProductDetailViewModel : PageViewModel
         INavigationService navigation,
         ISessionStore sessionStore,
         IProductCommandRepository commands,
-        IDialogService dialogs)
+        IDialogService dialogs,
+        IProductSpecRepository specs)
     {
         _products = products ?? throw new ArgumentNullException(nameof(products));
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
+        _specs = specs ?? throw new ArgumentNullException(nameof(specs));
         _sessionStore.SessionChanged += OnSessionChanged;
         CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
     }
@@ -90,7 +97,12 @@ public sealed partial class ProductDetailViewModel : PageViewModel
         ActionError = string.Empty;
         ContentState = PageContentState.Loading;
         return RunLatestRequestAsync(
-            token => _products.GetByIdAsync(requestedId, token),
+            async token =>
+            {
+                var product = await _products.GetByIdAsync(requestedId, token);
+                if (product is not null) _catalog = await LoadSpecCatalogAsync(token);
+                return product;
+            },
             product =>
             {
                 if (product is null)
@@ -117,8 +129,41 @@ public sealed partial class ProductDetailViewModel : PageViewModel
         ContentState = PageContentState.Error;
     }
 
+    // Names are optional: when definitions cannot be loaded the page shows keys (UI design D16).
+    private async Task<SpecCatalog> LoadSpecCatalogAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return new SpecCatalog(await _specs.GetSpecDefinitionsAsync(cancellationToken));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return _catalog;
+        }
+    }
+
+    private string SpecText(KeyValuePair<string, System.Text.Json.JsonElement> spec)
+    {
+        var definition = _catalog.FindByKey(spec.Key);
+        return $"{SpecPresentation.KeyName(spec.Key, definition?.Label)}: {SpecPresentation.ValueText(spec.Value, definition?.Unit)}";
+    }
+
     partial void OnProductChanged(ProductDetail? value)
     {
+        SpecLines = value?.Specs
+            .Select(spec =>
+            {
+                var definition = _catalog.FindByKey(spec.Key);
+                return new SpecLine(SpecPresentation.KeyName(spec.Key, definition?.Label), SpecPresentation.ValueText(spec.Value, definition?.Unit));
+            })
+            .ToList() ?? [];
+        VariantLines = value?.Variants
+            .Select(variant => new VariantLine(variant, string.Join("   ·   ", variant.EffectiveSpecs.Select(SpecText))))
+            .ToList() ?? [];
         OnPropertyChanged(nameof(HasSpecs));
         OnPropertyChanged(nameof(HasVariants));
         OnPropertyChanged(nameof(HasNoSpecs));

@@ -193,20 +193,21 @@ public sealed class ProductDetailPage : Page, IRoutePage
                     .Children(
                         CatalogViewParts.SectionTitle("Thông số sản phẩm"),
                         new ItemsControl()
-                            .ItemsSource(x => x.Binding(() => ViewModel.Product!.Specs))
-                            .ItemTemplate<KeyValuePair<string, JsonElement>>(pair =>
+                            .ItemsSource(x => x.Binding(() => ViewModel.SpecLines))
+                            .ItemTemplate<SpecLine>(line =>
                                 new Grid()
                                     .Padding(new Thickness(0, 6, 0, 6))
                                     .ColumnSpacing(18)
                                     .ColumnDefinitions("180, *")
                                     .Children(
                                         new TextBlock()
-                                            .Text(x => x.Binding(() => pair.Key))
+                                            .Text(x => x.Binding(() => line.Name))
+                                            .TextWrapping(TextWrapping.Wrap)
                                             .Style(AppResources.GetStyle(AppTypography.CaptionText))
                                             .Foreground(AppColors.Brushes.SecondaryText),
                                         new TextBlock()
                                             .Grid(column: 1)
-                                            .Text(x => x.Binding(() => pair.Value).Convert((JsonElement elem) => CatalogPresentation.SpecValueText(elem)))
+                                            .Text(x => x.Binding(() => line.Value))
                                             .Style(AppResources.GetStyle(AppTypography.BodyText))
                                             .Foreground(AppColors.Brushes.Text)
                                             .TextWrapping(TextWrapping.Wrap))),
@@ -227,8 +228,8 @@ public sealed class ProductDetailPage : Page, IRoutePage
                     .Children(
                         CatalogViewParts.SectionTitle("Biến thể"),
                         new ItemsControl()
-                            .ItemsSource(x => x.Binding(() => ViewModel.Product!.Variants))
-                            .ItemTemplate<ProductVariant>(v =>
+                            .ItemsSource(x => x.Binding(() => ViewModel.VariantLines))
+                            .ItemTemplate<VariantLine>(v =>
                                 new Border()
                                     .Padding(new Thickness(14, 12, 14, 12))
                                     .Margin(new Thickness(0, 0, 0, 8))
@@ -248,28 +249,25 @@ public sealed class ProductDetailPage : Page, IRoutePage
                                                             .Spacing(4)
                                                             .Children(
                                                                 new TextBlock()
-                                                                    .Text(x => x.Binding(() => v.VariantName))
+                                                                    .Text(x => x.Binding(() => v.Variant.VariantName))
                                                                     .Style(AppResources.GetStyle(AppTypography.BodyText))
                                                                     .Foreground(AppColors.Brushes.Text),
                                                                 new TextBlock()
-                                                                    .Text(x => x.Binding(() => v).Convert((ProductVariant pv) => pv is null ? string.Empty : $"SKU: {pv.Sku}   ·   Barcode: {CatalogPresentation.OptionalText(pv.Barcode)}"))
+                                                                    .Text(x => x.Binding(() => v.Variant).Convert((ProductVariant pv) => pv is null ? string.Empty : $"SKU: {pv.Sku}   ·   Barcode: {CatalogPresentation.OptionalText(pv.Barcode)}"))
                                                                     .Style(AppResources.GetStyle(AppTypography.CaptionText))
                                                                     .Foreground(AppColors.Brushes.SecondaryText)
                                                                     .TextWrapping(TextWrapping.Wrap)),
                                                         new TextBlock()
                                                             .Grid(column: 1)
-                                                            .Text(x => x.Binding(() => v.Price).Convert((decimal pr) => CatalogPresentation.FormatMoney(pr)))
+                                                            .Text(x => x.Binding(() => v.Variant.Price).Convert((decimal pr) => CatalogPresentation.FormatMoney(pr)))
                                                             .Style(AppResources.GetStyle(AppTypography.SectionText))
                                                             .Foreground(AppColors.Brushes.Text)
                                                             .VerticalAlignment(VerticalAlignment.Center)),
-                                                new ItemsControl()
-                                                    .ItemsSource(x => x.Binding(() => v.EffectiveSpecs))
-                                                    .ItemTemplate<KeyValuePair<string, JsonElement>>(p =>
-                                                        new TextBlock()
-                                                            .Text(x => x.Binding(() => p).Convert((KeyValuePair<string, JsonElement> pair) => $"{pair.Key}: {CatalogPresentation.SpecValueText(pair.Value)}"))
-                                                            .Style(AppResources.GetStyle(AppTypography.CaptionText))
-                                                            .Foreground(AppColors.Brushes.SecondaryText)
-                                                            .TextWrapping(TextWrapping.Wrap))))),
+                                                new TextBlock()
+                                                    .Text(x => x.Binding(() => v.SpecsText))
+                                                    .Style(AppResources.GetStyle(AppTypography.CaptionText))
+                                                    .Foreground(AppColors.Brushes.SecondaryText)
+                                                    .TextWrapping(TextWrapping.Wrap)))),
                         new TextBlock()
                             .Text("Sản phẩm này không có biến thể.")
                             .Style(AppResources.GetStyle(AppTypography.CaptionText))

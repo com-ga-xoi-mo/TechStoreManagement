@@ -52,19 +52,27 @@ Client SHALL nạp chi tiết hiện tại bằng `GET /api/products/{id}` vào 
 - **THEN** việc lưu không đổi trạng thái kinh doanh; nhãn trạng thái vẫn là Ngừng hoạt động
 
 ### Requirement: Dynamic specification editor
-Màn soạn SHALL cho thêm, sửa và bỏ từng dòng thông số gồm key, kiểu (Chuỗi, Số, Đúng/Sai) và giá trị cho sản phẩm và cho từng biến thể. Client SHALL chặn lưu khi key không khớp `^[a-z][a-z0-9_]*$`, trùng key trong cùng một nhóm, giá trị rỗng, giá trị Số không phải số thập phân hoặc giá trị Đúng/Sai khác `true`/`false`.
+Màn soạn SHALL cho thêm, sửa và bỏ từng dòng thông số cho sản phẩm và từng biến thể; người dùng nhập tên hiển thị, không gõ key. Tên khớp một định nghĩa có sẵn SHALL dùng key, kiểu và đơn vị của định nghĩa và khóa kiểu; tên mới SHALL được tự sinh key snake_case và gửi trong `specLabels` khi Lưu. Client SHALL chặn lưu khi key trùng trong một nhóm hoặc giá trị không hợp lệ với kiểu.
+
+#### Scenario: Pick an existing spec by its name
+- **WHEN** người dùng gõ `ram` ở ô tên và chọn gợi ý `RAM`
+- **THEN** dòng dùng key `ram_gb`, kiểu Số bị khóa, ô giá trị hiện đơn vị `GB`; nhập `16` thì request chứa `"ram_gb": 16` và không có `specLabels`
+
+#### Scenario: Create a new spec from its name
+- **WHEN** người dùng gõ tên `Tần số quét (Hz)`, chọn kiểu Số, nhập `144` rồi Lưu
+- **THEN** request chứa specs `{"tan_so_quet_hz": 144}` và `specLabels` `{"tan_so_quet_hz": {"label": "Tần số quét", "unit": "Hz", "valueKind": "number"}}`
 
 #### Scenario: Typed values are sent with their JSON type
-- **WHEN** người dùng nhập `ram_gb` kiểu Số giá trị `16`, `has_5g` kiểu Đúng/Sai giá trị `true`, `cpu` kiểu Chuỗi giá trị `Apple M3`
-- **THEN** request chứa specs `{"ram_gb": 16, "has_5g": true, "cpu": "Apple M3"}` đúng kiểu JSON
+- **WHEN** các dòng có giá trị Số `16`, Đúng/Sai `true` và Chuỗi `Apple M3`
+- **THEN** request chứa đúng kiểu JSON `16`, `true`, `"Apple M3"`
 
-#### Scenario: Invalid key
-- **WHEN** người dùng nhập key `RAM GB`
-- **THEN** dòng đó hiện lỗi snake_case, nút Lưu không gửi request
-
-#### Scenario: Existing specs are loaded with their types
+#### Scenario: Existing specs are loaded with their names
 - **WHEN** mở sửa một sản phẩm có specs `{"ram_gb": 8, "cpu": "M3"}`
-- **THEN** editor có hai dòng: `ram_gb` kiểu Số giá trị `8` và `cpu` kiểu Chuỗi giá trị `M3`
+- **THEN** editor có hai dòng `RAM` (Số, `8`, GB) và `Vi xử lý (CPU)` (Chuỗi, `M3`); một key chưa có định nghĩa hiện key của nó, giữ nguyên key và cho đặt tên
+
+#### Scenario: Name without letters or digits
+- **WHEN** người dùng nhập tên `!!!`
+- **THEN** dòng đó báo lỗi tên và không gửi request
 
 #### Scenario: Large and decimal numbers keep precision
 - **WHEN** người dùng nhập kiểu Số giá trị `6.1` hoặc `12345678901234567890`

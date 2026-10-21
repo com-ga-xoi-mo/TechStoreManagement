@@ -222,6 +222,16 @@ Tìm, lọc và quản lý sản phẩm, giá bán và thông số kỹ thuật.
 Trang 1/1 · 20 kết quả               Mỗi trang [20 v] [Trang trước] [Trang sau]   <- cố định
 ```
 
+### D16. Spec names in the client (follows API D13)
+- Data: `Models/Catalog/SpecDefinition.cs` (`Key`, `Label`, `Unit`, `SpecValueKind Kind`); `IProductSpecRepository.GetSpecDefinitionsAsync`; `SpecKeyOption` carries the optional `Label`/`Unit` of `spec-keys`.
+- Display rules (pure, `Controls/Presentation/SpecPresentation.cs`): name = label or the key; value = number + unit, `Có`/`Không`, text as is; `WithCount`.
+- Name input (pure, `ViewModels/Catalog/SpecKeyGenerator.cs`): `SplitUnit("Tần số quét (Hz)")` → (`Tần số quét`, `Hz`); `Generate(label, unit)` → `tan_so_quet_hz` (NFD without marks, `đ`→`d`, lower case, non `[a-z0-9]` → `_`, collapsed, leading digit → `spec_` prefix, max 64; null when nothing is left).
+- `SpecCatalog` (pure, `ViewModels/Catalog/`): definitions by key and by accent-insensitive label; `Suggest(text)` returns up to 6 definitions whose label or key contains the text.
+- Editor rows (`SpecRowItem`): `Name` (typed, TwoWay with `UpdateSourceTrigger.PropertyChanged`), `Key`, `KindIndex`, `Value`, `Unit`, `IsKnown`, `IsKeyLocked`, `Suggestions`, `KeyCaption`. Typing a name that matches a definition applies it (key, kind locked, unit); otherwise the key is generated. A row loaded with a key that has no definition keeps its key (locked) and may get a name. `PickSpecSuggestionCommand(object)` sets the row's name. New names go to `ProductDraft.SpecLabels` → `specLabels` of the request; server errors `specLabels.<key>` land on the row with that key. The editor loads definitions on activation; if that fails the editor still works with generated keys.
+- Detail: `ProductDetailViewModel` loads definitions after the product (failure → keys shown) and exposes `SpecLines` and `VariantLines` already formatted, so the page binds plain text.
+- List filter: `SpecFilterRow` options become `SpecChoice(Value, DisplayName)` built with `SpecPresentation`.
+- No `AutoSuggestBox`: its events are forbidden in Views; suggestions are a list of buttons bound to the row.
+
 ## Risks / Trade-offs
 
 - [`ItemTemplate<T>` có thể không có cho `ItemsRepeater` trong Uno Markup] → D7 có phương án `GridView` đã định sẵn; task ghi lại lựa chọn.

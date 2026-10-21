@@ -396,9 +396,9 @@ public sealed class ProductListPage : Page, IRoutePage
     private UIElement BuildSpecFilterRow(SpecFilterRow row)
     {
         var keyBox = new ComboBox()
-            .ItemsSource(x => x.Binding(() => row.KeyOptions))
+            .ItemsSource(x => x.Binding(() => row.KeyChoices))
             .DisplayMemberPath("DisplayName")
-            .SelectedValuePath("Key")
+            .SelectedValuePath("Value")
             .SelectedValue(x => x.Binding(() => row.SelectedKey).Mode(BindingMode.TwoWay))
             .PlaceholderText("Chọn thông số")
             .HorizontalAlignment(HorizontalAlignment.Stretch)
@@ -406,9 +406,9 @@ public sealed class ProductListPage : Page, IRoutePage
         AutomationProperties.SetName(keyBox, "Tên thông số");
 
         var valueBox = new ComboBox()
-            .ItemsSource(x => x.Binding(() => row.ValueOptions))
+            .ItemsSource(x => x.Binding(() => row.ValueChoices))
             .DisplayMemberPath("DisplayName")
-            .SelectedValuePath("FilterValue")
+            .SelectedValuePath("Value")
             .SelectedValue(x => x.Binding(() => row.SelectedFilterValue).Mode(BindingMode.TwoWay))
             .IsEnabled(x => x.Binding(() => row.HasKey))
             .PlaceholderText("Chọn giá trị")

@@ -145,6 +145,8 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
             RequireString(item, "key");
             RequireInt(item, "productCount");
             Require(item, "values", JsonValueKind.Array);
+            var label = OptionalString(item, "label");
+            var unit = OptionalString(item, "unit");
             var values = new List<SpecValueOption>();
             foreach (var value in item.GetProperty("values").EnumerateArray())
             {
@@ -152,17 +154,57 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
                 RequireString(value, "label");
                 RequireString(value, "filterValue");
                 RequireInt(value, "productCount");
+                var kind = value.TryGetProperty("value", out var raw) ? KindOf(raw) : SpecValueKind.Text;
                 values.Add(new SpecValueOption(
                     value.GetProperty("label").GetString()!,
                     value.GetProperty("filterValue").GetString()!,
-                    value.GetProperty("productCount").GetInt32()));
+                    value.GetProperty("productCount").GetInt32(),
+                    kind));
             }
 
-            keys.Add(new SpecKeyOption(item.GetProperty("key").GetString()!, item.GetProperty("productCount").GetInt32(), values));
+            keys.Add(new SpecKeyOption(
+                item.GetProperty("key").GetString()!, item.GetProperty("productCount").GetInt32(), values, label, unit));
         }
 
         return keys;
     }
+
+    public async Task<IReadOnlyList<SpecDefinition>> GetSpecDefinitionsAsync(CancellationToken cancellationToken = default)
+    {
+        var json = await apiClient.GetAsync<JsonElement>("api/products/spec-definitions", cancellationToken);
+        if (json.ValueKind != JsonValueKind.Array)
+            throw InvalidResponse("The spec definition response must be an array.");
+
+        var definitions = new List<SpecDefinition>();
+        foreach (var item in json.EnumerateArray())
+        {
+            RequireObject(item, "spec definition");
+            RequireString(item, "key");
+            RequireString(item, "label");
+            RequireString(item, "valueKind");
+            var kind = item.GetProperty("valueKind").GetString() switch
+            {
+                "number" => SpecValueKind.Number,
+                "boolean" => SpecValueKind.Boolean,
+                "string" => SpecValueKind.Text,
+                var other => throw InvalidResponse($"Unknown spec value kind '{other}'.")
+            };
+            definitions.Add(new SpecDefinition(
+                item.GetProperty("key").GetString()!, item.GetProperty("label").GetString()!, OptionalString(item, "unit"), kind));
+        }
+
+        return definitions;
+    }
+
+    private static string? OptionalString(JsonElement item, string property) =>
+        item.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    private static SpecValueKind KindOf(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.Number => SpecValueKind.Number,
+        JsonValueKind.True or JsonValueKind.False => SpecValueKind.Boolean,
+        _ => SpecValueKind.Text
+    };
 
     private static void ValidatePageShape(JsonElement json)
     {

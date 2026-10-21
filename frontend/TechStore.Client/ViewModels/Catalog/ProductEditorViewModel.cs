@@ -25,6 +25,8 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     private readonly INavigationService _navigation;
     private readonly IDialogService _dialogs;
     private readonly ISessionStore _sessionStore;
+    private readonly IProductSpecRepository _specs;
+    private SpecCatalog _catalog = SpecCatalog.Empty;
 
     private ProductQuery? _returnQuery;
     private ProductDraft? _baseline;
@@ -35,6 +37,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     [ObservableProperty] private string generalError = string.Empty;
     [ObservableProperty] private string pageTitle = "Thêm sản phẩm mới";
     [ObservableProperty] private bool canManage;
+    [ObservableProperty] private string specCatalogMessage = string.Empty;
 
     [ObservableProperty] private Guid? productId;
     [ObservableProperty] private Guid? selectedCategoryId;
@@ -77,6 +80,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     public bool HasImageUrlError => !string.IsNullOrWhiteSpace(ImageUrlError);
     public bool HasSpecsError => !string.IsNullOrWhiteSpace(SpecsError);
     public bool HasGeneralError => !string.IsNullOrWhiteSpace(GeneralError);
+    public bool HasSpecCatalogMessage => !string.IsNullOrWhiteSpace(SpecCatalogMessage);
 
     public bool HasVariants => Variants.Count > 0;
     public bool IsBarcodeEnabled => !HasVariants;
@@ -92,7 +96,8 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         ICategoryRepository categories,
         INavigationService navigation,
         IDialogService dialogs,
-        ISessionStore sessionStore)
+        ISessionStore sessionStore,
+        IProductSpecRepository specs)
     {
         _products = products ?? throw new ArgumentNullException(nameof(products));
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
@@ -100,6 +105,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+        _specs = specs ?? throw new ArgumentNullException(nameof(specs));
 
         _sessionStore.SessionChanged += OnSessionChanged;
         CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
@@ -130,6 +136,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     partial void OnImageUrlErrorChanged(string? value) => OnPropertyChanged(nameof(HasImageUrlError));
     partial void OnSpecsErrorChanged(string? value) => OnPropertyChanged(nameof(HasSpecsError));
     partial void OnGeneralErrorChanged(string value) => OnPropertyChanged(nameof(HasGeneralError));
+    partial void OnSpecCatalogMessageChanged(string value) => OnPropertyChanged(nameof(HasSpecCatalogMessage));
 
     partial void OnIsSavingChanged(bool value) => SaveCommand.NotifyCanExecuteChanged();
     partial void OnCanManageChanged(bool value) => SaveCommand.NotifyCanExecuteChanged();
@@ -185,6 +192,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         try
         {
             Categories = await _categories.GetTreeAsync(cancellationToken);
+            await LoadSpecCatalogAsync(cancellationToken);
 
             if (IsEditMode && ProductId is { } id)
             {
@@ -211,7 +219,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
 
                 foreach (var spec in ProductInputParser.SpecsFromJson(product.Specs))
                 {
-                    Specs.Add(SpecRowItem.From(spec));
+                    Specs.Add(WithCatalog(SpecRowItem.From(spec)));
                 }
 
                 foreach (var v in product.Variants)
@@ -227,7 +235,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
 
                     foreach (var s in ProductInputParser.SpecsFromJson(v.Specs))
                     {
-                        item.Specs.Add(SpecRowItem.From(s));
+                        item.Specs.Add(WithCatalog(SpecRowItem.From(s)));
                     }
 
                     Variants.Add(item);
@@ -266,6 +274,33 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         }
     }
 
+    // Spec names are optional help: without them the editor still works with generated keys.
+    private async Task LoadSpecCatalogAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _catalog = new SpecCatalog(await _specs.GetSpecDefinitionsAsync(cancellationToken));
+            SpecCatalogMessage = string.Empty;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            _catalog = SpecCatalog.Empty;
+            SpecCatalogMessage = "Không tải được danh sách tên thông số. Bạn vẫn nhập được thông số; tên mới sẽ được lưu khi lưu sản phẩm.";
+        }
+    }
+
+    private SpecRowItem WithCatalog(SpecRowItem row)
+    {
+        row.AttachCatalog(_catalog);
+        return row;
+    }
+
+    private IEnumerable<SpecRowItem> AllSpecRows() => Specs.Concat(Variants.SelectMany(v => v.Specs));
+
     public ProductDraft BuildDraft() => new(
         CategoryId: SelectedCategoryId,
         Name: Name,
@@ -278,7 +313,8 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         ImageUrl: ImageUrl,
         IsSerialTracked: IsSerialTracked,
         Specs: Specs.Select(s => s.ToDraft()).ToList(),
-        Variants: Variants.Select(v => v.ToDraft()).ToList());
+        Variants: Variants.Select(v => v.ToDraft()).ToList(),
+        SpecLabels: AllSpecRows().Select(row => row.ToLabelDraft()).OfType<SpecLabelDraft>().ToList());
 
     public bool HasUnsavedChanges
     {
@@ -301,7 +337,8 @@ public sealed partial class ProductEditorViewModel : PageViewModel
                 return true;
             }
 
-            if (!current.Specs.SequenceEqual(_baseline.Specs))
+            if (!current.Specs.SequenceEqual(_baseline.Specs)
+                || !(current.SpecLabels ?? []).SequenceEqual(_baseline.SpecLabels ?? []))
             {
                 return true;
             }
@@ -332,7 +369,20 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void AddSpec() => Specs.Add(new SpecRowItem());
+    private void AddSpec() => Specs.Add(WithCatalog(new SpecRowItem()));
+
+    // Template-bound commands take object (see RemoveSpec).
+    [RelayCommand]
+    private void PickSpecSuggestion(object? parameter)
+    {
+        if (parameter is SpecSuggestion suggestion) suggestion.Row.Pick(suggestion.Definition);
+    }
+
+    [RelayCommand]
+    private void ToggleSpecKeyEditor(object? parameter)
+    {
+        if (parameter is SpecRowItem row) row.IsKeyEditorOpen = !row.IsKeyEditorOpen;
+    }
 
     // CommandParameter comes from a binding inside an item template; while a row is removed it can briefly be
     // the page DataContext, so the command takes object and ignores anything else.
@@ -357,7 +407,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     [RelayCommand]
     private void AddVariantSpec(object? parameter)
     {
-        if (parameter is VariantRowItem variant) variant.Specs.Add(new SpecRowItem());
+        if (parameter is VariantRowItem variant) variant.Specs.Add(WithCatalog(new SpecRowItem()));
     }
 
     [RelayCommand]
@@ -391,6 +441,11 @@ public sealed partial class ProductEditorViewModel : PageViewModel
             {
                 Variants[v].Specs[s].Error = validation.VariantSpecRowErrors[v][s];
             }
+        }
+
+        foreach (var row in AllSpecRows().Where(r => r.Key.Length == 0 && r.HasError))
+        {
+            row.Error = "Hãy nhập tên thông số có chữ hoặc số.";
         }
 
         if (!validation.IsValid) return;
@@ -470,6 +525,15 @@ public sealed partial class ProductEditorViewModel : PageViewModel
                 {
                     AppendGeneralError(error);
                 }
+                continue;
+            }
+
+            if (key.StartsWith("specLabels.", StringComparison.OrdinalIgnoreCase))
+            {
+                var specKey = key["specLabels.".Length..];
+                var rows = AllSpecRows().Where(r => r.Key == specKey).ToList();
+                if (rows.Count == 0) AppendGeneralError(error);
+                foreach (var row in rows) row.Error = error;
                 continue;
             }
 

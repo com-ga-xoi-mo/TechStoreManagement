@@ -1,5 +1,22 @@
 # Spec Delta
 
+## ADDED Requirements
+
+### Requirement: Readable specification names
+Trang chi tiết và bộ lọc thông số SHALL hiện tên của định nghĩa thông số thay cho key, giá trị số kèm đơn vị của định nghĩa (`16 GB`) và giá trị Đúng/Sai là `Có`/`Không`. Key chưa có định nghĩa SHALL hiện chính key. Giá trị gửi lên API và giá trị lưu không đổi.
+
+#### Scenario: Detail with defined specs
+- **WHEN** chi tiết có specs `{"ram_gb": 16, "wireless": true}` và cả hai key có định nghĩa
+- **THEN** trang hiện `RAM: 16 GB` và `Không dây: Có`
+
+#### Scenario: Key without a definition
+- **WHEN** chi tiết có spec `{"fan_rpm": 2000}` và `fan_rpm` chưa có định nghĩa
+- **THEN** trang hiện `fan_rpm: 2000`
+
+#### Scenario: Filter choices
+- **WHEN** người dùng mở lọc thông số
+- **THEN** ô tên hiện `RAM (7)` và ô giá trị hiện `16 GB (1)`, còn request vẫn gửi `spec=ram_gb:16`
+
 ## MODIFIED Requirements
 
 ### Requirement: Live read-only catalog

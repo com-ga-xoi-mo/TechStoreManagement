@@ -186,6 +186,7 @@ public static class ProductDraftValidator
                     ImageUrl = imageUrlToSend,
                     IsSerialTracked = draft.IsSerialTracked,
                     Specs = productSpecResult.Values,
+                    SpecLabels = BuildSpecLabels(draft.SpecLabels),
                     Variants = variants.Select(v => new CreateProductVariantRequest
                     {
                         VariantName = v.VariantName.Trim(),
@@ -210,6 +211,7 @@ public static class ProductDraftValidator
                     ImageUrl = imageUrlToSend,
                     IsSerialTracked = draft.IsSerialTracked,
                     Specs = productSpecResult.Values,
+                    SpecLabels = BuildSpecLabels(draft.SpecLabels),
                     Variants = variants.Select(v => new UpdateProductVariantRequest
                     {
                         Id = v.Id,
@@ -230,6 +232,29 @@ public static class ProductDraftValidator
             variantSpecRowErrors,
             createRequest,
             updateRequest);
+    }
+
+    /// <summary>Names of new spec keys (first name per key wins); null when there is none.</summary>
+    private static Dictionary<string, SpecLabelRequest>? BuildSpecLabels(IReadOnlyList<SpecLabelDraft>? labels)
+    {
+        if (labels is null || labels.Count == 0) return null;
+        var result = new Dictionary<string, SpecLabelRequest>(StringComparer.Ordinal);
+        foreach (var label in labels)
+        {
+            if (result.ContainsKey(label.Key)) continue;
+            result[label.Key] = new SpecLabelRequest
+            {
+                Label = label.Label.Trim(),
+                Unit = string.IsNullOrWhiteSpace(label.Unit) ? null : label.Unit.Trim(),
+                ValueKind = label.Kind switch
+                {
+                    SpecValueKind.Number => "number",
+                    SpecValueKind.Boolean => "boolean",
+                    _ => "string"
+                }
+            };
+        }
+        return result;
     }
 }
 

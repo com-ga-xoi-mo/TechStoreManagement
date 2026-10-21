@@ -1,3 +1,4 @@
+using TechStore.Client.Services.Api;
 using System.Text.Json;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
@@ -165,4 +166,25 @@ internal static class CatalogSamples
         store.SetSession("token", "refresh", "user", "User", role);
         return store;
     }
+}
+
+/// <summary>Spec definitions and suggestions for editor and detail tests.</summary>
+internal sealed class StubSpecRepository : IProductSpecRepository
+{
+    public bool FailDefinitions { get; set; }
+    public List<SpecDefinition> Definitions { get; } =
+    [
+        new("ram_gb", "RAM", "GB", SpecValueKind.Number),
+        new("storage_gb", "Bộ nhớ trong", "GB", SpecValueKind.Number),
+        new("cpu", "Vi xử lý (CPU)", null, SpecValueKind.Text),
+        new("wireless", "Không dây", null, SpecValueKind.Boolean)
+    ];
+
+    public Task<IReadOnlyList<SpecKeyOption>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<SpecKeyOption>>([]);
+
+    public Task<IReadOnlyList<SpecDefinition>> GetSpecDefinitionsAsync(CancellationToken cancellationToken = default) =>
+        FailDefinitions
+            ? Task.FromException<IReadOnlyList<SpecDefinition>>(new ApiException(ApiErrorKind.Network, "spec definitions"))
+            : Task.FromResult<IReadOnlyList<SpecDefinition>>(Definitions.ToList());
 }

@@ -1,3 +1,4 @@
+using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Services.Api;
 using TechStore.Client.UnitTests.Repositories.Orders;
@@ -31,7 +32,8 @@ public sealed class ProductSpecRepositoryTests
         Assert.Equal("api/products/spec-keys", api.Single.Path);
         Assert.Equal(["ram_gb", "bluetooth"], keys.Select(k => k.Key));
         Assert.Equal(3, keys[0].ProductCount);
-        Assert.Equal("16 (1)", keys[0].Values[1].DisplayName);
+        Assert.Equal(SpecValueKind.Number, keys[0].Values[1].Kind);
+        Assert.Null(keys[0].Label);
         Assert.Equal("\"5.2\"", keys[1].Values[0].FilterValue);
     }
 

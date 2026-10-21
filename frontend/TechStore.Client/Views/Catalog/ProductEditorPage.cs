@@ -305,6 +305,12 @@ public sealed class ProductEditorPage : Page, IRoutePage
                     .Spacing(12)
                     .Children(
                         specsHeader,
+                        new TextBlock()
+                            .Text(x => x.Binding(() => ViewModel.SpecCatalogMessage))
+                            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+                            .Foreground(AppColors.Brushes.WarningText)
+                            .TextWrapping(TextWrapping.Wrap)
+                            .Visibility(x => x.Binding(() => ViewModel.HasSpecCatalogMessage).Convert((bool v) => CatalogViewParts.ShowIf(v))),
                         specsGeneralError,
                         new ItemsControl()
                             .ItemsSource(x => x.Binding(() => ViewModel.Specs))
@@ -392,28 +398,83 @@ public sealed class ProductEditorPage : Page, IRoutePage
                 contentGrid.Grid(row: 1));
     }
 
-    private UIElement BuildSpecRow(SpecRowItem row)
+    private UIElement BuildSpecRow(SpecRowItem row) => BuildSpecRowContent(row, ViewModel.RemoveSpecCommand);
+
+    // `row` is null while the template is built; it is only used inside binding lambdas (AGENTS.md item templates).
+    private UIElement BuildSpecRowContent(SpecRowItem row, System.Windows.Input.ICommand removeCommand)
     {
-        var keyBox = new TextBox()
-            .PlaceholderText("Tên thông số (ram_gb)")
-            .Text(x => x.Binding(() => row.Key).Mode(BindingMode.TwoWay))
+        var nameBox = new TextBox()
+            .PlaceholderText("Tên thông số, ví dụ RAM hoặc Tần số quét (Hz)")
+            .Text(x => x.Binding(() => row.Name).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged))
             .Style(AppControlStyles.Styles.TextBox);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(nameBox, "Tên thông số");
 
         var kindBox = new ComboBox()
-            .ItemsSource(new[] { "Chuỗi", "Số", "Đúng/Sai" })
+            .ItemsSource(new[] { "Chữ", "Số", "Có/Không" })
             .SelectedIndex(x => x.Binding(() => row.KindIndex).Mode(BindingMode.TwoWay))
+            .IsEnabled(x => x.Binding(() => row.IsKindEditable))
             .HorizontalAlignment(HorizontalAlignment.Stretch);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(kindBox, "Kiểu giá trị");
 
         var valBox = new TextBox()
             .PlaceholderText("Giá trị")
             .Text(x => x.Binding(() => row.Value).Mode(BindingMode.TwoWay))
             .Style(AppControlStyles.Styles.TextBox);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(valBox, "Giá trị thông số");
+
+        var unitText = new TextBlock()
+            .Text(x => x.Binding(() => row.Unit))
+            .Style(AppResources.GetStyle(AppTypography.BodyText))
+            .Foreground(AppColors.Brushes.SecondaryText)
+            .VerticalAlignment(VerticalAlignment.Center)
+            .Visibility(x => x.Binding(() => row.HasUnit).Convert((bool v) => CatalogViewParts.ShowIf(v)));
 
         var removeBtn = new Button()
             .Content("Bỏ")
-            .Command(ViewModel.RemoveSpecCommand)
+            .Command(removeCommand)
             .CommandParameter(x => x.Binding(() => row))
             .Style(AppControlStyles.Styles.QuietButton);
+
+        var inputGrid = new Grid()
+            .ColumnSpacing(10)
+            .ColumnDefinitions("3*, 120, 2*, Auto, Auto")
+            .Children(
+                nameBox,
+                kindBox.Grid(column: 1),
+                valBox.Grid(column: 2),
+                unitText.Grid(column: 3),
+                removeBtn.Grid(column: 4));
+
+        var keyLine = new StackPanel()
+            .Orientation(Orientation.Horizontal)
+            .Spacing(8)
+            .Children(
+                new TextBlock()
+                    .Text(x => x.Binding(() => row.KeyCaption))
+                    .Style(AppResources.GetStyle(AppTypography.CaptionText))
+                    .Foreground(AppColors.Brushes.SecondaryText)
+                    .VerticalAlignment(VerticalAlignment.Center),
+                new HyperlinkButton()
+                    .Content("Sửa key")
+                    .Command(ViewModel.ToggleSpecKeyEditorCommand)
+                    .CommandParameter(x => x.Binding(() => row))
+                    .Padding(new Thickness(4, 0, 4, 0))
+                    .MinHeight(0)
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .Visibility(x => x.Binding(() => row.CanEditKey).Convert((bool v) => CatalogViewParts.ShowIf(v))));
+
+        var keyBox = new TextBox()
+            .Header("Key (chữ thường, số, dấu gạch dưới)")
+            .Text(x => x.Binding(() => row.Key).Mode(BindingMode.TwoWay))
+            .Style(AppControlStyles.Styles.TextBox)
+            .MaxWidth(360)
+            .HorizontalAlignment(HorizontalAlignment.Left)
+            .Visibility(x => x.Binding(() => row.IsKeyEditorOpen).Convert((bool v) => CatalogViewParts.ShowIf(v)));
+
+        var suggestions = new ItemsControl()
+            .ItemsSource(x => x.Binding(() => row.Suggestions))
+            .ItemTemplate<SpecSuggestion>(BuildSpecSuggestion)
+            .Visibility(x => x.Binding(() => row.HasSuggestions).Convert((bool v) => CatalogViewParts.ShowIf(v)));
 
         var errorText = new TextBlock()
             .Text(x => x.Binding(() => row.Error))
@@ -421,20 +482,19 @@ public sealed class ProductEditorPage : Page, IRoutePage
             .Foreground(AppColors.Brushes.DangerText)
             .Visibility(x => x.Binding(() => row.HasError).Convert((bool v) => CatalogViewParts.ShowIf(v)));
 
-        var rowGrid = new Grid()
-            .ColumnSpacing(10)
-            .ColumnDefinitions("180, 130, *, Auto")
-            .Children(
-                keyBox,
-                kindBox.Grid(column: 1),
-                valBox.Grid(column: 2),
-                removeBtn.Grid(column: 3));
-
         return new StackPanel()
             .Spacing(4)
-            .Margin(new Thickness(0, 0, 0, 8))
-            .Children(rowGrid, errorText);
+            .Margin(new Thickness(0, 0, 0, 10))
+            .Children(inputGrid, keyLine, keyBox, suggestions, errorText);
     }
+
+    private UIElement BuildSpecSuggestion(SpecSuggestion suggestion) =>
+        new Button()
+            .Content(x => x.Binding(() => suggestion.DisplayName))
+            .Command(ViewModel.PickSpecSuggestionCommand)
+            .CommandParameter(x => x.Binding(() => suggestion))
+            .Style(AppControlStyles.Styles.QuietButton)
+            .HorizontalAlignment(HorizontalAlignment.Left);
 
     private UIElement BuildVariantRow(VariantRowItem variant)
     {
@@ -550,49 +610,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
                         subSpecsList));
     }
 
-    private UIElement BuildVariantSpecRow(SpecRowItem spec)
-    {
-        var keyBox = new TextBox()
-            .PlaceholderText("Tên thông số (color)")
-            .Text(x => x.Binding(() => spec.Key).Mode(BindingMode.TwoWay))
-            .Style(AppControlStyles.Styles.TextBox);
-
-        var kindBox = new ComboBox()
-            .ItemsSource(new[] { "Chuỗi", "Số", "Đúng/Sai" })
-            .SelectedIndex(x => x.Binding(() => spec.KindIndex).Mode(BindingMode.TwoWay))
-            .HorizontalAlignment(HorizontalAlignment.Stretch);
-
-        var valBox = new TextBox()
-            .PlaceholderText("Giá trị")
-            .Text(x => x.Binding(() => spec.Value).Mode(BindingMode.TwoWay))
-            .Style(AppControlStyles.Styles.TextBox);
-
-        var removeBtn = new Button()
-            .Content("Bỏ")
-            .Command(ViewModel.RemoveVariantSpecCommand)
-            .CommandParameter(x => x.Binding(() => spec))
-            .Style(AppControlStyles.Styles.QuietButton);
-
-        var errorText = new TextBlock()
-            .Text(x => x.Binding(() => spec.Error))
-            .Style(AppControlStyles.Styles.FieldError)
-            .Foreground(AppColors.Brushes.DangerText)
-            .Visibility(x => x.Binding(() => spec.HasError).Convert((bool v) => CatalogViewParts.ShowIf(v)));
-
-        var rowGrid = new Grid()
-            .ColumnSpacing(10)
-            .ColumnDefinitions("180, 130, *, Auto")
-            .Children(
-                keyBox,
-                kindBox.Grid(column: 1),
-                valBox.Grid(column: 2),
-                removeBtn.Grid(column: 3));
-
-        return new StackPanel()
-            .Spacing(4)
-            .Margin(new Thickness(0, 0, 0, 4))
-            .Children(rowGrid, errorText);
-    }
+    private UIElement BuildVariantSpecRow(SpecRowItem spec) => BuildSpecRowContent(spec, ViewModel.RemoveVariantSpecCommand);
 
     public void SetRoute(Guid? productId, ProductQuery? returnQuery) =>
         ViewModel.SetRoute(productId, returnQuery);

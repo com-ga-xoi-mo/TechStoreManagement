@@ -19,7 +19,7 @@ public sealed class ProductDetailActionsTests
         var dialogs = new ScriptedDialogService();
         var reader = new StubProductReader();
         var nav = new NavigationService(new AllowAllPreparer());
-        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs);
+        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs, new StubSpecRepository());
         vm.SetRoute(CatalogSamples.ProductId, null, null);
         await vm.ActivateAsync();
 
@@ -42,7 +42,7 @@ public sealed class ProductDetailActionsTests
             OnGetById = id => Task.FromResult<ProductDetail?>(CatalogSamples.Detail(id, isActive: true))
         };
         var nav = new NavigationService(new AllowAllPreparer());
-        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs);
+        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs, new StubSpecRepository());
         vm.SetRoute(CatalogSamples.ProductId, null, null);
         await vm.ActivateAsync();
 
@@ -70,7 +70,7 @@ public sealed class ProductDetailActionsTests
         var dialogs = new ScriptedDialogService { Result = DialogResult.Cancelled };
         var reader = new StubProductReader();
         var nav = new NavigationService(new AllowAllPreparer());
-        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs);
+        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs, new StubSpecRepository());
         vm.SetRoute(CatalogSamples.ProductId, null, null);
         await vm.ActivateAsync();
 
@@ -92,7 +92,7 @@ public sealed class ProductDetailActionsTests
         var dialogs = new ScriptedDialogService { Result = DialogResult.Confirmed };
         var reader = new StubProductReader();
         var nav = new NavigationService(new AllowAllPreparer());
-        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs);
+        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs, new StubSpecRepository());
         vm.SetRoute(CatalogSamples.ProductId, null, null);
         await vm.ActivateAsync();
 
@@ -116,7 +116,7 @@ public sealed class ProductDetailActionsTests
         var reader = new StubProductReader();
         var nav = new NavigationService(new AllowAllPreparer());
         nav.Navigate(AppRoute.ProductDetail(CatalogSamples.ProductId, query));
-        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs);
+        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs, new StubSpecRepository());
         vm.SetRoute(CatalogSamples.ProductId, query, null);
         await vm.ActivateAsync();
 
@@ -141,7 +141,7 @@ public sealed class ProductDetailActionsTests
         var reader = new StubProductReader();
         var nav = new NavigationService(new AllowAllPreparer());
         nav.Navigate(AppRoute.ProductDetail(CatalogSamples.ProductId));
-        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs);
+        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs, new StubSpecRepository());
         vm.SetRoute(CatalogSamples.ProductId, null, null);
         await vm.ActivateAsync();
 
@@ -165,7 +165,7 @@ public sealed class ProductDetailActionsTests
         var reader = new StubProductReader();
         var nav = new NavigationService(new AllowAllPreparer());
         nav.Navigate(AppRoute.ProductDetail(CatalogSamples.ProductId));
-        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs);
+        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs, new StubSpecRepository());
         vm.SetRoute(CatalogSamples.ProductId, null, null);
         await vm.ActivateAsync();
 
@@ -188,7 +188,7 @@ public sealed class ProductDetailActionsTests
         var reader = new StubProductReader();
         var nav = new NavigationService(new AllowAllPreparer());
         nav.Navigate(AppRoute.ProductDetail(CatalogSamples.ProductId, query));
-        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs);
+        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs, new StubSpecRepository());
         vm.SetRoute(CatalogSamples.ProductId, query, null);
         await vm.ActivateAsync();
 
@@ -211,7 +211,7 @@ public sealed class ProductDetailActionsTests
         var dialogs = new ScriptedDialogService { Result = DialogResult.Confirmed };
         var reader = new StubProductReader();
         var nav = new NavigationService(new AllowAllPreparer());
-        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs);
+        var vm = new ProductDetailViewModel(reader, nav, session, commands, dialogs, new StubSpecRepository());
         vm.SetRoute(CatalogSamples.ProductId, null, null);
         await vm.ActivateAsync();
 

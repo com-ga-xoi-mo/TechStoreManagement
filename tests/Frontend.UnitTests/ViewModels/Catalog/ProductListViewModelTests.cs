@@ -109,9 +109,10 @@ public sealed class ProductListViewModelTests
         Assert.Equal(2, withSpecs.SpecFilters.Count);
         Assert.Equal("ram_gb", withSpecs.SpecFilters[0].SelectedKey);
         Assert.Equal("16", withSpecs.SpecFilters[0].SelectedFilterValue);
-        Assert.Equal(["8", "16"], withSpecs.SpecFilters[0].ValueOptions.Select(v => v.Label));
+        Assert.Equal(["8 GB (2)", "16 GB (1)"], withSpecs.SpecFilters[0].ValueChoices.Select(v => v.DisplayName));
+        Assert.Equal(["RAM (3)", "bluetooth (2)"], withSpecs.SpecFilters[0].KeyChoices.Select(k => k.DisplayName));
         Assert.Equal("\"5.2\"", withSpecs.SpecFilters[1].SelectedFilterValue);
-        Assert.Equal(2, withSpecs.SpecFilters[1].KeyOptions.Count);
+        Assert.Equal(2, withSpecs.SpecFilters[1].KeyChoices.Count);
     }
 
     [Fact]
@@ -559,10 +560,15 @@ public sealed class ProductListViewModelTests
                 return Task.FromException<IReadOnlyList<SpecKeyOption>>(new ApiException(ApiErrorKind.Http, "spec keys", 500));
             return Task.FromResult<IReadOnlyList<SpecKeyOption>>(
             [
-                new SpecKeyOption("ram_gb", 3, [new SpecValueOption("8", "8", 2), new SpecValueOption("16", "16", 1)]),
-                new SpecKeyOption("bluetooth", 2, [new SpecValueOption("5.2", "\"5.2\"", 2)])
+                new SpecKeyOption("ram_gb", 3,
+                    [new SpecValueOption("8", "8", 2, SpecValueKind.Number), new SpecValueOption("16", "16", 1, SpecValueKind.Number)],
+                    "RAM", "GB"),
+                new SpecKeyOption("bluetooth", 2, [new SpecValueOption("5.2", "\"5.2\"", 2, SpecValueKind.Text)])
             ]);
         }
+
+        public Task<IReadOnlyList<SpecDefinition>> GetSpecDefinitionsAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<SpecDefinition>>([]);
     }
 
     private sealed class AllowingPreparer : IDestinationPreparer

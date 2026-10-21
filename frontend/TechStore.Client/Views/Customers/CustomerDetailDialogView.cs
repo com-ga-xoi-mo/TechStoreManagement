@@ -754,6 +754,7 @@ public sealed class CustomerDetailDialogView : UserControl
         ("Success", SuccessText, SuccessFill),
         ("Danger", DangerText, DangerFill),
         ("Warning", WarningText, WarningFill),
+        ("Info", InfoText, InfoFill),
         ("Neutral", SecondaryText, Subtle)
     ];
 

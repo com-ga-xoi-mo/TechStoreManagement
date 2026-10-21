@@ -102,7 +102,12 @@ public sealed record CustomerPurchasedItem(
             _ => "Chưa có dữ liệu"
         };
 
-    public string DeviceStatusTone => SerialImeiId is null || DeviceStatus == "Defective"
-        ? "Danger"
-        : DeviceStatus == "Sold" ? "Success" : "Neutral";
+    public string DeviceStatusTone => SerialImeiId is null ? "Danger" : DeviceStatus switch
+    {
+        "Sold" or "InStock" => "Success",
+        "UnderRepair" => "Warning",
+        "Reserved" => "Info",
+        "Defective" => "Danger",
+        _ => "Neutral"
+    };
 }

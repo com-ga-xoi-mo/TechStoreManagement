@@ -27,9 +27,6 @@ public partial class App : Application
     public App()
     {
         this.InitializeComponent();
-        // Shared design tokens (colors, typography, metrics, icons, control styles) are defined in C#.
-        // Merge after XamlControlsResources (loaded by InitializeComponent) and before any page exists.
-        AppResources.Register(this);
         InitializeLogging();
     }
 
@@ -39,6 +36,9 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        // WinAppSDK must finish activation before Application.Resources can be read safely.
+        // Register C# tokens here, before resolving services or creating any page.
+        AppResources.Register(this);
         try
         {
             _applicationServices ??= new ServiceProviderLifetime(CreateServiceProvider());

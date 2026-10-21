@@ -467,9 +467,10 @@ public sealed partial class ProductListViewModel : PageViewModel
 
     partial void OnValidationMessageChanged(string? value) => OnPropertyChanged(nameof(HasFilterMessages));
     partial void OnSpecOptionsMessageChanged(string value) => OnPropertyChanged(nameof(HasSpecOptionsMessage));
+    // Only a category the user picks reloads the keys; copying a draft (route or session change) must not send requests.
     partial void OnSelectedCategoryIdChanged(Guid? value)
     {
-        if (_hasActivated) RequestSpecKeys();
+        if (_hasActivated && !_suppressImmediateCriteria) RequestSpecKeys();
     }
     partial void OnCategoryErrorChanged(string? value) => OnPropertyChanged(nameof(HasFilterMessages));
     partial void OnFieldErrorSummaryChanged(string value) => OnPropertyChanged(nameof(HasFilterMessages));

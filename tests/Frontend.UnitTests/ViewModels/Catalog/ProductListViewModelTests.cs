@@ -135,6 +135,28 @@ public sealed class ProductListViewModelTests
     }
 
     [Fact]
+    public async Task SpecKeys_SessionChange_SendsNoRequestForTheClearedCategory()
+    {
+        // Arrange
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query, count: 1)));
+        var specs = new FakeSpecRepository();
+        var session = new InMemorySessionStore();
+        session.SetSession("t", "r", "admin", "Admin", "Admin");
+        var viewModel = CreateViewModel(repository, session: session, specs: specs);
+        await viewModel.ActivateAsync();
+        viewModel.SelectedCategoryId = Guid.NewGuid();
+        var requestsBefore = specs.Requests.Count;
+
+        // Act
+        session.Clear();
+
+        // Assert
+        Assert.Equal(requestsBefore, specs.Requests.Count);
+        Assert.Null(viewModel.SelectedCategoryId);
+        Assert.Empty(viewModel.SpecKeyOptions);
+    }
+
+    [Fact]
     public async Task SpecKeys_FailureShowsRetry_AndSearchStillWorks()
     {
         // Arrange

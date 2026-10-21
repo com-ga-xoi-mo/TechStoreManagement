@@ -100,11 +100,13 @@ public sealed partial class ProductDetailViewModel : PageViewModel
             async token =>
             {
                 var product = await _products.GetByIdAsync(requestedId, token);
-                if (product is not null) _catalog = await LoadSpecCatalogAsync(token);
-                return product;
+                var catalog = product is null ? _catalog : await LoadSpecCatalogAsync(token);
+                return (Product: product, Catalog: catalog);
             },
-            product =>
+            loaded =>
             {
+                _catalog = loaded.Catalog;
+                var product = loaded.Product;
                 if (product is null)
                 {
                     IsNotFound = true;
@@ -118,7 +120,7 @@ public sealed partial class ProductDetailViewModel : PageViewModel
                 IsNotFound = false;
                 ContentState = PageContentState.Content;
             },
-            product => product is not null,
+            loaded => loaded.Product is not null,
             () => false);
     }
 

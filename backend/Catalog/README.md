@@ -25,13 +25,16 @@
 - **Kiểu dữ liệu:** `base_price` và `cost_price` trên `products`, `price` trên `product_variants` dùng kiểu `numeric(18, 2)`.
 
 ## 3. Cấu trúc Thành phần Module
-- **`Configurations/`**: `CategoryConfiguration.cs`, `ProductConfiguration.cs`, `ProductVariantConfiguration.cs` (Fluent API assembly scanning).
+- **`Configurations/`**: `CategoryConfiguration.cs`, `ProductConfiguration.cs`, `ProductVariantConfiguration.cs`, `SpecDefinitionConfiguration.cs` (Fluent API assembly scanning; seed tên thông số).
+- **`Entities/`**: `Category`, `Product`, `ProductVariant`, `SpecDefinition` (key, tên hiển thị, đơn vị, kiểu giá trị của thông số; `SpecValueKinds`).
 - **`Repositories/`** (nơi duy nhất dùng `AppDbContext`, trả về entity, không gọi `SaveChanges`):
   - `IProductRepository.cs`, `ProductRepository.cs` (Dev 2 - `Product` và các `ProductVariant`).
   - `ICategoryRepository.cs`, `CategoryRepository.cs` (khởi tạo tối thiểu bởi Dev 2; Dev 3 sở hữu và mở rộng cho cây danh mục).
+  - `ISpecDefinitionRepository.cs`, `SpecDefinitionRepository.cs` (Dev 2 - bảng `spec_definitions`; chỉ thêm, không sửa tên đã có).
 - **`Services/`** (nghiệp vụ; chỉ gọi repository và `IUnitOfWork`):
-  - `IProductService.cs`, `ProductService.cs` (Dev 2 - Quản lý sản phẩm, tìm kiếm, lọc specs JSONB qua `IProductRepository`, `ICategoryRepository` và `IUnitOfWork`).
+  - `IProductService.cs`, `ProductService.cs` (Dev 2 - Quản lý sản phẩm, tìm kiếm, lọc specs JSONB, gợi ý và tên thông số qua `IProductRepository`, `ICategoryRepository`, `ISpecDefinitionRepository` và `IUnitOfWork`).
+  - `SpecLabelValidator.cs`, `ProductSpecSuggestionBuilder.cs` (kiểm `specLabels`; dựng gợi ý lọc thông số).
   - `ICategoryService.cs`, `CategoryService.cs` (Dev 3 - Cây danh mục phân cấp cha - con).
 - **Controllers (đặt tại thư mục gốc của module `backend/Catalog/`)**:
-  - `ProductsController.cs` (Dev 2 - CRUD, tìm kiếm và lọc nâng cao theo JSONB specs).
+  - `ProductsController.cs` (Dev 2 - CRUD, tìm kiếm và lọc nâng cao theo JSONB specs; `GET /api/products/spec-keys` gợi ý giá trị lọc, `GET /api/products/spec-definitions` tên thông số).
   - `CategoriesController.cs` (Dev 3 - Quản lý và tra cứu cây danh mục).

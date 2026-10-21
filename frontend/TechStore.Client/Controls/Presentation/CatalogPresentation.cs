@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using TechStore.Client.Controls;
 
 namespace TechStore.Client.Controls.Presentation;
@@ -26,11 +25,6 @@ public static class CatalogPresentation
 
     public static string VariantCountLabel(int count) =>
         count == 0 ? "Không có biến thể" : $"{count} biến thể";
-
-    public static string SpecValueText(JsonElement element) =>
-        element.ValueKind == JsonValueKind.String
-            ? element.GetString() ?? string.Empty
-            : element.GetRawText();
 
     public static string OptionalText(string? text) =>
         string.IsNullOrWhiteSpace(text) ? "—" : text;

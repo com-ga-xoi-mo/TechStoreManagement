@@ -17,13 +17,4 @@ public static class SpecValueKinds
     public const string Boolean = "boolean";
 
     public static bool IsKnown(string? kind) => kind is Number or String or Boolean;
-
-    /// <summary>The kind of a scalar JSON value, or null for objects, arrays and null.</summary>
-    public static string? Of(System.Text.Json.JsonElement value) => value.ValueKind switch
-    {
-        System.Text.Json.JsonValueKind.Number => Number,
-        System.Text.Json.JsonValueKind.String => String,
-        System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False => Boolean,
-        _ => null
-    };
 }

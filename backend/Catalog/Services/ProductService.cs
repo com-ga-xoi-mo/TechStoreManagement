@@ -83,7 +83,7 @@ public class ProductService(
         {
             foreach (var (key, value) in specs)
             {
-                if (definitions.TryGetValue(key, out var definition) && SpecValueKinds.Of(value) != definition.ValueKind)
+                if (definitions.TryGetValue(key, out var definition) && ProductSpecHelper.KindOf(value) != definition.ValueKind)
                     AddError(field, $"Spec '{key}' must be a {definition.ValueKind} value.");
             }
         }

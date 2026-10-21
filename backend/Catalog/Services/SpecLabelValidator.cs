@@ -26,7 +26,7 @@ public static class SpecLabelValidator
             if (group is null) continue;
             foreach (var (key, value) in group)
             {
-                if (SpecValueKinds.Of(value) is not { } kind) continue;
+                if (ProductSpecHelper.KindOf(value) is not { } kind) continue;
                 if (!kindsByKey.TryGetValue(key, out var kinds)) kindsByKey[key] = kinds = [];
                 kinds.Add(kind);
             }

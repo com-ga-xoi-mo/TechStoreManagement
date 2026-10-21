@@ -55,20 +55,6 @@ public sealed class CatalogPresentationTests
     }
 
     [Fact]
-    public void SpecValueText_FormatsStringNumberAndBoolean()
-    {
-        // Arrange
-        using var stringDoc = JsonDocument.Parse("\"Apple M3\"");
-        using var numberDoc = JsonDocument.Parse("16");
-        using var boolDoc = JsonDocument.Parse("true");
-
-        // Act & Assert
-        Assert.Equal("Apple M3", CatalogPresentation.SpecValueText(stringDoc.RootElement));
-        Assert.Equal("16", CatalogPresentation.SpecValueText(numberDoc.RootElement));
-        Assert.Equal("true", CatalogPresentation.SpecValueText(boolDoc.RootElement));
-    }
-
-    [Fact]
     public void OptionalText_NullOrWhitespace_ReturnsEmDash()
     {
         // Arrange & Act & Assert

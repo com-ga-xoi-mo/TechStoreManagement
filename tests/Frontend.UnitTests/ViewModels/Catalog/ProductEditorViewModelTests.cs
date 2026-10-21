@@ -21,7 +21,8 @@ public sealed class ProductEditorViewModelTests
         INavigationService? nav = null,
         IDialogService? dialogs = null,
         ISessionStore? session = null,
-        IProductSpecRepository? specs = null)
+        IProductSpecRepository? specs = null,
+        IProductBrandRepository? brands = null)
     {
         return new ProductEditorViewModel(
             products ?? new StubProductReader(),
@@ -30,7 +31,8 @@ public sealed class ProductEditorViewModelTests
             nav ?? new NavigationService(new AllowAllPreparer()),
             dialogs ?? new ScriptedDialogService(),
             session ?? CatalogSamples.Session("Admin"),
-            specs ?? new StubSpecRepository());
+            specs ?? new StubSpecRepository(),
+            brands ?? new StubBrandRepository());
     }
 
     [Fact]

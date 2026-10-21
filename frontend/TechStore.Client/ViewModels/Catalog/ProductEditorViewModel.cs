@@ -26,6 +26,8 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     private readonly IDialogService _dialogs;
     private readonly ISessionStore _sessionStore;
     private readonly IProductSpecRepository _specs;
+    private readonly IProductBrandRepository _brands;
+    private IReadOnlyList<BrandOption> _brandOptions = [];
     private SpecCatalog _catalog = SpecCatalog.Empty;
 
     private ProductQuery? _returnQuery;
@@ -38,6 +40,8 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     [ObservableProperty] private string pageTitle = "Thêm sản phẩm mới";
     [ObservableProperty] private bool canManage;
     [ObservableProperty] private string specCatalogMessage = string.Empty;
+    [ObservableProperty] private IReadOnlyList<SpecChoice> brandSuggestions = [];
+    [ObservableProperty] private string brandHint = string.Empty;
 
     [ObservableProperty] private Guid? productId;
     [ObservableProperty] private Guid? selectedCategoryId;
@@ -81,6 +85,8 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     public bool HasSpecsError => !string.IsNullOrWhiteSpace(SpecsError);
     public bool HasGeneralError => !string.IsNullOrWhiteSpace(GeneralError);
     public bool HasSpecCatalogMessage => !string.IsNullOrWhiteSpace(SpecCatalogMessage);
+    public bool HasBrandSuggestions => BrandSuggestions.Count > 0;
+    public bool HasBrandHint => !string.IsNullOrWhiteSpace(BrandHint);
 
     public bool HasVariants => Variants.Count > 0;
     public bool IsBarcodeEnabled => !HasVariants;
@@ -97,7 +103,8 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         INavigationService navigation,
         IDialogService dialogs,
         ISessionStore sessionStore,
-        IProductSpecRepository specs)
+        IProductSpecRepository specs,
+        IProductBrandRepository brands)
     {
         _products = products ?? throw new ArgumentNullException(nameof(products));
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
@@ -106,6 +113,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
         _specs = specs ?? throw new ArgumentNullException(nameof(specs));
+        _brands = brands ?? throw new ArgumentNullException(nameof(brands));
 
         _sessionStore.SessionChanged += OnSessionChanged;
         CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
@@ -137,6 +145,50 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     partial void OnSpecsErrorChanged(string? value) => OnPropertyChanged(nameof(HasSpecsError));
     partial void OnGeneralErrorChanged(string value) => OnPropertyChanged(nameof(HasGeneralError));
     partial void OnSpecCatalogMessageChanged(string value) => OnPropertyChanged(nameof(HasSpecCatalogMessage));
+    partial void OnBrandSuggestionsChanged(IReadOnlyList<SpecChoice> value) => OnPropertyChanged(nameof(HasBrandSuggestions));
+    partial void OnBrandHintChanged(string value) => OnPropertyChanged(nameof(HasBrandHint));
+    partial void OnBrandChanged(string value) => UpdateBrandSuggestions();
+
+    // Suggestions are help only: the server stores the existing spelling anyway (API design D14).
+    private void UpdateBrandSuggestions()
+    {
+        var text = Brand.Trim();
+        var exact = _brandOptions.FirstOrDefault(b => string.Equals(b.Name, text, StringComparison.OrdinalIgnoreCase));
+        BrandHint = exact is not null && !string.Equals(exact.Name, text, StringComparison.Ordinal)
+            ? $"Đã có thương hiệu “{exact.Name}”; sản phẩm sẽ dùng cách viết này."
+            : string.Empty;
+        var slug = SpecKeyGenerator.Slug(text);
+        BrandSuggestions = exact is not null || slug.Length == 0
+            ? []
+            : _brandOptions
+                .Where(b => SpecKeyGenerator.Slug(b.Name).Contains(slug, StringComparison.Ordinal))
+                .OrderByDescending(b => b.ProductCount)
+                .Take(5)
+                .Select(b => new SpecChoice(b.Name, SpecPresentation.WithCount(b.Name, b.ProductCount)))
+                .ToList();
+    }
+
+    private async Task LoadBrandsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _brandOptions = await _brands.GetBrandsAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            _brandOptions = [];
+        }
+    }
+
+    [RelayCommand]
+    private void PickBrand(object? parameter)
+    {
+        if (parameter is SpecChoice choice) Brand = choice.Value;
+    }
 
     partial void OnIsSavingChanged(bool value) => SaveCommand.NotifyCanExecuteChanged();
     partial void OnCanManageChanged(bool value) => SaveCommand.NotifyCanExecuteChanged();
@@ -193,6 +245,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         {
             Categories = await _categories.GetTreeAsync(cancellationToken);
             await LoadSpecCatalogAsync(cancellationToken);
+            await LoadBrandsAsync(cancellationToken);
 
             if (IsEditMode && ProductId is { } id)
             {

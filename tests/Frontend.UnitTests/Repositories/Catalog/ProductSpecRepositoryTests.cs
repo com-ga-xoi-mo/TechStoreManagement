@@ -68,4 +68,19 @@ public sealed class ProductSpecRepositoryTests
         // Assert
         Assert.Equal(ApiErrorKind.InvalidResponse, exception.Kind);
     }
+
+    [Fact]
+    public async Task GetBrandsAsync_CallsTheBrandRouteAndMapsNamesAndCounts()
+    {
+        // Arrange
+        var api = new RecordingApiClient((_, _, _) => """[ { "name": "Apple", "productCount": 3 }, { "name": "LG", "productCount": 1 } ]""");
+        IProductBrandRepository repository = new ProductRepository(api);
+
+        // Act
+        var brands = await repository.GetBrandsAsync();
+
+        // Assert
+        Assert.Equal("api/products/brands", api.Single.Path);
+        Assert.Equal([new BrandOption("Apple", 3), new BrandOption("LG", 1)], brands);
+    }
 }

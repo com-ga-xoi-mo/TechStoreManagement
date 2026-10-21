@@ -7,7 +7,7 @@ using TechStore.Shared.Requests;
 
 namespace TechStore.Client.Repositories.Catalog;
 
-public sealed class ProductRepository(IApiClient apiClient) : IProductRepository, IProductCommandRepository, IProductSpecRepository
+public sealed class ProductRepository(IApiClient apiClient) : IProductRepository, IProductCommandRepository, IProductSpecRepository, IProductBrandRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -194,6 +194,24 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
         }
 
         return definitions;
+    }
+
+    public async Task<IReadOnlyList<BrandOption>> GetBrandsAsync(CancellationToken cancellationToken = default)
+    {
+        var json = await apiClient.GetAsync<JsonElement>("api/products/brands", cancellationToken);
+        if (json.ValueKind != JsonValueKind.Array)
+            throw InvalidResponse("The brand response must be an array.");
+
+        var brands = new List<BrandOption>();
+        foreach (var item in json.EnumerateArray())
+        {
+            RequireObject(item, "brand");
+            RequireString(item, "name");
+            RequireInt(item, "productCount");
+            brands.Add(new BrandOption(item.GetProperty("name").GetString()!, item.GetProperty("productCount").GetInt32()));
+        }
+
+        return brands;
     }
 
     private static string? OptionalString(JsonElement item, string property) =>

@@ -139,8 +139,21 @@ public sealed class ProductEditorPage : Page, IRoutePage
 
         var brandBox = new TextBox()
             .Header("Thương hiệu *")
-            .Text(x => x.Binding(() => ViewModel.Brand).Mode(BindingMode.TwoWay))
+            .Text(x => x.Binding(() => ViewModel.Brand).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged))
             .Style(AppControlStyles.Styles.TextBox);
+
+        var brandHint = new TextBlock()
+            .Text(x => x.Binding(() => ViewModel.BrandHint))
+            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+            .Foreground(AppColors.Brushes.SecondaryText)
+            .TextWrapping(TextWrapping.Wrap)
+            .Visibility(x => x.Binding(() => ViewModel.HasBrandHint).Convert((bool v) => CatalogViewParts.ShowIf(v)));
+
+        var brandSuggestions = new ItemsControl()
+            .ItemsSource(x => x.Binding(() => ViewModel.BrandSuggestions))
+            .ItemTemplate<SpecChoice>(BuildBrandSuggestion)
+            .Visibility(x => x.Binding(() => ViewModel.HasBrandSuggestions).Convert((bool v) => CatalogViewParts.ShowIf(v)));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(brandSuggestions, "Gợi ý thương hiệu");
 
         var brandError = new TextBlock()
             .Text(x => x.Binding(() => ViewModel.BrandError))
@@ -203,7 +216,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
                     .ColumnDefinitions("6*, 5*")
                     .Children(
                         new StackPanel().Spacing(4).Children(categoryBox, categoryError),
-                        new StackPanel().Spacing(4).Grid(column: 1).Children(brandBox, brandError)),
+                        new StackPanel().Spacing(4).Grid(column: 1).Children(brandBox, brandHint, brandSuggestions, brandError)),
                 new Grid()
                     .ColumnSpacing(12)
                     .ColumnDefinitions("1*, 1*")
@@ -488,6 +501,15 @@ public sealed class ProductEditorPage : Page, IRoutePage
             .Margin(new Thickness(0, 0, 0, 10))
             .Children(inputGrid, keyLine, keyBox, suggestions, errorText);
     }
+
+    // `choice` is null while the template is built; it is only used inside binding lambdas.
+    private UIElement BuildBrandSuggestion(SpecChoice choice) =>
+        new Button()
+            .Content(x => x.Binding(() => choice.DisplayName))
+            .Command(ViewModel.PickBrandCommand)
+            .CommandParameter(x => x.Binding(() => choice))
+            .Style(AppControlStyles.Styles.QuietButton)
+            .HorizontalAlignment(HorizontalAlignment.Left);
 
     private UIElement BuildSpecSuggestion(SpecSuggestion suggestion) =>
         new Button()

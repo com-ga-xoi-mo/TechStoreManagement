@@ -188,3 +188,15 @@ internal sealed class StubSpecRepository : IProductSpecRepository
             ? Task.FromException<IReadOnlyList<SpecDefinition>>(new ApiException(ApiErrorKind.Network, "spec definitions"))
             : Task.FromResult<IReadOnlyList<SpecDefinition>>(Definitions.ToList());
 }
+
+/// <summary>Brands for editor tests.</summary>
+internal sealed class StubBrandRepository : IProductBrandRepository
+{
+    public bool Fail { get; set; }
+    public List<BrandOption> Brands { get; } = [new("Apple", 3), new("Logitech", 3), new("ASUS", 1)];
+
+    public Task<IReadOnlyList<BrandOption>> GetBrandsAsync(CancellationToken cancellationToken = default) =>
+        Fail
+            ? Task.FromException<IReadOnlyList<BrandOption>>(new ApiException(ApiErrorKind.Network, "brands"))
+            : Task.FromResult<IReadOnlyList<BrandOption>>(Brands.ToList());
+}

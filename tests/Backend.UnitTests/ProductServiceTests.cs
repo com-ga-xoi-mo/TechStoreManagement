@@ -490,7 +490,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
 
         // Act
         var result = await service.GetByIdAsync(Guid.NewGuid());
@@ -507,7 +507,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
 
         var productId = Guid.NewGuid();
         var product = new Product
@@ -570,7 +570,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
 
         var categoryId = Guid.NewGuid();
         categoryRepo.Categories[categoryId] = new Category { Id = categoryId, Name = "Phones" };
@@ -602,7 +602,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
 
         var request = CreateValidRequest();
         request.CategoryId = Guid.NewGuid(); // not in categoryRepo
@@ -624,7 +624,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
 
         var categoryId = Guid.NewGuid();
         categoryRepo.Categories[categoryId] = new Category { Id = categoryId, Name = "Phones" };
@@ -653,7 +653,7 @@ public class ProductServiceTests
         {
             ExceptionToThrowOnSave = new DuplicateKeyException("uq_products_sku")
         };
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
 
         var categoryId = Guid.NewGuid();
         categoryRepo.Categories[categoryId] = new Category { Id = categoryId, Name = "Phones" };
@@ -676,7 +676,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
 
         var request = CreateValidRequest();
         request.Name = ""; // invalid
@@ -705,7 +705,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
 
         var request = new ProductSearchRequest
         {
@@ -731,7 +731,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
 
         var categoryId = Guid.NewGuid();
         var request = new ProductSearchRequest
@@ -775,7 +775,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
 
         var productWithVariants = new Product
         {

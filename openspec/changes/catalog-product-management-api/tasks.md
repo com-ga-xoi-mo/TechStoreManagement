@@ -139,6 +139,15 @@ The live run creates its **own** test data (SKUs `TEST-WRITE-001`, `TEST-WRITE-0
 - [x] 14.4 `IProductService.GetSpecKeysAsync` + `ProductService` grouping, ordering, cap and `filterValue`; `ProductsController` `GET spec-keys` (anonymous); unit tests for the service and the controller attributes
 - [x] 14.5 Live check against PostgreSQL (`GET /api/products/spec-keys`, with `categoryId`, and `spec=bluetooth:"5.2"`); `TEST_BACKEND` passes (358). Live on a scratch backend (port 5177): 17 keys, `storage_gb` first (9 products); Accessories gives only accessory keys; unknown category `[]`; `categoryId=abc` 400; `spec=bluetooth:"5.2"` 2 products, `spec=bluetooth:5.2` 0
 
+## 15. Specification definitions (added after review, done in the review session)
+
+- [x] 15.1 Spec delta (3 ADDED requirements), design D13, proposal bullet; `docs/database/schema.dbml` and AGENTS.md table count
+- [x] 15.2 Entity, configuration with seed data, migration `AddSpecDefinitions` (plus the case-insensitive label index), DbSet
+- [x] 15.3 `ISpecDefinitionRepository`/`SpecDefinitionRepository`, DI; `FakeSpecDefinitionRepository` for tests
+- [x] 15.4 `shared`: `SpecDefinitionDto`, `SpecLabelRequest`, `SpecLabels` on create/update requests, label fields on `ProductSpecKeyDto`
+- [x] 15.5 `SpecLabelValidator`; service rules (kind check, insert-only labels, label clash, conflict mapping); controller `GET spec-definitions`; unit tests
+- [x] 15.6 Live check against PostgreSQL (migration applied, endpoints, create with a new spec name, kind rejection); `TEST_BACKEND` passes
+
 ## Workflow follow-up
 
 - After the PR is reviewed and merged, archive the change with `/opsx:archive` so the `product-catalog` delta is synced into `openspec/specs/product-catalog/spec.md`.

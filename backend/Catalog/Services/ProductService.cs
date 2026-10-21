@@ -10,8 +10,11 @@ namespace TechStore.Api.Catalog.Services;
 public class ProductService(
     IProductRepository productRepository,
     ICategoryRepository categoryRepository,
-    IUnitOfWork unitOfWork) : IProductService
+    IUnitOfWork unitOfWork,
+    ISpecDefinitionRepository specDefinitionRepository) : IProductService
 {
+    private const string SpecNameConflictMessage = "A spec name was created by someone else at the same time. Reload the product and save again.";
+
     public async Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var product = await productRepository.GetWithVariantsAsync(id, cancellationToken);
@@ -27,8 +30,92 @@ public class ProductService(
     public async Task<IReadOnlyList<ProductSpecKeyDto>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default)
     {
         var rows = await productRepository.GetSpecValueCountsAsync(categoryId, cancellationToken);
-        return ProductSpecSuggestionBuilder.Build(rows);
+        var keys = ProductSpecSuggestionBuilder.Build(rows);
+        var definitions = (await specDefinitionRepository.GetByKeysAsync(keys.Select(k => k.Key), cancellationToken))
+            .ToDictionary(d => d.Key, StringComparer.Ordinal);
+        foreach (var key in keys)
+        {
+            if (!definitions.TryGetValue(key.Key, out var definition)) continue;
+            key.Label = definition.Label;
+            key.Unit = definition.Unit;
+            key.ValueKind = definition.ValueKind;
+        }
+        return keys;
     }
+
+    public async Task<IReadOnlyList<SpecDefinitionDto>> GetSpecDefinitionsAsync(CancellationToken cancellationToken = default)
+    {
+        var definitions = await specDefinitionRepository.GetAllAsync(cancellationToken);
+        return definitions
+            .Select(d => new SpecDefinitionDto { Key = d.Key, Label = d.Label, Unit = d.Unit, ValueKind = d.ValueKind })
+            .ToList();
+    }
+
+    /// <summary>
+    /// Database rules of design D13: values of defined keys keep their kind, and names for new keys are free.
+    /// Returns the field errors and the definitions to insert with the product.
+    /// </summary>
+    private async Task<(Dictionary<string, List<string>> Errors, List<SpecDefinition> NewDefinitions)> CheckSpecDefinitionsAsync(
+        IDictionary<string, JsonElement>? productSpecs,
+        IReadOnlyList<IDictionary<string, JsonElement>?> variantSpecs,
+        IDictionary<string, SpecLabelRequest>? labels,
+        CancellationToken cancellationToken)
+    {
+        var errors = new Dictionary<string, List<string>>();
+        void AddError(string field, string message)
+        {
+            if (!errors.TryGetValue(field, out var list)) errors[field] = list = [];
+            list.Add(message);
+        }
+
+        var groups = new List<(string Field, IDictionary<string, JsonElement> Specs)>();
+        if (productSpecs is not null) groups.Add(("specs", productSpecs));
+        for (var i = 0; i < variantSpecs.Count; i++)
+        {
+            if (variantSpecs[i] is { } specs) groups.Add(($"variants[{i}].specs", specs));
+        }
+
+        var keys = groups.SelectMany(g => g.Specs.Keys).ToHashSet(StringComparer.Ordinal);
+        var definitions = (await specDefinitionRepository.GetByKeysAsync(keys, cancellationToken))
+            .ToDictionary(d => d.Key, StringComparer.Ordinal);
+
+        foreach (var (field, specs) in groups)
+        {
+            foreach (var (key, value) in specs)
+            {
+                if (definitions.TryGetValue(key, out var definition) && SpecValueKinds.Of(value) != definition.ValueKind)
+                    AddError(field, $"Spec '{key}' must be a {definition.ValueKind} value.");
+            }
+        }
+
+        var pending = labels?
+            .Where(entry => !definitions.ContainsKey(entry.Key))
+            .Select(entry => new SpecDefinition
+            {
+                Key = entry.Key,
+                Label = entry.Value.Label!.Trim(),
+                Unit = string.IsNullOrWhiteSpace(entry.Value.Unit) ? null : entry.Value.Unit.Trim(),
+                ValueKind = entry.Value.ValueKind!,
+                CreatedAt = DateTime.UtcNow
+            })
+            .ToList() ?? [];
+
+        if (pending.Count > 0)
+        {
+            var taken = await specDefinitionRepository.FindByLabelsAsync(pending.Select(d => d.Label), cancellationToken);
+            foreach (var definition in pending)
+            {
+                var owner = taken.FirstOrDefault(t => string.Equals(t.Label, definition.Label, StringComparison.OrdinalIgnoreCase));
+                if (owner is not null)
+                    AddError($"specLabels.{definition.Key}", $"The name '{definition.Label}' is already used by spec '{owner.Key}'.");
+            }
+        }
+
+        return (errors, errors.Count == 0 ? pending : []);
+    }
+
+    private static bool IsSpecDefinitionConflict(DuplicateKeyException exception) =>
+        exception.ConstraintName?.Contains("spec_definitions", StringComparison.OrdinalIgnoreCase) == true;
 
     public async Task<ProductSearchResult> SearchAsync(ProductSearchRequest request, CancellationToken cancellationToken = default)
     {
@@ -169,6 +256,16 @@ public class ProductService(
                 .Select(v => v.Sku!.Trim()));
         }
 
+        var (specErrors, newDefinitions) = await CheckSpecDefinitionsAsync(
+            request.Specs,
+            request.Variants?.Select(v => (IDictionary<string, JsonElement>?)v?.Specs).ToList() ?? [],
+            request.SpecLabels,
+            cancellationToken);
+        if (specErrors.Count > 0)
+        {
+            return CreateProductResult.ValidationFailed(specErrors.ToDictionary(k => k.Key, v => v.Value.ToArray()));
+        }
+
         var allConflicts = await productRepository.FindExistingSkusAsync(requestSkus, cancellationToken);
         if (allConflicts.Count > 0)
         {
@@ -225,11 +322,19 @@ public class ProductService(
         }
 
         productRepository.Add(product);
+        foreach (var definition in newDefinitions)
+        {
+            specDefinitionRepository.Add(definition);
+        }
 
         // 5. Persist with IUnitOfWork.SaveChangesAsync, catching DuplicateKeyException
         try
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (DuplicateKeyException exception) when (IsSpecDefinitionConflict(exception))
+        {
+            return CreateProductResult.ConflictWithMessage(SpecNameConflictMessage);
         }
         catch (DuplicateKeyException)
         {
@@ -308,6 +413,16 @@ public class ProductService(
                         }
                     }
                 }
+            }
+
+            var (specErrors, newDefinitions) = await CheckSpecDefinitionsAsync(
+                request.Specs,
+                request.Variants?.Select(v => (IDictionary<string, JsonElement>?)v?.Specs).ToList() ?? [],
+                request.SpecLabels,
+                cancellationToken);
+            foreach (var (field, messages) in specErrors)
+            {
+                foreach (var message in messages) AddError(field, message);
             }
 
             var newCount = request.Variants?.Count(v => v is { Id: null }) ?? 0;
@@ -411,16 +526,23 @@ public class ProductService(
                 }
             }
 
+            foreach (var definition in newDefinitions)
+            {
+                specDefinitionRepository.Add(definition);
+            }
+
             // Step G - persist
             await unitOfWork.SaveChangesAsync(cancellationToken);
             await unitOfWork.CommitAsync(cancellationToken);
 
             return ProductCommandResult.Success(ProductDtoMapper.ToDto(product, category!.Name));
         }
-        catch (DuplicateKeyException)
+        catch (DuplicateKeyException exception)
         {
             await unitOfWork.RollbackAsync(cancellationToken);
-            return ProductCommandResult.Conflict("A SKU in this request is already in use.");
+            return ProductCommandResult.Conflict(IsSpecDefinitionConflict(exception)
+                ? SpecNameConflictMessage
+                : "A SKU in this request is already in use.");
         }
         catch
         {

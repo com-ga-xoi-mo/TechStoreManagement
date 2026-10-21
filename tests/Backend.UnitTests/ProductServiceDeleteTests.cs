@@ -13,7 +13,7 @@ public class ProductServiceDeleteTests
 
     public ProductServiceDeleteTests()
     {
-        _service = new ProductService(_productRepo, _categoryRepo, _unitOfWork);
+        _service = new ProductService(_productRepo, _categoryRepo, _unitOfWork, new FakeSpecDefinitionRepository());
     }
 
     [Fact]

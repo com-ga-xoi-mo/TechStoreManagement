@@ -7,6 +7,10 @@ public class ProductSpecKeyDto
 {
     public string Key { get; set; } = string.Empty;
     public int ProductCount { get; set; }
+    /// <summary>From the spec definition; null when the key has none.</summary>
+    public string? Label { get; set; }
+    public string? Unit { get; set; }
+    public string? ValueKind { get; set; }
     public List<ProductSpecValueDto> Values { get; set; } = [];
 }
 

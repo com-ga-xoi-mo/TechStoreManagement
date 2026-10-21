@@ -35,6 +35,10 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> GetSpecKeys([FromQuery] Guid? categoryId, CancellationToken cancellationToken) =>
         Ok(await _productService.GetSpecKeysAsync(categoryId, cancellationToken));
 
+    [HttpGet("spec-definitions")]
+    public async Task<IActionResult> GetSpecDefinitions(CancellationToken cancellationToken) =>
+        Ok(await _productService.GetSpecDefinitionsAsync(cancellationToken));
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
@@ -64,7 +68,7 @@ public class ProductsController : ControllerBase
                 return Problem(
                     statusCode: StatusCodes.Status409Conflict,
                     title: "Conflict",
-                    detail: $"One or more SKUs are already in use: {string.Join(", ", result.ConflictingSkus ?? [])}.");
+                    detail: result.ConflictMessage ?? $"One or more SKUs are already in use: {string.Join(", ", result.ConflictingSkus ?? [])}.");
             }
 
             return ValidationProblem(ToModelState(result.ValidationErrors));

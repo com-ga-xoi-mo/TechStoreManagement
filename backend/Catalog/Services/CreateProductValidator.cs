@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Api.Catalog.Services;
@@ -192,6 +193,11 @@ public static class CreateProductValidator
         {
             AddError("barcode", "A product with variants cannot have a product barcode. Put barcodes on the variants.");
         }
+
+        // Names for new spec keys (design D13)
+        IEnumerable<IDictionary<string, JsonElement>?> specGroups =
+            [request.Specs, .. request.Variants?.Select(v => (IDictionary<string, JsonElement>?)v?.Specs) ?? []];
+        SpecLabelValidator.Validate(request.SpecLabels, specGroups, errors);
 
         return errors.ToDictionary(k => k.Key, v => v.Value.ToArray());
     }

@@ -265,7 +265,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - Physical stock adjustments are tracked via the append-only `inventory_movements` ledger (`quantity_change <> 0`, `quantity_after >= 0`).
 
 ### 5. PostgreSQL 16 & Supabase Best Practices (Schema Contract: `docs/database/schema.dbml`)
-- **100% Foreign Key Indexing:** Every foreign key column across all 21 tables MUST have an explicit B-tree index (`idx_<table>_<column>`) to prevent table locks and sequential scans during cascade checks.
+- **100% Foreign Key Indexing:** Every foreign key column across all tables MUST have an explicit B-tree index (`idx_<table>_<column>`) to prevent table locks and sequential scans during cascade checks.
 - **Composite Foreign Keys:** Enforce `(variant_id, product_id)` referencing `product_variants(id, product_id)` on `inventory_stocks`, `purchase_order_items`, `serial_imeis`, and `order_items`.
 - **PostgreSQL 16 `UNIQUE NULLS NOT DISTINCT`:** Enforced on `inventory_stocks(product_id, variant_id)` and `purchase_order_items(purchase_order_id, product_id, variant_id)` using `.AreNullsDistinct(false)` in EF Core Fluent API:
   ```csharp
@@ -274,6 +274,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
       .AreNullsDistinct(false)
       .HasDatabaseName("idx_inventory_stocks_product_variant");
   ```
+- **Spec definitions:** spec keys stay snake_case data inside `specs`; their display name, unit and value kind live in `spec_definitions` (one row per key, seeded, insert-only through product create/update `specLabels`). Clients show `label`/`unit` from `GET /api/products/spec-definitions` and never store names inside `specs`.
 - **JSONB Hardware Specs Indexing:** GIN index configured with `jsonb_path_ops` on `specs` column in `products` and `product_variants` for fast containment queries (`specs @> '{"ram_gb": 16}'`). Flat JSON contract with snake_case keys; effective specs = `product.specs || variant.specs`.
 - **Partial Indexes:** High-selectivity operational indexes:
   - `serial_imeis`: `(product_id, status)` WHERE `status = 'InStock'` for fast POS scanning.

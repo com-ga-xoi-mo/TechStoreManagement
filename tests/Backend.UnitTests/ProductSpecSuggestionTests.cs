@@ -123,12 +123,13 @@ public class ProductSpecSuggestionTests
     }
 
     [Fact]
-    public async Task GetSpecKeysAsync_PassesTheCategoryToTheRepository()
+    public async Task GetSpecKeysAsync_PassesTheCategory_AndAddsDefinitionLabels()
     {
         // Arrange
         var productRepo = new FakeProductRepository();
         productRepo.SpecValueCounts.AddRange([Row("ram_gb", null, 1), Row("ram_gb", "16", 1)]);
-        var service = new ProductService(productRepo, new FakeCategoryRepository(), new FakeUnitOfWork());
+        var definitions = new FakeSpecDefinitionRepository().With("ram_gb", "RAM", "GB", "number");
+        var service = new ProductService(productRepo, new FakeCategoryRepository(), new FakeUnitOfWork(), definitions);
         var categoryId = Guid.NewGuid();
 
         // Act
@@ -137,5 +138,8 @@ public class ProductSpecSuggestionTests
         // Assert
         productRepo.LastSpecCategoryId.Should().Be(categoryId);
         keys.Single().Key.Should().Be("ram_gb");
+        keys.Single().Label.Should().Be("RAM");
+        keys.Single().Unit.Should().Be("GB");
+        keys.Single().ValueKind.Should().Be("number");
     }
 }

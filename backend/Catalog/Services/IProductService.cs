@@ -26,7 +26,8 @@ public record CreateProductResult(
     ProductDto? Data,
     Dictionary<string, string[]>? ValidationErrors,
     IReadOnlyList<string>? ConflictingSkus,
-    bool IsConflict)
+    bool IsConflict,
+    string? ConflictMessage = null)
 {
     public static CreateProductResult Success(ProductDto data) =>
         new(true, data, null, null, false);
@@ -36,6 +37,9 @@ public record CreateProductResult(
 
     public static CreateProductResult Conflict(IReadOnlyList<string> conflictingSkus) =>
         new(false, null, null, conflictingSkus, true);
+
+    public static CreateProductResult ConflictWithMessage(string message) =>
+        new(false, null, null, null, true, message);
 }
 
 public enum ProductCommandStatus { Success, NotFound, ValidationFailed, Conflict }
@@ -57,6 +61,7 @@ public interface IProductService
     Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<ProductSearchResult> SearchAsync(ProductSearchRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ProductSpecKeyDto>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SpecDefinitionDto>> GetSpecDefinitionsAsync(CancellationToken cancellationToken = default);
     Task<CreateProductResult> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default);
     Task<ProductCommandResult> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default);
     Task<ProductCommandResult> SetStatusAsync(Guid id, UpdateProductStatusRequest request, CancellationToken cancellationToken = default);

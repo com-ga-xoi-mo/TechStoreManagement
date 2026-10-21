@@ -192,6 +192,43 @@ A product that has at least one variant, counting variants added by the same req
 - **WHEN** a product has specs `{"bluetooth": "5.2"}`
 - **THEN** the value has `label` `5.2` and `filterValue` `"5.2"` (quoted), and `GET /api/products?spec=bluetooth:"5.2"` returns the product
 
+### Requirement: Specification definitions
+The `spec_definitions` table SHALL hold one row per spec key with a display `label` (unique ignoring letter case), an optional `unit` and a `valueKind` (`number`, `string` or `boolean`), seeded with the keys used by the catalog seed data. `GET /api/products/spec-definitions` SHALL return all definitions without authentication, ordered by label, and `GET /api/products/spec-keys` SHALL add `label`, `unit` and `valueKind` to every key that has a definition.
+
+#### Scenario: Seeded definition
+- **WHEN** a client calls `GET /api/products/spec-definitions` on a fresh database
+- **THEN** the list contains `{ "key": "ram_gb", "label": "RAM", "unit": "GB", "valueKind": "number" }`
+
+#### Scenario: Suggestion carries the label
+- **WHEN** a client calls `GET /api/products/spec-keys` and `ram_gb` has a definition
+- **THEN** the `ram_gb` entry has `label` `RAM` and `unit` `GB`; a key without a definition has null `label`, `unit` and `valueKind`
+
+### Requirement: New specification names are saved with the product
+Product creation and update SHALL accept an optional `specLabels` map from spec key to `{ label, unit, valueKind }`. Every key in it SHALL appear in the request's product or variant specs, have a non-empty label of at most 100 characters, a unit of at most 20 characters and a `valueKind` matching the JSON type of its values, otherwise 400 for `specLabels.<key>`. A definition SHALL be inserted, in the same save as the product, only for a key that has none; an existing definition is never changed.
+
+#### Scenario: New spec with its name
+- **WHEN** an Admin creates a product with specs `{"tan_so_quet_hz": 144}` and `specLabels` `{"tan_so_quet_hz": {"label": "Tần số quét", "unit": "Hz", "valueKind": "number"}}`
+- **THEN** the product is created and `GET /api/products/spec-definitions` lists `tan_so_quet_hz` as `Tần số quét` (Hz)
+
+#### Scenario: Existing definition is kept
+- **WHEN** an update sends `specLabels` `{"ram_gb": {"label": "Bộ nhớ RAM", "unit": "GB", "valueKind": "number"}}`
+- **THEN** the update succeeds and the `ram_gb` label stays `RAM`
+
+#### Scenario: Label already used by another key
+- **WHEN** `specLabels` gives a new key the label `ram` (another key already has `RAM`)
+- **THEN** the response is 400 with an error for `specLabels.<key>` and nothing is saved
+
+#### Scenario: Name for a key that is not in the specs
+- **WHEN** `specLabels` names a key that no spec in the request uses
+- **THEN** the response is 400 with an error for `specLabels.<key>`
+
+### Requirement: Specification values follow their definition
+When a spec key has a definition, product creation and update SHALL reject a value of another JSON type with 400 for `specs` (product specs) or `variants[i].specs`. Keys without a definition keep the existing rules.
+
+#### Scenario: Text for a number spec
+- **WHEN** an Admin saves a product with specs `{"ram_gb": "16 GB"}`
+- **THEN** the response is 400 with an error for `specs` naming `ram_gb`
+
 ## MODIFIED Requirements
 
 ### Requirement: Typed specification filter

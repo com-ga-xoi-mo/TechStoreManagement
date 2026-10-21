@@ -15,7 +15,7 @@ public class ProductServiceUpdateTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
         return (productRepo, categoryRepo, unitOfWork, service);
     }
 

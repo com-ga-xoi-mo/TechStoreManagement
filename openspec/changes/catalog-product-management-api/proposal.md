@@ -19,11 +19,12 @@ The rules for these operations already exist as notes in `docs/database/schema.d
   - `DELETE /api/products/{id}` permanently removes a product and its variants only when the product has never been used; a product in use returns 409 telling the caller to deactivate it instead.
 - **Barcode rule**: a product that has variants must not have a product-level barcode (applies to both create and update). This is a small new validation on `POST /api/products`.
 - **Specification filter suggestions** (added after review): `GET /api/products/spec-keys?categoryId=` lists the spec keys and values that really exist, each with a ready-to-send filter value; the spec filter accepts a double-quoted value as a JSON string so string values such as `"5.2"` can be matched (design D12).
+- **Specification definitions** (added after review): a small `spec_definitions` table (key, Vietnamese label, unit, value kind) seeded with the existing keys; `GET /api/products/spec-definitions`; product create/update accept `specLabels` to name new keys (insert-only) and reject values whose type differs from the definition (design D13). This adds one table and one migration.
 - **RBAC on product writes**: `POST`, `PUT`, `PATCH /status` and `DELETE` on `/api/products` require an authenticated user with role `Admin` or `Manager` (401 without a token, 403 for other roles). Read endpoints (`GET /api/products`, `GET /api/products/{id}`) are unchanged in this change.
 - **Internal refactor**: the duplicated `Product → ProductDto` mapping in `ProductService` moves to one mapper used by detail, create and update.
 - **Tests and manual checks**: unit tests for the new validator, service rules and controller authorization attributes; sample requests in `backend/TechStore.Api.http`.
 
-Out of scope: frontend (Catalog pages, dialog, client repositories), category CRUD (Dev 3), requiring login on `GET` endpoints (would break the anonymous live integration tests of Catalog and Orders; tracked as a team follow-up), changing SKU letter case normalization, barcode uniqueness, image upload, optimistic concurrency tokens, database migrations.
+Out of scope: frontend (Catalog pages, dialog, client repositories), category CRUD (Dev 3), requiring login on `GET` endpoints (would break the anonymous live integration tests of Catalog and Orders; tracked as a team follow-up), changing SKU letter case normalization, barcode uniqueness, image upload, optimistic concurrency tokens, database migrations other than `AddSpecDefinitions`, renaming or deleting spec definitions.
 
 ## Capabilities
 

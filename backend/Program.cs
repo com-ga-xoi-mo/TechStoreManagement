@@ -68,6 +68,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // Catalog Module repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ISpecDefinitionRepository, SpecDefinitionRepository>();
 
 // Catalog Module services
 builder.Services.AddScoped<IProductService, ProductService>();

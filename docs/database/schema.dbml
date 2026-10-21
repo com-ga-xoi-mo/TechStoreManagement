@@ -114,6 +114,8 @@ Enum role_type {
 //   New keys are allowed. JSON null values are not part of the specs contract.
 //   Effective specs = product.specs || variant.specs (variant wins per top-level key).
 //   An absent variant key inherits the product value; filtering uses effective specs.
+//   Human names, units and value kinds of spec keys live in spec_definitions (one row per key);
+//   a key without a definition is shown as the key itself.
 // - Selling requires an active product and, when selected, an active variant.
 //   Use is_active to retire records; hard deletion is only for unused records.
 // - Category parent changes must reject self-parenting and ancestor cycles
@@ -185,6 +187,16 @@ Table product_variants {
   }
 
   Note: 'SKU variants for hardware options (Storage capacity, colorways)'
+}
+
+Table spec_definitions {
+  key varchar(64) [pk, note: 'Spec key used inside products.specs / product_variants.specs (snake_case)']
+  label varchar(100) [not null, note: 'Display name; unique ignoring letter case (idx_spec_definitions_label_lower on lower(label))']
+  unit varchar(20) [null, note: 'Display unit, e.g. GB, mAh, Hz']
+  value_kind varchar(10) [not null, note: 'number | string | boolean; values of this key must have this JSON type']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Catalog spec dictionary. No foreign keys: specs stay schema-less JSONB; product create/update insert a row for a new key (insert-only).'
 }
 
 // ============================================================================

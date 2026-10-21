@@ -232,6 +232,9 @@ Trang 1/1 · 20 kết quả               Mỗi trang [20 v] [Trang trước] [T
 - List filter: `SpecFilterRow` options become `SpecChoice(Value, DisplayName)` built with `SpecPresentation`.
 - No `AutoSuggestBox`: its events are forbidden in Views; suggestions are a list of buttons bound to the row.
 
+### D17. Brand suggestions (follows API D14)
+`IProductBrandRepository.GetBrandsAsync` (implemented by `ProductRepository`) → `BrandOption(Name, ProductCount)`. `ProductEditorViewModel` loads brands with the categories (failure only hides suggestions) and recomputes `BrandSuggestions` (up to 5, name contains the text ignoring case and accents, not shown on an exact match) and `BrandHint` (same brand, other letter case) when `Brand` changes; `PickBrandCommand(object)` sets the brand. The brand box binds with `UpdateSourceTrigger.PropertyChanged`; suggestions are buttons like the spec name suggestions. The server still normalizes the spelling (API D14), so the hint is only information.
+
 ## Risks / Trade-offs
 
 - [`ItemTemplate<T>` có thể không có cho `ItemsRepeater` trong Uno Markup] → D7 có phương án `GridView` đã định sẵn; task ghi lại lựa chọn.

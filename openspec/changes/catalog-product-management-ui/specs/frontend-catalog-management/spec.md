@@ -78,6 +78,17 @@ Màn soạn SHALL cho thêm, sửa và bỏ từng dòng thông số cho sản p
 - **WHEN** người dùng nhập kiểu Số giá trị `6.1` hoặc `12345678901234567890`
 - **THEN** giá trị gửi đi bằng đúng số đã nhập, không bị làm tròn qua số thực nhị phân
 
+### Requirement: Brand suggestions in the editor
+Màn soạn SHALL gợi ý các thương hiệu đang có (từ `GET /api/products/brands`, kèm số sản phẩm) khi người dùng gõ vào ô Thương hiệu, chọn gợi ý thì điền đúng cách viết đó. Khi tên gõ trùng một thương hiệu có sẵn chỉ khác hoa thường, client SHALL báo rằng sản phẩm sẽ dùng cách viết có sẵn. Không tải được danh sách thì ô vẫn nhập tự do.
+
+#### Scenario: Pick a suggested brand
+- **WHEN** người dùng gõ `app` và chọn gợi ý `Apple (3)`
+- **THEN** ô Thương hiệu thành `Apple` và gợi ý biến mất
+
+#### Scenario: Same brand in another letter case
+- **WHEN** người dùng gõ `apple` trong khi đã có `Apple`
+- **THEN** ô hiện ghi chú sản phẩm sẽ dùng cách viết `Apple`, không có gợi ý nào khác
+
 ### Requirement: Variant rows in the editor
 Màn soạn SHALL cho thêm dòng biến thể mới (tên, SKU, giá, barcode, thông số riêng, đang bán) và bỏ dòng mới khi chưa lưu. Biến thể đã lưu SHALL không có thao tác xóa; người dùng ngừng bán chúng bằng công tắc Đang bán. Client SHALL chặn lưu khi hai biến thể mới trùng SKU (không phân biệt hoa thường) hoặc trùng SKU sản phẩm.
 

@@ -257,7 +257,7 @@ public sealed class ProductListPage : Page, IRoutePage
             .Description("Thay đổi từ khóa hoặc bộ lọc để tìm sản phẩm khác.")
             .ActionText("Đặt lại bộ lọc")
             .ActionCommand(x => x.Binding(() => ViewModel.ResetFiltersCommand))
-            .IconSource(AppIcons.Sources.EmptyIcon)
+            .IconSource(AppIcons.Get(AppIcons.EmptyIcon))
             .Visibility(x => x.Binding(() => ViewModel.ShowEmptyState).Convert((bool v) => CatalogViewParts.ShowIf(v)));
 
         var initialLoading = new StackPanel()

@@ -1,18 +1,17 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Uno.Extensions.Markup;
 
 namespace TechStore.Client.Styles;
 
 public static partial class AppIcons
 {
-    public static class Sources
-    {
-        public static Action<IDependencyPropertyBuilder<IconSource>> MoneyIcon => StaticResource.Get<IconSource>(AppIcons.MoneyIcon);
-        public static Action<IDependencyPropertyBuilder<IconSource>> BoxIcon => StaticResource.Get<IconSource>(AppIcons.BoxIcon);
-        public static Action<IDependencyPropertyBuilder<IconSource>> WarningIcon => StaticResource.Get<IconSource>(AppIcons.WarningIcon);
-        public static Action<IDependencyPropertyBuilder<IconSource>> BagIcon => StaticResource.Get<IconSource>(AppIcons.BagIcon);
-        public static Action<IDependencyPropertyBuilder<IconSource>> EmptyIcon => StaticResource.Get<IconSource>(AppIcons.EmptyIcon);
-    }
+    /// <summary>
+    /// Returns the registered icon instance, e.g. <c>.IconSource(AppIcons.Get(AppIcons.EmptyIcon))</c>.
+    /// Pass the instance itself: a Markup <c>StaticResource</c> builder for an IconSource made the first
+    /// layout of the Catalog pages take about 8.5 s on Skia (measured on the product list).
+    /// </summary>
+    public static IconSource Get(string key) =>
+        Application.Current.Resources.TryGetValue(key, out var value) && value is IconSource icon
+            ? icon
+            : throw new KeyNotFoundException($"Icon resource '{key}' is not registered.");
 }

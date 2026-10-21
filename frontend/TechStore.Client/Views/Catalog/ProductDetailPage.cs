@@ -85,7 +85,7 @@ public sealed class ProductDetailPage : Page, IRoutePage
             .Description("Sản phẩm có thể đã bị xóa hoặc không còn khả dụng. Quay lại danh sách để tiếp tục.")
             .ActionText("Quay lại danh sách")
             .ActionCommand(x => x.Binding(() => ViewModel.BackCommand))
-            .IconSource(AppIcons.Sources.EmptyIcon)
+            .IconSource(AppIcons.Get(AppIcons.EmptyIcon))
             .Visibility(x => x.Binding(() => ViewModel.IsNotFound).Convert((bool v) => CatalogViewParts.ShowIf(v)));
 
         var errorPanel = new StackPanel()

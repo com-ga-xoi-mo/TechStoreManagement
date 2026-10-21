@@ -20,6 +20,8 @@ namespace TechStore.Client.Views.Catalog;
 
 public sealed class ProductListPage : Page, IRoutePage
 {
+    private const double CardHeight = 300;
+
     private readonly Uri _apiBase;
     private readonly TextBlock _listHeading;
     private readonly ScrollViewer _scrollViewer;
@@ -54,18 +56,24 @@ public sealed class ProductListPage : Page, IRoutePage
             .Style(AppControlStyles.Styles.Button);
         AutomationProperties.SetName(refreshButton, "Làm mới danh sách sản phẩm");
 
-        var topRow = new Grid()
-            .MinHeight(36)
+        var headerRow = new Grid()
             .ColumnSpacing(12)
             .ColumnDefinitions("*, Auto, Auto")
             .Children(
-                _listHeading,
-                addProductButton.Grid(column: 1),
-                refreshButton.Grid(column: 2));
+                new StackPanel()
+                    .Spacing(4)
+                    .Children(
+                        new TextBlock()
+                            .Style(AppResources.GetStyle(AppTypography.HeadingText))
+                            .Foreground(AppColors.Brushes.Text)
+                            .Text("Danh sách sản phẩm"),
+                        CatalogViewParts.Caption("Tìm, lọc và quản lý sản phẩm, giá bán và thông số kỹ thuật.")),
+                refreshButton.Grid(column: 1).VerticalAlignment(VerticalAlignment.Center),
+                addProductButton.Grid(column: 2).VerticalAlignment(VerticalAlignment.Center));
 
         var searchBox = new SearchBoxControl()
             .Label("Tìm kiếm sản phẩm")
-            .PlaceholderText("Tên sản phẩm, SKU hoặc barcode")
+            .PlaceholderText("Tên, SKU, hãng hoặc barcode")
             .Text(x => x.Binding(() => ViewModel.SearchText).Mode(BindingMode.TwoWay))
             .SearchCommand(x => x.Binding(() => ViewModel.SearchCommand))
             .ClearCommand(x => x.Binding(() => ViewModel.ClearSearchCommand));
@@ -89,17 +97,12 @@ public sealed class ProductListPage : Page, IRoutePage
             .SelectedValuePath("Id")
             .SelectedValue(x => x.Binding(() => ViewModel.SelectedCategoryId).Mode(BindingMode.TwoWay))
             .PlaceholderText("Tất cả danh mục")
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
             .MinHeight(40);
         AutomationProperties.SetName(categoryBox, "Lọc theo danh mục");
 
-        var brandBox = new TextBox()
-            .Text(x => x.Binding(() => ViewModel.BrandText).Mode(BindingMode.TwoWay))
-            .PlaceholderText("Nhập thương hiệu")
-            .Style(AppControlStyles.Styles.TextBox)
-            .MinHeight(40);
-        AutomationProperties.SetName(brandBox, "Lọc theo thương hiệu");
-
         var activeStatusBox = new ComboBox()
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
             .SelectedValuePath("Tag")
             .SelectedValue(x => x.Binding(() => ViewModel.ActiveFilter).Mode(BindingMode.TwoWay))
             .MinHeight(40)
@@ -109,47 +112,27 @@ public sealed class ProductListPage : Page, IRoutePage
                 new ComboBoxItem { Content = "Ngừng hoạt động", Tag = "inactive" });
         AutomationProperties.SetName(activeStatusBox, "Lọc trạng thái sản phẩm");
 
-        var filterRow1 = new Grid()
-            .ColumnSpacing(12)
-            .RowSpacing(8)
-            .ColumnDefinitions("1.15*, 1*, 1*")
-            .Children(
-                new StackPanel().Spacing(5).Children(CatalogViewParts.Caption("Danh mục"), categoryBox),
-                new StackPanel().Spacing(5).Grid(column: 1).Children(CatalogViewParts.Caption("Thương hiệu"), brandBox),
-                new StackPanel().Spacing(5).Grid(column: 2).Children(CatalogViewParts.Caption("Trạng thái sản phẩm"), activeStatusBox));
-
-        var minPriceBox = new TextBox()
-            .Text(x => x.Binding(() => ViewModel.MinPriceText).Mode(BindingMode.TwoWay))
-            .PlaceholderText("Không giới hạn")
-            .Style(AppControlStyles.Styles.TextBox)
-            .InputScope(new InputScope { Names = { new InputScopeName(InputScopeNameValue.Number) } })
-            .MinHeight(40);
-        AutomationProperties.SetName(minPriceBox, "Giá tối thiểu");
-
-        var maxPriceBox = new TextBox()
-            .Text(x => x.Binding(() => ViewModel.MaxPriceText).Mode(BindingMode.TwoWay))
-            .PlaceholderText("Không giới hạn")
-            .Style(AppControlStyles.Styles.TextBox)
-            .InputScope(new InputScope { Names = { new InputScopeName(InputScopeNameValue.Number) } })
-            .MinHeight(40);
-        AutomationProperties.SetName(maxPriceBox, "Giá tối đa");
+        var categoryField = new StackPanel().Spacing(5).Children(CatalogViewParts.Caption("Danh mục"), categoryBox);
+        var statusField = new StackPanel().Spacing(5).Children(CatalogViewParts.Caption("Trạng thái"), activeStatusBox);
 
         var specsBox = new TextBox()
             .Text(x => x.Binding(() => ViewModel.SpecsText).Mode(BindingMode.TwoWay))
-            .PlaceholderText("ram=16\nhas_5g=true")
+            .PlaceholderText("ram_gb=16, has_5g=true")
             .Style(AppControlStyles.Styles.TextBox)
-            .AcceptsReturn(true)
-            .TextWrapping(TextWrapping.Wrap)
-            .MinHeight(58);
+            .MinHeight(40);
         AutomationProperties.SetName(specsBox, "Lọc theo thông số kỹ thuật");
 
-        var filterRow2 = new Grid()
-            .ColumnSpacing(12)
-            .ColumnDefinitions("1*, 1*, 1.5*")
+        var specsField = new StackPanel()
+            .Spacing(5)
+            .Visibility(x => x.Binding(() => ViewModel.IsSpecFilterOpen).Convert((bool v) => CatalogViewParts.ShowIf(v)))
             .Children(
-                new StackPanel().Spacing(5).Children(CatalogViewParts.Caption("Giá tối thiểu (₫)"), minPriceBox),
-                new StackPanel().Spacing(5).Grid(column: 1).Children(CatalogViewParts.Caption("Giá tối đa (₫)"), maxPriceBox),
-                new StackPanel().Spacing(5).Grid(column: 2).Children(CatalogViewParts.Caption("Thông số (mỗi dòng key=value)"), specsBox));
+                CatalogViewParts.Caption("Thông số kỹ thuật (key=value, cách nhau bằng dấu phẩy)"),
+                specsBox);
+
+        var specToggleButton = new Button()
+            .Content(x => x.Binding(() => ViewModel.IsSpecFilterOpen).Convert((bool open) => open ? "Ẩn lọc thông số" : "Lọc theo thông số"))
+            .Command(x => x.Binding(() => ViewModel.ToggleSpecFilterCommand))
+            .Style(AppControlStyles.Styles.QuietButton);
 
         var sortBox = new ComboBox()
             .SelectedValuePath("Tag")
@@ -201,17 +184,31 @@ public sealed class ProductListPage : Page, IRoutePage
             .Command(x => x.Binding(() => ViewModel.ResetFiltersCommand))
             .Style(AppControlStyles.Styles.Button);
 
-        var filterRow3 = new Grid()
+        var filterRow = new Grid()
             .ColumnSpacing(12)
-            .ColumnDefinitions("Auto, Auto, *, Auto, Auto")
+            .ColumnDefinitions("*, *, Auto, Auto")
             .Children(
-                new StackPanel().Orientation(Orientation.Horizontal).Spacing(8).VerticalAlignment(VerticalAlignment.Center).Children(
-                    CatalogViewParts.Caption("Sắp xếp"), sortBox),
+                categoryField,
+                statusField.Grid(column: 1),
+                specToggleButton.Grid(column: 2).VerticalAlignment(VerticalAlignment.Bottom),
+                resetFiltersButton.Grid(column: 3).VerticalAlignment(VerticalAlignment.Bottom));
+
+        var errorRow = new Grid()
+            .ColumnSpacing(12)
+            .ColumnDefinitions("*, Auto")
+            .Visibility(x => x.Binding(() => ViewModel.HasFilterMessages).Convert((bool v) => CatalogViewParts.ShowIf(v)))
+            .Children(
+                errorSummaryPanel,
+                retryCategoriesButton.Grid(column: 1).VerticalAlignment(VerticalAlignment.Center));
+
+        var resultsBar = new Grid()
+            .ColumnSpacing(12)
+            .MinHeight(36)
+            .ColumnDefinitions("*, Auto")
+            .Children(
+                _listHeading,
                 new StackPanel().Orientation(Orientation.Horizontal).Spacing(8).VerticalAlignment(VerticalAlignment.Center).Grid(column: 1).Children(
-                    CatalogViewParts.Caption("Mỗi trang"), pageSizeBox),
-                errorSummaryPanel.Grid(column: 2),
-                retryCategoriesButton.Grid(column: 3),
-                resetFiltersButton.Grid(column: 4));
+                    CatalogViewParts.Caption("Sắp xếp").VerticalAlignment(VerticalAlignment.Center), sortBox));
 
         var progressBar = new ProgressBar()
             .IsIndeterminate(true)
@@ -291,7 +288,7 @@ public sealed class ProductListPage : Page, IRoutePage
             .Layout(new UniformGridLayout
             {
                 MinItemWidth = 258,
-                MinItemHeight = 340,
+                MinItemHeight = CardHeight,
                 MinColumnSpacing = 14,
                 MinRowSpacing = 14,
                 ItemsStretch = UniformGridLayoutItemsStretch.Fill,
@@ -301,26 +298,21 @@ public sealed class ProductListPage : Page, IRoutePage
         AutomationProperties.SetName(_repeater, "Danh sách sản phẩm");
         _repeater.ElementPrepared += OnProductElementPrepared;
 
-        _scrollViewer = new ScrollViewer()
-            .VerticalScrollMode(ScrollMode.Auto)
-            .VerticalScrollBarVisibility(ScrollBarVisibility.Auto)
-            .HorizontalScrollMode(ScrollMode.Disabled)
-            .HorizontalScrollBarVisibility(ScrollBarVisibility.Disabled)
-            .Content(_repeater);
-
         var resultsArea = new Grid()
+            .MinHeight(220)
             .Children(
                 progressBar,
                 errorPanel,
                 emptyState,
                 initialLoading,
                 outOfRange,
-                _scrollViewer);
+                _repeater);
 
         var paginationRow = new Grid()
             .ColumnSpacing(12)
             .MinHeight(40)
-            .ColumnDefinitions("*, Auto, Auto")
+            .Margin(new Thickness(20, 10, 20, 14))
+            .ColumnDefinitions("*, Auto, Auto, Auto")
             .Visibility(x => x.Binding(() => ViewModel.ShowPagination).Convert((bool v) => CatalogViewParts.ShowIf(v)))
             .Children(
                 new TextBlock()
@@ -329,32 +321,55 @@ public sealed class ProductListPage : Page, IRoutePage
                     .Foreground(AppColors.Brushes.SecondaryText)
                     .Text(x => x.Binding(() => ViewModel.Snapshot).Convert((ProductPage? sp) =>
                         sp is null ? string.Empty : $"Trang {sp.Page} / {sp.TotalPages} · {sp.TotalCount} kết quả")),
+                new StackPanel().Orientation(Orientation.Horizontal).Spacing(8).VerticalAlignment(VerticalAlignment.Center).Grid(column: 1).Children(
+                    CatalogViewParts.Caption("Mỗi trang").VerticalAlignment(VerticalAlignment.Center), pageSizeBox),
                 new Button()
-                    .Grid(column: 1)
+                    .Grid(column: 2)
                     .Content("Trang trước")
                     .Command(x => x.Binding(() => ViewModel.PreviousPageCommand))
                     .IsEnabled(x => x.Binding(() => ViewModel.HasPreviousPage))
                     .Style(AppControlStyles.Styles.Button),
                 new Button()
-                    .Grid(column: 2)
+                    .Grid(column: 3)
                     .Content("Trang sau")
                     .Command(x => x.Binding(() => ViewModel.NextPageCommand))
                     .IsEnabled(x => x.Binding(() => ViewModel.HasNextPage))
                     .Style(AppControlStyles.Styles.Button));
 
+        var filtersPanel = new Border()
+            .Style(AppControlStyles.Styles.Panel)
+            .Background(AppColors.Brushes.Surface)
+            .BorderBrush(AppColors.Brushes.Stroke)
+            .BorderThickness(new Thickness(1))
+            .Child(new StackPanel()
+                .Spacing(10)
+                .Children(
+                    searchRow,
+                    filterRow,
+                    specsField,
+                    errorRow));
+
+        // The whole page scrolls so a short window still shows products; only paging stays fixed.
+        _scrollViewer = new ScrollViewer()
+            .VerticalScrollMode(ScrollMode.Auto)
+            .VerticalScrollBarVisibility(ScrollBarVisibility.Auto)
+            .HorizontalScrollMode(ScrollMode.Disabled)
+            .HorizontalScrollBarVisibility(ScrollBarVisibility.Disabled)
+            .Content(new StackPanel()
+                .Padding(new Thickness(20, 20, 20, 4))
+                .Spacing(14)
+                .Children(
+                    headerRow,
+                    filtersPanel,
+                    resultsBar,
+                    resultsArea));
+
         Content = new Grid()
-            .Padding(new Thickness(20))
-            .RowSpacing(14)
-            .RowDefinitions("Auto, Auto, Auto, Auto, Auto, *, Auto")
+            .RowDefinitions("*, Auto")
             .Background(AppColors.Brushes.Canvas)
             .Children(
-                topRow,
-                searchRow.Grid(row: 1),
-                filterRow1.Grid(row: 2),
-                filterRow2.Grid(row: 3),
-                filterRow3.Grid(row: 4),
-                resultsArea.Grid(row: 5),
-                paginationRow.Grid(row: 6));
+                _scrollViewer,
+                paginationRow.Grid(row: 1));
 
         Loaded += OnPageLoaded;
         Unloaded += OnPageUnloaded;
@@ -412,7 +427,7 @@ public sealed class ProductListPage : Page, IRoutePage
 
         var cardGrid = new Grid()
             .RowSpacing(9)
-            .RowDefinitions("160, Auto, Auto, Auto, *, Auto")
+            .RowDefinitions("120, Auto, Auto, Auto, *, Auto")
             .Children(
                 imageGrid,
                 nameBlock.Grid(row: 1),
@@ -426,12 +441,14 @@ public sealed class ProductListPage : Page, IRoutePage
             .BorderThickness(new Thickness(1))
             .BorderBrush(AppColors.Brushes.Stroke)
             .Background(AppColors.Brushes.Surface)
-            .MinHeight(340)
+            .MinHeight(CardHeight)
             .Child(cardGrid);
 
         var button = new Button()
             .Padding(new Thickness(0))
             .BorderThickness(new Thickness(0))
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
+            .VerticalAlignment(VerticalAlignment.Stretch)
             .HorizontalContentAlignment(HorizontalAlignment.Stretch)
             .VerticalContentAlignment(VerticalAlignment.Stretch)
             .Command(ViewModel.OpenProductCommand)
@@ -474,7 +491,8 @@ public sealed class ProductListPage : Page, IRoutePage
         var itemWidth = 258d;
         var spacing = 14d;
         var columns = Math.Max(1, (int)((_scrollViewer.ViewportWidth + spacing) / (itemWidth + spacing)));
-        var targetOffset = index / columns * (340d + spacing);
+        var repeaterTop = _repeater.TransformToVisual((UIElement)_scrollViewer.Content).TransformPoint(default).Y;
+        var targetOffset = repeaterTop + index / columns * (CardHeight + spacing);
         _scrollViewer.ChangeView(null, targetOffset, null, disableAnimation: true);
         if (_repeater.TryGetElement(index) is Button item)
         {

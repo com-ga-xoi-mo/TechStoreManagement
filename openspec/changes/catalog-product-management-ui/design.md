@@ -24,7 +24,7 @@ Xem `proposal.md` (Why) và các spec trong `specs/` (hành vi bắt buộc). Hi
 - Từng bước nhỏ, có lệnh kiểm tra rõ ràng, để model nhỏ làm theo được (`tasks.md`).
 
 **Non-Goals:**
-- Không sửa backend hay `shared/`.
+- Không sửa `shared/`. Backend chỉ đổi một điều kiện tìm kiếm theo D15.
 - Không làm optimistic concurrency (ghi sau thắng, giống BE).
 - Không chặn rời trang qua thanh điều hướng Shell khi đang soạn (Shell chưa có cơ chế guard).
 - Không chuyển các trang XAML khác; chỉ dọn `TechStoreMetricTextStyle` (D12).
@@ -120,7 +120,7 @@ Detail --[Xóa] 204--> Products(ret)
 
 ### D7. Trang C# Markup
 - Theo `MarkupReferencePage`/`OrderListPage`: lớp `sealed`, kế thừa `Page`, cài `IRoutePage`, constructor nhận ViewModel (và `ApiClientOptions` cho ảnh), `DataContext = viewModel`, màu đặt trên phần tử bằng `AppColors.Brushes.*`, text style có màu riêng dùng `AppResources.GetStyle(...)`. `Views/Catalog/CatalogViewParts.cs` (giống `OrderViewParts`): `ShowIf`, `Caption`, `SectionTitle`, `ProductImage` (xem tasks 10.1).
-- **Danh sách**: giữ bố cục XAML hiện tại theo thứ tự hàng (tiêu đề + Làm mới + **Thêm sản phẩm** hiện khi `CanManage`; ô tìm; lọc danh mục/thương hiệu/trạng thái; giá/specs; sắp xếp/kích thước trang/lỗi; vùng kết quả; phân trang). Lưới thẻ: dùng `new ItemsRepeater().ItemsSource(x => x.Binding(() => ViewModel.Products)).Layout(new UniformGridLayout { MinItemWidth = 258, MinItemHeight = 340, MinColumnSpacing = 14, MinRowSpacing = 14, ItemsStretch = UniformGridLayoutItemsStretch.Fill }).ItemTemplate<ProductSummary>(BuildCard)`. **Nếu** `.ItemTemplate<ProductSummary>` không biên dịch cho `ItemsRepeater`, dùng `new GridView().SelectionMode(ListViewSelectionMode.None).IsItemClickEnabled(false).ItemsSource(...).ItemTemplate<ProductSummary>(BuildCard)` (GridView là `ItemsControl`, xếp lưới tự động) và ghi lại lựa chọn trong task. Thẻ là `Button` với `.Command(ViewModel.OpenProductCommand).CommandParameter(x => x.Binding(() => product))`.
+- **Danh sách**: bố cục gọn theo D15 (tiêu đề trang + mô tả + Làm mới + **Thêm sản phẩm** hiện khi `CanManage`; một hàng lọc; ô thông số thu gọn; thanh kết quả có sắp xếp; lưới thẻ; phân trang có kích thước trang). Bản đầu của change giữ nguyên bố cục XAML cũ; D15 thay thế quyết định đó. Lưới thẻ: dùng `new ItemsRepeater().ItemsSource(x => x.Binding(() => ViewModel.Products)).Layout(new UniformGridLayout { MinItemWidth = 258, MinItemHeight = 340, MinColumnSpacing = 14, MinRowSpacing = 14, ItemsStretch = UniformGridLayoutItemsStretch.Fill }).ItemTemplate<ProductSummary>(BuildCard)`. **Nếu** `.ItemTemplate<ProductSummary>` không biên dịch cho `ItemsRepeater`, dùng `new GridView().SelectionMode(ListViewSelectionMode.None).IsItemClickEnabled(false).ItemsSource(...).ItemTemplate<ProductSummary>(BuildCard)` (GridView là `ItemsControl`, xếp lưới tự động) và ghi lại lựa chọn trong task. Thẻ là `Button` với `.Command(ViewModel.OpenProductCommand).CommandParameter(x => x.Binding(() => product))`.
 - **Ảnh** (danh sách, chi tiết, màn soạn): `Grid` chứa icon giữ chỗ **ở dưới** và `Image` ở trên; `Image.Source` bind `ImageUrl` qua `.Convert((string? url) => CatalogPresentation.ResolveImageUri(url, _apiBase) is { } uri ? new BitmapImage(uri) : null)`. Ảnh lỗi không vẽ gì nên icon tự lộ ra: không cần `ImageFailed`.
 - **Chi tiết**: bố cục XAML hiện tại + thanh hành động (Sửa, Ngừng/Mở bán, Xóa; hiện khi `CanManage`) + banner `ActionError`. Trạng thái dùng `StatusBadge` với `Label`/`Tone` từ `CatalogPresentation`.
 - **Màn soạn** (wireframe, lấy từ Stitch `f97fbb33…` + `8bac0572…`):
@@ -194,9 +194,33 @@ Sau khi xóa hai trang XAML Catalog, `git grep -n "TechStoreMetricTextStyle" -- 
 
 ### D14. Một nhánh cho cả BE và FE
 - Change BE đã hoàn tất (`4196a83`, mọi task đã tick, chưa push). Change này làm thẳng trên `feat/catalog-product-management-api` trong thư mục chính của repo; không có worktree hay nhánh FE riêng.
-- Không sửa `backend/`, `shared/`, `openspec/changes/catalog-product-management-api/`: phần BE đã xong và đã được kiểm.
+- Không sửa `shared/`, `openspec/changes/catalog-product-management-api/`: phần BE đã xong và đã được kiểm. Ngoại lệ duy nhất ở `backend/` là điều kiện tìm theo hãng của D15.
 - Kết thúc (nhóm 16 của tasks): build và test toàn solution, chạy thật, ghi `evidence.md`, đổi tên nhánh thành `feat/catalog-product-management` (`git branch -m`), push và mở một PR duy nhất (BE + FE) vào `dev`.
 - Phương án đã bỏ: nhánh FE trong worktree riêng rồi merge vào nhánh BE. Chỉ có ích khi BE và FE chạy song song; BE đã xong nên chỉ thêm bước gộp và rủi ro conflict.
+
+### D15. Thu gọn bộ lọc danh sách sản phẩm
+Bản đầu giữ đủ 7 ô lọc của trang XAML cũ (từ khóa, danh mục, thương hiệu, trạng thái, giá từ, giá đến, thông số nhiều dòng) cùng sắp xếp và kích thước trang. Khối lọc chiếm hơn nửa chiều cao cửa sổ và trang không có tiêu đề. Kế hoạch nhóm (`docs/MILESTONE_2_PLAN.md`, mục Dev 2) chỉ yêu cầu phân trang, tìm theo tên/SKU/hãng và lọc danh mục.
+- Giữ trên giao diện: từ khóa, danh mục, trạng thái (cần để tìm sản phẩm đã ngừng kinh doanh), thông số JSONB (điểm nhấn của đồ án, thu gọn sau nút "Lọc theo thông số"), sắp xếp, kích thước trang.
+- Bỏ khỏi giao diện: ô thương hiệu riêng (gộp vào từ khóa: backend thêm `ILike(p.Brand, pattern)` vào điều kiện `q`, delta `product-catalog`), giá từ và giá đến. `ProductQuery`, `IProductRepository` và repository giữ nguyên nên vẫn gửi được `brand`, `minPrice`, `maxPrice`; chỉ `ProductListViewModel` thôi tạo chúng.
+- Ô thông số một dòng, cặp `key=value` phân cách bằng dấu phẩy hoặc xuống dòng; giá trị chứa dấu phẩy không lọc được qua giao diện (chấp nhận được với thông số phần cứng). `IsSpecFilterOpen` trong ViewModel: mở khi truy vấn áp dụng có thông số hoặc khi thông số nhập sai.
+- Vẫn chỉ áp dụng khi bấm Tìm kiếm hoặc Enter (kế hoạch ghi "realtime", nhưng spec và test hiện có dùng submit; giữ để không gọi API mỗi phím).
+- Cả trang (tiêu đề, bộ lọc, thanh kết quả, lưới thẻ) nằm trong một `ScrollViewer`; chỉ thanh phân trang cố định ở đáy, để cửa sổ thấp vẫn thấy thẻ. Trả focus (D8) cộng thêm vị trí của lưới trong vùng cuộn. Thẻ `Button` đặt `HorizontalAlignment/VerticalAlignment = Stretch` để lấp đầy ô của `UniformGridLayout`; khung ảnh 120 px, thẻ cao 300 px.
+- Không dùng `VisualState` + `AdaptiveTrigger` để đổi `Grid.Row/Column` theo bề rộng: thử trên Uno/Skia chỉ một phần setter được áp, ô lọc chồng lên nhau. Bố cục hai hàng cố định đủ dùng từ 800 DIP.
+```
+Danh sách sản phẩm                              [Làm mới] [+ Thêm sản phẩm]
+Tìm, lọc và quản lý sản phẩm, giá bán và thông số kỹ thuật.
++---------------------------------------------------------------------+
+| Tìm kiếm sản phẩm                                                   |
+| [Tên, SKU, hãng hoặc barcode______________] [Xóa] [Tìm kiếm]        |
+| Danh mục          Trạng thái                                        |
+| [Tất cả     v]    [Tất cả     v]   [Lọc theo thông số] [Đặt lại bộ lọc] |
+| (mở) Thông số kỹ thuật: [ram_gb=16, has_5g=true_____________]       |
+| (chỉ khi có lỗi) thông báo lỗi               [Thử tải danh mục]     |
++---------------------------------------------------------------------+
+20 sản phẩm                                          Sắp xếp [Mới nhất v]
+[thẻ] [thẻ] [thẻ] [thẻ]                     <- cả khối trên cuộn chung
+Trang 1/1 · 20 kết quả               Mỗi trang [20 v] [Trang trước] [Trang sau]   <- cố định
+```
 
 ## Risks / Trade-offs
 

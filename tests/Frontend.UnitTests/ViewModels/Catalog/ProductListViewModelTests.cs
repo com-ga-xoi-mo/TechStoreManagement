@@ -24,11 +24,8 @@ public sealed class ProductListViewModelTests
         Assert.Equal(1, categories.RequestCount);
 
         viewModel.SearchText = "  Pixel & Pro  ";
-        viewModel.BrandText = " Google ";
         viewModel.ActiveFilter = "inactive";
-        viewModel.MinPriceText = "1.234,50";
-        viewModel.MaxPriceText = "2.000,00";
-        viewModel.SpecsText = "ram=16\nhas_5g=true";
+        viewModel.SpecsText = "ram=16\nhas_5g=true, color=Đen";
         viewModel.SelectedCategoryId = Guid.NewGuid();
         Assert.Equal(1, repository.SearchCount);
         viewModel.SelectedSort = "price:asc";
@@ -41,11 +38,11 @@ public sealed class ProductListViewModelTests
 
         var query = repository.Queries.Last();
         Assert.Equal("Pixel & Pro", query.Query);
-        Assert.Equal("Google", query.Brand);
+        Assert.Null(query.Brand);
         Assert.False(query.IsActive);
-        Assert.Equal(1234.50m, query.MinPrice);
-        Assert.Equal(2000m, query.MaxPrice);
-        Assert.Equal(["ram:16", "has_5g:true"], query.Specs);
+        Assert.Null(query.MinPrice);
+        Assert.Null(query.MaxPrice);
+        Assert.Equal(["ram:16", "has_5g:true", "color:Đen"], query.Specs);
         Assert.Equal("price:asc", query.Sort);
         Assert.Equal(1, query.Page);
         Assert.Equal(50, query.PageSize);
@@ -60,11 +57,12 @@ public sealed class ProductListViewModelTests
         var viewModel = CreateViewModel(repository);
         await viewModel.ActivateAsync();
 
-        viewModel.MinPriceText = "900";
-        viewModel.MaxPriceText = "100";
+        viewModel.SpecsText = "RAM=16";
         await viewModel.SearchCommand.ExecuteAsync(null);
         Assert.Equal(1, repository.SearchCount);
         Assert.True(viewModel.HasValidationError);
+        Assert.True(viewModel.HasFilterMessages);
+        Assert.True(viewModel.IsSpecFilterOpen);
 
         await viewModel.ResetFiltersCommand.ExecuteAsync(null);
         var reset = repository.Queries.Last();
@@ -79,6 +77,28 @@ public sealed class ProductListViewModelTests
         Assert.Equal("createdAt:desc", reset.Sort);
         Assert.Equal(20, reset.PageSize);
         Assert.Equal(1, reset.Page);
+    }
+
+    [Fact]
+    public void SpecFilter_StartsClosed_TogglesAndOpensForAppliedSpecs()
+    {
+        // Arrange
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query, count: 1)));
+        var closed = CreateViewModel(repository);
+        var withSpecs = CreateViewModel(repository);
+
+        // Act
+        closed.SetRoute(null, null);
+        withSpecs.SetRoute(new ProductQuery { Specs = ["ram_gb:16", "has_5g:true"] }, null);
+
+        // Assert
+        Assert.False(closed.IsSpecFilterOpen);
+        closed.ToggleSpecFilterCommand.Execute(null);
+        Assert.True(closed.IsSpecFilterOpen);
+        closed.ToggleSpecFilterCommand.Execute(null);
+        Assert.False(closed.IsSpecFilterOpen);
+        Assert.True(withSpecs.IsSpecFilterOpen);
+        Assert.Equal("ram_gb=16, has_5g=true", withSpecs.SpecsText);
     }
 
     [Fact]

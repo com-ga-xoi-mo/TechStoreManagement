@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -30,12 +29,10 @@ public sealed partial class ProductListViewModel : PageViewModel
     private static readonly IReadOnlyList<ProductSummary> NoProducts = Array.Empty<ProductSummary>();
 
     [ObservableProperty] private string searchText = string.Empty;
-    [ObservableProperty] private string brandText = string.Empty;
     [ObservableProperty] private Guid? selectedCategoryId;
     [ObservableProperty] private string activeFilter = "all";
-    [ObservableProperty] private string minPriceText = string.Empty;
-    [ObservableProperty] private string maxPriceText = string.Empty;
     [ObservableProperty] private string specsText = string.Empty;
+    [ObservableProperty] private bool isSpecFilterOpen;
     [ObservableProperty] private string selectedSort = "createdAt:desc";
     [ObservableProperty] private int selectedPageSize = 20;
     [ObservableProperty] private ProductPage? snapshot;
@@ -62,6 +59,7 @@ public sealed partial class ProductListViewModel : PageViewModel
     public bool HasNextPage => Snapshot is { } page && page.Page < page.TotalPages && !IsLoading;
     public bool HasCategoryError => !string.IsNullOrWhiteSpace(CategoryError);
     public bool HasValidationError => !string.IsNullOrWhiteSpace(ValidationMessage);
+    public bool HasFilterMessages => HasCategoryError || HasValidationError || !string.IsNullOrWhiteSpace(FieldErrorSummary);
     public bool ShowEmptyState => IsEmpty && Snapshot is not null && Snapshot.Items.Count == 0 && !IsOutOfRange;
     public bool ShowInitialLoading => IsLoading && Snapshot is null;
     public bool ShowPagination => Snapshot is { TotalCount: > 0 } && !IsOutOfRange;
@@ -141,11 +139,8 @@ public sealed partial class ProductListViewModel : PageViewModel
         try
         {
             SearchText = string.Empty;
-            BrandText = string.Empty;
             SelectedCategoryId = null;
             ActiveFilter = "all";
-            MinPriceText = string.Empty;
-            MaxPriceText = string.Empty;
             SpecsText = string.Empty;
             SelectedSort = "createdAt:desc";
             SelectedPageSize = 20;
@@ -156,6 +151,9 @@ public sealed partial class ProductListViewModel : PageViewModel
         }
         return ApplyDraftAsync();
     }
+
+    [RelayCommand]
+    private void ToggleSpecFilter() => IsSpecFilterOpen = !IsSpecFilterOpen;
 
     [RelayCommand]
     private Task RetryCategories()
@@ -304,22 +302,6 @@ public sealed partial class ProductListViewModel : PageViewModel
     private bool TryBuildCriteria(out ProductQuery query, out string? error)
     {
         error = null;
-        decimal? min = ParseOptionalPrice(MinPriceText, "Giá tối thiểu", out error);
-        if (error is not null) { query = AppliedCriteria; return false; }
-        decimal? max = ParseOptionalPrice(MaxPriceText, "Giá tối đa", out error);
-        if (error is not null) { query = AppliedCriteria; return false; }
-        if (min is < 0 || max is < 0)
-        {
-            error = "Giá không được là số âm.";
-            query = AppliedCriteria;
-            return false;
-        }
-        if (min.HasValue && max.HasValue && min > max)
-        {
-            error = "Giá tối thiểu phải nhỏ hơn hoặc bằng giá tối đa.";
-            query = AppliedCriteria;
-            return false;
-        }
         if (!AllowedSorts.Contains(SelectedSort, StringComparer.Ordinal))
         {
             error = "Thứ tự sắp xếp không hợp lệ.";
@@ -334,6 +316,7 @@ public sealed partial class ProductListViewModel : PageViewModel
         }
         if (!TryParseSpecs(SpecsText, out var specs, out error))
         {
+            IsSpecFilterOpen = true;
             query = AppliedCriteria;
             return false;
         }
@@ -355,11 +338,8 @@ public sealed partial class ProductListViewModel : PageViewModel
         query = new ProductQuery
         {
             Query = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
-            Brand = string.IsNullOrWhiteSpace(BrandText) ? null : BrandText.Trim(),
             CategoryId = SelectedCategoryId,
             IsActive = isActive,
-            MinPrice = min,
-            MaxPrice = max,
             Specs = specs,
             Sort = SelectedSort,
             Page = 1,
@@ -368,22 +348,13 @@ public sealed partial class ProductListViewModel : PageViewModel
         return true;
     }
 
-    private static decimal? ParseOptionalPrice(string text, string label, out string? error)
-    {
-        error = null;
-        if (string.IsNullOrWhiteSpace(text)) return null;
-        if (!decimal.TryParse(text, NumberStyles.Number, CultureInfo.GetCultureInfo("vi-VN"), out var value)
-            && !decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out value))
-            error = $"{label} không hợp lệ.";
-        return error is null ? value : null;
-    }
-
     private static bool TryParseSpecs(string text, out IReadOnlyList<string> specs, out string? error)
     {
         var result = new List<string>();
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         error = null;
-        foreach (var rawLine in text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        // One pair per line or comma, so a value that contains a comma cannot be filtered here (design D15).
+        foreach (var rawLine in text.Split(['\r', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             var separator = rawLine.IndexOf('=');
             if (separator <= 0 || separator == rawLine.Length - 1)
@@ -429,16 +400,14 @@ public sealed partial class ProductListViewModel : PageViewModel
         try
         {
         SearchText = criteria.Query ?? string.Empty;
-        BrandText = criteria.Brand ?? string.Empty;
         SelectedCategoryId = criteria.CategoryId;
         ActiveFilter = criteria.IsActive switch { true => "active", false => "inactive", null => "all" };
-        MinPriceText = criteria.MinPrice?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-        MaxPriceText = criteria.MaxPrice?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-        SpecsText = string.Join(Environment.NewLine, criteria.Specs.Select(spec =>
+        SpecsText = string.Join(", ", criteria.Specs.Select(spec =>
         {
             var separator = spec.IndexOf(':');
             return separator < 0 ? spec : string.Concat(spec.AsSpan(0, separator), "=", spec.AsSpan(separator + 1));
         }));
+        if (criteria.Specs.Count > 0) IsSpecFilterOpen = true;
         SelectedSort = criteria.Sort;
         SelectedPageSize = criteria.PageSize;
         }
@@ -448,6 +417,9 @@ public sealed partial class ProductListViewModel : PageViewModel
         }
     }
 
+    partial void OnValidationMessageChanged(string? value) => OnPropertyChanged(nameof(HasFilterMessages));
+    partial void OnCategoryErrorChanged(string? value) => OnPropertyChanged(nameof(HasFilterMessages));
+    partial void OnFieldErrorSummaryChanged(string value) => OnPropertyChanged(nameof(HasFilterMessages));
     partial void OnSelectedSortChanged(string value) => ApplyImmediateCriteriaChange();
     partial void OnSelectedPageSizeChanged(int value) => ApplyImmediateCriteriaChange();
 

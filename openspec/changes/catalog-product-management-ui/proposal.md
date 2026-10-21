@@ -21,7 +21,7 @@ Sprint 2 giao cho Dev 2 lát cắt full-stack Quản lý Sản phẩm (MILESTONE
 - **Tài liệu**: AGENTS.md (bảng trạng thái chuyển đổi, mô tả thư mục `Views/`, ngoại lệ trả focus mới, `DeleteAsync`), và ngoại lệ D2 mới ghi trong `design.md` của change này.
 - **Nhánh**: làm thẳng trên `feat/catalog-product-management-api` (BE đã xong, chưa push). Khi xong, đổi tên nhánh thành `feat/catalog-product-management`, push và mở một PR duy nhất (BE + FE) vào `dev`.
 
-Ngoài phạm vi: upload ảnh, nhập tồn kho đầu kỳ khi tạo sản phẩm (UC-INV-02 của Dev 3), hiển thị tồn kho/màu biến thể/số lượng theo danh mục (API Catalog không có dữ liệu này), chặn rời trang khi đang sửa dở bằng sidebar Shell, gợi ý tự sinh SKU biến thể, chuyển các trang XAML khác, sửa backend.
+Ngoài phạm vi: upload ảnh, nhập tồn kho đầu kỳ khi tạo sản phẩm (UC-INV-02 của Dev 3), hiển thị tồn kho/màu biến thể/số lượng theo danh mục (API Catalog không có dữ liệu này), chặn rời trang khi đang sửa dở bằng sidebar Shell, gợi ý tự sinh SKU biến thể, chuyển các trang XAML khác, sửa backend ngoài điều kiện tìm theo hãng.
 
 ## Capabilities
 
@@ -29,9 +29,10 @@ Ngoài phạm vi: upload ảnh, nhập tồn kho đầu kỳ khi tạo sản ph�
 - `frontend-catalog-management`: người dùng có vai trò Admin/Manager tạo, sửa (kể cả thông số động và biến thể), ngừng/mở bán và xóa sản phẩm trên desktop qua Catalog API thật, với kiểm tra đầu vào tại client, lỗi server hiển thị đúng chỗ và không gửi lại yêu cầu ghi.
 
 ### Modified Capabilities
-- `frontend-catalog-browsing`: bỏ ràng buộc "luồng Catalog MUST NOT gửi mutation"; phần duyệt vẫn chỉ đọc, còn thao tác ghi thuộc `frontend-catalog-management`.
+- `frontend-catalog-browsing`: trang danh sách chỉ còn ô từ khóa, danh mục, trạng thái và ô thông số thu gọn (design D15); bỏ ràng buộc "luồng Catalog MUST NOT gửi mutation"; phần duyệt vẫn chỉ đọc, còn thao tác ghi thuộc `frontend-catalog-management`.
 - `frontend-api-access`: thêm yêu cầu gửi `DELETE` không cần body và chấp nhận 204.
 - `frontend-shell-navigation`: mục Sản phẩm chứa thêm route tạo và sửa sản phẩm, quay lại giữ ngữ cảnh truy vấn.
+- `product-catalog`: từ khóa `q` khớp thêm hãng sản phẩm, để ô tìm kiếm thay được ô thương hiệu riêng (design D15).
 
 ## Impact
 
@@ -40,5 +41,6 @@ Ngoài phạm vi: upload ảnh, nhập tồn kho đầu kỳ khi tạo sản ph�
   - Sửa: `Services/Api/IApiClient.cs`, `ApiClient.cs`; `Repositories/Catalog/ProductRepository.cs`; `ViewModels/Catalog/ProductListViewModel.cs`, `ProductDetailViewModel.cs`; `Services/Navigation/AppRoute.cs`; `Views/Shell/ShellRoutePageFactory.cs`; `UiServiceCollectionExtensions.cs`; `Styles/AppResources.cs`; `Controls/StatCard.cs`; `Views/Orders/OrderCreatePage.cs` (một dòng màu chữ).
   - Xóa: `Views/Catalog/ProductListPage.xaml(.cs)`, `ProductDetailPage.xaml(.cs)`, `Converters/ProductImageSourceConverter.cs`.
 - **Test (`tests/Frontend.UnitTests/`)**: test mới cho `DeleteAsync`, repository ghi, parser thông số, presentation, quyền, `ProductEditorViewModel`, hành động ở danh sách/chi tiết, route mới; sửa helper khởi tạo ViewModel trong test Catalog và 4 stub `IApiClient`.
-- **Không đổi**: backend, `shared/` (dùng ba request `UpdateProduct*` do change BE tạo), `IProductRepository`, trang Orders ngoài một dòng màu chữ.
+- **Backend**: một điều kiện `ILike(p.Brand, …)` trong `backend/Catalog/Repositories/ProductRepository.cs` (D15).
+- **Không đổi**: `shared/` (dùng ba request `UpdateProduct*` do change BE tạo), `IProductRepository`, trang Orders ngoài một dòng màu chữ.
 - **Phụ thuộc**: hợp đồng API trong `openspec/changes/catalog-product-management-api/specs/product-catalog/spec.md`, đã có code BE trên cùng nhánh nên kiểm thử thật chạy được ngay.

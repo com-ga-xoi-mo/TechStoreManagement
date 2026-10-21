@@ -170,6 +170,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
             .Text("Sản phẩm có biến thể dùng barcode của từng biến thể.")
             .Style(AppResources.GetStyle(AppTypography.CaptionText))
             .Foreground(AppColors.Brushes.SecondaryText)
+            .TextWrapping(TextWrapping.Wrap)
             .Visibility(x => x.Binding(() => ViewModel.HasVariants).Convert((bool v) => CatalogViewParts.ShowIf(v)));
 
         var barcodeError = new TextBlock()
@@ -199,7 +200,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
                 new StackPanel().Spacing(4).Children(nameBox, nameError),
                 new Grid()
                     .ColumnSpacing(12)
-                    .ColumnDefinitions("1.15*, 1*")
+                    .ColumnDefinitions("6*, 5*")
                     .Children(
                         new StackPanel().Spacing(4).Children(categoryBox, categoryError),
                         new StackPanel().Spacing(4).Grid(column: 1).Children(brandBox, brandError)),
@@ -213,7 +214,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
 
         var topSectionGrid = new Grid()
             .ColumnSpacing(20)
-            .ColumnDefinitions("280, *")
+            .ColumnDefinitions("1*, 2*")
             .Children(
                 leftImageCol,
                 rightInfoCol.Grid(column: 1));
@@ -369,10 +370,10 @@ public sealed class ProductEditorPage : Page, IRoutePage
         var formScroll = new ScrollViewer()
             .Visibility(x => x.Binding(() => ViewModel.IsContent).Convert((bool v) => CatalogViewParts.ShowIf(v)))
             .Content(
+                // Stretch (not Left): a left-aligned panel is only as wide as its content, so star columns collapse.
                 new StackPanel()
                     .Spacing(18)
                     .MaxWidth(1100)
-                    .HorizontalAlignment(HorizontalAlignment.Left)
                     .Children(
                         topSectionGrid,
                         pricingSection,
@@ -559,7 +560,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
 
         var rowGrid = new Grid()
             .ColumnSpacing(10)
-            .ColumnDefinitions("1.2*, 1*, 1*, 1*, Auto, Auto")
+            .ColumnDefinitions("6*, 5*, 5*, 5*, Auto, Auto")
             .Children(
                 new StackPanel().Spacing(4).Children(nameBox, nameError),
                 new StackPanel().Spacing(4).Grid(column: 1).Children(skuBox, skuError),

@@ -63,6 +63,19 @@ public class FakeProductRepository : IProductRepository
         return Task.FromResult<IReadOnlyList<SpecValueCount>>(SpecValueCounts.ToList());
     }
 
+    public Task<IReadOnlyList<BrandCount>> GetBrandCountsAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<BrandCount>>(Products.Values
+            .GroupBy(p => p.Brand, StringComparer.Ordinal)
+            .Select(g => new BrandCount(g.Key, g.Count()))
+            .ToList());
+
+    public Task<IReadOnlyList<BrandCount>> GetBrandSpellingsAsync(string brand, Guid? excludeProductId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<BrandCount>>(Products.Values
+            .Where(p => p.Id != excludeProductId && string.Equals(p.Brand, brand, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(p => p.Brand, StringComparer.Ordinal)
+            .Select(g => new BrandCount(g.Key, g.Count()))
+            .ToList());
+
     public void Add(Product product)
     {
         AddedProducts.Add(product);

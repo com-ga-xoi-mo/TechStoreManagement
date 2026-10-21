@@ -114,6 +114,30 @@ public class ProductService(
         return (errors, errors.Count == 0 ? pending : []);
     }
 
+    public async Task<IReadOnlyList<BrandDto>> GetBrandsAsync(CancellationToken cancellationToken = default)
+    {
+        var counts = await productRepository.GetBrandCountsAsync(cancellationToken);
+        return counts
+            .GroupBy(c => c.Brand.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(g => new BrandDto { Name = MostUsedSpelling(g), ProductCount = g.Sum(c => c.ProductCount) })
+            .OrderBy(b => b.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>The brand as other products already spell it (design D14), or the trimmed input when none does.</summary>
+    private async Task<string> CanonicalBrandAsync(string brand, Guid? excludeProductId, CancellationToken cancellationToken)
+    {
+        var trimmed = brand.Trim();
+        var spellings = await productRepository.GetBrandSpellingsAsync(trimmed, excludeProductId, cancellationToken);
+        return spellings.Count == 0 ? trimmed : MostUsedSpelling(spellings);
+    }
+
+    private static string MostUsedSpelling(IEnumerable<BrandCount> spellings) =>
+        spellings
+            .OrderByDescending(c => c.ProductCount)
+            .ThenBy(c => c.Brand, StringComparer.Ordinal)
+            .First().Brand.Trim();
+
     private static bool IsSpecDefinitionConflict(DuplicateKeyException exception) =>
         exception.ConstraintName?.Contains("spec_definitions", StringComparison.OrdinalIgnoreCase) == true;
 
@@ -284,7 +308,7 @@ public class ProductService(
             Name = request.Name!.Trim(),
             Sku = request.Sku!.Trim(),
             Barcode = string.IsNullOrWhiteSpace(request.Barcode) ? null : request.Barcode.Trim(),
-            Brand = request.Brand!.Trim(),
+            Brand = await CanonicalBrandAsync(request.Brand!, null, cancellationToken),
             BasePrice = request.BasePrice!.Value,
             CostPrice = request.CostPrice!.Value,
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
@@ -476,7 +500,7 @@ public class ProductService(
             // Step E - apply product fields
             product.CategoryId = request.CategoryId!.Value;
             product.Name = request.Name!.Trim();
-            product.Brand = request.Brand!.Trim();
+            product.Brand = await CanonicalBrandAsync(request.Brand!, product.Id, cancellationToken);
             product.Barcode = string.IsNullOrWhiteSpace(request.Barcode) ? null : request.Barcode.Trim();
             product.BasePrice = request.BasePrice!.Value;
             product.CostPrice = request.CostPrice!.Value;

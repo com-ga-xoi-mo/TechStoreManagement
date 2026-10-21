@@ -148,6 +148,13 @@ The live run creates its **own** test data (SKUs `TEST-WRITE-001`, `TEST-WRITE-0
 - [x] 15.5 `SpecLabelValidator`; service rules (kind check, insert-only labels, label clash, conflict mapping); controller `GET spec-definitions`; unit tests
 - [x] 15.6 Live check against PostgreSQL (migration applied, endpoints, create with a new spec name, kind rejection); `TEST_BACKEND` passes
 
+## 16. Brand spelling and suggestions (added after review, done in the review session)
+
+- [x] 16.1 Spec delta (2 ADDED requirements), design D14, proposal bullet
+- [x] 16.2 `IProductRepository.GetBrandCountsAsync`/`GetBrandSpellingsAsync` (escaped `ILIKE`, `AsNoTracking`); fake support
+- [x] 16.3 `shared/DTOs/BrandDto.cs`; service: canonical brand on create/update (the updated product excluded), `GetBrandsAsync`; controller `GET brands` (anonymous); unit tests
+- [x] 16.4 Live check (create with `apple` stored as `Apple`, brand list); `TEST_BACKEND` passes
+
 ## Workflow follow-up
 
 - After the PR is reviewed and merged, archive the change with `/opsx:archive` so the `product-catalog` delta is synced into `openspec/specs/product-catalog/spec.md`.

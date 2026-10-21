@@ -181,6 +181,25 @@ public class ProductRepository(AppDbContext dbContext) : IProductRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<BrandCount>> GetBrandCountsAsync(CancellationToken cancellationToken = default) =>
+        await dbContext.Products
+            .AsNoTracking()
+            .GroupBy(p => p.Brand)
+            .Select(g => new BrandCount(g.Key, g.Count()))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<BrandCount>> GetBrandSpellingsAsync(string brand, Guid? excludeProductId, CancellationToken cancellationToken = default)
+    {
+        // No wildcards: an escaped ILIKE pattern is an exact match ignoring letter case.
+        var pattern = EscapeLikePattern(brand);
+        return await dbContext.Products
+            .AsNoTracking()
+            .Where(p => EF.Functions.ILike(p.Brand, pattern) && (excludeProductId == null || p.Id != excludeProductId))
+            .GroupBy(p => p.Brand)
+            .Select(g => new BrandCount(g.Key, g.Count()))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> IsInUseAsync(
         Guid productId,
         CancellationToken cancellationToken = default)

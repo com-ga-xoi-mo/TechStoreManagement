@@ -229,6 +229,24 @@ When a spec key has a definition, product creation and update SHALL reject a val
 - **WHEN** an Admin saves a product with specs `{"ram_gb": "16 GB"}`
 - **THEN** the response is 400 with an error for `specs` naming `ram_gb`
 
+### Requirement: Brand spelling is reused
+Product creation and update SHALL store the brand with the spelling already used by other products when the trimmed brand equals it ignoring letter case; when several spellings exist the one used by most products wins. The product being updated SHALL not count, so it can change the letter case of a brand only it uses. A brand that no other product uses is stored as typed (trimmed).
+
+#### Scenario: Lower-case brand on create
+- **WHEN** products with brand `Apple` exist and an Admin creates a product with brand `apple`
+- **THEN** the new product's brand is `Apple`
+
+#### Scenario: Only product of a brand changes its case
+- **WHEN** the only product with brand `apple` is updated with brand `Apple`
+- **THEN** its brand becomes `Apple`
+
+### Requirement: Brand suggestions
+`GET /api/products/brands` SHALL return, without authentication, every brand used by stored products (active and inactive) once, grouped ignoring letter case with the most used spelling, each with its product count, ordered by name ignoring case.
+
+#### Scenario: Brands with counts
+- **WHEN** three products use `Apple` and one uses `Logitech`
+- **THEN** the response lists `{ "name": "Apple", "productCount": 3 }` and `{ "name": "Logitech", "productCount": 1 }`
+
 ## MODIFIED Requirements
 
 ### Requirement: Typed specification filter

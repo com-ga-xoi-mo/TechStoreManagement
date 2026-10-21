@@ -174,6 +174,9 @@ Spec keys stay snake_case data inside `specs` (schema contract); their human nam
 - A unique violation on `spec_definitions` (another user created the same key or label meanwhile) is mapped by constraint name to 409 "A spec name was created by someone else; reload and save again." instead of the SKU message (`CreateProductResult` gains an optional `ConflictMessage`).
 - Reads: `GET /api/products/spec-definitions` (anonymous, D11) and `label`/`unit`/`valueKind` on `spec-keys`.
 
+### D14. One spelling per brand (added after review)
+Brand stays a free-text column (no table: a brand has nothing but its name). Two repository reads, both `AsNoTracking`: `GetBrandCountsAsync()` (`GROUP BY brand` with counts) and `GetBrandSpellingsAsync(brand, excludeProductId)` (`ILIKE` on the escaped brand, so an exact match ignoring case; the product under update is excluded). The service picks the spelling used by most products (ties: ordinal order) for create/update and merges spellings for `GET /api/products/brands` (`BrandDto { Name, ProductCount }`, anonymous). No migration; existing mixed spellings are merged in the list and fixed the next time each product is saved.
+
 ## Risks / Trade-offs
 
 - [`FOR UPDATE` raw SQL cannot run on the EF InMemory provider] → unit tests use `FakeProductRepository`; the real lock is checked by the manual `.http` run against PostgreSQL (task group 9).

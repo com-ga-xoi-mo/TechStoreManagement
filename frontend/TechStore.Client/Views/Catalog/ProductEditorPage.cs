@@ -412,7 +412,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
         var removeBtn = new Button()
             .Content("Bỏ")
             .Command(ViewModel.RemoveSpecCommand)
-            .CommandParameter(row)
+            .CommandParameter(x => x.Binding(() => row))
             .Style(AppControlStyles.Styles.QuietButton);
 
         var errorText = new TextBlock()
@@ -492,7 +492,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
         var removeBtn = new Button()
             .Content("Bỏ")
             .Command(ViewModel.RemoveVariantCommand)
-            .CommandParameter(variant)
+            .CommandParameter(x => x.Binding(() => variant))
             .Style(AppControlStyles.Styles.QuietButton)
             .VerticalAlignment(VerticalAlignment.Bottom)
             .Visibility(x => x.Binding(() => variant.IsSaved).Convert((bool s) => CatalogViewParts.ShowIf(!s)));
@@ -526,12 +526,12 @@ public sealed class ProductEditorPage : Page, IRoutePage
                     .Grid(column: 1)
                     .Content("+ Thêm thông số")
                     .Command(ViewModel.AddVariantSpecCommand)
-                    .CommandParameter(variant)
+                    .CommandParameter(x => x.Binding(() => variant))
                     .Style(AppControlStyles.Styles.QuietButton));
 
         var subSpecsList = new ItemsControl()
-            .ItemsSource(variant.Specs)
-            .ItemTemplate<SpecRowItem>(s => BuildVariantSpecRow(s, variant));
+            .ItemsSource(x => x.Binding(() => variant.Specs))
+            .ItemTemplate<SpecRowItem>(BuildVariantSpecRow);
 
         return new Border()
             .Padding(new Thickness(14, 12, 14, 12))
@@ -550,7 +550,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
                         subSpecsList));
     }
 
-    private UIElement BuildVariantSpecRow(SpecRowItem spec, VariantRowItem variant)
+    private UIElement BuildVariantSpecRow(SpecRowItem spec)
     {
         var keyBox = new TextBox()
             .PlaceholderText("Tên thông số (color)")
@@ -570,7 +570,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
         var removeBtn = new Button()
             .Content("Bỏ")
             .Command(ViewModel.RemoveVariantSpecCommand)
-            .CommandParameter(spec)
+            .CommandParameter(x => x.Binding(() => spec))
             .Style(AppControlStyles.Styles.QuietButton);
 
         var errorText = new TextBlock()

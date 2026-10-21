@@ -85,7 +85,7 @@ Detail --[Xóa] 204--> Products(ret)
 - `ViewModels/Catalog/ProductInputParser.cs` (thuần, `public static class ProductInputParser`): `TryParseMoney(string text, out decimal value)`, `ParseSpecs(IReadOnlyList<SpecDraft>)` trả `SpecParseResult(Dictionary<string, JsonElement> Values, IReadOnlyList<string?> RowErrors)`, và `SpecsFromJson(...)`. Quy tắc tiền (`TryParseMoney`): cắt khoảng trắng; chấp nhận `^\d{1,3}(\.\d{3})+(,\d{1,2})?$` (kiểu `35.990.000`), `^\d+(,\d{1,2})?$` hoặc `^\d+(\.\d{1,2})?$` (kiểu `35990000` hoặc `12.5`); trường hợp `^\d+\.\d{3}$` (ví dụ `6.100`) được hiểu là có nhóm nghìn (6100); kết quả phải ≥ 0 và < 10^16. Quy tắc thông số:
   - key cắt khoảng trắng, phải khớp `^[a-z][a-z0-9_]*$`, không trùng trong cùng nhóm (so chính xác, key đã là chữ thường);
   - giá trị cắt khoảng trắng, không rỗng;
-  - `Number`: chấp nhận `^-?\d+([.,]\d+)?$`; dấu `,` đổi thành `.`; phải `decimal.TryParse(..., InvariantCulture)`; tạo `JsonElement` bằng `JsonDocument.Parse(normalized).RootElement.Clone()` để giữ đúng chữ số (không qua `double`);
+  - `Number`: chấp nhận `^-?(0|[1-9]\d*)([.,]\d+)?$` (không nhận số 0 ở đầu như `08`, vì JSON không cho phép); dấu `,` đổi thành `.`; phải `decimal.TryParse(..., InvariantCulture)`; tạo `JsonElement` bằng `JsonDocument.Parse(normalized).RootElement.Clone()` để giữ đúng chữ số (không qua `double`);
   - `Boolean`: chỉ `true`/`false` (không phân biệt hoa thường);
   - `Text`: `JsonSerializer.SerializeToElement(value)`.
   - `SpecsFromJson(IReadOnlyDictionary<string, JsonElement>)` làm chiều ngược lại khi nạp sản phẩm (Number → `GetRawText()`, True/False → `"true"/"false"`, String → `GetString()`), giữ thứ tự key của server.

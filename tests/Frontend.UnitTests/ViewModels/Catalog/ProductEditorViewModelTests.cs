@@ -495,4 +495,34 @@ public sealed class ProductEditorViewModelTests
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() => vm.SetRoute(Guid.NewGuid(), null));
     }
+
+    [Fact]
+    public async Task Save_NumberSpecWithLeadingZero_SetsErrorWithoutExceptionAndDoesNotCreate()
+    {
+        // Arrange
+        var commands = new RecordingProductCommands();
+        var vm = CreateVm(commands: commands);
+        vm.SetRoute(null, null);
+        await vm.ActivateAsync();
+
+        vm.SelectedCategoryId = CatalogSamples.CategoryId;
+        vm.Name = "Test Mouse";
+        vm.Sku = "TM-01";
+        vm.Brand = "Brand";
+        vm.BasePriceText = "1000000";
+        vm.CostPriceText = "800000";
+
+        vm.AddSpecCommand.Execute(null);
+        vm.Specs[0].Key = "ram_gb";
+        vm.Specs[0].KindIndex = 1;
+        vm.Specs[0].Value = "08";
+
+        // Act
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal("Giá trị phải là số, ví dụ 16 hoặc 6.1.", vm.Specs[0].Error);
+        Assert.True(vm.HasSpecsError);
+        Assert.Empty(commands.Created);
+    }
 }

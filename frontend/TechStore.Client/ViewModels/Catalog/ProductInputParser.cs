@@ -11,7 +11,7 @@ public static class ProductInputParser
     private static readonly Regex ThousandsWithDotRegex = new(@"^\d{1,3}(\.\d{3})+(,\d{1,2})?$", RegexOptions.Compiled);
     private static readonly Regex CommaDecimalRegex = new(@"^\d+(,\d{1,2})?$", RegexOptions.Compiled);
     private static readonly Regex DotDecimalRegex = new(@"^\d+(\.\d{1,2})?$", RegexOptions.Compiled);
-    private static readonly Regex NumberSpecRegex = new(@"^-?\d+([.,]\d+)?$", RegexOptions.Compiled);
+    private static readonly Regex NumberSpecRegex = new(@"^-?(0|[1-9]\d*)([.,]\d+)?$", RegexOptions.Compiled);
 
     public static bool TryParseMoney(string? text, out decimal value)
     {

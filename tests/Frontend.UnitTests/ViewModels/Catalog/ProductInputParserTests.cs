@@ -139,6 +139,40 @@ public sealed class ProductInputParserTests
         Assert.Equal("Giá trị phải là số, ví dụ 16 hoặc 6.1.", result.RowErrors[0]);
     }
 
+    [Theory]
+    [InlineData("08")]
+    [InlineData("-01")]
+    public void ParseSpecs_NumberWithLeadingZero_ReturnsNumberError(string val)
+    {
+        // Arrange
+        var rows = new[] { new SpecDraft("ram_gb", SpecValueKind.Number, val) };
+
+        // Act
+        var result = ProductInputParser.ParseSpecs(rows);
+
+        // Assert
+        Assert.False(result.IsValid);
+        Assert.Equal("Giá trị phải là số, ví dụ 16 hoặc 6.1.", result.RowErrors[0]);
+        Assert.Empty(result.Values);
+    }
+
+    [Theory]
+    [InlineData("0", "0")]
+    [InlineData("0.5", "0.5")]
+    [InlineData("-0,5", "-0.5")]
+    public void ParseSpecs_ZeroAndDecimals_AreValid(string input, string expectedRaw)
+    {
+        // Arrange
+        var rows = new[] { new SpecDraft("val", SpecValueKind.Number, input) };
+
+        // Act
+        var result = ProductInputParser.ParseSpecs(rows);
+
+        // Assert
+        Assert.True(result.IsValid);
+        Assert.Equal(expectedRaw, result.Values["val"].GetRawText());
+    }
+
     [Fact]
     public void ParseSpecs_InvalidBoolean_ReturnsBooleanError()
     {

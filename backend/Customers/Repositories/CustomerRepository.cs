@@ -36,7 +36,7 @@ public class CustomerRepository(AppDbContext dbContext) : ICustomerRepository
         if (!string.IsNullOrWhiteSpace(criteria.Query))
         {
             var pattern = $"%{EscapeLikePattern(criteria.Query)}%";
-            query = query.Where(c => EF.Functions.ILike(c.FullName, pattern) || EF.Functions.ILike(c.Phone, pattern));
+            query = query.Where(c => EF.Functions.ILike(c.FullName, pattern, "!") || EF.Functions.ILike(c.Phone, pattern, "!"));
         }
         if (criteria.Tier.HasValue) query = query.Where(c => c.Tier == criteria.Tier.Value);
         if (criteria.IsActive.HasValue) query = query.Where(c => c.IsActive == criteria.IsActive.Value);
@@ -111,5 +111,6 @@ public class CustomerRepository(AppDbContext dbContext) : ICustomerRepository
 
     public void Add(Customer customer) => dbContext.Customers.Add(customer);
 
-    private static string EscapeLikePattern(string value) => value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+    // ESCAPE '!' makes backslash literal instead of relying on PostgreSQL's default LIKE escape.
+    private static string EscapeLikePattern(string value) => value.Replace("!", "!!").Replace("%", "!%").Replace("_", "!_");
 }

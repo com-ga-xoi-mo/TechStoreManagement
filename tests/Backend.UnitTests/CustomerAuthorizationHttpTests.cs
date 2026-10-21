@@ -65,7 +65,7 @@ public class CustomerAuthorizationHttpTests : IClassFixture<CustomerApiFactory>
         (await _client.SendAsync(salesItemsRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.Forbidden);
         var adminItemsRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/customers/{customerId}/purchased-items");
         adminItemsRequest.Headers.Authorization = new("Bearer", CreateToken("Admin"));
-        (await _client.SendAsync(adminItemsRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        (await _client.SendAsync(adminItemsRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
 
         var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/customers") { Content = JsonContent.Create(new CreateCustomerRequest { FullName = "API Test", Phone = "123" }) };
         createRequest.Headers.Authorization = new("Bearer", CreateToken("Admin"));
@@ -127,7 +127,7 @@ public sealed class TestCustomerService : ICustomerService
     public Task<CustomerOperationResult<CustomerDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<CustomerDto>.NotFound());
     public Task<CustomerOperationResult<PagedResultDto<CustomerLoyaltyPointDto>>> GetLoyaltyPointsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<PagedResultDto<CustomerLoyaltyPointDto>>.Success(new([], 1, 20, 0, 0)));
     public Task<CustomerOperationResult<PagedResultDto<OrderSummaryDto>>> GetOrdersAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<PagedResultDto<OrderSummaryDto>>.Success(new([], 1, 20, 0, 0)));
-    public Task<CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>> GetPurchasedItemsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>.Success(new([], 1, 20, 0, 0)));
+    public Task<CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>> GetPurchasedItemsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>.NotFound());
     public Task<CustomerOperationResult<CustomerDto>> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default) =>
         Task.FromResult(string.IsNullOrWhiteSpace(request.FullName)
             ? CustomerOperationResult<CustomerDto>.Invalid(new() { ["fullName"] = ["Full name is required."] })

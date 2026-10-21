@@ -31,6 +31,7 @@ public class ProductRepository(AppDbContext dbContext) : IProductRepository
             query = query.Where(p =>
                 EF.Functions.ILike(p.Name, pattern) ||
                 EF.Functions.ILike(p.Sku, pattern) ||
+                EF.Functions.ILike(p.Brand, pattern) ||
                 (p.Barcode != null && EF.Functions.ILike(p.Barcode, pattern)) ||
                 p.Variants.Any(v =>
                     EF.Functions.ILike(v.Sku, pattern) ||

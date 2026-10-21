@@ -7,18 +7,22 @@ Cung cấp khung điều hướng TechStore có vòng đời trang và state rõ
 ## Requirements
 
 ### Requirement: Offline development shell
-Client SHALL mở Shell với cấu hình hợp lệ khi không bật gallery, không cần backend/database. Shell MUST hiển thị trạng thái phát triển chưa đăng nhập và MUST NOT tạo phiên xác thực hoặc request nghiệp vụ để hiển thị trang khung hoặc Dashboard demo. Tổng quan SHALL chỉ có fixture khi demo được bật tường minh; mặc định báo chưa tích hợp Analytics.
+Client SHALL open the Shell with valid configuration without requiring the backend/database. Shell MUST show the development unauthenticated state when there is no session and MUST NOT create a fake authentication session. When Dashboard is activated, the default live Analytics request may fail visibly; demo fixture data is shown only when preview is explicitly enabled. The Shell itself SHALL remain navigable after that request failure.
 
 #### Scenario: Default offline startup
-- **WHEN** khởi chạy với backend tắt, cấu hình hợp lệ và gallery không bật
-- **THEN** Shell mở ở Tổng quan, có nhãn “Bản phát triển — chưa đăng nhập”, không có token/session giả hoặc request nghiệp vụ
+- **WHEN** the application starts with backend unavailable, valid configuration, and gallery disabled
+- **THEN** Shell opens at Overview with “Bản phát triển — chưa đăng nhập”, no fake token/session is created, and the Dashboard reports the actual unauthenticated/network failure without fixture data
 
 #### Scenario: Explicit dashboard preview
-- **WHEN** Dashboard demo bật và gallery tắt
-- **THEN** Shell vẫn mở offline ở Tổng quan với banner dữ liệu minh họa, không tạo phiên đăng nhập hoặc request Analytics
+- **WHEN** Dashboard preview is enabled and gallery is disabled
+- **THEN** Shell opens offline at Overview with a persistent fixture banner and no authentication session or Analytics request
+
+#### Scenario: Shell remains usable after Dashboard API failure
+- **WHEN** the Dashboard API request fails during shell startup or navigation
+- **THEN** the error is contained in Dashboard state and the user can navigate to the other supported Shell destinations
 
 ### Requirement: Six coherent admin destinations
-Shell SHALL có đúng sáu điểm vào Tổng quan, Sản phẩm, Danh mục và Kho, Đơn hàng, Khách hàng, Cài đặt, được cấu trúc và khởi tạo bằng C# Markup Fluent API (`Uno.Extensions.Markup.WinUI` trên `NavigationView`). Selected menu, tiêu đề, và nội dung SHALL cùng phản ánh route đã chuyển thành công. Đồng thời Pane Footer của Shell SHALL hiển thị trạng thái tài khoản đang đăng nhập (FullName, Role) và nút Đăng xuất thông qua declarative bindings của C# Markup thay vì manual PropertyChanged handlers. Sản phẩm SHALL mở Catalog đọc thật và chứa route chi tiết theo productId; Tổng quan SHALL thể hiện preview có nhãn khi demo bật, hoặc chưa tích hợp khi tắt; các trang nghiệp vụ chưa triển khai SHALL ghi rõ trạng thái khung thay vì bịa dữ liệu.
+Shell SHALL have exactly six entry points: Overview, Products, Categories and Inventory, Orders, Customers, and Settings. They SHALL be structured with C# Markup Fluent API (`Uno.Extensions.Markup.WinUI` on `NavigationView`). Selected menu, title, and content SHALL reflect the successfully navigated route. Shell Pane Footer SHALL show the active account (FullName, Role) and Logout action through declarative C# Markup bindings. Products SHALL open live Catalog data and provide productId detail navigation; Overview SHALL show live Analytics by default or labeled preview only when enabled; unimplemented business pages SHALL clearly remain placeholders without fabricated data. At expanded desktop widths, the navigation pane SHALL visually follow the left-sidebar hierarchy in `docs/sample_dashboard.png`: brand and subtitle, menu section label, highlighted current destination, compact icon/label rows, Settings separated near the bottom, and account footer. Visual changes MUST preserve existing route, selection, session and logout behavior.
 
 #### Scenario: Visit every destination
 - **WHEN** lần lượt chọn sáu điểm vào bằng chuột hoặc keyboard
@@ -44,6 +48,10 @@ Shell SHALL có đúng sáu điểm vào Tổng quan, Sản phẩm, Danh mục v
 - **WHEN** Quản trị viên đăng nhập thành công với tài khoản "admin"
 - **THEN** Pane footer của Shell cập nhật tên người dùng và vai trò "Quản trị viên", nhãn trạng thái chuyển thành "Đã đăng nhập"
 
+#### Scenario: Expanded sidebar matches the reference hierarchy
+- **WHEN** Shell is shown with its navigation pane expanded at a wide desktop size
+- **THEN** brand, menu caption, selected Overview row, other destinations, separated Settings entry and account footer follow the reference's visual hierarchy without adding/removing destinations or changing navigation behavior
+
 ### Requirement: Cancellable page activation
 Trang SHALL bắt đầu load một lần mỗi activation, hủy load khi rời trang hoặc đóng cửa sổ và bỏ mọi kết quả thuộc activation cũ. Chuyển trang SHALL không phải đợi load cũ hoàn tất; cancellation dự kiến MUST NOT hiện thành lỗi người dùng.
 
@@ -56,7 +64,7 @@ Trang SHALL bắt đầu load một lần mỗi activation, hủy load khi rời
 - **THEN** load nhận cancellation, không cập nhật UI đã đóng, không nhận thao tác mới và tài nguyên được giải phóng đúng một lần khi công việc kết thúc
 
 ### Requirement: Predictable presentation state
-Trang SHALL thể hiện Loading, Empty, Content hoặc Error theo kết quả hiện hành và cho retry lỗi hiện hành; Catalog detail có thêm NotFound. Dashboard SHALL phân biệt trạng thái chưa tích hợp với kết quả demo rỗng và chỉ tải demo khi bật tường minh. Activation mới SHALL reset dữ liệu trang; Back từ detail Catalog chỉ giữ query/page dạng giá trị và tải lại kết quả. Resize, theme và dialog SHALL không tự load lại hoặc xóa state trang đang mở.
+Pages SHALL present Loading, Empty, Content, or Error from the current result and provide retry for the current failure; Catalog detail also supports NotFound. Dashboard SHALL distinguish live API success with zero/empty values, live API errors, and preview results; only an explicit preview flag may select fixture data. A new activation resets page data. Back from Catalog detail preserves query/page as values and reloads. Resize, theme, or dialogs SHALL NOT reload or clear current page state. A Dashboard session change SHALL clear data from the previous session and prevent late responses from committing.
 
 #### Scenario: Failure and retry
 - **WHEN** load hiện hành lỗi rồi người dùng retry
@@ -79,8 +87,20 @@ Trang SHALL thể hiện Loading, Empty, Content hoặc Error theo kết quả h
 - **THEN** query/page khởi đầu mặc định, dữ liệu và input từ activation Catalog trước không tự phục hồi
 
 #### Scenario: Dashboard revisit
-- **WHEN** rời Dashboard rồi quay lại
-- **THEN** activation mới bắt đầu ở kỳ mặc định; demo bật tải snapshot fixture mới, demo tắt tiếp tục báo chưa tích hợp, không khôi phục state cũ
+- **WHEN** the user leaves Dashboard and returns
+- **THEN** the new activation starts at the default period and loads the live snapshot, or a fresh fixture when preview is explicitly enabled; prior activation state is not restored
+
+#### Scenario: Live zero values and independent empty lists
+- **WHEN** a successful live Dashboard response contains zero KPIs or an empty recent-order or low-stock list
+- **THEN** zero values and each list's own empty state are shown as successful data, without preview or not-integrated messaging
+
+#### Scenario: Dashboard session and authorization changes
+- **WHEN** an anonymous request receives 401, an active session receives 401, an Admin receives 403, or the user logs out during a Dashboard request
+- **THEN** anonymous 401 shows sign-in-required Error without changing session; active 401 expires only the matching session; 403 preserves the session and shows access denied; logout clears the snapshot and cancels the request into sign-in-required Empty state
+
+#### Scenario: Dashboard late response after a session change
+- **WHEN** a Dashboard request completes after logout, session replacement, or a newer period request
+- **THEN** its data, error, or loading finalization does not modify the current page or expose data from the prior session
 
 ### Requirement: Session local settings
 Cài đặt SHALL cho chọn System/Light/Dark, xem thông tin ứng dụng không nhạy cảm, đồng thời cho phép Quản trị viên xem và chỉnh sửa thông tin cấu hình cửa hàng TechStore (tên cửa hàng, địa chỉ, hotline, mã số thuế) thông qua Uno C# Markup Fluent API (`Uno.Extensions.Markup`) kết hợp với CommunityToolkit SettingsControls. Toàn bộ form fields, thông báo lưu thành công và nút lưu SHALL sử dụng declarative two-way bindings. Theme SHALL áp dụng ngay trong Shell/dialog, giữ khi chuyển trang trong phiên và mặc định System ở phiên mới. Thao tác theme không cần backend; các thay đổi cấu hình cửa hàng phát sinh lưu trữ qua API cấu hình.

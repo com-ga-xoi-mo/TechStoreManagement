@@ -22,4 +22,9 @@
     <ProjectReference Include="..\shared\TechStore.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="TechStore.UnitTests" />
+    <InternalsVisibleTo Include="TechStore.Backend.IntegrationTests" />
+  </ItemGroup>
+
 </Project>

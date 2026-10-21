@@ -46,7 +46,7 @@ public sealed class FixtureAnalyticsRepositoryTests
         Assert.Null((await _repository.GetDashboardAsync(new DashboardQuery(DashboardPeriod.Today))).Snapshot!.Summary.RevenueChangePercent);
         Assert.Contains(snapshot.RecentOrders, order => order.Status == OrderStatus.Processing);
         Assert.Contains(snapshot.RecentOrders, order => order.Status == OrderStatus.Pending);
-        Assert.Contains(snapshot.RecentOrders, order => order.SerialLabel is null);
+        Assert.Contains(snapshot.RecentOrders, order => order.CustomerName is not null);
 
         var today = (await _repository.GetDashboardAsync(new DashboardQuery(DashboardPeriod.Today))).Snapshot!;
         Assert.Equal(2, today.RecentOrders.Count);
@@ -76,7 +76,7 @@ public sealed class FixtureAnalyticsRepositoryTests
             new DateOnly(2026, 10, 14),
             new DateOnly(2026, 10, 14),
             new DateTimeOffset(2026, 10, 14, 17, 30, 0, TimeSpan.FromHours(7)),
-            DashboardSourceKind.Demo,
+            DashboardSourceKind.Preview,
             new DashboardSummary(0m, 0, 0, 0, null, null),
             Array.Empty<DailyRevenuePoint>(),
             Array.Empty<LowStockItem>(),

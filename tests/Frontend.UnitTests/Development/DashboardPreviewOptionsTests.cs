@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TechStore.Client.Models.Analytics;
 using TechStore.Client.Repositories.Analytics;
 using TechStore.Client.Services.Development;
+using TechStore.Client.Services.Api;
 
 namespace TechStore.Client.UnitTests.Development;
 
@@ -28,9 +29,10 @@ public sealed class DashboardPreviewOptionsTests
     }
 
     [Fact]
-    public async Task Registration_UsesTransientRepositoryAndUnavailableDoesNotFabricateZero()
+    public async Task Registration_UsesTransientLiveApiRepositoryByDefaultAndPropagatesFailure()
     {
         var services = new ServiceCollection()
+            .AddSingleton<IApiClient>(new ThrowingApiClient())
             .AddDashboardAnalytics(new DashboardPreviewOptions(false))
             .BuildServiceProvider();
 
@@ -41,12 +43,10 @@ public sealed class DashboardPreviewOptionsTests
             var first = firstScope.ServiceProvider.GetRequiredService<IAnalyticsRepository>();
             var second = secondScope.ServiceProvider.GetRequiredService<IAnalyticsRepository>();
 
-            Assert.IsType<UnavailableAnalyticsRepository>(first);
-            Assert.IsType<UnavailableAnalyticsRepository>(second);
+            Assert.IsType<AnalyticsApiRepository>(first);
+            Assert.IsType<AnalyticsApiRepository>(second);
             Assert.NotSame(first, second);
-            var result = await first.GetDashboardAsync(new DashboardQuery(DashboardPeriod.Today));
-            Assert.False(result.IsAvailable);
-            Assert.Null(result.Snapshot);
+            await Assert.ThrowsAsync<ApiException>(() => first.GetDashboardAsync(new DashboardQuery(DashboardPeriod.Today)));
         }
     }
 
@@ -54,11 +54,21 @@ public sealed class DashboardPreviewOptionsTests
     public void Registration_EnablesFixtureOnlyWhenConfigured()
     {
         var services = new ServiceCollection()
+            .AddSingleton<IApiClient>(new ThrowingApiClient())
             .AddDashboardAnalytics(new DashboardPreviewOptions(true))
             .BuildServiceProvider();
 
         using (services)
         using (var scope = services.CreateScope())
             Assert.IsType<FixtureAnalyticsRepository>(scope.ServiceProvider.GetRequiredService<IAnalyticsRepository>());
+    }
+
+    private sealed class ThrowingApiClient : IApiClient
+    {
+        public Task<TResponse> GetAsync<TResponse>(string relativePath, CancellationToken cancellationToken = default) =>
+            throw new ApiException(ApiErrorKind.Network, "api unavailable");
+        public Task<TResponse> PostAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<TResponse> PutAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task PostAsync<TRequest>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

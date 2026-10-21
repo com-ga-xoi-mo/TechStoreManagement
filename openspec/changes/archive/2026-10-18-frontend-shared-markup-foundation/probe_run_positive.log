@@ -1,0 +1,52 @@
+Using launch settings from frontend/TechStore.Client/Properties/launchSettings.json...
+[HARNESS] Initializing Uno Skia Desktop Probe Host...
+fail: Uno.UI.RemoteControl.RemoteControlClient[0]
+      Some endpoint for uno's dev-server has been configured in your application, but all are invalid (port is missing?). This can usually be fixed with a **rebuild** of your application. If not, make sure you have the latest version of the uno's extensions installed in your IDE and restart your IDE.
+fail: Uno.WinUI.Runtime.Skia.X11.X11NativeOverlappedPresenter[0]
+      Couldn't get OverlappedPresenterState: _NET_WM_STATE does not exist on the window. Make sure you use an EWMH-compliant WM.
+fail: Uno.WinUI.Runtime.Skia.X11.X11NativeOverlappedPresenter[0]
+      Couldn't get OverlappedPresenterState: _NET_WM_STATE does not exist on the window. Make sure you use an EWMH-compliant WM.
+================================================================================
+TECHSTORE C# THEME BINDING RUNTIME PROBE (Uno 6.7.30 / Skia)
+Mode: POSITIVE RUN
+Window Content: Loaded=True, ActualTheme=Light, Size=1024x640
+================================================================================
+[Step 1] Registering Minimal C# Theme Dictionaries...
+
+================================================================================
+AGGREGATE PROBE RESULTS
+================================================================================
+[PASS] C# ResourceDictionary.ThemeDictionaries Direct Lookup
+       API: Application.Current.Resources["ProbePrimaryBrush"] & ["ProbeTextBrush"]
+       Expected: Primary=#FF0066FF, Text=#FF0F172A
+       Actual:   Primary=#FF0066FF, Text=#FF0F172A
+       Notes:    Direct lookup resolves static snapshot matching current system/app theme (Light).
+[PASS] Pure C# Style Setter on Mounted Element
+       API: style.Setters.Add(new Setter(TextBlock.ForegroundProperty, brush))
+       Expected: Foreground=#FF0F172A
+       Actual:   Foreground=#FF0F172A
+       Notes:    C# Style Setter applies brush value to mounted control.
+[PASS] PathIconSource with Visual Consumer (PathIcon)
+       API: PathIcon.Foreground = iconSource.Foreground
+       Expected: Foreground=#FF1D4ED8
+       Actual:   Foreground=#FF1D4ED8
+       Notes:    IconSource Foreground correctly rendered by visual consumer.
+[PASS] C# VisualState Setter Across All 6 Tones
+       API: VisualStateManager.GoToState(hostGrid, tone, false) with Setters on TargetPropertyPath
+       Expected: All 6 tones apply Background, BorderBrush, Foreground setters correctly
+       Actual:   Neutral: OK (Bg=#FFF1F5F9, Fg=#FF475569, Stroke=#FFCBD5E1); Info: OK (Bg=#FFEFF6FF, Fg=#FF1D4ED8, Stroke=#FFBFDBFE); Success: OK (Bg=#FFECFDF5, Fg=#FF047857, Stroke=#FFA7F3D0); Warning: OK (Bg=#FFFFFBEB, Fg=#FFB45309, Stroke=#FFFDE68A); Danger: OK (Bg=#FFFEF2F2, Fg=#FFB91C1C, Stroke=#FFFECACA); Accent: OK (Bg=#FFF5F3FF, Fg=#FF6D28D9, Stroke=#FFDDD6FE)
+       Notes:    TargetPropertyPath setters executed by VisualStateManager in C#.
+[PASS] Dynamic Theme Adaptation (Light -> Dark -> Default) via ThemeAdapter
+       API: ActualThemeChanged subscription adapter with attach/detach
+       Expected: Light(Bg=#FFF8FAFC, Fg=#FF0F172A), Dark(Bg=#FF0F172A, Fg=#FFF8FAFC)
+       Actual:   Light(Bg=#FFF8FAFC, Fg=#FF0F172A), Dark(Bg=#FF0F172A, Fg=#FFF8FAFC), Default(Bg=#FFF8FAFC, Fg=#FF0F172A)
+       Notes:    Confirms that in pure C# markup, dynamic live adaptation across RequestedTheme transitions requires the attachable ActualThemeChanged ThemeAdapter pattern as specified in Design Section 2.
+[PASS] Compatibility with Existing XAML Resource Dictionaries
+       API: Application.Current.Resources["TechStoreCanvasBrush"] & MergedDictionaries lookup
+       Expected: Existing XAML dictionaries accessible alongside C# dictionaries
+       Actual:   hasColors=True, hasHeadingStyle=True, hasCanvasBrush=True
+       Notes:    C# dictionaries can coexist in MergedDictionaries without breaking existing XAML lookups.
+================================================================================
+POSITIVE RUN RESULT: ALL ASSERTIONS PASSED. Exit code 0.
+[HARNESS] Probe suite completed with exit code 0.
+Exited with code: 0

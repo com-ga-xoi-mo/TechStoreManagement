@@ -1,6 +1,8 @@
 using TechStore.Client.Models.Analytics;
 using TechStore.Client.Repositories.Analytics;
+using TechStore.Client.Services.Api;
 using TechStore.Client.Services.Development;
+using TechStore.Client.Services.Session;
 using TechStore.Client.ViewModels.Dashboard;
 using TechStore.Client.ViewModels.Pages;
 
@@ -25,6 +27,19 @@ public sealed class DashboardViewModelTests
     }
 
     [Fact]
+    public async Task ChartPeakSummary_UsesSnapshotPeakAndAsOfMetadata()
+    {
+        var viewModel = Create(new RecordingAnalyticsRepository(), demoEnabled: false);
+
+        await viewModel.ActivateAsync();
+
+        Assert.Contains("Đỉnh", viewModel.ChartPeakSummary);
+        Assert.Contains("99", viewModel.ChartPeakSummary);
+        Assert.Contains("₫", viewModel.ChartPeakSummary);
+        Assert.Contains("UTC+07", viewModel.ChartPeakSummary);
+    }
+
+    [Fact]
     public async Task SelectPeriodAsync_UsesRepositoryAndUnavailableDoesNotBecomeZeroContent()
     {
         var repository = new AnalyticsRepositoryFake(new UnavailableAnalyticsRepository());
@@ -36,11 +51,11 @@ public sealed class DashboardViewModelTests
         Assert.Equal(DashboardPeriod.Today, viewModel.SelectedPeriod);
         Assert.Equal(PageContentState.Empty, viewModel.ContentState);
         Assert.True(viewModel.IsUnavailable);
-        Assert.False(viewModel.CanChangePeriod);
+        Assert.True(viewModel.CanChangePeriod);
         Assert.Null(viewModel.Snapshot);
         Assert.Equal("—", viewModel.LowStockText);
         Assert.Empty(viewModel.LowStockTrendText);
-        Assert.Equal("Chưa có dữ liệu tồn kho", viewModel.LowStockDetailText);
+        Assert.Equal("Số balance có Quantity ≤ MinStockAlert", viewModel.LowStockDetailText);
         Assert.Equal(2, repository.Queries.Count);
     }
 
@@ -50,21 +65,44 @@ public sealed class DashboardViewModelTests
         var firstCompletion = new TaskCompletionSource<DashboardReadResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var secondCompletion = new TaskCompletionSource<DashboardReadResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var repository = new SequencedAnalyticsRepository(firstCompletion, secondCompletion);
-        var viewModel = Create(repository);
+        var session = new InMemorySessionStore();
+        session.SetSession("token-a", "refresh-a", "admin", "Admin A", "Admin");
+        var viewModel = Create(repository, demoEnabled: false, sessionStore: session);
         var initial = viewModel.ActivateAsync();
         Assert.Equal(DashboardPeriod.Last7Days, repository.Queries[0].Period);
 
-        var first = viewModel.SelectPeriodCommand.ExecuteAsync(0);
-        var second = viewModel.SelectPeriodCommand.ExecuteAsync(2);
-        secondCompletion.SetResult(DashboardReadResult.Available(MakeSnapshot(DashboardPeriod.ThisMonth, 222m)));
-        await second;
+        session.SetSession("token-b", "refresh-b", "admin", "Admin B", "Admin");
+        Assert.Equal(2, repository.Queries.Count);
+        secondCompletion.SetResult(DashboardReadResult.Available(MakeSnapshot(DashboardPeriod.Today, 222m)));
+        await WaitUntilAsync(() => viewModel.Snapshot?.Summary.Revenue == 222m);
 
-        firstCompletion.SetResult(DashboardReadResult.Available(MakeSnapshot(DashboardPeriod.Today, 111m)));
-        await Task.WhenAll(first, initial);
+        firstCompletion.SetResult(DashboardReadResult.Available(MakeSnapshot(DashboardPeriod.Last7Days, 111m)));
+        await initial;
 
-        Assert.Equal(DashboardPeriod.ThisMonth, viewModel.SelectedPeriod);
         Assert.Equal(222m, viewModel.Snapshot!.Summary.Revenue);
         Assert.Equal(PageContentState.Content, viewModel.ContentState);
+    }
+
+    [Fact]
+    public async Task SessionReplacement_LateErrorCannotReplaceCurrentSessionState()
+    {
+        var firstCompletion = new TaskCompletionSource<DashboardReadResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondCompletion = new TaskCompletionSource<DashboardReadResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var session = new InMemorySessionStore();
+        session.SetSession("token-a", "refresh-a", "admin", "Admin A", "Admin");
+        var viewModel = Create(new SequencedAnalyticsRepository(firstCompletion, secondCompletion),
+            demoEnabled: false, sessionStore: session);
+        var initial = viewModel.ActivateAsync();
+
+        session.SetSession("token-b", "refresh-b", "admin", "Admin B", "Admin");
+        secondCompletion.SetResult(DashboardReadResult.Available(MakeSnapshot(DashboardPeriod.Last7Days, 222m, DashboardSourceKind.Live)));
+        await WaitUntilAsync(() => viewModel.Snapshot?.Summary.Revenue == 222m);
+        firstCompletion.SetException(new ApiException(ApiErrorKind.Http, "late failure", 500));
+        await initial;
+
+        Assert.Equal(222m, viewModel.Snapshot!.Summary.Revenue);
+        Assert.Equal(PageContentState.Content, viewModel.ContentState);
+        Assert.Empty(viewModel.ErrorMessage);
     }
 
     [Fact]
@@ -82,6 +120,71 @@ public sealed class DashboardViewModelTests
         Assert.Equal(PageContentState.Content, viewModel.ContentState);
         Assert.Equal(DashboardPeriod.Today, repository.LastQuery!.Period);
         Assert.Equal(1_234m, viewModel.Snapshot!.Summary.Revenue);
+    }
+
+    [Fact]
+    public async Task LiveDashboard_AllowsPeriodSelectionAndRefreshForCurrentPeriod()
+    {
+        var repository = new RecordingAnalyticsRepository();
+        var session = new InMemorySessionStore();
+        session.SetSession("token", "refresh", "admin", "Admin", "Admin");
+        var viewModel = Create(repository, demoEnabled: false, sessionStore: session);
+
+        await viewModel.ActivateAsync();
+        await viewModel.SelectPeriodCommand.ExecuteAsync(0);
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+
+        Assert.Equal(new[] { DashboardPeriod.Last7Days, DashboardPeriod.Today, DashboardPeriod.Today },
+            repository.Queries.Select(query => query.Period));
+        Assert.False(viewModel.IsDemoMode);
+        Assert.True(viewModel.CanChangePeriod);
+        Assert.Equal(PageContentState.Content, viewModel.ContentState);
+    }
+
+    [Fact]
+    public async Task SessionExpired_ClearsSnapshotAndShowsAuthenticationError()
+    {
+        var session = new InMemorySessionStore();
+        session.SetSession("token", "refresh", "admin", "Admin", "Admin");
+        var viewModel = Create(new AnalyticsRepositoryFake(new FixtureAnalyticsRepository()), demoEnabled: false, sessionStore: session);
+        await viewModel.ActivateAsync();
+
+        Assert.True(session.TryExpire(session.Current.Generation));
+
+        Assert.Null(viewModel.Snapshot);
+        Assert.Equal(PageContentState.Error, viewModel.ContentState);
+        Assert.Contains("hết hạn", viewModel.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Logout_ClearsLiveSnapshotAndLeavesSignInRequiredEmptyState()
+    {
+        var session = new InMemorySessionStore();
+        session.SetSession("token", "refresh", "admin", "Admin", "Admin");
+        var viewModel = Create(new AnalyticsRepositoryFake(new FixtureAnalyticsRepository()), demoEnabled: false, sessionStore: session);
+        await viewModel.ActivateAsync();
+
+        session.Clear();
+
+        Assert.Null(viewModel.Snapshot);
+        Assert.Equal(PageContentState.Empty, viewModel.ContentState);
+        Assert.True(viewModel.IsSignedOut);
+        Assert.Contains("Đăng nhập", viewModel.EmptyDashboardMessage);
+    }
+
+    [Fact]
+    public async Task ForbiddenRequest_ShowsAccessDeniedAndPreservesSession()
+    {
+        var session = new InMemorySessionStore();
+        session.SetSession("token", "refresh", "admin", "Admin", "Admin");
+        var repository = new ThrowingAnalyticsRepository(new ApiException(ApiErrorKind.Http, "Forbidden", 403));
+        var viewModel = Create(repository, demoEnabled: false, sessionStore: session);
+
+        await viewModel.ActivateAsync();
+
+        Assert.Equal(PageContentState.Error, viewModel.ContentState);
+        Assert.Contains("không có quyền", viewModel.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(SessionStatus.Active, session.Current.Status);
     }
 
     [Fact]
@@ -112,10 +215,11 @@ public sealed class DashboardViewModelTests
         Assert.Equal(1, disposeCount);
     }
 
-    private static DashboardViewModel Create(IAnalyticsRepository repository, bool demoEnabled = true) =>
-        new(repository, new DashboardPreviewOptions(demoEnabled));
+    private static DashboardViewModel Create(IAnalyticsRepository repository, bool demoEnabled = true, ISessionStore? sessionStore = null) =>
+        new(repository, new DashboardPreviewOptions(demoEnabled), sessionStore ?? new InMemorySessionStore());
 
-    private static DashboardSnapshot MakeSnapshot(DashboardPeriod period, decimal revenue)
+    private static DashboardSnapshot MakeSnapshot(DashboardPeriod period, decimal revenue,
+        DashboardSourceKind sourceKind = DashboardSourceKind.Preview)
     {
         var date = period switch
         {
@@ -125,9 +229,19 @@ public sealed class DashboardViewModelTests
         };
         var end = new DateOnly(2026, 10, 14);
         return new DashboardSnapshot(period, date, end,
-            new DateTimeOffset(2026, 10, 14, 17, 30, 0, TimeSpan.FromHours(7)), DashboardSourceKind.Demo,
+            new DateTimeOffset(2026, 10, 14, 17, 30, 0, TimeSpan.FromHours(7)), sourceKind,
             new DashboardSummary(revenue, 1, 1, 0, null, null),
             [new DailyRevenuePoint(end, revenue)], [], []);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        var timeout = DateTime.UtcNow.AddSeconds(2);
+        while (!condition())
+        {
+            if (DateTime.UtcNow >= timeout) throw new TimeoutException("Dashboard state did not reach the expected value.");
+            await Task.Delay(10);
+        }
     }
 
     private sealed class AnalyticsRepositoryFake(IAnalyticsRepository inner) : IAnalyticsRepository
@@ -149,12 +263,7 @@ public sealed class DashboardViewModelTests
         public Task<DashboardReadResult> GetDashboardAsync(DashboardQuery query, CancellationToken cancellationToken = default)
         {
             Queries.Add(query);
-            return Interlocked.Increment(ref _calls) switch
-            {
-                1 => first.Task,
-                2 => first.Task,
-                _ => second.Task
-            };
+            return Interlocked.Increment(ref _calls) == 1 ? first.Task : second.Task;
         }
     }
 
@@ -170,6 +279,23 @@ public sealed class DashboardViewModelTests
                 ? Task.FromException<DashboardReadResult>(new InvalidOperationException("temporary test failure"))
                 : Task.FromResult(DashboardReadResult.Available(MakeSnapshot(query.Period, call == 1 ? 9_876m : 1_234m)));
         }
+    }
+
+    private sealed class RecordingAnalyticsRepository : IAnalyticsRepository
+    {
+        public List<DashboardQuery> Queries { get; } = [];
+        public Task<DashboardReadResult> GetDashboardAsync(DashboardQuery query, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Queries.Add(query);
+            return Task.FromResult(DashboardReadResult.Available(MakeSnapshot(query.Period, 99m, DashboardSourceKind.Live)));
+        }
+    }
+
+    private sealed class ThrowingAnalyticsRepository(ApiException exception) : IAnalyticsRepository
+    {
+        public Task<DashboardReadResult> GetDashboardAsync(DashboardQuery query, CancellationToken cancellationToken = default) =>
+            Task.FromException<DashboardReadResult>(exception);
     }
 
     private sealed class UncooperativeAnalyticsRepository(

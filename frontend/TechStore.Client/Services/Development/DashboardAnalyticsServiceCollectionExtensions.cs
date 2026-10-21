@@ -13,12 +13,13 @@ public static class DashboardAnalyticsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(options);
 
         services.AddSingleton(options);
+        services.AddTransient<AnalyticsApiRepository>();
         services.AddTransient<FixtureAnalyticsRepository>();
         services.AddTransient<UnavailableAnalyticsRepository>();
         services.AddTransient<IAnalyticsRepository>(provider =>
             options.Enabled
                 ? provider.GetRequiredService<FixtureAnalyticsRepository>()
-                : provider.GetRequiredService<UnavailableAnalyticsRepository>());
+                : provider.GetRequiredService<AnalyticsApiRepository>());
 
         return services;
     }

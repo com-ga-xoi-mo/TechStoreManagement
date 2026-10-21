@@ -21,13 +21,16 @@ public class UnitOfWork(AppDbContext dbContext) : IUnitOfWork
     }
 
     public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
+        => await BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken);
+
+    public async Task BeginTransactionAsync(System.Data.IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
     {
         if (_currentTransaction != null)
         {
             throw new InvalidOperationException("A transaction is already open.");
         }
 
-        _currentTransaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        _currentTransaction = await dbContext.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
     }
 
     public async Task CommitAsync(CancellationToken cancellationToken = default)

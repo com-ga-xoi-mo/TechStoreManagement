@@ -1,4 +1,5 @@
 using TechStore.Api.Common.Data;
+using System.Data;
 
 namespace TechStore.UnitTests;
 
@@ -15,6 +16,7 @@ public class FakeUnitOfWork : IUnitOfWork
     public int BeginTransactionCount { get; private set; }
     public int CommitCount { get; private set; }
     public int RollbackCount { get; private set; }
+    public IsolationLevel? LastIsolationLevel { get; private set; }
 
     public Exception? ExceptionToThrowOnSave { get; set; }
 
@@ -44,6 +46,13 @@ public class FakeUnitOfWork : IUnitOfWork
     public Task BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
         BeginTransactionCount++;
+        return Task.CompletedTask;
+    }
+
+    public Task BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+    {
+        BeginTransactionCount++;
+        LastIsolationLevel = isolationLevel;
         return Task.CompletedTask;
     }
 

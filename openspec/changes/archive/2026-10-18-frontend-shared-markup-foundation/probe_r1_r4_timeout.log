@@ -1,0 +1,17 @@
+Using launch settings from frontend/TechStore.Client/Properties/launchSettings.json...
+[HARNESS] Initializing Uno Skia Desktop Probe Host...
+fail: Uno.UI.RemoteControl.RemoteControlClient[0]
+      Some endpoint for uno's dev-server has been configured in your application, but all are invalid (port is missing?). This can usually be fixed with a **rebuild** of your application. If not, make sure you have the latest version of the uno's extensions installed in your IDE and restart your IDE.
+fail: Uno.WinUI.Runtime.Skia.X11.X11NativeOverlappedPresenter[0]
+      Couldn't get OverlappedPresenterState: _NET_WM_STATE does not exist on the window. Make sure you use an EWMH-compliant WM.
+fail: Uno.WinUI.Runtime.Skia.X11.X11NativeOverlappedPresenter[0]
+      Couldn't get OverlappedPresenterState: _NET_WM_STATE does not exist on the window. Make sure you use an EWMH-compliant WM.
+================================================================================
+TECHSTORE C# THEME BINDING RUNTIME PROBE (Uno 6.7.30 / Skia)
+Mode: FORCED TIMEOUT TEST (--timeout-test)
+Window Content: Loaded=True, ActualTheme=Light, Size=1024x640
+================================================================================
+[TIMEOUT TEST] Triggering intentional layout timeout with 0ms deadline...
+[TIMEOUT TEST PASS] TimeoutException successfully caught: 'UI layout and dispatch timed out after 0ms.'
+[TIMEOUT TEST PASS] Verified that timeout aborts run and exits with non-zero code.
+[HARNESS] Probe suite completed with exit code 2.

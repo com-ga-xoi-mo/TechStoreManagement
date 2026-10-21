@@ -49,7 +49,7 @@ Client SHALL nạp chi tiết hiện tại bằng `GET /api/products/{id}` vào 
 
 #### Scenario: Inactive product
 - **WHEN** Admin sửa một sản phẩm đang ngừng kinh doanh
-- **THEN** việc lưu không đổi trạng thái kinh doanh; nhãn trạng thái vẫn là ngừng kinh doanh
+- **THEN** việc lưu không đổi trạng thái kinh doanh; nhãn trạng thái vẫn là Ngừng hoạt động
 
 ### Requirement: Dynamic specification editor
 Màn soạn SHALL cho thêm, sửa và bỏ từng dòng thông số gồm key, kiểu (Chuỗi, Số, Đúng/Sai) và giá trị cho sản phẩm và cho từng biến thể. Client SHALL chặn lưu khi key không khớp `^[a-z][a-z0-9_]*$`, trùng key trong cùng một nhóm, giá trị rỗng, giá trị Số không phải số thập phân hoặc giá trị Đúng/Sai khác `true`/`false`.
@@ -145,7 +145,7 @@ Trên trang chi tiết, client SHALL cho Ngừng kinh doanh một sản phẩm �
 
 #### Scenario: Stop selling
 - **WHEN** Admin bấm Ngừng kinh doanh và xác nhận
-- **THEN** client gửi `{"isActive": false}`, nhãn đổi thành Ngừng kinh doanh và nút đổi thành Mở bán lại
+- **THEN** client gửi `{"isActive": false}`, nhãn đổi thành Ngừng hoạt động và nút đổi thành Mở bán lại
 
 #### Scenario: Confirmation declined
 - **WHEN** người dùng bấm Ngừng kinh doanh rồi chọn Hủy trong hộp xác nhận

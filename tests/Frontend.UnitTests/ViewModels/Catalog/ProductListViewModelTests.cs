@@ -25,7 +25,13 @@ public sealed class ProductListViewModelTests
 
         viewModel.SearchText = "  Pixel & Pro  ";
         viewModel.ActiveFilter = "inactive";
-        viewModel.SpecsText = "ram=16\nhas_5g=true, color=Đen";
+        viewModel.AddSpecFilterCommand.Execute(null);
+        viewModel.SpecFilters[0].SelectedKey = "ram_gb";
+        viewModel.SpecFilters[0].SelectedFilterValue = "16";
+        viewModel.AddSpecFilterCommand.Execute(null);
+        viewModel.SpecFilters[1].SelectedKey = "bluetooth";
+        viewModel.SpecFilters[1].SelectedFilterValue = "\"5.2\"";
+        viewModel.AddSpecFilterCommand.Execute(null);
         viewModel.SelectedCategoryId = Guid.NewGuid();
         Assert.Equal(1, repository.SearchCount);
         viewModel.SelectedSort = "price:asc";
@@ -42,7 +48,7 @@ public sealed class ProductListViewModelTests
         Assert.False(query.IsActive);
         Assert.Null(query.MinPrice);
         Assert.Null(query.MaxPrice);
-        Assert.Equal(["ram:16", "has_5g:true", "color:Đen"], query.Specs);
+        Assert.Equal(["ram_gb:16", "bluetooth:\"5.2\""], query.Specs);
         Assert.Equal("price:asc", query.Sort);
         Assert.Equal(1, query.Page);
         Assert.Equal(50, query.PageSize);
@@ -57,7 +63,8 @@ public sealed class ProductListViewModelTests
         var viewModel = CreateViewModel(repository);
         await viewModel.ActivateAsync();
 
-        viewModel.SpecsText = "RAM=16";
+        viewModel.AddSpecFilterCommand.Execute(null);
+        viewModel.SpecFilters[0].SelectedKey = "ram_gb";
         await viewModel.SearchCommand.ExecuteAsync(null);
         Assert.Equal(1, repository.SearchCount);
         Assert.True(viewModel.HasValidationError);
@@ -80,25 +87,105 @@ public sealed class ProductListViewModelTests
     }
 
     [Fact]
-    public void SpecFilter_StartsClosed_TogglesAndOpensForAppliedSpecs()
+    public async Task SpecFilter_ToggleAddsARow_AndRouteSpecsBecomeRowsThatKeepTheirSelection()
     {
         // Arrange
         var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query, count: 1)));
-        var closed = CreateViewModel(repository);
-        var withSpecs = CreateViewModel(repository);
+        var specs = new FakeSpecRepository();
+        var closed = CreateViewModel(repository, specs: specs);
+        var withSpecs = CreateViewModel(repository, specs: specs);
 
         // Act
         closed.SetRoute(null, null);
-        withSpecs.SetRoute(new ProductQuery { Specs = ["ram_gb:16", "has_5g:true"] }, null);
+        withSpecs.SetRoute(new ProductQuery { Specs = ["ram_gb:16", "bluetooth:\"5.2\""] }, null);
+        await withSpecs.ActivateAsync();
 
         // Assert
         Assert.False(closed.IsSpecFilterOpen);
         closed.ToggleSpecFilterCommand.Execute(null);
         Assert.True(closed.IsSpecFilterOpen);
-        closed.ToggleSpecFilterCommand.Execute(null);
-        Assert.False(closed.IsSpecFilterOpen);
+        Assert.Single(closed.SpecFilters);
         Assert.True(withSpecs.IsSpecFilterOpen);
-        Assert.Equal("ram_gb=16, has_5g=true", withSpecs.SpecsText);
+        Assert.Equal(2, withSpecs.SpecFilters.Count);
+        Assert.Equal("ram_gb", withSpecs.SpecFilters[0].SelectedKey);
+        Assert.Equal("16", withSpecs.SpecFilters[0].SelectedFilterValue);
+        Assert.Equal(["8", "16"], withSpecs.SpecFilters[0].ValueOptions.Select(v => v.Label));
+        Assert.Equal("\"5.2\"", withSpecs.SpecFilters[1].SelectedFilterValue);
+        Assert.Equal(2, withSpecs.SpecFilters[1].KeyOptions.Count);
+    }
+
+    [Fact]
+    public async Task SpecKeys_LoadOnActivation_AndFollowTheDraftedCategory()
+    {
+        // Arrange
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query, count: 1)));
+        var specs = new FakeSpecRepository();
+        var viewModel = CreateViewModel(repository, specs: specs);
+        var categoryId = Guid.NewGuid();
+
+        // Act
+        await viewModel.ActivateAsync();
+        viewModel.SelectedCategoryId = categoryId;
+
+        // Assert
+        Assert.Equal([null, categoryId], specs.Requests);
+        Assert.Equal(2, viewModel.SpecKeyOptions.Count);
+        Assert.Equal(1, repository.SearchCount);
+    }
+
+    [Fact]
+    public async Task SpecKeys_FailureShowsRetry_AndSearchStillWorks()
+    {
+        // Arrange
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query, count: 1)));
+        var specs = new FakeSpecRepository { Fail = true };
+        var viewModel = CreateViewModel(repository, specs: specs);
+
+        // Act
+        await viewModel.ActivateAsync();
+        await viewModel.SearchCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.True(viewModel.HasSpecOptionsError);
+        Assert.True(viewModel.HasSpecOptionsMessage);
+        Assert.Equal(2, repository.SearchCount);
+        specs.Fail = false;
+        viewModel.RetrySpecKeysCommand.Execute(null);
+        Assert.False(viewModel.HasSpecOptionsError);
+        Assert.Equal(2, viewModel.SpecKeyOptions.Count);
+    }
+
+    [Fact]
+    public async Task SpecFilter_DuplicateKeyIsRejected_EmptyRowsAreIgnored_AndResetClearsRows()
+    {
+        // Arrange
+        var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query, count: 1)));
+        var viewModel = CreateViewModel(repository);
+        await viewModel.ActivateAsync();
+        viewModel.AddSpecFilterCommand.Execute(null);
+        viewModel.AddSpecFilterCommand.Execute(null);
+        viewModel.AddSpecFilterCommand.Execute(null);
+        viewModel.SpecFilters[0].SelectedKey = "ram_gb";
+        viewModel.SpecFilters[0].SelectedFilterValue = "16";
+        viewModel.SpecFilters[1].SelectedKey = "ram_gb";
+        viewModel.SpecFilters[1].SelectedFilterValue = "8";
+
+        // Act
+        await viewModel.SearchCommand.ExecuteAsync(null);
+        var rejected = viewModel.HasValidationError;
+        viewModel.RemoveSpecFilterCommand.Execute(viewModel);
+        var rowsAfterWrongParameter = viewModel.SpecFilters.Count;
+        viewModel.RemoveSpecFilterCommand.Execute(viewModel.SpecFilters[1]);
+        await viewModel.SearchCommand.ExecuteAsync(null);
+        var applied = repository.Queries.Last().Specs;
+        await viewModel.ResetFiltersCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.True(rejected);
+        Assert.Equal(3, rowsAfterWrongParameter);
+        Assert.Equal(["ram_gb:16"], applied);
+        Assert.Empty(viewModel.SpecFilters);
+        Assert.Empty(repository.Queries.Last().Specs);
     }
 
     [Fact]
@@ -309,7 +396,7 @@ public sealed class ProductListViewModelTests
     {
         var navigation = new NavigationService(new AllowingPreparer());
         var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query, totalPages: 3, count: 45)));
-        var viewModel = new ProductListViewModel(repository, new FakeCategoryRepository(), new InMemorySessionStore(), navigation);
+        var viewModel = new ProductListViewModel(repository, new FakeCategoryRepository(), new InMemorySessionStore(), navigation, new FakeSpecRepository());
         viewModel.SetRoute(new ProductQuery { Query = "applied", Page = 2 }, null);
         await viewModel.ActivateAsync();
         var productId = Guid.NewGuid();
@@ -371,7 +458,7 @@ public sealed class ProductListViewModelTests
         var session = new InMemorySessionStore();
         session.SetSession("t", "r", "admin", "Admin", "Admin");
         var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query)));
-        var viewModel = new ProductListViewModel(repository, new FakeCategoryRepository(), session, navigation);
+        var viewModel = new ProductListViewModel(repository, new FakeCategoryRepository(), session, navigation, new FakeSpecRepository());
         viewModel.SetRoute(new ProductQuery { Query = "laptop", Page = 2 }, null);
         await viewModel.ActivateAsync();
 
@@ -390,7 +477,7 @@ public sealed class ProductListViewModelTests
         var session = new InMemorySessionStore();
         session.SetSession("t", "r", "cashier", "Cashier", "SalesStaff");
         var repository = new FakeProductRepository((query, _) => Task.FromResult(Page(query)));
-        var viewModel = new ProductListViewModel(repository, new FakeCategoryRepository(), session, navigation);
+        var viewModel = new ProductListViewModel(repository, new FakeCategoryRepository(), session, navigation, new FakeSpecRepository());
         viewModel.SetRoute(new ProductQuery { Query = "laptop" }, null);
         await viewModel.ActivateAsync();
 
@@ -416,9 +503,10 @@ public sealed class ProductListViewModelTests
     private static ProductListViewModel CreateViewModel(
         FakeProductRepository products,
         FakeCategoryRepository? categories = null,
-        InMemorySessionStore? session = null) =>
+        InMemorySessionStore? session = null,
+        FakeSpecRepository? specs = null) =>
         new(products, categories ?? new FakeCategoryRepository(), session ?? new InMemorySessionStore(),
-            new NavigationService(new AllowingPreparer()));
+            new NavigationService(new AllowingPreparer()), specs ?? new FakeSpecRepository());
 
     private static ProductPage Page(ProductQuery query, int? page = null, int totalPages = 1, int count = 0)
     {
@@ -456,6 +544,24 @@ public sealed class ProductListViewModelTests
             if (failFirst && RequestCount == 1)
                 return Task.FromException<IReadOnlyList<CategoryOption>>(new ApiException(ApiErrorKind.Http, "categories", 500));
             return Task.FromResult<IReadOnlyList<CategoryOption>>([new CategoryOption(Guid.NewGuid(), null, "Mobile", "Mobile")]);
+        }
+    }
+
+    private sealed class FakeSpecRepository : IProductSpecRepository
+    {
+        public bool Fail { get; set; }
+        public List<Guid?> Requests { get; } = [];
+
+        public Task<IReadOnlyList<SpecKeyOption>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default)
+        {
+            Requests.Add(categoryId);
+            if (Fail)
+                return Task.FromException<IReadOnlyList<SpecKeyOption>>(new ApiException(ApiErrorKind.Http, "spec keys", 500));
+            return Task.FromResult<IReadOnlyList<SpecKeyOption>>(
+            [
+                new SpecKeyOption("ram_gb", 3, [new SpecValueOption("8", "8", 2), new SpecValueOption("16", "16", 1)]),
+                new SpecKeyOption("bluetooth", 2, [new SpecValueOption("5.2", "\"5.2\"", 2)])
+            ]);
         }
     }
 

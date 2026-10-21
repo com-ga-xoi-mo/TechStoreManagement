@@ -115,19 +115,36 @@ public sealed class ProductListPage : Page, IRoutePage
         var categoryField = new StackPanel().Spacing(5).Children(CatalogViewParts.Caption("Danh mục"), categoryBox);
         var statusField = new StackPanel().Spacing(5).Children(CatalogViewParts.Caption("Trạng thái"), activeStatusBox);
 
-        var specsBox = new TextBox()
-            .Text(x => x.Binding(() => ViewModel.SpecsText).Mode(BindingMode.TwoWay))
-            .PlaceholderText("ram_gb=16, has_5g=true")
-            .Style(AppControlStyles.Styles.TextBox)
-            .MinHeight(40);
-        AutomationProperties.SetName(specsBox, "Lọc theo thông số kỹ thuật");
+        var specRows = new ItemsControl()
+            .ItemsSource(x => x.Binding(() => ViewModel.SpecFilters))
+            .ItemTemplate<SpecFilterRow>(BuildSpecFilterRow);
+        AutomationProperties.SetName(specRows, "Điều kiện lọc theo thông số kỹ thuật");
 
         var specsField = new StackPanel()
-            .Spacing(5)
+            .Spacing(8)
             .Visibility(x => x.Binding(() => ViewModel.IsSpecFilterOpen).Convert((bool v) => CatalogViewParts.ShowIf(v)))
             .Children(
-                CatalogViewParts.Caption("Thông số kỹ thuật (key=value, cách nhau bằng dấu phẩy)"),
-                specsBox);
+                CatalogViewParts.Caption("Thông số kỹ thuật: chọn tên rồi chọn giá trị đang có (số trong ngoặc là số sản phẩm)"),
+                new StackPanel()
+                    .Orientation(Orientation.Horizontal)
+                    .Spacing(10)
+                    .Visibility(x => x.Binding(() => ViewModel.HasSpecOptionsMessage).Convert((bool v) => CatalogViewParts.ShowIf(v)))
+                    .Children(
+                        new TextBlock()
+                            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+                            .Foreground(AppColors.Brushes.SecondaryText)
+                            .VerticalAlignment(VerticalAlignment.Center)
+                            .Text(x => x.Binding(() => ViewModel.SpecOptionsMessage)),
+                        new Button()
+                            .Content("Tải lại")
+                            .Command(x => x.Binding(() => ViewModel.RetrySpecKeysCommand))
+                            .Style(AppControlStyles.Styles.QuietButton)
+                            .Visibility(x => x.Binding(() => ViewModel.HasSpecOptionsError).Convert((bool v) => CatalogViewParts.ShowIf(v)))),
+                specRows,
+                new Button()
+                    .Content("+ Thêm điều kiện")
+                    .Command(x => x.Binding(() => ViewModel.AddSpecFilterCommand))
+                    .Style(AppControlStyles.Styles.QuietButton));
 
         var specToggleButton = new Button()
             .Content(x => x.Binding(() => ViewModel.IsSpecFilterOpen).Convert((bool open) => open ? "Ẩn lọc thông số" : "Lọc theo thông số"))
@@ -373,6 +390,46 @@ public sealed class ProductListPage : Page, IRoutePage
 
         Loaded += OnPageLoaded;
         Unloaded += OnPageUnloaded;
+    }
+
+    // `row` is null while the template is built; it is only used inside binding lambdas (AGENTS.md item templates).
+    private UIElement BuildSpecFilterRow(SpecFilterRow row)
+    {
+        var keyBox = new ComboBox()
+            .ItemsSource(x => x.Binding(() => row.KeyOptions))
+            .DisplayMemberPath("DisplayName")
+            .SelectedValuePath("Key")
+            .SelectedValue(x => x.Binding(() => row.SelectedKey).Mode(BindingMode.TwoWay))
+            .PlaceholderText("Chọn thông số")
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
+            .MinHeight(40);
+        AutomationProperties.SetName(keyBox, "Tên thông số");
+
+        var valueBox = new ComboBox()
+            .ItemsSource(x => x.Binding(() => row.ValueOptions))
+            .DisplayMemberPath("DisplayName")
+            .SelectedValuePath("FilterValue")
+            .SelectedValue(x => x.Binding(() => row.SelectedFilterValue).Mode(BindingMode.TwoWay))
+            .IsEnabled(x => x.Binding(() => row.HasKey))
+            .PlaceholderText("Chọn giá trị")
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
+            .MinHeight(40);
+        AutomationProperties.SetName(valueBox, "Giá trị thông số");
+
+        return new Grid()
+            .ColumnSpacing(10)
+            .Margin(new Thickness(0, 0, 0, 6))
+            .ColumnDefinitions("*, *, Auto")
+            .Children(
+                keyBox,
+                valueBox.Grid(column: 1),
+                new Button()
+                    .Grid(column: 2)
+                    .Content("Bỏ")
+                    .Command(ViewModel.RemoveSpecFilterCommand)
+                    .CommandParameter(x => x.Binding(() => row))
+                    .Style(AppControlStyles.Styles.QuietButton)
+                    .VerticalAlignment(VerticalAlignment.Center));
     }
 
     private Button BuildCard(ProductSummary product)

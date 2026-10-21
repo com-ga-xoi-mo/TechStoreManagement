@@ -86,6 +86,7 @@ public static class UiServiceCollectionExtensions
         }
         services.AddTransient<IProductRepository, ProductRepository>();
         services.AddTransient<IProductCommandRepository, ProductRepository>();
+        services.AddTransient<IProductSpecRepository, ProductRepository>();
         services.AddTransient<ICategoryRepository, CategoryRepository>();
         services.AddTransient<IOrderRepository, OrderRepository>();
         services.AddTransient<IOrderDeviceRepository, OrderDeviceRepository>();

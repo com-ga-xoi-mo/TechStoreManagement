@@ -334,34 +334,36 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     [RelayCommand]
     private void AddSpec() => Specs.Add(new SpecRowItem());
 
+    // CommandParameter comes from a binding inside an item template; while a row is removed it can briefly be
+    // the page DataContext, so the command takes object and ignores anything else.
     [RelayCommand]
-    private void RemoveSpec(SpecRowItem? row)
+    private void RemoveSpec(object? parameter)
     {
-        if (row is not null) Specs.Remove(row);
+        if (parameter is SpecRowItem row) Specs.Remove(row);
     }
 
     [RelayCommand]
     private void AddVariant() => Variants.Add(new VariantRowItem(null));
 
     [RelayCommand]
-    private void RemoveVariant(VariantRowItem? row)
+    private void RemoveVariant(object? parameter)
     {
-        if (row is not null && !row.IsSaved)
+        if (parameter is VariantRowItem { IsSaved: false } row)
         {
             Variants.Remove(row);
         }
     }
 
     [RelayCommand]
-    private void AddVariantSpec(VariantRowItem? variant)
+    private void AddVariantSpec(object? parameter)
     {
-        variant?.Specs.Add(new SpecRowItem());
+        if (parameter is VariantRowItem variant) variant.Specs.Add(new SpecRowItem());
     }
 
     [RelayCommand]
-    private void RemoveVariantSpec(SpecRowItem? spec)
+    private void RemoveVariantSpec(object? parameter)
     {
-        if (spec is null) return;
+        if (parameter is not SpecRowItem spec) return;
         var owner = Variants.FirstOrDefault(v => v.Specs.Contains(spec));
         owner?.Specs.Remove(spec);
     }

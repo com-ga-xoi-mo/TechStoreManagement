@@ -202,7 +202,7 @@ Sau khi xóa hai trang XAML Catalog, `git grep -n "TechStoreMetricTextStyle" -- 
 Bản đầu giữ đủ 7 ô lọc của trang XAML cũ (từ khóa, danh mục, thương hiệu, trạng thái, giá từ, giá đến, thông số nhiều dòng) cùng sắp xếp và kích thước trang. Khối lọc chiếm hơn nửa chiều cao cửa sổ và trang không có tiêu đề. Kế hoạch nhóm (`docs/MILESTONE_2_PLAN.md`, mục Dev 2) chỉ yêu cầu phân trang, tìm theo tên/SKU/hãng và lọc danh mục.
 - Giữ trên giao diện: từ khóa, danh mục, trạng thái (cần để tìm sản phẩm đã ngừng kinh doanh), thông số JSONB (điểm nhấn của đồ án, thu gọn sau nút "Lọc theo thông số"), sắp xếp, kích thước trang.
 - Bỏ khỏi giao diện: ô thương hiệu riêng (gộp vào từ khóa: backend thêm `ILike(p.Brand, pattern)` vào điều kiện `q`, delta `product-catalog`), giá từ và giá đến. `ProductQuery`, `IProductRepository` và repository giữ nguyên nên vẫn gửi được `brand`, `minPrice`, `maxPrice`; chỉ `ProductListViewModel` thôi tạo chúng.
-- Ô thông số một dòng, cặp `key=value` phân cách bằng dấu phẩy hoặc xuống dòng; giá trị chứa dấu phẩy không lọc được qua giao diện (chấp nhận được với thông số phần cứng). `IsSpecFilterOpen` trong ViewModel: mở khi truy vấn áp dụng có thông số hoặc khi thông số nhập sai.
+- Lọc thông số bằng các dòng chọn (cập nhật sau review, change API D12): `IProductSpecRepository.GetSpecKeysAsync(categoryId)` (do `ProductRepository` cài đặt) gọi `GET api/products/spec-keys`; `ProductListViewModel` tải danh sách khi kích hoạt và mỗi khi `SelectedCategoryId` (bản nháp) đổi, request mới nhất thắng. Mỗi `SpecFilterRow` giữ `KeyOptions`, `SelectedKey`, `ValueOptions`, `SelectedFilterValue` để template chỉ bind vào chính dòng; `SetOptions` giữ lựa chọn khi danh sách đổi (ComboBox có thể xóa lựa chọn lúc đổi items). Tiêu chí gửi `key:filterValue` nguyên văn; dòng chưa có tên bị bỏ qua, có tên mà thiếu giá trị hoặc trùng tên là lỗi. Ô nhập tự do và `TryParseSpecs` đã bỏ. Command nhận tham số từ template (`RemoveSpecFilter`, và 4 command dòng của màn soạn) nhận `object?`: thử thật cho thấy lúc xóa dòng binding có thể tạm đưa DataContext của trang, `RelayCommand<T>` khi đó ném `ArgumentException`.
 - Vẫn chỉ áp dụng khi bấm Tìm kiếm hoặc Enter (kế hoạch ghi "realtime", nhưng spec và test hiện có dùng submit; giữ để không gọi API mỗi phím).
 - Cả trang (tiêu đề, bộ lọc, thanh kết quả, lưới thẻ) nằm trong một `ScrollViewer`; chỉ thanh phân trang cố định ở đáy, để cửa sổ thấp vẫn thấy thẻ. Trả focus (D8) cộng thêm vị trí của lưới trong vùng cuộn. Thẻ `Button` đặt `HorizontalAlignment/VerticalAlignment = Stretch` để lấp đầy ô của `UniformGridLayout`; khung ảnh 120 px, thẻ cao 300 px.
 - Không dùng `VisualState` + `AdaptiveTrigger` để đổi `Grid.Row/Column` theo bề rộng: thử trên Uno/Skia chỉ một phần setter được áp, ô lọc chồng lên nhau. Bố cục hai hàng cố định đủ dùng từ 800 DIP.
@@ -214,7 +214,7 @@ Tìm, lọc và quản lý sản phẩm, giá bán và thông số kỹ thuật.
 | [Tên, SKU, hãng hoặc barcode______________] [Xóa] [Tìm kiếm]        |
 | Danh mục          Trạng thái                                        |
 | [Tất cả     v]    [Tất cả     v]   [Lọc theo thông số] [Đặt lại bộ lọc] |
-| (mở) Thông số kỹ thuật: [ram_gb=16, has_5g=true_____________]       |
+| (mở) [ram_gb (7)  v] [16 (1)  v] [Bỏ]   + Thêm điều kiện            |
 | (chỉ khi có lỗi) thông báo lỗi               [Thử tải danh mục]     |
 +---------------------------------------------------------------------+
 20 sản phẩm                                          Sắp xếp [Mới nhất v]

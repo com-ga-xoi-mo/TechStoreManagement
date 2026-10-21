@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Models.Catalog;
@@ -23,7 +23,10 @@ public sealed partial class ProductListViewModel : PageViewModel
     private readonly ICategoryRepository _categories;
     private readonly ISessionStore _sessionStore;
     private readonly INavigationService _navigation;
+    private readonly IProductSpecRepository _specs;
     private bool _categoriesRequested;
+    private bool _specKeysRequested;
+    private int _specKeysVersion;
     private bool _hasActivated;
     private bool _suppressImmediateCriteria;
     private static readonly IReadOnlyList<ProductSummary> NoProducts = Array.Empty<ProductSummary>();
@@ -31,8 +34,10 @@ public sealed partial class ProductListViewModel : PageViewModel
     [ObservableProperty] private string searchText = string.Empty;
     [ObservableProperty] private Guid? selectedCategoryId;
     [ObservableProperty] private string activeFilter = "all";
-    [ObservableProperty] private string specsText = string.Empty;
     [ObservableProperty] private bool isSpecFilterOpen;
+    [ObservableProperty] private IReadOnlyList<SpecKeyOption> specKeyOptions = [];
+    [ObservableProperty] private string specOptionsMessage = string.Empty;
+    [ObservableProperty] private bool hasSpecOptionsError;
     [ObservableProperty] private string selectedSort = "createdAt:desc";
     [ObservableProperty] private int selectedPageSize = 20;
     [ObservableProperty] private ProductPage? snapshot;
@@ -59,6 +64,8 @@ public sealed partial class ProductListViewModel : PageViewModel
     public bool HasNextPage => Snapshot is { } page && page.Page < page.TotalPages && !IsLoading;
     public bool HasCategoryError => !string.IsNullOrWhiteSpace(CategoryError);
     public bool HasValidationError => !string.IsNullOrWhiteSpace(ValidationMessage);
+    public ObservableCollection<SpecFilterRow> SpecFilters { get; } = [];
+    public bool HasSpecOptionsMessage => !string.IsNullOrWhiteSpace(SpecOptionsMessage);
     public bool HasFilterMessages => HasCategoryError || HasValidationError || !string.IsNullOrWhiteSpace(FieldErrorSummary);
     public bool ShowEmptyState => IsEmpty && Snapshot is not null && Snapshot.Items.Count == 0 && !IsOutOfRange;
     public bool ShowInitialLoading => IsLoading && Snapshot is null;
@@ -74,9 +81,11 @@ public sealed partial class ProductListViewModel : PageViewModel
         IProductRepository products,
         ICategoryRepository categories,
         ISessionStore sessionStore,
-        INavigationService navigation)
+        INavigationService navigation,
+        IProductSpecRepository specs)
     {
         _products = products ?? throw new ArgumentNullException(nameof(products));
+        _specs = specs ?? throw new ArgumentNullException(nameof(specs));
         _categories = categories ?? throw new ArgumentNullException(nameof(categories));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
@@ -117,6 +126,11 @@ public sealed partial class ProductListViewModel : PageViewModel
             _categoriesRequested = true;
             _ = RunTrackedRequestAsync(LoadCategoriesAsync);
         }
+        if (!_specKeysRequested)
+        {
+            _specKeysRequested = true;
+            RequestSpecKeys();
+        }
 
         RequestedCriteria = AppliedCriteria;
         return await SearchAsync(AppliedCriteria, clearOnForbidden: true);
@@ -141,7 +155,7 @@ public sealed partial class ProductListViewModel : PageViewModel
             SearchText = string.Empty;
             SelectedCategoryId = null;
             ActiveFilter = "all";
-            SpecsText = string.Empty;
+            SpecFilters.Clear();
             SelectedSort = "createdAt:desc";
             SelectedPageSize = 20;
         }
@@ -153,7 +167,30 @@ public sealed partial class ProductListViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void ToggleSpecFilter() => IsSpecFilterOpen = !IsSpecFilterOpen;
+    private void ToggleSpecFilter()
+    {
+        IsSpecFilterOpen = !IsSpecFilterOpen;
+        if (IsSpecFilterOpen && SpecFilters.Count == 0) AddSpecFilter();
+    }
+
+    [RelayCommand]
+    private void AddSpecFilter()
+    {
+        var row = new SpecFilterRow();
+        row.SetOptions(SpecKeyOptions);
+        SpecFilters.Add(row);
+    }
+
+    // CommandParameter comes from a binding inside an item template; while a row is removed it can briefly be
+    // the page DataContext, so the command takes object and ignores anything else.
+    [RelayCommand]
+    private void RemoveSpecFilter(object? parameter)
+    {
+        if (parameter is SpecFilterRow row) SpecFilters.Remove(row);
+    }
+
+    [RelayCommand]
+    private void RetrySpecKeys() => RequestSpecKeys();
 
     [RelayCommand]
     private Task RetryCategories()
@@ -277,6 +314,38 @@ public sealed partial class ProductListViewModel : PageViewModel
         }
     }
 
+    // Keys follow the drafted category; the latest request wins.
+    private void RequestSpecKeys()
+    {
+        var version = ++_specKeysVersion;
+        var categoryId = SelectedCategoryId;
+        _ = RunTrackedRequestAsync(token => LoadSpecKeysAsync(version, categoryId, token));
+    }
+
+    private async Task LoadSpecKeysAsync(int version, Guid? categoryId, CancellationToken cancellationToken)
+    {
+        HasSpecOptionsError = false;
+        SpecOptionsMessage = "Đang tải danh sách thông số...";
+        try
+        {
+            var options = await _specs.GetSpecKeysAsync(categoryId, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (version != _specKeysVersion) return;
+            SpecKeyOptions = options;
+            foreach (var row in SpecFilters) row.SetOptions(options);
+            SpecOptionsMessage = options.Count == 0 ? "Chưa có thông số nào trong phạm vi đang chọn." : string.Empty;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
+            if (version != _specKeysVersion) return;
+            HasSpecOptionsError = true;
+            SpecOptionsMessage = "Không tải được danh sách thông số. Tìm kiếm khác vẫn dùng được.";
+        }
+    }
+
     private async Task LoadCategoriesAsync(CancellationToken cancellationToken)
     {
         try
@@ -314,11 +383,21 @@ public sealed partial class ProductListViewModel : PageViewModel
             query = AppliedCriteria;
             return false;
         }
-        if (!TryParseSpecs(SpecsText, out var specs, out error))
+        var specs = new List<string>();
+        foreach (var row in SpecFilters)
         {
-            IsSpecFilterOpen = true;
-            query = AppliedCriteria;
-            return false;
+            if (!row.HasKey) continue;
+            if (string.IsNullOrEmpty(row.SelectedFilterValue))
+                error = $"Hãy chọn giá trị cho thông số {row.SelectedKey}.";
+            else if (specs.Any(spec => spec.StartsWith(row.SelectedKey + ":", StringComparison.Ordinal)))
+                error = $"Thông số {row.SelectedKey} chỉ được chọn một lần.";
+            if (error is not null)
+            {
+                IsSpecFilterOpen = true;
+                query = AppliedCriteria;
+                return false;
+            }
+            specs.Add($"{row.SelectedKey}:{row.SelectedFilterValue}");
         }
 
         bool? isActive = ActiveFilter switch
@@ -348,41 +427,6 @@ public sealed partial class ProductListViewModel : PageViewModel
         return true;
     }
 
-    private static bool TryParseSpecs(string text, out IReadOnlyList<string> specs, out string? error)
-    {
-        var result = new List<string>();
-        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        error = null;
-        // One pair per line or comma, so a value that contains a comma cannot be filtered here (design D15).
-        foreach (var rawLine in text.Split(['\r', '\n', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var separator = rawLine.IndexOf('=');
-            if (separator <= 0 || separator == rawLine.Length - 1)
-            {
-                error = "Mỗi thông số phải có dạng key=value.";
-                specs = [];
-                return false;
-            }
-            var key = rawLine[..separator].Trim();
-            var value = rawLine[(separator + 1)..].Trim();
-            if (!Regex.IsMatch(key, "^[a-z][a-z0-9_]*$", RegexOptions.CultureInvariant))
-            {
-                error = "Tên thông số phải dùng snake_case.";
-                specs = [];
-                return false;
-            }
-            if (value.Length == 0 || !keys.Add(key))
-            {
-                error = "Giá trị thông số không được rỗng hoặc lặp key.";
-                specs = [];
-                return false;
-            }
-            result.Add($"{key}:{value}");
-        }
-        specs = result;
-        return true;
-    }
-
     private static void ValidateCriteria(ProductQuery criteria)
     {
         if (!AllowedSorts.Contains(criteria.Sort, StringComparer.Ordinal)
@@ -402,11 +446,15 @@ public sealed partial class ProductListViewModel : PageViewModel
         SearchText = criteria.Query ?? string.Empty;
         SelectedCategoryId = criteria.CategoryId;
         ActiveFilter = criteria.IsActive switch { true => "active", false => "inactive", null => "all" };
-        SpecsText = string.Join(", ", criteria.Specs.Select(spec =>
+        SpecFilters.Clear();
+        foreach (var spec in criteria.Specs)
         {
             var separator = spec.IndexOf(':');
-            return separator < 0 ? spec : string.Concat(spec.AsSpan(0, separator), "=", spec.AsSpan(separator + 1));
-        }));
+            if (separator <= 0) continue;
+            var row = new SpecFilterRow { SelectedKey = spec[..separator], SelectedFilterValue = spec[(separator + 1)..] };
+            row.SetOptions(SpecKeyOptions);
+            SpecFilters.Add(row);
+        }
         if (criteria.Specs.Count > 0) IsSpecFilterOpen = true;
         SelectedSort = criteria.Sort;
         SelectedPageSize = criteria.PageSize;
@@ -418,6 +466,11 @@ public sealed partial class ProductListViewModel : PageViewModel
     }
 
     partial void OnValidationMessageChanged(string? value) => OnPropertyChanged(nameof(HasFilterMessages));
+    partial void OnSpecOptionsMessageChanged(string value) => OnPropertyChanged(nameof(HasSpecOptionsMessage));
+    partial void OnSelectedCategoryIdChanged(Guid? value)
+    {
+        if (_hasActivated) RequestSpecKeys();
+    }
     partial void OnCategoryErrorChanged(string? value) => OnPropertyChanged(nameof(HasFilterMessages));
     partial void OnFieldErrorSummaryChanged(string value) => OnPropertyChanged(nameof(HasFilterMessages));
     partial void OnSelectedSortChanged(string value) => ApplyImmediateCriteriaChange();
@@ -497,6 +550,11 @@ public sealed partial class ProductListViewModel : PageViewModel
         FocusProductId = null;
         Categories = [];
         _categoriesRequested = false;
+        SpecKeyOptions = [];
+        _specKeysRequested = false;
+        _specKeysVersion++;
+        SpecOptionsMessage = string.Empty;
+        HasSpecOptionsError = false;
         CategoryError = null;
         OnPropertyChanged(nameof(HasCategoryError));
         FieldErrorSummary = string.Empty;

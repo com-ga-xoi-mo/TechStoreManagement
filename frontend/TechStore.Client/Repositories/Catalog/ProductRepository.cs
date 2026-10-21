@@ -7,7 +7,7 @@ using TechStore.Shared.Requests;
 
 namespace TechStore.Client.Repositories.Catalog;
 
-public sealed class ProductRepository(IApiClient apiClient) : IProductRepository, IProductCommandRepository
+public sealed class ProductRepository(IApiClient apiClient) : IProductRepository, IProductCommandRepository, IProductSpecRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -130,6 +130,39 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
     private static IReadOnlyDictionary<string, JsonElement> CloneSpecs(
         IReadOnlyDictionary<string, JsonElement> specs) => specs.ToDictionary(
         pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
+
+    public async Task<IReadOnlyList<SpecKeyOption>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default)
+    {
+        var relativePath = categoryId is { } id ? $"api/products/spec-keys?categoryId={id:D}" : "api/products/spec-keys";
+        var json = await apiClient.GetAsync<JsonElement>(relativePath, cancellationToken);
+        if (json.ValueKind != JsonValueKind.Array)
+            throw InvalidResponse("The spec key response must be an array.");
+
+        var keys = new List<SpecKeyOption>();
+        foreach (var item in json.EnumerateArray())
+        {
+            RequireObject(item, "spec key");
+            RequireString(item, "key");
+            RequireInt(item, "productCount");
+            Require(item, "values", JsonValueKind.Array);
+            var values = new List<SpecValueOption>();
+            foreach (var value in item.GetProperty("values").EnumerateArray())
+            {
+                RequireObject(value, "spec value");
+                RequireString(value, "label");
+                RequireString(value, "filterValue");
+                RequireInt(value, "productCount");
+                values.Add(new SpecValueOption(
+                    value.GetProperty("label").GetString()!,
+                    value.GetProperty("filterValue").GetString()!,
+                    value.GetProperty("productCount").GetInt32()));
+            }
+
+            keys.Add(new SpecKeyOption(item.GetProperty("key").GetString()!, item.GetProperty("productCount").GetInt32(), values));
+        }
+
+        return keys;
+    }
 
     private static void ValidatePageShape(JsonElement json)
     {

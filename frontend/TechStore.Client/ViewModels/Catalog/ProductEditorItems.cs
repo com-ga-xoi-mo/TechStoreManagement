@@ -167,6 +167,11 @@ public sealed partial class VariantRowItem : ObservableObject
     // New variants start not selling (API design D15); the owner ticks Đang bán when stock is ready.
     [ObservableProperty] private bool isActive;
 
+    /// <summary>The current state next to the tick box, so an unticked box does not read as "Đang bán".</summary>
+    public string SellingText => IsActive ? "Đang bán" : "Chưa bán";
+
+    partial void OnIsActiveChanged(bool value) => OnPropertyChanged(nameof(SellingText));
+
     [ObservableProperty] private string? nameError;
     [ObservableProperty] private string? skuError;
     [ObservableProperty] private string? priceError;

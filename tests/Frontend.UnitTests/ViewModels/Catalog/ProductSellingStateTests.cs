@@ -96,4 +96,19 @@ public sealed class ProductSellingStateTests
         var request = Assert.Single(commands.Created);
         Assert.Equal([false, true], request.Variants!.Select(v => v.IsActive ?? false));
     }
+
+    [Fact]
+    public void VariantRow_SellingText_FollowsTheTickBox()
+    {
+        // Arrange
+        var row = new VariantRowItem(null);
+
+        // Act
+        var before = row.SellingText;
+        row.IsActive = true;
+
+        // Assert
+        Assert.Equal("Chưa bán", before);
+        Assert.Equal("Đang bán", row.SellingText);
+    }
 }

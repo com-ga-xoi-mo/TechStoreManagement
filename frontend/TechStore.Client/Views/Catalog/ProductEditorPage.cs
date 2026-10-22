@@ -576,7 +576,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
             .Visibility(x => x.Binding(() => variant.HasBarcodeError).Convert((bool v) => CatalogViewParts.ShowIf(v)));
 
         var activeCheck = new CheckBox()
-            .Content("Đang bán")
+            .Content(x => x.Binding(() => variant.SellingText))
             .IsChecked(x => x.Binding(() => variant.IsActive).Mode(BindingMode.TwoWay))
             .VerticalAlignment(VerticalAlignment.Bottom);
 

@@ -23,7 +23,6 @@ public sealed record ProductDraft(
     string CostPrice,
     string Barcode,
     string Description,
-    string ImageUrl,
     bool IsSerialTracked,
     IReadOnlyList<SpecDraft> Specs,
     IReadOnlyList<VariantDraft> Variants,

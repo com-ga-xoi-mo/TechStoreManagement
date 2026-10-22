@@ -15,7 +15,7 @@ public sealed class ProductEditorSpecNameTests
         StubSpecRepository? specs = null) =>
         new(reader ?? new StubProductReader(), commands ?? new RecordingProductCommands(), new StubCategoryReader(),
             new NavigationService(new AllowAllPreparer()), new ScriptedDialogService(), CatalogSamples.Session("Admin"),
-            specs ?? new StubSpecRepository(), new StubBrandRepository());
+            specs ?? new StubSpecRepository(), new StubBrandRepository(), new ScriptedImageFilePicker(), new RecordingImageRepository());
 
     private static async Task<ProductEditorViewModel> CreateReadyToSave(RecordingProductCommands commands)
     {

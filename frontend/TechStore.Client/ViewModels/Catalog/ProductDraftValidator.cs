@@ -69,12 +69,6 @@ public static class ProductDraftValidator
             fieldErrors["description"] = "Mô tả không được vượt quá 2000 ký tự.";
         }
 
-        // 7. ImageUrl
-        if (!string.IsNullOrEmpty(draft.ImageUrl) && draft.ImageUrl.Length > 2048)
-        {
-            fieldErrors["imageUrl"] = "URL ảnh không được vượt quá 2048 ký tự.";
-        }
-
         // 8. BasePrice & CostPrice
         decimal basePriceValue = 0m;
         if (!ProductInputParser.TryParseMoney(draft.BasePrice, out basePriceValue))

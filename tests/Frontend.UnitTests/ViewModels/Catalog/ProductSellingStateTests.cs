@@ -68,7 +68,7 @@ public sealed class ProductSellingStateTests
         var commands = new RecordingProductCommands();
         var vm = new ProductEditorViewModel(new StubProductReader(), commands, new StubCategoryReader(),
             new NavigationService(new AllowAllPreparer()), new ScriptedDialogService(), CatalogSamples.Session("Admin"),
-            new StubSpecRepository(), new StubBrandRepository());
+            new StubSpecRepository(), new StubBrandRepository(), new ScriptedImageFilePicker(), new RecordingImageRepository());
         vm.SetRoute(null, null);
         await vm.ActivateAsync();
         vm.SelectedCategoryId = CatalogSamples.CategoryId;
@@ -86,11 +86,13 @@ public sealed class ProductSellingStateTests
         vm.Variants[1].Sku = "IP16-WH";
         vm.Variants[1].PriceText = "23000000";
 
+        Assert.All(vm.Variants, v => Assert.False(v.CanChooseSelling));
+
         // Act
         await vm.SaveCommand.ExecuteAsync(null);
 
         // Assert
-        Assert.All(vm.Variants, v => Assert.False(v.CanChooseSelling));
+        Assert.All(vm.Variants, v => Assert.True(v.CanChooseSelling));
         Assert.All(vm.Variants, v => Assert.False(v.IsActive));
         var request = Assert.Single(commands.Created);
         Assert.All(request.Variants!, v => Assert.Null(v.IsActive));

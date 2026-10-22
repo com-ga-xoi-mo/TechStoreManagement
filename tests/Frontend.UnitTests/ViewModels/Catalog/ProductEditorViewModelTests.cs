@@ -32,7 +32,7 @@ public sealed class ProductEditorViewModelTests
             dialogs ?? new ScriptedDialogService(),
             session ?? CatalogSamples.Session("Admin"),
             specs ?? new StubSpecRepository(),
-            brands ?? new StubBrandRepository());
+            brands ?? new StubBrandRepository(), new ScriptedImageFilePicker(), new RecordingImageRepository());
     }
 
     [Fact]

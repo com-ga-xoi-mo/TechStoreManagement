@@ -86,32 +86,6 @@ public sealed class ProductEditorPage : Page, IRoutePage
                     .HorizontalAlignment(HorizontalAlignment.Left));
 
         // 1. Basic Info & Image preview
-        var imagePreview = new Border()
-            .CornerRadius(AppMetrics.Values.CardRadius)
-            .Background(AppColors.Brushes.Subtle)
-            .BorderBrush(AppColors.Brushes.Stroke)
-            .BorderThickness(new Thickness(1))
-            .MinHeight(260)
-            .Child(CatalogViewParts.ProductImage(x => x.Binding(() => ViewModel.ImageUrl), _apiBase, 44));
-
-        var imageUrlBox = new TextBox()
-            .Header("URL ảnh")
-            .Text(x => x.Binding(() => ViewModel.ImageUrl).Mode(BindingMode.TwoWay))
-            .Style(AppControlStyles.Styles.TextBox);
-
-        var imageUrlError = new TextBlock()
-            .Text(x => x.Binding(() => ViewModel.ImageUrlError))
-            .Style(AppControlStyles.Styles.FieldError)
-            .Foreground(AppColors.Brushes.DangerText)
-            .Visibility(x => x.Binding(() => ViewModel.HasImageUrlError).Convert((bool v) => CatalogViewParts.ShowIf(v)));
-
-        var leftImageCol = new StackPanel()
-            .Spacing(10)
-            .Children(
-                imagePreview,
-                imageUrlBox,
-                imageUrlError);
-
         var nameBox = new TextBox()
             .Header("Tên sản phẩm *")
             .Text(x => x.Binding(() => ViewModel.Name).Mode(BindingMode.TwoWay))
@@ -229,7 +203,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
             .ColumnSpacing(20)
             .ColumnDefinitions("1*, 2*")
             .Children(
-                leftImageCol,
+                new Border(),
                 rightInfoCol.Grid(column: 1));
 
         // 2. Pricing & Margin section

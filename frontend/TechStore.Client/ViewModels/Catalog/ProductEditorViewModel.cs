@@ -9,6 +9,7 @@ using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Services.Api;
 using TechStore.Client.Services.Dialog;
+using TechStore.Client.Services.Files;
 using TechStore.Client.Services.Navigation;
 using TechStore.Client.Services.Session;
 using TechStore.Client.ViewModels.Pages;
@@ -29,6 +30,9 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     private readonly IProductBrandRepository _brands;
     private IReadOnlyList<BrandOption> _brandOptions = [];
     private SpecCatalog _catalog = SpecCatalog.Empty;
+
+    public ProductImageGallery Gallery { get; }
+    private readonly ProductImageSaver _imageSaver;
 
     private ProductQuery? _returnQuery;
     private ProductDraft? _baseline;
@@ -52,7 +56,6 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     [ObservableProperty] private string costPriceText = string.Empty;
     [ObservableProperty] private string barcode = string.Empty;
     [ObservableProperty] private string description = string.Empty;
-    [ObservableProperty] private string imageUrl = string.Empty;
     [ObservableProperty] private bool isSerialTracked = true;
     [ObservableProperty] private IReadOnlyList<CategoryOption> categories = [];
 
@@ -70,7 +73,6 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     [ObservableProperty] private string? costPriceError;
     [ObservableProperty] private string? barcodeError;
     [ObservableProperty] private string? descriptionError;
-    [ObservableProperty] private string? imageUrlError;
     [ObservableProperty] private string? specsError;
 
     public bool HasNameError => !string.IsNullOrWhiteSpace(NameError);
@@ -81,7 +83,6 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     public bool HasCostPriceError => !string.IsNullOrWhiteSpace(CostPriceError);
     public bool HasBarcodeError => !string.IsNullOrWhiteSpace(BarcodeError);
     public bool HasDescriptionError => !string.IsNullOrWhiteSpace(DescriptionError);
-    public bool HasImageUrlError => !string.IsNullOrWhiteSpace(ImageUrlError);
     public bool HasSpecsError => !string.IsNullOrWhiteSpace(SpecsError);
     public bool HasGeneralError => !string.IsNullOrWhiteSpace(GeneralError);
     public bool HasSpecCatalogMessage => !string.IsNullOrWhiteSpace(SpecCatalogMessage);
@@ -104,7 +105,9 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         IDialogService dialogs,
         ISessionStore sessionStore,
         IProductSpecRepository specs,
-        IProductBrandRepository brands)
+        IProductBrandRepository brands,
+        IImageFilePicker picker,
+        IProductImageRepository imageRepository)
     {
         _products = products ?? throw new ArgumentNullException(nameof(products));
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
@@ -114,6 +117,10 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
         _specs = specs ?? throw new ArgumentNullException(nameof(specs));
         _brands = brands ?? throw new ArgumentNullException(nameof(brands));
+        ArgumentNullException.ThrowIfNull(picker);
+        ArgumentNullException.ThrowIfNull(imageRepository);
+        Gallery = new ProductImageGallery(picker, Variants, () => ActivationToken);
+        _imageSaver = new ProductImageSaver(imageRepository);
 
         _sessionStore.SessionChanged += OnSessionChanged;
         CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
@@ -141,7 +148,6 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     partial void OnCostPriceErrorChanged(string? value) => OnPropertyChanged(nameof(HasCostPriceError));
     partial void OnBarcodeErrorChanged(string? value) => OnPropertyChanged(nameof(HasBarcodeError));
     partial void OnDescriptionErrorChanged(string? value) => OnPropertyChanged(nameof(HasDescriptionError));
-    partial void OnImageUrlErrorChanged(string? value) => OnPropertyChanged(nameof(HasImageUrlError));
     partial void OnSpecsErrorChanged(string? value) => OnPropertyChanged(nameof(HasSpecsError));
     partial void OnGeneralErrorChanged(string value) => OnPropertyChanged(nameof(HasGeneralError));
     partial void OnSpecCatalogMessageChanged(string value) => OnPropertyChanged(nameof(HasSpecCatalogMessage));
@@ -267,7 +273,6 @@ public sealed partial class ProductEditorViewModel : PageViewModel
                 CostPriceText = product.CostPrice.ToString("0.##", CultureInfo.InvariantCulture);
                 Barcode = product.Barcode ?? string.Empty;
                 Description = product.Description ?? string.Empty;
-                ImageUrl = product.ImageUrl ?? string.Empty;
                 IsSerialTracked = product.IsSerialTracked;
 
                 foreach (var spec in ProductInputParser.SpecsFromJson(product.Specs))
@@ -293,9 +298,11 @@ public sealed partial class ProductEditorViewModel : PageViewModel
 
                     Variants.Add(item);
                 }
+                Gallery.Load(product.Images, Variants);
             }
             else
             {
+                Gallery.Reset();
                 IsNotFound = false;
                 SelectedCategoryId = null;
                 Name = string.Empty;
@@ -306,7 +313,6 @@ public sealed partial class ProductEditorViewModel : PageViewModel
                 CostPriceText = string.Empty;
                 Barcode = string.Empty;
                 Description = string.Empty;
-                ImageUrl = string.Empty;
                 IsSerialTracked = true;
             }
 
@@ -363,7 +369,6 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         CostPrice: CostPriceText,
         Barcode: Barcode,
         Description: Description,
-        ImageUrl: ImageUrl,
         IsSerialTracked: IsSerialTracked,
         Specs: Specs.Select(s => s.ToDraft()).ToList(),
         Variants: Variants.Select(v => v.ToDraft()).ToList(),
@@ -373,6 +378,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     {
         get
         {
+            if (Gallery.HasChanges) return true;
             if (_baseline is null) return false;
             var current = BuildDraft();
 
@@ -384,7 +390,6 @@ public sealed partial class ProductEditorViewModel : PageViewModel
                 || current.CostPrice != _baseline.CostPrice
                 || current.Barcode != _baseline.Barcode
                 || current.Description != _baseline.Description
-                || current.ImageUrl != _baseline.ImageUrl
                 || current.IsSerialTracked != _baseline.IsSerialTracked)
             {
                 return true;
@@ -506,16 +511,22 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         IsSaving = true;
         try
         {
-            if (!IsEditMode)
+            var saved = !IsEditMode
+                ? await _commands.CreateAsync(validation.Create!, ActivationToken)
+                : await _commands.UpdateAsync(ProductId!.Value, validation.Update!, ActivationToken);
+            if (!ApplySavedProduct(saved)) return;
+            try { await _imageSaver.SaveAsync(saved.Id, Gallery, ActivationToken); }
+            catch (ApiException ex)
             {
-                var created = await _commands.CreateAsync(validation.Create!, ActivationToken);
-                _navigation.Navigate(AppRoute.ProductDetail(created.Id, _returnQuery, created.Id));
+                GeneralError = $"Đã lưu sản phẩm nhưng chưa lưu được ảnh: {CatalogApiErrors.Describe(ex, "Ảnh")}. Bấm Lưu để thử lại.";
+                return;
             }
-            else
+            catch (InvalidOperationException ex)
             {
-                var updated = await _commands.UpdateAsync(ProductId!.Value, validation.Update!, ActivationToken);
-                _navigation.Navigate(AppRoute.ProductDetail(updated.Id, _returnQuery, updated.Id));
+                GeneralError = $"Đã lưu sản phẩm nhưng chưa lưu được ảnh: {ex.Message}. Bấm Lưu để thử lại.";
+                return;
             }
+            _navigation.Navigate(AppRoute.ProductDetail(saved.Id, _returnQuery, saved.Id));
         }
         catch (OperationCanceledException) when (ActivationToken.IsCancellationRequested)
         {
@@ -540,6 +551,18 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         {
             IsSaving = false;
         }
+    }
+
+    private bool ApplySavedProduct(ProductDetail saved)
+    {
+        ProductId = saved.Id; IsEditMode = true; PageTitle = "Chỉnh sửa sản phẩm";
+        var matched = VariantSkuMatcher.Match(Variants, saved.Variants);
+        foreach (var (row, id) in matched.Matches) row.MarkSaved(id);
+        foreach (var row in Variants) row.CanChooseSelling = true;
+        _baseline = BuildDraft();
+        if (matched.MissingSkus.Count == 0) return true;
+        GeneralError = $"Đã lưu sản phẩm nhưng chưa lưu được ảnh: Không tìm thấy biến thể có SKU {string.Join(", ", matched.MissingSkus)}. Bấm Lưu để thử lại.";
+        return false;
     }
 
     private void ApplyFieldErrors(IReadOnlyDictionary<string, string> errors)
@@ -616,9 +639,6 @@ public sealed partial class ProductEditorViewModel : PageViewModel
                 case "description":
                     DescriptionError = error;
                     break;
-                case "imageurl":
-                    ImageUrlError = error;
-                    break;
                 case "specs":
                     SpecsError = error;
                     break;
@@ -651,7 +671,6 @@ public sealed partial class ProductEditorViewModel : PageViewModel
         CostPriceError = null;
         BarcodeError = null;
         DescriptionError = null;
-        ImageUrlError = null;
         SpecsError = null;
 
         foreach (var spec in Specs)

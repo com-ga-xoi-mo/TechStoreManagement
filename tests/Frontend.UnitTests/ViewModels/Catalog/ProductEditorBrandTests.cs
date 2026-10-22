@@ -9,7 +9,7 @@ public sealed class ProductEditorBrandTests
     {
         var vm = new ProductEditorViewModel(new StubProductReader(), new RecordingProductCommands(), new StubCategoryReader(),
             new NavigationService(new AllowAllPreparer()), new ScriptedDialogService(), CatalogSamples.Session("Admin"),
-            new StubSpecRepository(), brands ?? new StubBrandRepository());
+            new StubSpecRepository(), brands ?? new StubBrandRepository(), new ScriptedImageFilePicker(), new RecordingImageRepository());
         vm.SetRoute(null, null);
         await vm.ActivateAsync();
         return vm;

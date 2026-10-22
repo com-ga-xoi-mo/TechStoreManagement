@@ -16,7 +16,6 @@ public sealed class ProductDraftValidatorTests
         CostPrice: "2.500.000",
         Barcode: "BARCODE-1",
         Description: "Chuột gaming không dây",
-        ImageUrl: "https://example.com/gpx.png",
         IsSerialTracked: true,
         Specs: [new SpecDraft("dpi", SpecValueKind.Number, "25600")],
         Variants: []);

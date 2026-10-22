@@ -471,11 +471,11 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `ProductDetailViewModel_Load_FillsViewer` (in `ProductDetailViewModelTests`).
 
   Verify `TEST_CLIENT` passes.
-- [ ] 17.4 Commit: `feat(client): show product images by variant on the detail view model`
+- [x] 17.4 Commit: `feat(client): show product images by variant on the detail view model`
 
 ## 18. Editor ViewModel integration (design D11, D12)
 
-- [ ] 18.1 Remove every image URL member from the client:
+- [x] 18.1 Remove every image URL member from the client:
   - `ProductEditorViewModel`: `ImageUrl`, `ImageUrlError`, `HasImageUrlError`, `OnImageUrlErrorChanged`, the `imageurl` case in `ApplyFieldErrors`, the clears in `ClearAllErrors`, the `ImageUrl` lines in load and reset, the `ImageUrl:` argument in `BuildDraft`, and the `ImageUrl` comparison in the unsaved-changes check;
   - `Views/Catalog/ProductEditorPage.cs`: delete `imagePreview`, `imageUrlBox`, `imageUrlError` and `leftImageCol`, and put an empty `new Border()` in column 0 of `topSectionGrid` instead (group 19 replaces it with the gallery), so the app keeps building;
   - `ProductDraft.ImageUrl`;
@@ -483,24 +483,24 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - matching assertions in `ProductDraftValidatorTests` and `CatalogFakes`.
 
   Verify `grep -rn "ImageUrl" frontend/TechStore.Client/ViewModels frontend/TechStore.Client/Models/Catalog/ProductDraft.cs frontend/TechStore.Client/Views/Catalog/ProductEditorPage.cs` prints nothing, and `BUILD_CLIENT` and `TEST_CLIENT` both pass.
-- [ ] 18.2 Add the dependencies `IImageFilePicker picker` and `IProductImageRepository imageRepository` as the last two constructor parameters (null checks like the others). Create `Gallery = new ProductImageGallery(picker, Variants, () => ActivationToken)` and `_imageSaver = new ProductImageSaver(imageRepository)`. On activate:
+- [x] 18.2 Add the dependencies `IImageFilePicker picker` and `IProductImageRepository imageRepository` as the last two constructor parameters (null checks like the others). Create `Gallery = new ProductImageGallery(picker, Variants, () => ActivationToken)` and `_imageSaver = new ProductImageSaver(imageRepository)`. On activate:
   - edit mode: call `Gallery.Load(product.Images, Variants)` after the variant rows are built;
   - create mode: call `Gallery.Reset()`.
 
   Add `|| Gallery.HasChanges` to the unsaved-changes check. Update every `new ProductEditorViewModel(` in tests (`grep -rn "new ProductEditorViewModel(" tests`) to pass a `ScriptedImageFilePicker` and a `RecordingImageRepository`. Verify `TEST_CLIENT` passes.
-- [ ] 18.3 Change `SaveAsync` as design D12:
+- [x] 18.3 Change `SaveAsync` as design D12:
   - add `private bool ApplySavedProduct(ProductDetail saved)`, which sets `ProductId`, `IsEditMode`, `PageTitle`, marks rows with `VariantSkuMatcher`, sets `CanChooseSelling = true` on every row, retakes `_baseline`, and returns false with `GeneralError` set when SKUs are missing;
   - after create/update, `if (!ApplySavedProduct(saved)) return;`, then `await _imageSaver.SaveAsync(saved.Id, Gallery, ActivationToken)` inside its own `try`, with `catch (ApiException ex)` and `catch (InvalidOperationException ex)` setting `GeneralError = $"Đã lưu sản phẩm nhưng chưa lưu được ảnh: {...}. Bấm Lưu để thử lại."` and returning;
   - navigate only after both succeed;
   - keep `IsSaving` true for the whole chain.
 
   Verify `BUILD_CLIENT` passes.
-- [ ] 18.4 Tests in `tests/Frontend.UnitTests/ViewModels/Catalog/ProductEditorImageTests.cs`, one per scenario of "Image changes are saved with the product", "Unsaved variants are matched by SKU" (including SKU missing) and "Image save failure after the product was saved" (network error on the second upload, retry sends `PUT` not `POST`, and only the missing upload). Plus:
+- [x] 18.4 Tests in `tests/Frontend.UnitTests/ViewModels/Catalog/ProductEditorImageTests.cs`, one per scenario of "Image changes are saved with the product", "Unsaved variants are matched by SKU" (including SKU missing) and "Image save failure after the product was saved" (network error on the second upload, retry sends `PUT` not `POST`, and only the missing upload). Plus:
   - `Save_WhileSaving_DoesNotStartSecondChain`;
   - `Cancel_WithOnlyImageChanges_AsksToDiscard`.
 
-  Verify `TEST_CLIENT` passes and `wc -l frontend/TechStore.Client/ViewModels/Catalog/ProductEditorViewModel.cs` is at most 760 (write the number here).
-- [ ] 18.5 In `ViewModels/Catalog/CatalogApiErrors.cs` add `{ StatusCode: 503 } => "Nơi lưu ảnh đang không truy cập được. Hãy thử lại sau.",` before the default case (design D12), and add `Describe_503_ReturnsStorageMessage` to `tests/Frontend.UnitTests/ViewModels/Catalog/CatalogApiErrorsTests.cs`; verify `TEST_CLIENT` passes
+  Verify `TEST_CLIENT` passes and `wc -l frontend/TechStore.Client/ViewModels/Catalog/ProductEditorViewModel.cs` is at most 760 (observed: 740 lines).
+- [x] 18.5 In `ViewModels/Catalog/CatalogApiErrors.cs` add `{ StatusCode: 503 } => "Nơi lưu ảnh đang không truy cập được. Hãy thử lại sau.",` before the default case (design D12), and add `Describe_503_ReturnsStorageMessage` to `tests/Frontend.UnitTests/ViewModels/Catalog/CatalogApiErrorsTests.cs`; verify `TEST_CLIENT` passes
 - [ ] 18.6 Commit: `feat(client): save product images with the product`
 
 ## 19. Views (design D13) and project docs

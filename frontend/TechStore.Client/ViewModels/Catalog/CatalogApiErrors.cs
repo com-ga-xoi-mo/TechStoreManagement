@@ -17,6 +17,7 @@ internal static class CatalogApiErrors
             { StatusCode: 400 } => FirstText(exception) ?? "Dữ liệu chưa hợp lệ.",
             { StatusCode: 401 } => "Phiên truy cập đã hết hạn. Hãy đăng nhập lại để tiếp tục.",
             { StatusCode: 403 } => "Bạn không có quyền thực hiện thao tác này.",
+            { StatusCode: 503 } => "Nơi lưu ảnh đang không truy cập được. Hãy thử lại sau.",
             _ => "Không thể hoàn tất thao tác. Hãy thử lại."
         };
     }

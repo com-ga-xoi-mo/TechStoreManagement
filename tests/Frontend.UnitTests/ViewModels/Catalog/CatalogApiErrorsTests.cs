@@ -9,6 +9,17 @@ public sealed class CatalogApiErrorsTests
     private const string Subject = "Sản phẩm";
 
     [Fact]
+    public void Describe_503_ReturnsStorageMessage()
+    {
+        // Arrange
+        var error = new ApiException(ApiErrorKind.Http, "Unavailable", 503);
+        // Act
+        var message = CatalogApiErrors.Describe(error, Subject);
+        // Assert
+        Assert.Equal("Nơi lưu ảnh đang không truy cập được. Hãy thử lại sau.", message);
+    }
+
+    [Fact]
     public void Describe_Timeout_ReturnsTimeoutMessage()
     {
         // Arrange

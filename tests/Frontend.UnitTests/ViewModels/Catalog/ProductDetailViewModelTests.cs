@@ -12,6 +12,19 @@ namespace TechStore.Client.UnitTests.ViewModels.Catalog;
 public sealed class ProductDetailViewModelTests
 {
     [Fact]
+    public async Task ProductDetailViewModel_Load_FillsViewer()
+    {
+        // Arrange
+        var product = Detail(ProductId) with { Images = [new(Guid.NewGuid(), null, "/image.png", "image/png", 1, 0)] };
+        var viewModel = Create(new FakeProductRepository((_, _) => Task.FromResult<ProductDetail?>(product)));
+        viewModel.SetRoute(ProductId, null, null);
+        // Act
+        await viewModel.ActivateAsync();
+        // Assert
+        Assert.Equal("/image.png", viewModel.ImageViewer.SelectedUrl);
+    }
+
+    [Fact]
     public async Task ConstructorDoesNoIo_AndActivationLoadsOnlyConfiguredId()
     {
         var repository = new FakeProductRepository((_, _) => Task.FromResult<ProductDetail?>(Detail(ProductId)));

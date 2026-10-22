@@ -32,6 +32,8 @@ public sealed partial class ProductDetailViewModel : PageViewModel
     [ObservableProperty] private IReadOnlyList<SpecLine> specLines = [];
     [ObservableProperty] private IReadOnlyList<VariantLine> variantLines = [];
 
+    public ProductImageViewer ImageViewer { get; } = new();
+
     public bool HasSpecs => Product?.Specs.Count > 0;
     public bool HasVariants => Product?.Variants.Count > 0;
     public bool HasNoSpecs => !HasSpecs;
@@ -168,6 +170,7 @@ public sealed partial class ProductDetailViewModel : PageViewModel
 
     partial void OnProductChanged(ProductDetail? value)
     {
+        ImageViewer.Load(value);
         SpecLines = value?.Specs
             .Select(spec =>
             {

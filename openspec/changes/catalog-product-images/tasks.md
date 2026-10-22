@@ -451,11 +451,11 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `SaveAsync_AllImagesRemoved_SkipsLayout`.
 
   Verify `TEST_CLIENT` passes.
-- [ ] 16.3 Commit: `feat(client): add product image saver`
+- [x] 16.3 Commit: `feat(client): add product image saver`
 
 ## 17. Detail page viewer (design D11, spec "Images on the detail page")
 
-- [ ] 17.1 Create `ProductImageViewer.cs` (`public sealed partial class ProductImageViewer : ObservableObject`) with:
+- [x] 17.1 Create `ProductImageViewer.cs` (`public sealed partial class ProductImageViewer : ObservableObject`) with:
   - `Load(ProductDetail? product)`;
   - `Filters`: `public sealed record ImageFilterChoice(string Label, Guid? VariantId, bool IsAll)` in the same file; "Tất cả" first, then each variant that has at least one image, in the product's variant order;
   - `SelectedFilter`, whose change rebuilds `VisibleImages` (all images, or shared + that variant's images, in sort order) and selects the first image of that variant (else the first visible);
@@ -464,8 +464,8 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `[RelayCommand] SelectImage(object?)`.
 
   Verify `BUILD_CLIENT` passes.
-- [ ] 17.2 In `ProductDetailViewModel` add `public ProductImageViewer ImageViewer { get; } = new();` (not `Images`, which would read like `Product.Images`) and call `ImageViewer.Load(value)` in the existing `Product` change handler (next to `SpecLines`/`VariantLines`); verify `TEST_CLIENT` passes
-- [ ] 17.3 Tests in `ProductImageViewerTests.cs`, one per scenario of "Images on the detail page" (filter by variant; single image → no thumbnails), plus:
+- [x] 17.2 In `ProductDetailViewModel` add `public ProductImageViewer ImageViewer { get; } = new();` (not `Images`, which would read like `Product.Images`) and call `ImageViewer.Load(value)` in the existing `Product` change handler (next to `SpecLines`/`VariantLines`); verify `TEST_CLIENT` passes
+- [x] 17.3 Tests in `ProductImageViewerTests.cs`, one per scenario of "Images on the detail page" (filter by variant; single image → no thumbnails), plus:
   - `Load_NoImages_SelectedUrlNull`;
   - `Filters_OnlyVariantsWithImages`;
   - `ProductDetailViewModel_Load_FillsViewer` (in `ProductDetailViewModelTests`).

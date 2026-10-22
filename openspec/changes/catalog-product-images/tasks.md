@@ -38,12 +38,12 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 
 - [x] 2.1 Create `shared/DTOs/ProductImageDto.cs` (namespace `TechStore.Shared.DTOs`, class `ProductImageDto`) with `Guid Id`, `Guid? VariantId`, `string Url = string.Empty`, `string ContentType = string.Empty`, `int SizeBytes`, `int SortOrder`. In `shared/DTOs/ProductDto.cs` add `public List<ProductImageDto> Images { get; set; } = [];` after `ImageUrl`; verify `dotnet build shared/TechStore.Shared.csproj` passes
 - [x] 2.2 Create `shared/Requests/ProductImageLayoutItemRequest.cs` (`Guid? Id`, `Guid? VariantId`) and `shared/Requests/UpdateProductImagesLayoutRequest.cs` (`List<ProductImageLayoutItemRequest>? Items`), each class in its own file, all properties nullable with no initializer; verify `BUILD_ALL` passes and `TEST_BACKEND` / `TEST_CLIENT` keep the 1.3 counts
-- [ ] 2.3 Commit: `feat(shared): add product image contracts`
+- [x] 2.3 Commit: `feat(shared): add product image contracts`
 
 ## 3. Object storage in `backend/Common/Storage/` (design D2, D3)
 
-- [ ] 3.1 Add the package: `dotnet add backend/TechStore.Api.csproj package AWSSDK.S3`, then edit the `PackageReference` so it pins the exact version that was restored (no wildcard). Write the version into this line; verify `dotnet build backend/TechStore.Api.csproj` passes
-- [ ] 3.2 Create these files (namespace `TechStore.Api.Common.Storage`), one type per file:
+- [x] 3.1 Add the package: `dotnet add backend/TechStore.Api.csproj package AWSSDK.S3`, then edit the `PackageReference` so it pins the exact version that was restored (no wildcard). Restored version: `4.0.104.6`; verify `dotnet build backend/TechStore.Api.csproj` passes
+- [x] 3.2 Create these files (namespace `TechStore.Api.Common.Storage`), one type per file:
   - `IObjectStorage.cs`: interface exactly as design D2.
   - `ObjectStorageUnavailableException.cs`.
   - `ObjectStorageKey.cs`: `public static class` with `EnsureValid(string key)` using the regex from D2, throwing `ArgumentException` with message `"Invalid storage key."`.
@@ -55,29 +55,29 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
     - `public IReadOnlyList<string> Validate()` returning the full setting names that are wrong: `ObjectStorage:Provider` when not `Local`/`R2` (ignoring case), and for R2 each empty field as `ObjectStorage:R2:<Field>`.
 
   Verify the backend builds.
-- [ ] 3.3 Create `LocalObjectStorage.cs` (`public sealed class LocalObjectStorage(ObjectStorageOptions options, string contentRootPath, ILogger<LocalObjectStorage> logger) : IObjectStorage`):
+- [x] 3.3 Create `LocalObjectStorage.cs` (`public sealed class LocalObjectStorage(ObjectStorageOptions options, string contentRootPath, ILogger<LocalObjectStorage> logger) : IObjectStorage`):
   - `PutAsync`: calls `ObjectStorageKey.EnsureValid`, writes the bytes to `Path.Combine(contentRootPath, options.Local.RootPath, key)` (create the directory), returns `options.Local.RequestPath.TrimEnd('/') + "/" + key`. Wraps `IOException` / `UnauthorizedAccessException` into `ObjectStorageUnavailableException`.
   - `TryDeleteAsync`: deletes the file if present, returns true. On error, logs `"Could not delete stored image {Key}"` and returns false.
 
   Verify the backend builds.
-- [ ] 3.4 Create `R2ObjectStorage.cs` (`public sealed class R2ObjectStorage(ObjectStorageOptions options, ILogger<R2ObjectStorage> logger) : IObjectStorage, IDisposable`). Build one `AmazonS3Client` in the constructor with the settings of design D3 (`ServiceURL`, `ForcePathStyle`, `AuthenticationRegion = "auto"`, both checksum settings `WHEN_REQUIRED`).
+- [x] 3.4 Create `R2ObjectStorage.cs` (`public sealed class R2ObjectStorage(ObjectStorageOptions options, ILogger<R2ObjectStorage> logger) : IObjectStorage, IDisposable`). Build one `AmazonS3Client` in the constructor with the settings of design D3 (`ServiceURL`, `ForcePathStyle`, `AuthenticationRegion = "auto"`, both checksum settings `WHEN_REQUIRED`).
   - `PutAsync`: sends `PutObjectRequest` with `DisablePayloadSigning = true`, `ContentType` and `Headers.CacheControl`; wraps `AmazonS3Exception`, `HttpRequestException` and timeout into `ObjectStorageUnavailableException` without the secret in the message.
   - `TryDeleteAsync`: sends `DeleteObjectRequest`, catches and logs the key only.
   - Add `internal static string PublicUrlFor(string publicBaseUrl, string key)`.
 
   Verify the backend builds.
-- [ ] 3.5 Create `ObjectStorageServiceCollectionExtensions.cs` with two methods:
+- [x] 3.5 Create `ObjectStorageServiceCollectionExtensions.cs` with two methods:
   - `AddObjectStorage(this IServiceCollection services, IConfiguration configuration)`: bind the section; when `Validate()` returns names, throw `InvalidOperationException($"Missing or invalid object storage settings: {string.Join(", ", names)}")`. Register `ObjectStorageOptions` as singleton, and `IObjectStorage` as singleton `R2ObjectStorage` or `LocalObjectStorage` (passing `IHostEnvironment.ContentRootPath`).
   - `UseObjectStorageFiles(this WebApplication app)`: only for `Local`, creates the root folder and calls `app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(root), RequestPath = options.Local.RequestPath, ContentTypeProvider = <FileExtensionContentTypeProvider with ".webp" = "image/webp">, OnPrepareResponse = add "X-Content-Type-Options: nosniff" })`.
 
   Verify the backend builds.
-- [ ] 3.6 Wire it up:
+- [x] 3.6 Wire it up:
   - In `backend/Program.cs` add `builder.Services.AddObjectStorage(builder.Configuration);` after the Unit of Work registration (with a `// Object storage (product images)` comment), and `app.UseObjectStorageFiles();` right after `app.UseHttpsRedirection();`. Add `using TechStore.Api.Common.Storage;`.
   - In `backend/appsettings.json` add the `ObjectStorage` block from design D3 with `Provider` `Local` and every R2 value empty.
   - Append `backend/uploads/` to `.gitignore`.
 
   Verify `BUILD_ALL` passes, `ASPNETCORE_URLS=http://localhost:5177 ASPNETCORE_ENVIRONMENT=Development dotnet run --project backend/TechStore.Api.csproj --no-launch-profile` starts (stop it after the "Now listening on: http://localhost:5177" line), and `git status --short` does not list `backend/uploads`. Never start a backend on port 5176 in any task: the owner's own backend may be running there.
-- [ ] 3.7 Add tests in `tests/Backend.UnitTests/ObjectStorageTests.cs`:
+- [x] 3.7 Add tests in `tests/Backend.UnitTests/ObjectStorageTests.cs`:
   - `Validate_DefaultLocalOptions_ReturnsNoErrors`;
   - `Validate_UnknownProvider_ReturnsProviderError`;
   - `Validate_R2WithoutSecret_ReturnsOnlyThatSettingName` (and the message contains no value);
@@ -90,13 +90,13 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `AddObjectStorage_NoSection_RegistersLocalStorage`: empty configuration, resolve `IObjectStorage` from the built provider (register an `IHostEnvironment` stub with a temp `ContentRootPath` and `NullLogger<>` first), assert it is `LocalObjectStorage`.
 
   Verify `TEST_BACKEND` passes (baseline + new tests).
-- [ ] 3.8 Create `tests/Backend.UnitTests/FakeObjectStorage.cs`:
+- [x] 3.8 Create `tests/Backend.UnitTests/FakeObjectStorage.cs`:
   - `public Dictionary<string, byte[]> Objects`, `public List<string> DeletedKeys`, `public bool ThrowOnPut`, `public int PutCount`;
   - `PutAsync`: throws `ObjectStorageUnavailableException` when `ThrowOnPut`, otherwise stores the bytes and returns `"https://img.test/" + key`;
   - `TryDeleteAsync`: records the key, removes it and returns true.
 
   Verify `TEST_BACKEND` passes.
-- [ ] 3.9 Update `AGENTS.md` for the backend storage (design Goals):
+- [x] 3.9 Update `AGENTS.md` for the backend storage (design Goals):
   - section 3, "Services" bullet: replace the sentence that ends "depend only on repository interfaces and `IUnitOfWork`." with "Services depend only on repository interfaces, `IUnitOfWork` and infrastructure ports from `Common/` (`IObjectStorage`, `TimeProvider`).";
   - "Key Modules", `backend/Common/` bullet: add `Storage/` (`IObjectStorage`, `ObjectStorageOptions`, R2 or local folder);
   - "Key Directories": add `Storage/` under `Common/` with a one-line comment;

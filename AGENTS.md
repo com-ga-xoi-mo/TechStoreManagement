@@ -48,7 +48,7 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 - **`backend/Customers/`**: Customer profiles, loyalty point accrual, discount vouchers, and revenue analytics (`ICustomerRepository`, `CustomerRepository`).
 - **`backend/Sales/`**: POS counter register sessions, cashier cart calculation, and dynamic VietQR generation (`PosSession`, `VietQrTransaction`).
 - **`backend/Identity/`**: User credentials, refresh tokens, store configuration settings, RBAC authorization, initial database seeding (`IAuthService`, `IStoreSettingsService`, `AuthController`, `StoreController`, `DataSeeder`, `IDataSeeder`).
-- **`backend/Common/`**: Core infrastructure including `AppDbContext`, `IUnitOfWork` / `UnitOfWork` (saves and transactions), `DuplicateKeyException`, `BaseEntity`, and HTTP exception handling.
+- **`backend/Common/`**: Core infrastructure including `AppDbContext`, `IUnitOfWork` / `UnitOfWork` (saves and transactions), `DuplicateKeyException`, `BaseEntity`, HTTP exception handling, and `Storage/` (`IObjectStorage`, `ObjectStorageOptions`, R2 or a local folder).
 - **`frontend/TechStore.Client/`**: Cross-platform desktop application organized into `Views/`, `ViewModels/`, `Models/`, `Repositories/`, `Services/`, `Controls/`, and `Styles/`.
 - **`shared/`**: Common domain contracts consumed across backend, client, and test projects (`DTOs/`, `Requests/`, `Enums/`).
 
@@ -72,6 +72,7 @@ SalesManagement/
 │   ├── Catalog/                   # Products, categories, JSONB specs (Services, Repositories, Entities, Configurations)
 │   ├── Common/                    # Infrastructure: AppDbContext, IUnitOfWork/UnitOfWork, DuplicateKeyException, DataSeeder
 │   │   ├── Data/                  # DbContext, UnitOfWork, Migrations/, DataSeeder
+│   │   ├── Storage/               # IObjectStorage: R2 or local image files
 │   │   └── Entities/              # BaseEntity
 │   ├── Customers/                 # Customers, loyalty points, vouchers (Repositories, Entities, Configurations)
 │   ├── Identity/                  # RBAC, users, roles, refresh tokens (Entities, Configurations)
@@ -218,7 +219,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 ### 3. Backend Layering & Repository Pattern
 - **Strict Layering Rule:** `Controller → Service → Repository → AppDbContext`.
   - **Controllers** call domain services only. Controllers never inject `AppDbContext` or repository interfaces.
-  - **Services** encapsulate validation, business rules, transaction boundaries, orchestration, and entity-to-DTO mapping. Services depend only on repository interfaces and `IUnitOfWork`.
+  - **Services** encapsulate validation, business rules, transaction boundaries, orchestration, and entity-to-DTO mapping. Services depend only on repository interfaces, `IUnitOfWork` and infrastructure ports from `Common/` (`IObjectStorage`, `TimeProvider`).
   - **Repositories** live in `backend/<Module>/Repositories/` as `I<Aggregate>Repository` / `<Aggregate>Repository`. They are the **only** classes that reference `AppDbContext` (LINQ, `FromSqlInterpolated`, `AsNoTracking`, `Include`).
   - **Repository Query Inputs:** Repositories accept module-internal criteria records with pre-validated, parsed values (e.g. `ProductSearchCriteria`, `OrderSearchCriteria`), never raw `shared/Requests` models.
   - **Repository Methods:** Repositories express business query intent (`SearchAsync(criteria)`, `GetWithVariantsAsync(id)`, `FindExistingSkusAsync(skus)`, `Add(product)`). Read-only methods MUST use `AsNoTracking()`. Repositories stage changes (`Add`, `Remove`) and **never** invoke `SaveChanges`, `BeginTransaction`, `Commit`, or `Rollback`.
@@ -351,7 +352,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 ### 9. Dependency Injection Pattern
 - **Backend (`backend/Program.cs`):**
   - **Scoped:** DbContext (`AppDbContext`), Unit of Work (`IUnitOfWork`), repositories (`IProductRepository`, `IOrderRepository`), domain services (`IProductService`, `IOrderService`), and `IDataSeeder`.
-  - **Singleton:** Stateless utility services (`TimeProvider.System`), token generators.
+  - **Singleton:** Stateless utility services (`TimeProvider.System`), token generators, `IObjectStorage` (`R2ObjectStorage` or `LocalObjectStorage`).
 - **Frontend (`frontend/TechStore.Client/App.xaml.cs`):**
   - `AddFrontendFoundation`: Registers `ApiClientOptions`, `ISessionStore` (Singleton), `BearerTokenHandler` (Transient), and configured `IApiClient` / `ApiClient` via `AddHttpClient`.
   - `AddFrontendUi`: Registers core client services (`INavigationService`, `IDialogService`, `IThemePreferenceService`, `IWindowLifetime`) as Singleton; ViewModels, Views, and Client Repositories (`IProductRepository`, `ICategoryRepository`) as Transient.

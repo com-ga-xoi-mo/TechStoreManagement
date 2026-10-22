@@ -8,6 +8,7 @@ using TechStore.Api.Catalog.Services;
 using TechStore.Api.Analytics.Repositories;
 using TechStore.Api.Analytics.Services;
 using TechStore.Api.Common.Data;
+using TechStore.Api.Common.Storage;
 using TechStore.Api.Customers.Repositories;
 using TechStore.Api.Identity.Configurations;
 using TechStore.Api.Identity.Repositories;
@@ -64,6 +65,9 @@ builder.Services.AddScoped<IDemoSeedRepository, DemoSeedRepository>();
 
 // Unit of Work registration
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Object storage (product images)
+builder.Services.AddObjectStorage(builder.Configuration);
 
 // Catalog Module repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -144,6 +148,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseObjectStorageFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();

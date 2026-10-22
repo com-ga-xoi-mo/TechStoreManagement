@@ -120,7 +120,8 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
         dto.Id, dto.CategoryId, dto.CategoryName, dto.Name, dto.Sku, dto.Barcode,
         dto.Brand, dto.BasePrice, dto.CostPrice, dto.Description, dto.ImageUrl,
         CloneSpecs(dto.Specs), dto.IsSerialTracked, dto.IsActive, dto.CreatedAt,
-        dto.UpdatedAt, dto.Variants.Select(MapVariant).ToArray());
+        dto.UpdatedAt, dto.Variants.Select(MapVariant).ToArray(),
+        dto.Images.OrderBy(i => i.SortOrder).Select(i => new ProductImage(i.Id, i.VariantId, i.Url, i.ContentType, i.SizeBytes, i.SortOrder)).ToArray());
 
     private static ProductVariant MapVariant(ProductVariantDto dto) => new(
         dto.Id, dto.ProductId, dto.VariantName, dto.Sku, dto.Barcode, dto.Price,
@@ -269,6 +270,14 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
         RequireBoolean(json, "isActive");
         RequireDateTime(json, "createdAt");
         RequireNullableDateTime(json, "updatedAt");
+        Require(json, "images", JsonValueKind.Array);
+        foreach (var image in json.GetProperty("images").EnumerateArray())
+        {
+            RequireObject(image, "product image");
+            RequireGuid(image, "id");
+            RequireString(image, "url");
+            RequireInt(image, "sortOrder");
+        }
         Require(json, "variants", JsonValueKind.Array);
         foreach (var variant in json.GetProperty("variants").EnumerateArray())
         {

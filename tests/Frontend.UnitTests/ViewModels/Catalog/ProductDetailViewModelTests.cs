@@ -100,7 +100,7 @@ public sealed class ProductDetailViewModelTests
 
     private static ProductDetail Detail(Guid id) => new(
         id, Guid.NewGuid(), "Mobile", "Test phone", "SKU-1", null, "Brand", 100m, 80m,
-        null, null, new Dictionary<string, JsonElement>(), false, true, DateTime.UtcNow, null, []);
+        null, null, new Dictionary<string, JsonElement>(), false, true, DateTime.UtcNow, null, [], []);
 
     private sealed class FakeProductRepository(Func<Guid, CancellationToken, Task<ProductDetail?>> detail) : IProductRepository
     {

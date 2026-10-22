@@ -30,7 +30,7 @@ public sealed class ProductCommandRepositoryTests
             "isActive": {{(isActive ? "true" : "false")}},
             "createdAt": "2026-01-01T00:00:00Z",
             "updatedAt": null,
-            "variants": [
+            "images": [], "variants": [
                 {
                     "id": "33333333-3333-3333-3333-333333333333",
                     "productId": "{{id}}",

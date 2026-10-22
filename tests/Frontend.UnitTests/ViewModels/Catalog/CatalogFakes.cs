@@ -145,7 +145,8 @@ internal static class CatalogSamples
         IsActive: isActive,
         CreatedAt: new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         UpdatedAt: null,
-        Variants: variants ?? [Variant(id, "P-1-V1", isActive)]);
+        Variants: variants ?? [Variant(id, "P-1-V1", isActive)],
+        Images: []);
 
     public static ProductVariant Variant(Guid productId, string sku, bool isActive = true) => new(
         Id: Guid.NewGuid(),

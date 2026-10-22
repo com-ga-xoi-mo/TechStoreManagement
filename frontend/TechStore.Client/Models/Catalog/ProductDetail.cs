@@ -19,7 +19,8 @@ public sealed record ProductDetail(
     bool IsActive,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
-    IReadOnlyList<ProductVariant> Variants);
+    IReadOnlyList<ProductVariant> Variants,
+    IReadOnlyList<ProductImage> Images);
 
 public sealed record ProductVariant(
     Guid Id,

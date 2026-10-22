@@ -84,6 +84,7 @@ public static class UiServiceCollectionExtensions
             services.AddTransient<MarkupReferenceViewModel>();
             services.AddTransient<MarkupReferencePage>();
         }
+        services.AddTransient<IProductImageRepository, ProductImageRepository>();
         services.AddTransient<IProductRepository, ProductRepository>();
         services.AddTransient<IProductCommandRepository, ProductRepository>();
         services.AddTransient<IProductSpecRepository, ProductRepository>();

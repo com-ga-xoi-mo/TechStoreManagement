@@ -302,16 +302,16 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `PostFileAsync_SendsBearerToken`: build the client with `BearerTokenHandler` exactly as `Transport/ApiClientErrorTests.cs` does, and assert the captured request has `Authorization: Bearer <token>`.
 
   Verify `TEST_CLIENT` passes.
-- [ ] 11.5 Commit: `feat(client): add multipart file upload to the API client`
+- [x] 11.5 Commit: `feat(client): add multipart file upload to the API client`
 
 ## 12. Client models and image repository (design D15)
 
-- [ ] 12.1 Create `frontend/TechStore.Client/Models/Catalog/ProductImage.cs`, `ImageUpload.cs`, `ImageLayoutEntry.cs` (one record each, design D15). Add `IReadOnlyList<ProductImage> Images` as the last parameter of `ProductDetail`. In `ProductRepository`:
+- [x] 12.1 Create `frontend/TechStore.Client/Models/Catalog/ProductImage.cs`, `ImageUpload.cs`, `ImageLayoutEntry.cs` (one record each, design D15). Add `IReadOnlyList<ProductImage> Images` as the last parameter of `ProductDetail`. In `ProductRepository`:
   - map `dto.Images` in `ParseDetail` (ordered by `SortOrder`);
   - make `ValidateDetailShape` require an `images` array whose items have string `id`, string `url` and number `sortOrder`.
 
   Fix `tests/Frontend.UnitTests/ViewModels/Orders/OrderFakes.cs` and every JSON fixture the tests report (add `"images": []`). Verify `TEST_CLIENT` passes.
-- [ ] 12.2 Create `frontend/TechStore.Client/Repositories/Catalog/IProductImageRepository.cs` (three methods of design D15, XML comments naming the route and the status codes that reach the caller as `ApiException`) and `ProductImageRepository.cs` (`public sealed class ProductImageRepository(IApiClient apiClient)`):
+- [x] 12.2 Create `frontend/TechStore.Client/Repositories/Catalog/IProductImageRepository.cs` (three methods of design D15, XML comments naming the route and the status codes that reach the caller as `ApiException`) and `ProductImageRepository.cs` (`public sealed class ProductImageRepository(IApiClient apiClient)`):
   - upload sends `new ApiFileContent("file", upload.FileName, upload.ContentType, upload.Content)` with field `variantId` only when set, to `api/products/{productId:D}/images`;
   - delete calls `DeleteAsync("api/products/{productId:D}/images/{imageId:D}")`;
   - layout calls `PutAsync<UpdateProductImagesLayoutRequest, JsonElement>("api/products/{productId:D}/images/layout", ...)`;
@@ -319,7 +319,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `Guid.Empty` ids throw `ArgumentException`.
 
   Verify `BUILD_CLIENT` passes.
-- [ ] 12.3 Tests in `tests/Frontend.UnitTests/Repositories/Catalog/ProductImageRepositoryTests.cs` using `RecordingApiClient`:
+- [x] 12.3 Tests in `tests/Frontend.UnitTests/Repositories/Catalog/ProductImageRepositoryTests.cs` using `RecordingApiClient`:
   - `UploadAsync_SharedImage_PostsFileWithoutVariantField`;
   - `UploadAsync_VariantImage_SendsVariantId`;
   - `UploadAsync_MalformedResponse_ThrowsInvalidResponse`;
@@ -328,7 +328,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `ProductDetail_Images_AreMappedInSortOrder` (in `ProductRepositoryTests`).
 
   Verify `TEST_CLIENT` passes.
-- [ ] 12.4 Register `services.AddTransient<IProductImageRepository, ProductImageRepository>();` next to the other catalog repositories in `UiServiceCollectionExtensions.cs`; verify `BUILD_CLIENT` passes and the composition test in `tests/Frontend.UnitTests/Composition/` still passes
+- [x] 12.4 Register `services.AddTransient<IProductImageRepository, ProductImageRepository>();` next to the other catalog repositories in `UiServiceCollectionExtensions.cs`; verify `BUILD_CLIENT` passes and the composition test in `tests/Frontend.UnitTests/Composition/` still passes
 - [ ] 12.5 Commit: `feat(client): add product image repository`
 
 ## 13. File picker (design D10, D14)

@@ -9,11 +9,43 @@ public class ProductServiceDeleteTests
     private readonly FakeProductRepository _productRepo = new();
     private readonly FakeCategoryRepository _categoryRepo = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
+    private readonly FakeObjectStorage _storage = new();
     private readonly ProductService _service;
 
     public ProductServiceDeleteTests()
     {
-        _service = new ProductService(_productRepo, _categoryRepo, _unitOfWork, new FakeSpecDefinitionRepository());
+        _service = new ProductService(_productRepo, _categoryRepo, _unitOfWork, new FakeSpecDefinitionRepository(), _storage);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ProductWithImages_DeletesFilesAfterCommit()
+    {
+        // Arrange
+        var product = ProductCommandTestData.NewProduct(Guid.NewGuid());
+        product.Images.Add(new() { ObjectKey = "products/a.png" });
+        _storage.Objects["products/a.png"] = [1];
+        _productRepo.Products[product.Id] = product;
+        // Act
+        var result = await _service.DeleteAsync(product.Id);
+        // Assert
+        result.Status.Should().Be(ProductCommandStatus.Success);
+        _unitOfWork.CommitCount.Should().Be(1);
+        _storage.DeletedKeys.Should().Equal("products/a.png");
+        _storage.Objects.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_InUseProduct_DeletesNoFile()
+    {
+        // Arrange
+        var product = ProductCommandTestData.NewProduct(Guid.NewGuid());
+        product.Images.Add(new() { ObjectKey = "products/a.png" });
+        _productRepo.Products[product.Id] = product; _productRepo.InUseProductIds.Add(product.Id);
+        // Act
+        var result = await _service.DeleteAsync(product.Id);
+        // Assert
+        result.Status.Should().Be(ProductCommandStatus.Conflict);
+        _storage.DeletedKeys.Should().BeEmpty();
     }
 
     [Fact]

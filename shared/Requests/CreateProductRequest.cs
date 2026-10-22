@@ -12,7 +12,6 @@ public class CreateProductRequest
     public decimal? BasePrice { get; set; }
     public decimal? CostPrice { get; set; }
     public string? Description { get; set; }
-    public string? ImageUrl { get; set; }
     public Dictionary<string, JsonElement>? Specs { get; set; }
     /// <summary>Names for new spec keys used in this request (design D13); existing definitions are kept.</summary>
     public Dictionary<string, SpecLabelRequest>? SpecLabels { get; set; }

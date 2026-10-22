@@ -243,20 +243,20 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - section 5: add a short "Product images" list: files live in object storage and the database keeps only references (`product_images`); `products.image_url` is the cover computed by the server; at most 20 images of at most 5 MB (JPEG/PNG/WebP by content); credentials only through user-secrets or environment variables.
 
   Verify every endpoint path in the README exists in a controller (`grep -n "images" backend/Catalog/README.md`) and `grep -n "IProductImageService" AGENTS.md` prints at least two lines.
-- [ ] 8.5 Commit: `feat(catalog): add product image endpoints`
+- [x] 8.5 Commit: `feat(catalog): add product image endpoints`
 
 ## 9. Product service: images in detail, no client `imageUrl`, cleanup on delete
 
-- [ ] 9.1 In `ProductDtoMapper.ToDto` set `Images = product.Images.OrderBy(i => i.SortOrder).Select(ToImageDto).ToList()` (reuse the 7.2 mapper; no second mapping). In `ProductService.GetByIdAsync` replace `GetWithVariantsAsync` with `GetDetailAsync`; verify the backend builds
-- [ ] 9.2 Remove `ImageUrl` from `shared/Requests/CreateProductRequest.cs` and `UpdateProductRequest.cs`. Fix every compile error the build reports, and only these:
+- [x] 9.1 In `ProductDtoMapper.ToDto` set `Images = product.Images.OrderBy(i => i.SortOrder).Select(ToImageDto).ToList()` (reuse the 7.2 mapper; no second mapping). In `ProductService.GetByIdAsync` replace `GetWithVariantsAsync` with `GetDetailAsync`; verify the backend builds
+- [x] 9.2 Remove `ImageUrl` from `shared/Requests/CreateProductRequest.cs` and `UpdateProductRequest.cs`. Fix every compile error the build reports, and only these:
   - drop the `imageUrl` rule in `CreateProductValidator` and `UpdateProductValidator`;
   - drop the two `ImageUrl =` assignments in `ProductService` (create leaves `ImageUrl` null; update no longer touches it);
   - `ProductCommandTestData.NewRequestFrom` stops copying it; in `ProductServiceUpdateTests.UpdateAsync_BlankOptionalStrings_StoredAsNull` delete the three `ImageUrl` lines (`product.ImageUrl = "https://example.com/img.png";`, `request.ImageUrl = "   ";`, `product.ImageUrl.Should().BeNull();`) and keep the barcode and description checks;
   - in the client, only the two `ImageUrl = imageUrlToSend` lines in `ProductDraftValidator` and the `imageUrlToSend` local (the rest of the client clean-up is group 18).
 
   Verify `BUILD_ALL` passes.
-- [ ] 9.3 Add `IObjectStorage objectStorage` as the last parameter of the `ProductService` primary constructor. In `DeleteAsync`, before `productRepository.Remove(product)`, take `var keys = product.Images.Select(i => i.ObjectKey).ToList();`; after `CommitAsync`, `foreach (var key in keys) await objectStorage.TryDeleteAsync(key, cancellationToken);`. Update the 18 `new ProductService(` calls in the 8 test files to pass `new FakeObjectStorage()` (use `grep -rn "new ProductService(" tests` to find them); verify `TEST_BACKEND` passes
-- [ ] 9.4 Add tests in the existing files:
+- [x] 9.3 Add `IObjectStorage objectStorage` as the last parameter of the `ProductService` primary constructor. In `DeleteAsync`, before `productRepository.Remove(product)`, take `var keys = product.Images.Select(i => i.ObjectKey).ToList();`; after `CommitAsync`, `foreach (var key in keys) await objectStorage.TryDeleteAsync(key, cancellationToken);`. Update the 18 `new ProductService(` calls in the 8 test files to pass `new FakeObjectStorage()` (use `grep -rn "new ProductService(" tests` to find them); verify `TEST_BACKEND` passes
+- [x] 9.4 Add tests in the existing files:
   - `ProductServiceTests`: `GetByIdAsync_ProductWithImages_ReturnsImagesInSortOrder`, and `CreateAsync_NewProduct_HasNoImagesAndNullCover`.
   - `ProductServiceUpdateTests`: `UpdateAsync_ProductWithImages_KeepsImagesAndCover`.
   - `ProductServiceDeleteTests`: `DeleteAsync_ProductWithImages_DeletesFilesAfterCommit`, and `DeleteAsync_InUseProduct_DeletesNoFile`.

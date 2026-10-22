@@ -169,7 +169,6 @@ public static class ProductDraftValidator
                 : (string.IsNullOrWhiteSpace(draft.Barcode) ? null : draft.Barcode.Trim());
 
             string? descriptionToSend = string.IsNullOrWhiteSpace(draft.Description) ? null : draft.Description.Trim();
-            string? imageUrlToSend = string.IsNullOrWhiteSpace(draft.ImageUrl) ? null : draft.ImageUrl.Trim();
 
             if (isCreate)
             {
@@ -183,7 +182,6 @@ public static class ProductDraftValidator
                     CostPrice = costPriceValue,
                     Barcode = barcodeToSend,
                     Description = descriptionToSend,
-                    ImageUrl = imageUrlToSend,
                     IsSerialTracked = draft.IsSerialTracked,
                     Specs = productSpecResult.Values,
                     SpecLabels = BuildSpecLabels(draft.SpecLabels),
@@ -208,7 +206,6 @@ public static class ProductDraftValidator
                     CostPrice = costPriceValue,
                     Barcode = barcodeToSend,
                     Description = descriptionToSend,
-                    ImageUrl = imageUrlToSend,
                     IsSerialTracked = draft.IsSerialTracked,
                     Specs = productSpecResult.Values,
                     SpecLabels = BuildSpecLabels(draft.SpecLabels),

@@ -2,6 +2,7 @@ using System.Text.Json;
 using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Common.Data;
+using TechStore.Api.Common.Storage;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -11,13 +12,14 @@ public class ProductService(
     IProductRepository productRepository,
     ICategoryRepository categoryRepository,
     IUnitOfWork unitOfWork,
-    ISpecDefinitionRepository specDefinitionRepository) : IProductService
+    ISpecDefinitionRepository specDefinitionRepository,
+    IObjectStorage objectStorage) : IProductService
 {
     private const string SpecNameConflictMessage = "A spec name was created by someone else at the same time. Reload the product and save again.";
 
     public async Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var product = await productRepository.GetWithVariantsAsync(id, cancellationToken);
+        var product = await productRepository.GetDetailAsync(id, cancellationToken);
         if (product == null)
         {
             return ProductDetailResult.NotFound();
@@ -312,7 +314,6 @@ public class ProductService(
             BasePrice = request.BasePrice!.Value,
             CostPrice = request.CostPrice!.Value,
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-            ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
             Specs = prodSpecsJson,
             IsSerialTracked = request.IsSerialTracked ?? true,
             IsActive = false,
@@ -505,7 +506,6 @@ public class ProductService(
             product.BasePrice = request.BasePrice!.Value;
             product.CostPrice = request.CostPrice!.Value;
             product.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
-            product.ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim();
             product.Specs = ProductSpecHelper.SerializeSpecs(request.Specs);
             product.IsSerialTracked = request.IsSerialTracked!.Value;
             var now = DateTime.UtcNow;
@@ -641,11 +641,13 @@ public class ProductService(
                 return ProductCommandResult.Conflict("Product is in use by stock, purchase or order records. Deactivate it instead.");
             }
 
+            var keys = product.Images.Select(i => i.ObjectKey).ToList();
             productRepository.Remove(product);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
             await unitOfWork.CommitAsync(cancellationToken);
 
+            foreach (var key in keys) await objectStorage.TryDeleteAsync(key, cancellationToken);
             return ProductCommandResult.Success(null);
         }
         catch

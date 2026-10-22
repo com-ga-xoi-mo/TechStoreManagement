@@ -98,12 +98,6 @@ public static class CreateProductValidator
             AddError("description", "Description cannot exceed 2000 characters.");
         }
 
-        // 9. ImageUrl
-        if (!string.IsNullOrEmpty(request.ImageUrl) && request.ImageUrl.Length > 2048)
-        {
-            AddError("imageUrl", "Image URL cannot exceed 2048 characters.");
-        }
-
         // 10. Specs
         if (request.Specs != null)
         {

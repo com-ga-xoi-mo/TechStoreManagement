@@ -21,7 +21,7 @@ public class BrandSpellingTests
             product.Brand = brand;
             products.Products[product.Id] = product;
         }
-        return (products, new ProductService(products, categories, new FakeUnitOfWork(), new FakeSpecDefinitionRepository()), category);
+        return (products, new ProductService(products, categories, new FakeUnitOfWork(), new FakeSpecDefinitionRepository(), new FakeObjectStorage()), category);
     }
 
     private static CreateProductRequest NewRequest(Guid categoryId, string brand) => new()

@@ -14,7 +14,7 @@ public class ProductServiceStatusTests
 
     public ProductServiceStatusTests()
     {
-        _service = new ProductService(_productRepo, _categoryRepo, _unitOfWork, new FakeSpecDefinitionRepository());
+        _service = new ProductService(_productRepo, _categoryRepo, _unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
     }
 
     [Fact]

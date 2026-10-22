@@ -68,7 +68,6 @@ internal static class ProductCommandTestData
         BasePrice = product.BasePrice,
         CostPrice = product.CostPrice,
         Description = product.Description,
-        ImageUrl = product.ImageUrl,
         Specs = ProductSpecHelper.ParseJsonSpecs(product.Specs),
         IsSerialTracked = product.IsSerialTracked,
         Variants = null

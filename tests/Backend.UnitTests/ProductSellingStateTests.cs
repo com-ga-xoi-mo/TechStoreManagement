@@ -15,7 +15,7 @@ public class ProductSellingStateTests
         var categories = new FakeCategoryRepository();
         var category = ProductCommandTestData.NewActiveCategory();
         categories.Categories[category.Id] = category;
-        var service = new ProductService(products, categories, new FakeUnitOfWork(), new FakeSpecDefinitionRepository());
+        var service = new ProductService(products, categories, new FakeUnitOfWork(), new FakeSpecDefinitionRepository(), new FakeObjectStorage());
         var request = new CreateProductRequest
         {
             CategoryId = category.Id,
@@ -50,7 +50,7 @@ public class ProductSellingStateTests
         categories.Categories[category.Id] = category;
         var product = ProductCommandTestData.NewProduct(category.Id);
         products.Products[product.Id] = product;
-        var service = new ProductService(products, categories, new FakeUnitOfWork(), new FakeSpecDefinitionRepository());
+        var service = new ProductService(products, categories, new FakeUnitOfWork(), new FakeSpecDefinitionRepository(), new FakeObjectStorage());
         var request = ProductCommandTestData.NewRequestFrom(product);
         request.Variants = [new UpdateProductVariantRequest { VariantName = "Xanh", Sku = "MBA-M3-BL", Price = 27990000m, IsActive = true }];
 

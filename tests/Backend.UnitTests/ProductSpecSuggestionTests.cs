@@ -129,7 +129,7 @@ public class ProductSpecSuggestionTests
         var productRepo = new FakeProductRepository();
         productRepo.SpecValueCounts.AddRange([Row("ram_gb", null, 1), Row("ram_gb", "16", 1)]);
         var definitions = new FakeSpecDefinitionRepository().With("ram_gb", "RAM", "GB", "number");
-        var service = new ProductService(productRepo, new FakeCategoryRepository(), new FakeUnitOfWork(), definitions);
+        var service = new ProductService(productRepo, new FakeCategoryRepository(), new FakeUnitOfWork(), definitions, new FakeObjectStorage());
         var categoryId = Guid.NewGuid();
 
         // Act

@@ -53,6 +53,7 @@ internal static class ProductDtoMapper
             CostPrice = product.CostPrice,
             Description = product.Description,
             ImageUrl = product.ImageUrl,
+            Images = product.Images.OrderBy(i => i.SortOrder).Select(ToImageDto).ToList(),
             Specs = productSpecs,
             IsSerialTracked = product.IsSerialTracked,
             IsActive = product.IsActive,

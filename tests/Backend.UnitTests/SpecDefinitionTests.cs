@@ -26,7 +26,7 @@ public class SpecDefinitionTests
             .With("cpu", "Vi xử lý (CPU)", null, SpecValueKinds.String);
         var category = ProductCommandTestData.NewActiveCategory();
         categories.Categories[category.Id] = category;
-        return (products, categories, unitOfWork, definitions, new ProductService(products, categories, unitOfWork, definitions), category);
+        return (products, categories, unitOfWork, definitions, new ProductService(products, categories, unitOfWork, definitions, new FakeObjectStorage()), category);
     }
 
     private static CreateProductRequest NewCreateRequest(Guid categoryId, string specsJson) => new()

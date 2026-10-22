@@ -10,12 +10,30 @@ namespace TechStore.UnitTests;
 
 public class ProductServiceUpdateTests
 {
+    [Fact]
+    public async Task UpdateAsync_ProductWithImages_KeepsImagesAndCover()
+    {
+        // Arrange
+        var (products, categories, work, service) = CreateContext();
+        var category = ProductCommandTestData.NewActiveCategory(); categories.Categories[category.Id] = category;
+        var product = ProductCommandTestData.NewProduct(category.Id); products.Products[product.Id] = product;
+        var image = new ProductImage { Url = "https://img.test/a.png", SortOrder = 0 };
+        product.Images.Add(image); product.ImageUrl = image.Url;
+        var request = ProductCommandTestData.NewRequestFrom(product); request.Name = "New name";
+        // Act
+        var result = await service.UpdateAsync(product.Id, request);
+        // Assert
+        result.Status.Should().Be(ProductCommandStatus.Success);
+        result.Data!.ImageUrl.Should().Be(image.Url);
+        result.Data.Images.Should().ContainSingle().Which.Id.Should().Be(image.Id);
+    }
+
     private static (FakeProductRepository ProductRepo, FakeCategoryRepository CategoryRepo, FakeUnitOfWork UnitOfWork, ProductService Service) CreateContext()
     {
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository());
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
         return (productRepo, categoryRepo, unitOfWork, service);
     }
 
@@ -112,13 +130,11 @@ public class ProductServiceUpdateTests
         categoryRepo.Categories[category.Id] = category;
         var product = ProductCommandTestData.NewProduct(category.Id, barcode: "12345");
         product.Description = "Old desc";
-        product.ImageUrl = "https://example.com/img.png";
         productRepo.Products[product.Id] = product;
 
         var request = ProductCommandTestData.NewRequestFrom(product);
         request.Barcode = "   ";
         request.Description = "   ";
-        request.ImageUrl = "   ";
 
         // Act
         var result = await service.UpdateAsync(product.Id, request);
@@ -127,7 +143,6 @@ public class ProductServiceUpdateTests
         result.Status.Should().Be(ProductCommandStatus.Success);
         product.Barcode.Should().BeNull();
         product.Description.Should().BeNull();
-        product.ImageUrl.Should().BeNull();
     }
 
     [Fact]

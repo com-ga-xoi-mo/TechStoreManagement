@@ -103,29 +103,29 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - section 9, Backend Singleton bullet: add `IObjectStorage` (`R2ObjectStorage` or `LocalObjectStorage`).
 
   Verify `grep -n "IObjectStorage" AGENTS.md` prints at least three lines and `grep -n "repository interfaces and .IUnitOfWork.\." AGENTS.md` prints nothing.
-- [ ] 3.10 Commit: `feat(api): add configurable object storage for images`
+- [x] 3.10 Commit: `feat(api): add configurable object storage for images`
 
 ## 4. Entity, configuration, migration and schema docs (design D1)
 
-- [ ] 4.1 Create `backend/Catalog/Entities/ProductImage.cs` (`public class ProductImage : BaseEntity`) with the properties of design D4 and navigations `Product Product = null!`, `ProductVariant? Variant`. In `Product.cs` add `public virtual ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();`; verify the backend builds
-- [ ] 4.2 Create `backend/Catalog/Configurations/ProductImageConfiguration.cs` exactly as design D1:
+- [x] 4.1 Create `backend/Catalog/Entities/ProductImage.cs` (`public class ProductImage : BaseEntity`) with the properties of design D4 and navigations `Product Product = null!`, `ProductVariant? Variant`. In `Product.cs` add `public virtual ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();`; verify the backend builds
+- [x] 4.2 Create `backend/Catalog/Configurations/ProductImageConfiguration.cs` exactly as design D1:
   - table `product_images` with the three check constraints `ck_product_images_sort_order_ge_zero`, `ck_product_images_size_bytes_range`, `ck_product_images_content_type`;
   - snake_case columns with the given lengths; `id` default `gen_random_uuid()`; `created_at` default `now()`; `timestamptz`;
-  - index `idx_product_images_product_id` on `(ProductId, SortOrder)`, index `idx_product_images_variant_id` on `VariantId`, unique `uq_product_images_object_key`;
+  - index `idx_product_images_product_id` on `(ProductId, SortOrder)`, index `idx_product_images_variant_id` on `(VariantId, ProductId)`, unique `uq_product_images_object_key`;
   - `HasOne(x => x.Product).WithMany(p => p.Images).HasForeignKey(x => x.ProductId).OnDelete(Cascade)`;
   - `HasOne(x => x.Variant).WithMany().HasForeignKey(x => new { x.VariantId, x.ProductId }).HasPrincipalKey(v => new { v.Id, v.ProductId }).OnDelete(Cascade)`.
 
   Verify the backend builds.
-- [ ] 4.3 Create the migration: `dotnet ef migrations add AddProductImages --project backend/TechStore.Api.csproj --output-dir Common/Data/Migrations` (if `dotnet ef` is missing, install it with `dotnet tool install dotnet-ef --version 10.0.13 --tool-path <scratch folder>` and call that binary). Open the generated file and verify it only creates `product_images` with the two FKs, three indexes and three checks, and drops nothing. Verify `dotnet ef migrations script AddSpecDefinitions AddProductImages --project backend/TechStore.Api.csproj` prints `CREATE TABLE product_images`
-- [ ] 4.4 Apply and inspect: start the database (`docker compose up -d`), run `dotnet ef database update --project backend/TechStore.Api.csproj`; verify `docker exec techstore_postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\d product_images"'` shows the columns, both FKs (one composite) and the indexes
-- [ ] 4.5 In `docs/database/schema.dbml`:
+- [x] 4.3 Create the migration: `dotnet ef migrations add AddProductImages --project backend/TechStore.Api.csproj --output-dir Common/Data/Migrations` (if `dotnet ef` is missing, install it with `dotnet tool install dotnet-ef --version 10.0.13 --tool-path <scratch folder>` and call that binary). Open the generated file and verify it only creates `product_images` with the two FKs, three indexes and three checks, and drops nothing. Verify `dotnet ef migrations script AddSpecDefinitions AddProductImages --project backend/TechStore.Api.csproj` prints `CREATE TABLE product_images`
+- [x] 4.4 Apply and inspect: start the database (`docker compose up -d`), run `dotnet ef database update --project backend/TechStore.Api.csproj`; verify `docker exec techstore_postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\d product_images"'` shows the columns, both FKs (one composite) and the indexes
+- [x] 4.5 In `docs/database/schema.dbml`:
   - add `Table product_images` after `product_variants`, with the columns, notes and indexes of D1;
   - add `Ref: product_images.product_id > products.id [delete: cascade]` and the composite ref `Ref: product_images.(variant_id, product_id) > product_variants.(id, product_id) [delete: cascade]`;
   - add `product_images` to `TableGroup Catalog`;
   - change the `products.image_url` note to `'Cover image URL, computed by the server from product_images (first shared image); clients never set it'`.
 
   Verify the file still opens in dbdiagram syntax (no unmatched braces: `grep -c "{" ` equals `grep -c "}"` for the file).
-- [ ] 4.6 Add `CatalogEntityTests` cases in `tests/Backend.UnitTests/CatalogEntityTests.cs` (follow the existing in-memory model tests there):
+- [x] 4.6 Add `CatalogEntityTests` cases in `tests/Backend.UnitTests/CatalogEntityTests.cs` (follow the existing in-memory model tests there):
   - `ProductImage_Model_HasCompositeVariantForeignKey` (the FK on `product_images` with properties `VariantId, ProductId` targets `ProductVariant` with principal key `Id, ProductId`);
   - `ProductImage_Model_HasRequiredIndexes`.
 

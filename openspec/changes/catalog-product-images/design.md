@@ -56,7 +56,7 @@ Xem `proposal.md` (Why) và các file trong `specs/` (hành vi bắt buộc). Hi
 - **FK kép** `(variant_id, product_id) → product_variants(id, product_id)` ON DELETE CASCADE. PostgreSQL dùng MATCH SIMPLE, nên khi `variant_id` null thì không kiểm, đúng nghĩa ảnh dùng chung. Cascade cả hai đường không gây lỗi trên PostgreSQL, và hệ thống không bao giờ xóa riêng một biến thể.
 - **Index:**
   - `idx_product_images_product_id` trên `(product_id, sort_order)`: cột đầu phủ FK `product_id`, cột sau phục vụ đọc theo thứ tự;
-  - `idx_product_images_variant_id` trên `(variant_id)`: phủ FK kép vì `variant_id` đứng đầu.
+  - `idx_product_images_variant_id` trên `(variant_id, product_id)`: phủ đầy đủ FK kép, đồng thời tra cứu theo `variant_id` nhờ cột đầu. Chủ dự án đồng ý đổi index đơn thành index kép (2026-10-23) để EF dùng chung index này cho FK, giữ đúng ba index.
 - **Không có unique `(product_id, sort_order)`.** EF cập nhật nhiều dòng trong một lần lưu theo thứ tự tùy ý; đổi chỗ 0 và 1 sẽ vi phạm unique giữa chừng nếu ràng buộc không deferrable. Thay vào đó, service giữ thứ tự liền mạch `0..n-1` dưới khóa dòng sản phẩm (D6).
   - *Cách khác:* unique `DEFERRABLE INITIALLY DEFERRED` bằng SQL thô trong migration. Không chọn, vì EF không mô hình hóa được và thêm một chỗ SQL tay.
 - **Lưu cả `object_key` và `url`.** Mapper không cần biết storage, và `products.image_url` chỉ việc chép `url`. Nếu sau này đổi domain công khai thì phải chạy một câu `UPDATE` (ghi trong Risks).

@@ -180,6 +180,80 @@ namespace TechStore.Api.Common.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TechStore.Api.Catalog.Entities.ProductImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("object_key");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<int>("SizeBytes")
+                        .HasColumnType("integer")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("url");
+
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("variant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ObjectKey")
+                        .IsUnique()
+                        .HasDatabaseName("uq_product_images_object_key");
+
+                    b.HasIndex("ProductId", "SortOrder")
+                        .HasDatabaseName("idx_product_images_product_id");
+
+                    b.HasIndex("VariantId", "ProductId")
+                        .HasDatabaseName("idx_product_images_variant_id");
+
+                    b.ToTable("product_images", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_product_images_content_type", "content_type IN ('image/jpeg','image/png','image/webp')");
+
+                            t.HasCheckConstraint("ck_product_images_size_bytes_range", "size_bytes > 0 AND size_bytes <= 5242880");
+
+                            t.HasCheckConstraint("ck_product_images_sort_order_ge_zero", "sort_order >= 0");
+                        });
+                });
+
             modelBuilder.Entity("TechStore.Api.Catalog.Entities.ProductVariant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1946,6 +2020,25 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("TechStore.Api.Catalog.Entities.ProductImage", b =>
+                {
+                    b.HasOne("TechStore.Api.Catalog.Entities.Product", "Product")
+                        .WithMany("Images")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Catalog.Entities.ProductVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId", "ProductId")
+                        .HasPrincipalKey("Id", "ProductId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Variant");
+                });
+
             modelBuilder.Entity("TechStore.Api.Catalog.Entities.ProductVariant", b =>
                 {
                     b.HasOne("TechStore.Api.Catalog.Entities.Product", "Product")
@@ -2255,6 +2348,8 @@ namespace TechStore.Api.Common.Data.Migrations
 
             modelBuilder.Entity("TechStore.Api.Catalog.Entities.Product", b =>
                 {
+                    b.Navigation("Images");
+
                     b.Navigation("Variants");
                 });
 

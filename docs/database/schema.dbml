@@ -149,7 +149,7 @@ Table products {
   base_price numeric(18,2) [not null, note: 'Direct-sale price without variants; reference price otherwise. Variant sales use product_variants.price (VND)']
   cost_price numeric(18,2) [not null, note: 'Expected unit cost entered by the owner to price the product and estimate gross margin; changed only by product create/update, never by purchase receipts. The actual cost of a sale is order_items.unit_cost from Inventory']
   description text [null, note: 'Marketing overview and specifications summary']
-  image_url text [null, note: 'CDN image URL']
+  image_url text [null, note: 'Cover image URL, computed by the server from product_images (first shared image); clients never set it']
   specs jsonb [not null, default: `'{}'::jsonb`, note: 'Shared hardware specs object; see Catalog key, type and inheritance rules']
   is_serial_tracked boolean [not null, default: true, note: 'True if every device unit has unique Serial/IMEI']
   is_active boolean [not null, default: true, note: 'Active in catalog']
@@ -187,6 +187,25 @@ Table product_variants {
   }
 
   Note: 'SKU variants for hardware options (Storage capacity, colorways)'
+}
+
+Table product_images {
+  id uuid [pk, default: `gen_random_uuid()`]
+  product_id uuid [not null]
+  variant_id uuid [null, note: 'NULL means shared by all variants; composite FK ensures product ownership']
+  object_key varchar(300) [not null, note: 'Server-generated products/{productId:N}/{guid:N}.{ext}; file bytes live in object storage']
+  url varchar(2048) [not null, note: 'Public URL captured at upload']
+  content_type varchar(20) [not null, check: `content_type IN ('image/jpeg','image/png','image/webp')`]
+  size_bytes integer [not null, check: `size_bytes > 0 AND size_bytes <= 5242880`]
+  sort_order integer [not null, check: `sort_order >= 0`, note: 'Service maintains consecutive positions under product row lock']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [null]
+
+  indexes {
+    (product_id, sort_order) [name: 'idx_product_images_product_id']
+    (variant_id, product_id) [name: 'idx_product_images_variant_id']
+    object_key [unique, name: 'uq_product_images_object_key']
+  }
 }
 
 Table spec_definitions {
@@ -701,6 +720,8 @@ Table refresh_tokens {
 Ref: categories.parent_id > categories.id [delete: set null]
 Ref: products.category_id > categories.id [delete: restrict]
 Ref: product_variants.product_id > products.id [delete: cascade]
+Ref: product_images.product_id > products.id [delete: cascade]
+Ref: product_images.(variant_id, product_id) > product_variants.(id, product_id) [delete: cascade]
 
 // Inventory Relationships
 Ref: inventory_stocks.product_id > products.id [delete: restrict]
@@ -752,6 +773,7 @@ Ref: refresh_tokens.user_id > users.id [delete: cascade]
 // ============================================================================
 
 TableGroup Catalog {
+  product_images
   categories
   products
   product_variants

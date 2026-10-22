@@ -141,29 +141,29 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - Create `tests/Backend.UnitTests/FakeProductImageRepository.cs` with `List<ProductImage> Added` and `List<ProductImage> Removed`.
 
   Verify `TEST_BACKEND` passes with the count from 4.6.
-- [ ] 5.4 Commit: `feat(catalog): add product image repository and detail load`
+- [x] 5.4 Commit: `feat(catalog): add product image repository and detail load`
 
 ## 6. Pure image rules (design D4, D5)
 
-- [ ] 6.1 Create `backend/Catalog/Services/ProductImageFileInspector.cs`:
+- [x] 6.1 Create `backend/Catalog/Services/ProductImageFileInspector.cs`:
   - `public static class` with `public const int MaxBytes = 5_242_880;`;
   - `public sealed record ProductImageFileInfo(string ContentType, string Extension);` in the same file;
   - `public static ProductImageFileInfo? Inspect(ReadOnlySpan<byte> content, out string? error)` following design D5 with the exact English messages.
 
   Verify the backend builds.
-- [ ] 6.2 Create `backend/Catalog/Services/ProductCoverImage.cs` (`internal static class`):
+- [x] 6.2 Create `backend/Catalog/Services/ProductCoverImage.cs` (`internal static class`):
   - `string? UrlOf(IEnumerable<ProductImage> images)`: order by `SortOrder`, first with `VariantId == null`, else first, else null;
   - `void Renumber(IList<ProductImage> imagesInOrder)`: sets `SortOrder = index`.
 
   Verify the backend builds.
-- [ ] 6.3 Create `backend/Catalog/Services/ProductImageLayoutValidator.cs` (`public static class`, `Dictionary<string, string[]> Validate(UpdateProductImagesLayoutRequest? request)`):
+- [x] 6.3 Create `backend/Catalog/Services/ProductImageLayoutValidator.cs` (`public static class`, `Dictionary<string, string[]> Validate(UpdateProductImagesLayoutRequest? request)`):
   - null request or null `Items` → `items` "items is required.";
   - item null or `Id` null/`Guid.Empty` → `items[i].id` "Image id is required.";
   - a repeated id → `items[i].id` "Image '{id}' is listed more than once.";
   - `VariantId == Guid.Empty` → `items[i].variantId` "Variant id cannot be empty.".
 
   Verify the backend builds.
-- [ ] 6.4 Tests in `tests/Backend.UnitTests/ProductImageRulesTests.cs`:
+- [x] 6.4 Tests in `tests/Backend.UnitTests/ProductImageRulesTests.cs`:
   - Inspector: `Inspect_JpegSignature_ReturnsJpeg`, `Inspect_PngSignature_ReturnsPng`, `Inspect_WebpSignature_ReturnsWebp`, `Inspect_TextNamedJpg_ReturnsTypeError` (bytes of `"hello"`), `Inspect_Empty_ReturnsEmptyError`, `Inspect_OverLimit_ReturnsSizeError` (`new byte[MaxBytes + 1]` with a PNG header), `Inspect_ExactlyLimit_Passes`. Build byte arrays inline.
   - Cover: `UrlOf_SharedAfterVariantImage_ReturnsShared`, `UrlOf_OnlyVariantImages_ReturnsFirst`, `UrlOf_NoImages_ReturnsNull`, `Renumber_Gaps_MakesZeroBased`.
   - Layout validator: `Validate_NullItems_ReturnsItemsError`, `Validate_DuplicateId_ReturnsErrorOnSecond`, `Validate_EmptyVariantId_ReturnsVariantError`, `Validate_ValidItems_ReturnsNoErrors`.

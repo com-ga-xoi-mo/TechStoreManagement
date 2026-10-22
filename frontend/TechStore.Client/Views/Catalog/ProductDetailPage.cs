@@ -150,7 +150,7 @@ public sealed class ProductDetailPage : Page, IRoutePage
                     .Spacing(6)
                     .Children(
                         new TextBlock()
-                            .Text("Giá vốn:")
+                            .Text("Giá vốn dự kiến:")
                             .Style(AppResources.GetStyle(AppTypography.CaptionText))
                             .Foreground(AppColors.Brushes.SecondaryText),
                         new TextBlock()

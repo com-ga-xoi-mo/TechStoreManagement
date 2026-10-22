@@ -94,11 +94,11 @@ public sealed class CatalogPresentationTests
 
         // Assert
         Assert.NotNull(profit);
-        Assert.Equal("Lãi 4.790.000 ₫ (13,3%)", profit.Text);
+        Assert.Equal("Lãi gộp dự kiến 4.790.000 ₫ (13,3%)", profit.Text);
         Assert.False(profit.IsLoss);
 
         Assert.NotNull(loss);
-        Assert.Equal("Lỗ 200.000 ₫", loss.Text);
+        Assert.Equal("Lỗ gộp dự kiến 200.000 ₫", loss.Text);
         Assert.True(loss.IsLoss);
 
         Assert.Null(zeroBase);

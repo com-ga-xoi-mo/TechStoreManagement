@@ -57,11 +57,11 @@ public static class CatalogPresentation
         {
             var pct = Math.Round(profit / basePrice * 100m, 1, MidpointRounding.AwayFromZero);
             var pctText = pct.ToString("0.0", VietnameseCulture);
-            return new MarginInfo($"Lãi {FormatMoney(profit)} ({pctText}%)", IsLoss: false);
+            return new MarginInfo($"Lãi gộp dự kiến {FormatMoney(profit)} ({pctText}%)", IsLoss: false);
         }
 
         var loss = -profit;
-        return new MarginInfo($"Lỗ {FormatMoney(loss)}", IsLoss: true);
+        return new MarginInfo($"Lỗ gộp dự kiến {FormatMoney(loss)}", IsLoss: true);
     }
 }
 

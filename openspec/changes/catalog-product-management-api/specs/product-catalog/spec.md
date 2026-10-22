@@ -247,6 +247,17 @@ Product creation and update SHALL store the brand with the spelling already used
 - **WHEN** three products use `Apple` and one uses `Logitech`
 - **THEN** the response lists `{ "name": "Apple", "productCount": 3 }` and `{ "name": "Logitech", "productCount": 1 }`
 
+### Requirement: Cost price is the expected cost
+`costPrice` SHALL be the expected unit cost that the owner enters to set the selling price and estimate the gross margin. Within Catalog only product creation and update SHALL change it, storing the value as sent; it is not the actual cost of a sale, which order lines keep in their own `unitCost`.
+
+#### Scenario: Owner changes the expected cost
+- **WHEN** an Admin updates a product with `costPrice` 17,000,000
+- **THEN** the product detail returns `costPrice` 17,000,000
+
+#### Scenario: Status change keeps the expected cost
+- **WHEN** an Admin stops and resumes selling a product whose `costPrice` is 17,000,000
+- **THEN** `costPrice` is still 17,000,000
+
 ## MODIFIED Requirements
 
 ### Requirement: Typed specification filter

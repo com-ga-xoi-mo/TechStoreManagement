@@ -182,15 +182,15 @@ Trên trang chi tiết, client SHALL cho Xóa sau một hộp xác nhận nói r
 - **THEN** trang chi tiết vẫn hiện sản phẩm, banner hiện thông điệp của server và gợi ý Ngừng kinh doanh
 
 ### Requirement: Price margin hint
-Màn soạn SHALL hiện nhãn biên lợi nhuận tạm tính từ giá bán và giá vốn đang nhập, dạng `Lãi 4.790.000 ₫ (13,3%)` với phần trăm là lãi chia giá bán, tính bằng số thập phân. Khi thiếu một trong hai giá, giá bán bằng 0 hoặc giá không hợp lệ, nhãn SHALL ẩn; khi giá vốn lớn hơn giá bán, nhãn SHALL ghi lỗ với màu cảnh báo.
+Màn soạn SHALL hiện nhãn lãi gộp dự kiến từ giá bán và giá vốn dự kiến (`costPrice`) đang nhập, dạng `Lãi gộp dự kiến 4.790.000 ₫ (13,3%)` với phần trăm là lãi chia giá bán, tính bằng số thập phân. Nhãn chỉ là ước tính để định giá, không phải lãi thực tế của đơn bán. Khi thiếu một trong hai giá, giá bán bằng 0 hoặc giá không hợp lệ, nhãn SHALL ẩn; khi giá vốn dự kiến lớn hơn giá bán, nhãn SHALL ghi lỗ gộp dự kiến với màu cảnh báo.
 
 #### Scenario: Positive margin
-- **WHEN** giá bán `35990000` và giá vốn `31200000`
-- **THEN** nhãn hiện `Lãi 4.790.000 ₫ (13,3%)`
+- **WHEN** giá bán `35990000` và giá vốn dự kiến `31200000`
+- **THEN** nhãn hiện `Lãi gộp dự kiến 4.790.000 ₫ (13,3%)`
 
 #### Scenario: Selling below cost
-- **WHEN** giá bán `1000000` và giá vốn `1200000`
-- **THEN** nhãn hiện `Lỗ 200.000 ₫` với màu cảnh báo và việc lưu vẫn được phép
+- **WHEN** giá bán `1000000` và giá vốn dự kiến `1200000`
+- **THEN** nhãn hiện `Lỗ gộp dự kiến 200.000 ₫` với màu cảnh báo và việc lưu vẫn được phép
 
 ### Requirement: Image URL preview
 Màn soạn SHALL cho nhập URL ảnh và hiện xem trước khi URL là địa chỉ http/https hợp lệ (hoặc đường dẫn tương đối theo API); URL rỗng, sai hoặc ảnh tải lỗi SHALL hiện ảnh giữ chỗ mà không làm lỗi màn soạn.

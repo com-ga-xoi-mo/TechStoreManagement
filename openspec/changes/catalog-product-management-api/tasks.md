@@ -155,6 +155,10 @@ The live run creates its **own** test data (SKUs `TEST-WRITE-001`, `TEST-WRITE-0
 - [x] 16.3 `shared/DTOs/BrandDto.cs`; service: canonical brand on create/update (the updated product excluded), `GetBrandsAsync`; controller `GET brands` (anonymous); unit tests
 - [x] 16.4 Live check (create with `apple` stored as `Apple`, brand list); `TEST_BACKEND` passes
 
+## 17. Expected cost wording (agreed with the team)
+
+- [x] 17.1 Spec delta ADDED "Cost price is the expected cost"; `docs/database/schema.dbml` note on `products.cost_price`; `backend/Catalog/README.md`. No behavior change: Catalog already changes `costPrice` only on create and update
+
 ## Workflow follow-up
 
 - After the PR is reviewed and merged, archive the change with `/opsx:archive` so the `product-catalog` delta is synced into `openspec/specs/product-catalog/spec.md`.

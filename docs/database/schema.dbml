@@ -147,7 +147,7 @@ Table products {
   barcode text [null, note: 'Retail barcode intended for a product without variants; NULL when variants exist; preserve leading zeros']
   brand text [not null, note: 'Manufacturer brand (Apple, Asus, Dell, Samsung)']
   base_price numeric(18,2) [not null, note: 'Direct-sale price without variants; reference price otherwise. Variant sales use product_variants.price (VND)']
-  cost_price numeric(18,2) [not null, note: 'Standard reference procurement cost; actual receipt costs belong to purchase_order_items.unit_cost']
+  cost_price numeric(18,2) [not null, note: 'Expected unit cost entered by the owner to price the product and estimate gross margin; changed only by product create/update, never by purchase receipts. The actual cost of a sale is order_items.unit_cost from Inventory']
   description text [null, note: 'Marketing overview and specifications summary']
   image_url text [null, note: 'CDN image URL']
   specs jsonb [not null, default: `'{}'::jsonb`, note: 'Shared hardware specs object; see Catalog key, type and inheritance rules']

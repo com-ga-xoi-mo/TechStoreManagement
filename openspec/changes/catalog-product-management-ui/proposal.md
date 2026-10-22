@@ -8,7 +8,7 @@ Sprint 2 giao cho Dev 2 lát cắt full-stack Quản lý Sản phẩm (MILESTONE
 
 - **Chuyển giao diện sang C# Markup**: thay `ProductListPage.xaml(.cs)` và `ProductDetailPage.xaml(.cs)` bằng `ProductListPage.cs` và `ProductDetailPage.cs`, giữ nguyên hành vi đọc hiện có (lọc, sắp xếp, phân trang, trạng thái tải/lỗi/rỗng, quay lại có ngữ cảnh truy vấn và trả focus về thẻ sản phẩm). Các converter `Converters/ProductImageSourceConverter.cs` được thay bằng helper thuần `Controls/Presentation/CatalogPresentation.cs` có test.
 - **Màn soạn sản phẩm dạng trang** `ProductEditorPage.cs` (route mới `ProductCreate` và `ProductEdit` dưới mục Sản phẩm), bố cục lấy từ các màn Stitch "Thêm sản phẩm mới" và "Chỉnh sửa Master-Detail":
-  - thông tin cơ bản, danh mục (từ cây danh mục API), giá bán, giá vốn kèm nhãn biên lợi nhuận tạm tính, URL ảnh có xem trước;
+  - thông tin cơ bản, danh mục (từ cây danh mục API), giá bán, giá vốn dự kiến kèm nhãn lãi gộp dự kiến (design D18), URL ảnh có xem trước;
   - trình soạn thông số động: mỗi dòng gồm key snake_case, kiểu (Chuỗi/Số/Đúng-Sai), giá trị;
   - bảng biến thể: biến thể đã lưu có SKU chỉ đọc và công tắc Đang bán, dòng mới chưa lưu có thể bỏ; không xóa biến thể đã lưu;
   - khóa và xóa trắng ô barcode sản phẩm khi có biến thể; công tắc theo dõi IMEI;

@@ -246,7 +246,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
             .Visibility(x => x.Binding(() => ViewModel.HasBasePriceError).Convert((bool v) => CatalogViewParts.ShowIf(v)));
 
         var costPriceBox = new TextBox()
-            .Header("Giá vốn tham chiếu * (₫)")
+            .Header("Giá vốn dự kiến * (₫)")
             .Text(x => x.Binding(() => ViewModel.CostPriceText).Mode(BindingMode.TwoWay))
             .InputScope(new InputScope { Names = { new InputScopeName(InputScopeNameValue.Number) } })
             .Style(AppControlStyles.Styles.TextBox);

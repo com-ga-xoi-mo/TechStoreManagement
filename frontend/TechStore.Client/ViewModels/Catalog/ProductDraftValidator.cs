@@ -85,7 +85,7 @@ public static class ProductDraftValidator
         decimal costPriceValue = 0m;
         if (!ProductInputParser.TryParseMoney(draft.CostPrice, out costPriceValue))
         {
-            fieldErrors["costPrice"] = "Giá vốn không hợp lệ.";
+            fieldErrors["costPrice"] = "Giá vốn dự kiến không hợp lệ.";
         }
 
         // 9. Product specs

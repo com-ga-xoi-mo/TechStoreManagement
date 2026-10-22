@@ -385,7 +385,7 @@ public sealed class ProductEditorViewModelTests
         // Assert
         Assert.True(vm.HasMargin);
         Assert.False(vm.IsMarginLoss);
-        Assert.Equal("Lãi 4.790.000 ₫ (13,3%)", vm.MarginText);
+        Assert.Equal("Lãi gộp dự kiến 4.790.000 ₫ (13,3%)", vm.MarginText);
     }
 
     [Fact]

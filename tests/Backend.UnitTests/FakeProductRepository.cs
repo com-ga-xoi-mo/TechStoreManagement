@@ -17,6 +17,7 @@ public class FakeProductRepository : IProductRepository
     public HashSet<Guid> InUseProductIds { get; } = [];
     public List<ProductVariant> AddedVariants { get; } = [];
     public List<Product> RemovedProducts { get; } = [];
+    public Action? BeforeGetForUpdate { get; set; }
     public int GetForUpdateCallCount { get; private set; }
 
     public int SearchCallCount { get; private set; }
@@ -92,6 +93,7 @@ public class FakeProductRepository : IProductRepository
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        BeforeGetForUpdate?.Invoke();
         GetForUpdateCallCount++;
         Products.TryGetValue(id, out var p);
         return Task.FromResult(p);

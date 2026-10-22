@@ -76,6 +76,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ISpecDefinitionRepository, SpecDefinitionRepository>();
 
 // Catalog Module services
+builder.Services.AddScoped<IProductImageService, ProductImageService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 

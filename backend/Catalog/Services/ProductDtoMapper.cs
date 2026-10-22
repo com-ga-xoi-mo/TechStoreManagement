@@ -5,6 +5,12 @@ namespace TechStore.Api.Catalog.Services;
 
 internal static class ProductDtoMapper
 {
+    public static ProductImageDto ToImageDto(ProductImage image) => new()
+    {
+        Id = image.Id, VariantId = image.VariantId, Url = image.Url,
+        ContentType = image.ContentType, SizeBytes = image.SizeBytes, SortOrder = image.SortOrder
+    };
+
     public static ProductDto ToDto(Product product, string categoryName)
     {
         var productSpecs = ProductSpecHelper.ParseJsonSpecs(product.Specs);

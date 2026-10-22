@@ -169,18 +169,18 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - Layout validator: `Validate_NullItems_ReturnsItemsError`, `Validate_DuplicateId_ReturnsErrorOnSecond`, `Validate_EmptyVariantId_ReturnsVariantError`, `Validate_ValidItems_ReturnsNoErrors`.
 
   Verify `TEST_BACKEND` passes.
-- [ ] 6.5 Commit: `feat(catalog): add image file, cover and layout rules`
+- [x] 6.5 Commit: `feat(catalog): add image file, cover and layout rules`
 
 ## 7. `ProductImageService` (design D6) with tests
 
-- [ ] 7.1 Create `backend/Catalog/Services/IProductImageService.cs` with:
+- [x] 7.1 Create `backend/Catalog/Services/IProductImageService.cs` with:
   - `public sealed record ProductImageUpload(string? FileName, byte[] Content, Guid? VariantId);`
   - `public enum ProductImageCommandStatus { Success, NotFound, ValidationFailed, Conflict, StorageUnavailable }`
   - `public sealed record ProductImageCommandResult<T>(ProductImageCommandStatus Status, T? Data, Dictionary<string, string[]>? ValidationErrors, string? Message)` with static factories `Success`, `NotFound`, `ValidationFailed`, `Conflict(message)`, `StorageUnavailable(message)`
   - the interface with `UploadAsync(Guid productId, ProductImageUpload upload, ct)` → `ProductImageCommandResult<ProductImageDto>`, `DeleteAsync(Guid productId, Guid imageId, ct)` → `ProductImageCommandResult<bool>`, `SaveLayoutAsync(Guid productId, UpdateProductImagesLayoutRequest request, ct)` → `ProductImageCommandResult<IReadOnlyList<ProductImageDto>>`
 
   Verify the backend builds.
-- [ ] 7.2 Create `backend/Catalog/Services/ProductImageService.cs` (`public sealed class ProductImageService(IProductRepository productRepository, IProductImageRepository imageRepository, IUnitOfWork unitOfWork, IObjectStorage storage) : IProductImageService`) and implement `UploadAsync` exactly as the design D6 pseudo-code:
+- [x] 7.2 Create `backend/Catalog/Services/ProductImageService.cs` (`public sealed class ProductImageService(IProductRepository productRepository, IProductImageRepository imageRepository, IUnitOfWork unitOfWork, IObjectStorage storage) : IProductImageService`) and implement `UploadAsync` exactly as the design D6 pseudo-code:
   - storage key `products/{productId:N}/{Guid.NewGuid():N}{extension}`;
   - the second check happens under `GetForUpdateAsync`;
   - every exit after the file was stored and before commit calls `storage.TryDeleteAsync(key)`;
@@ -188,7 +188,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - the storage message is `"Image storage is unavailable. Try again later."`.
 
   Map to `ProductImageDto` through a new `public static ProductImageDto ToImageDto(ProductImage image)` added to `backend/Catalog/Services/ProductDtoMapper.cs`; it is the only image-to-DTO mapping in the backend (group 9 reuses it, so do not write a private copy in the service). Register `builder.Services.AddScoped<IProductImageService, ProductImageService>();` under "Catalog Module services". Verify the backend builds.
-- [ ] 7.3 Implement `DeleteAsync` and `SaveLayoutAsync` in the same class as design D6:
+- [x] 7.3 Implement `DeleteAsync` and `SaveLayoutAsync` in the same class as design D6:
   - lock with `GetForUpdateAsync`;
   - `ProductCoverImage.Renumber` / `UrlOf`;
   - layout id set must equal the stored set (error key `items`, message `"The layout must list every image of the product exactly once."`);
@@ -197,7 +197,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - every catch block rolls back and rethrows, like `ProductService`.
 
   Verify the backend builds.
-- [ ] 7.4 Tests in `tests/Backend.UnitTests/ProductImageServiceTests.cs` (fixture: `FakeProductRepository`, `FakeProductImageRepository`, `FakeUnitOfWork`, `FakeObjectStorage`, products from `ProductCommandTestData`; PNG bytes helper `Png(int size = 100)`):
+- [x] 7.4 Tests in `tests/Backend.UnitTests/ProductImageServiceTests.cs` (fixture: `FakeProductRepository`, `FakeProductImageRepository`, `FakeUnitOfWork`, `FakeObjectStorage`, products from `ProductCommandTestData`; PNG bytes helper `Png(int size = 100)`):
   - `UploadAsync_FirstSharedImage_StoresFileAddsRowAndSetsCover`;
   - `UploadAsync_AppendsAfterExistingImages`;
   - `UploadAsync_InvalidFile_ReturnsFileErrorAndStoresNothing`;

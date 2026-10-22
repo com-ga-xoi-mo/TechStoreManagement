@@ -5,6 +5,7 @@ using TechStore.Client.Repositories.Identity;
 using TechStore.Client.Repositories.Orders;
 using TechStore.Client.Services.Development;
 using TechStore.Client.Services.Dialog;
+using TechStore.Client.Services.Files;
 using TechStore.Client.Services.Navigation;
 using TechStore.Client.Services.Theme;
 using TechStore.Client.Services.Window;
@@ -84,6 +85,8 @@ public static class UiServiceCollectionExtensions
             services.AddTransient<MarkupReferenceViewModel>();
             services.AddTransient<MarkupReferencePage>();
         }
+        services.AddSingleton<ImageFilePicker>();
+        services.AddSingleton<IImageFilePicker>(provider => provider.GetRequiredService<ImageFilePicker>());
         services.AddTransient<IProductImageRepository, ProductImageRepository>();
         services.AddTransient<IProductRepository, ProductRepository>();
         services.AddTransient<IProductCommandRepository, ProductRepository>();

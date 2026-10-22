@@ -329,12 +329,12 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 
   Verify `TEST_CLIENT` passes.
 - [x] 12.4 Register `services.AddTransient<IProductImageRepository, ProductImageRepository>();` next to the other catalog repositories in `UiServiceCollectionExtensions.cs`; verify `BUILD_CLIENT` passes and the composition test in `tests/Frontend.UnitTests/Composition/` still passes
-- [ ] 12.5 Commit: `feat(client): add product image repository`
+- [x] 12.5 Commit: `feat(client): add product image repository`
 
 ## 13. File picker (design D10, D14)
 
-- [ ] 13.1 Create `frontend/TechStore.Client/Services/Files/IImageFilePicker.cs` with the interface and the `PickedImageFile` record exactly as design D10. In `tests/Frontend.UnitTests/TechStore.Client.UnitTests.csproj` add `<Compile Include="..\..\frontend\TechStore.Client\Services\Files\**\*.cs" Link="Production\Services\Files\%(RecursiveDir)%(Filename)%(Extension)" />` next to the other `Services` links; verify `TEST_CLIENT` builds and passes
-- [ ] 13.2 Create `frontend/TechStore.Client/Views/Shell/ImageFilePicker.cs` (`public sealed class ImageFilePicker : IImageFilePicker`) as design D10:
+- [x] 13.1 Create `frontend/TechStore.Client/Services/Files/IImageFilePicker.cs` with the interface and the `PickedImageFile` record exactly as design D10. In `tests/Frontend.UnitTests/TechStore.Client.UnitTests.csproj` add `<Compile Include="..\..\frontend\TechStore.Client\Services\Files\**\*.cs" Link="Production\Services\Files\%(RecursiveDir)%(Filename)%(Extension)" />` next to the other `Services` links; verify `TEST_CLIENT` builds and passes
+- [x] 13.2 Implementation: GetBasicPropertiesAsync + OpenStreamForReadAsync compile on net10.0-desktop; NotImplementedException falls back to FileInfo/File.ReadAllBytesAsync (runtime pending owner check). Create `frontend/TechStore.Client/Views/Shell/ImageFilePicker.cs` (`public sealed class ImageFilePicker : IImageFilePicker`) as design D10:
   - `Window? Host` property;
   - filters `.jpg .jpeg .png .webp`;
   - `PickMultipleFilesAsync()` (null or empty result → empty list);
@@ -344,7 +344,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - honour `cancellationToken` between files.
 
   Verify `BUILD_CLIENT` passes.
-- [ ] 13.3 Register the picker in `UiServiceCollectionExtensions.cs` as design D14 and set `Host` in `App.xaml.cs` next to the `MarkupReferenceNavigator` line (outside the gallery `if`, right after `MainWindow` is created); verify `BUILD_CLIENT` passes and `TEST_CLIENT` passes (composition test)
+- [x] 13.3 Register the picker in `UiServiceCollectionExtensions.cs` as design D14 and set `Host` in `App.xaml.cs` next to the `MarkupReferenceNavigator` line (outside the gallery `if`, right after `MainWindow` is created); verify `BUILD_CLIENT` passes and `TEST_CLIENT` passes (composition test)
 - [ ] 13.4 Commit: `feat(client): add image file picker`
 
 ## 14. Pure image rules and items on the client (design D11)

@@ -16,6 +16,12 @@ public interface IApiClient
         TRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<TResponse> PostFileAsync<TResponse>(
+        string relativePath,
+        ApiFileContent file,
+        IReadOnlyDictionary<string, string>? fields = null,
+        CancellationToken cancellationToken = default);
+
     Task<TResponse> PutAsync<TRequest, TResponse>(
         string relativePath,
         TRequest request,

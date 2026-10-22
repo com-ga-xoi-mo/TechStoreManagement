@@ -47,6 +47,29 @@ public sealed class ApiClient : IApiClient
             cancellationToken);
     }
 
+    public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file,
+        IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentException.ThrowIfNullOrWhiteSpace(file.FieldName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(file.FileName);
+        var multipart = new MultipartFormDataContent();
+        try
+        {
+            foreach (var field in fields ?? new Dictionary<string, string>())
+                multipart.Add(new StringContent(field.Value), field.Key);
+            var bytes = new ByteArrayContent(file.Content);
+            bytes.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            multipart.Add(bytes, file.FieldName, file.FileName);
+            return SendForBodyAsync<TResponse>(HttpMethod.Post, relativePath, multipart, cancellationToken);
+        }
+        catch
+        {
+            multipart.Dispose();
+            throw;
+        }
+    }
+
     public Task<TResponse> PutAsync<TRequest, TResponse>(
         string relativePath,
         TRequest request,

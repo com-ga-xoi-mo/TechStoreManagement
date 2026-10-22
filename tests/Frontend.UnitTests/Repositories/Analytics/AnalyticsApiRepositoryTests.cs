@@ -96,6 +96,7 @@ public sealed class AnalyticsApiRepositoryTests
 
     private sealed class StubApiClient(Func<string, AdminDashboardDto> response) : IApiClient
     {
+        public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public string? LastPath { get; private set; }
 
         public Task<TResponse> GetAsync<TResponse>(string relativePath, CancellationToken cancellationToken = default)

@@ -59,6 +59,7 @@ public sealed class CategoryRepositoryTests
 
     private sealed class JsonApiClient(string json) : IApiClient
     {
+        public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<TResponse> GetAsync<TResponse>(string relativePath, CancellationToken cancellationToken = default)
         {
             Assert.Equal("api/categories/tree", relativePath);
@@ -74,6 +75,7 @@ public sealed class CategoryRepositoryTests
 
     private sealed class ThrowingApiClient(ApiException error) : IApiClient
     {
+        public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<TResponse> GetAsync<TResponse>(string relativePath, CancellationToken cancellationToken = default) => throw error;
         public Task<TResponse> PostAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<TResponse> PutAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();

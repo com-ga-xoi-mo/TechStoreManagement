@@ -263,11 +263,11 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - A test that a JSON body containing `"imageUrl"` still deserializes into `CreateProductRequest` without error (`JsonSerializer.Deserialize<CreateProductRequest>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web))`).
 
   Verify `TEST_BACKEND` passes.
-- [ ] 9.5 Commit: `feat(catalog): serve product images and drop client image URLs`
+- [x] 9.5 Commit: `feat(catalog): serve product images and drop client image URLs`
 
 ## 10. Backend live check (local storage)
 
-- [ ] 10.1 Build the API to a scratch folder (`dotnet build backend/TechStore.Api.csproj -o <scratch>/api`) and run it **from inside that folder** so the content root, and therefore the uploads folder, is `<scratch>/api/uploads`: `cd <scratch>/api && ASPNETCORE_URLS=http://localhost:5177 ASPNETCORE_ENVIRONMENT=Development ./TechStore.Api` (the build copies `appsettings.Development.json` into that folder, so the connection string is already there). Port 5177 keeps the owner's own backend on 5176 untouched. Log in with `POST /api/auth/login` (admin / Admin@123). Pick a product id from `GET /api/products?pageSize=1`. Then with `curl`:
+- [x] 10.1 Build the API to a scratch folder (`dotnet build backend/TechStore.Api.csproj -o <scratch>/api`) and run it **from inside that folder** so the content root, and therefore the uploads folder, is `<scratch>/api/uploads`: `cd <scratch>/api && ASPNETCORE_URLS=http://localhost:5177 ASPNETCORE_ENVIRONMENT=Development ./TechStore.Api` (the build copies `appsettings.Development.json` into that folder, so the connection string is already there). Port 5177 keeps the owner's own backend on 5176 untouched. Log in with `POST /api/auth/login` (admin / Admin@123). Pick a product id from `GET /api/products?pageSize=1`. Then with `curl`:
   - upload `backend/samples/pixel.png` (201, `url` starts with `/uploads/products/`);
   - `GET` the returned `url` (200, `Content-Type: image/png`, header `X-Content-Type-Options: nosniff`);
   - upload a text file renamed `.jpg` (400 `file`);
@@ -276,26 +276,26 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `GET /api/products/{id}` (`images` has one item and `imageUrl` equals its url);
   - `DELETE` the image (204, the file disappears from `<scratch>/api/uploads/...`, `imageUrl` null).
 
-  Write the status codes into this line, stop the API (`pkill -f "<scratch>/api/TechStore.Api"`) and delete `<scratch>/api/uploads`.
-- [ ] 10.2 Delete-product cleanup: create a throwaway product (`POST /api/products`, SKU `SMOKE-IMG-<time>`), upload two images, `DELETE /api/products/{id}`; verify 204, both files are gone from the uploads folder and `select count(*) from product_images where product_id = '<id>'` returns 0. Write the result into this line
+  Observed: upload 201; public GET 200 (image/png, nosniff); fake JPG 400 (`file`); anonymous 401; layout 200; detail 200; delete 204 (file gone, cover null). Stop the API (`pkill -f "<scratch>/api/TechStore.Api"`) and delete `<scratch>/api/uploads`.
+- [x] 10.2 Delete-product cleanup: create a throwaway product (`POST /api/products`, SKU `SMOKE-IMG-<time>`), upload two images, `DELETE /api/products/{id}`; verify 204, both files are gone from the uploads folder and `select count(*) from product_images where product_id = '<id>'` returns 0. Observed: product DELETE 204, both uploaded files removed, product_images row count 0 (throwaway product 9cbe6b92-6db7-4233-9eb1-2c1e8c63449d)
 
 ## 11. Client transport: `PostFileAsync` (design D9, spec `frontend-api-access`)
 
-- [ ] 11.1 Create `frontend/TechStore.Client/Services/Api/ApiFileContent.cs` with the record from design D9 (`ArgumentException` in a static `Create` is not needed; validate in `ApiClient`). Add `PostFileAsync<TResponse>` to `IApiClient.cs` after `PostAsync<TRequest>`; do not build yet
-- [ ] 11.2 Implement `PostFileAsync` in `ApiClient.cs`:
+- [x] 11.1 Create `frontend/TechStore.Client/Services/Api/ApiFileContent.cs` with the record from design D9 (`ArgumentException` in a static `Create` is not needed; validate in `ApiClient`). Add `PostFileAsync<TResponse>` to `IApiClient.cs` after `PostAsync<TRequest>`; do not build yet
+- [x] 11.2 Implement `PostFileAsync` in `ApiClient.cs`:
   - throw `ArgumentNullException` for a null file and `ArgumentException` for an empty `FieldName`/`FileName`;
   - build `MultipartFormDataContent`: each field as `StringContent`, then `ByteArrayContent` with `ContentType` set, added with `(content, file.FieldName, file.FileName)`;
   - return `SendForBodyAsync<TResponse>(HttpMethod.Post, relativePath, multipart, cancellationToken)`.
 
   Verify `BUILD_CLIENT` passes.
-- [ ] 11.3 Add `PostFileAsync` to every test stub that implements `IApiClient`:
+- [x] 11.3 Add `PostFileAsync` to every test stub that implements `IApiClient`:
   - `StubApiClient` in `Repositories/Catalog/ProductRepositoryTests.cs`;
   - `JsonApiClient` and `ThrowingApiClient` in `Repositories/Catalog/CategoryRepositoryTests.cs`;
   - `ThrowingApiClient` in `Development/DashboardPreviewOptionsTests.cs`;
   - `StubApiClient` in `Repositories/Analytics/AnalyticsApiRepositoryTests.cs`;
 
   These throw `NotSupportedException`. In `Repositories/Orders/RecordingApiClient.cs`, `PostFileAsync` records `new RecordedCall("POST", relativePath, file)`, stores `fields` in a new `public Dictionary<string, string>? LastFields`, and returns `Handle<TResponse>`-style output from `respond("POST", relativePath, file)`. Verify `TEST_CLIENT` keeps the baseline count.
-- [ ] 11.4 Add tests to `tests/Frontend.UnitTests/Transport/ApiClientTransportTests.cs`:
+- [x] 11.4 Add tests to `tests/Frontend.UnitTests/Transport/ApiClientTransportTests.cs`:
   - `PostFileAsync_SendsMultipartWithFileAndFields`: the captured request is POST, `Content-Type` starts with `multipart/form-data`, the body contains `name="file"; filename="a.jpg"`, `Content-Type: image/jpeg`, the bytes and `name="variantId"`;
   - `PostFileAsync_MapsValidationProblemAndDoesNotRetry`: 400 with `errors.file`, one request;
   - `PostFileAsync_RejectsForeignOrAbsoluteRoutesBeforeSending`;

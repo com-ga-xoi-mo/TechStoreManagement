@@ -535,11 +535,11 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - section 6 "Conversion status of views" table: add `ProductImageGalleryView`, `ProductImageViewerView` to the "C# Markup with theme-aware tokens" row.
 
   Verify `grep -n "IImageFilePicker" AGENTS.md` prints at least two lines and `grep -n "ProductImageGalleryView" AGENTS.md` prints one.
-- [ ] 19.7 Commit: `feat(client): add product image gallery and viewer`
+- [x] 19.7 Commit: `feat(client): add product image gallery and viewer`
 
 ## 20. Real app check with the owner and hand-off
 
-- [ ] 20.1 Run `BUILD_ALL`, `TEST_BACKEND`, `TEST_CLIENT`; verify all pass and write the counts here (must be ≥ the 1.3 baseline plus the new tests). Run `openspec validate catalog-product-images --strict`; verify it prints "is valid" (the two INFO lines about archive order are expected)
+- [x] 20.1 Run `BUILD_ALL`, `TEST_BACKEND`, `TEST_CLIENT`; verify all pass and recorded: backend 447 passed, client 680 passed; build 0 errors (baseline backend 383, client 616; +64 each). Run `openspec validate catalog-product-images --strict`; verify it prints "is valid" (the two INFO lines about archive order are expected)
 - [ ] 20.2 Real app check **with the project owner**. You cannot click in the desktop app yourself: start the backend with the 8.1 command (local storage, port 5177) and the client (`TECHSTORE_API_BASE_URL=http://localhost:5177/ dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop`), give the owner this checklist and write down only what the owner reports. Do not tick until the owner confirms every item:
   1. **Thêm sản phẩm:**
      - the image area shows `0/20`;

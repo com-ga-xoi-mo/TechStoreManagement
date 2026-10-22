@@ -58,7 +58,7 @@ public sealed class ProductDetailActionsTests
         Assert.False(change.IsActive);
         Assert.NotNull(vm.Product);
         Assert.False(vm.Product.IsActive);
-        Assert.Equal("Mở bán lại", vm.ToggleStatusText);
+        Assert.Equal("Mở bán", vm.ToggleStatusText);
     }
 
     [Fact]

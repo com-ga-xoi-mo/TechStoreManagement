@@ -370,6 +370,14 @@ public sealed class ProductEditorPage : Page, IRoutePage
             .Spacing(12)
             .HorizontalAlignment(HorizontalAlignment.Right)
             .Children(
+                new TextBlock()
+                    .Text("Sản phẩm và các biến thể mới được lưu ở trạng thái chưa bán; mở bán ở trang chi tiết khi sẵn sàng.")
+                    .Style(AppResources.GetStyle(AppTypography.CaptionText))
+                    .Foreground(AppColors.Brushes.SecondaryText)
+                    .TextWrapping(TextWrapping.Wrap)
+                    .MaxWidth(420)
+                    .VerticalAlignment(VerticalAlignment.Center)
+                    .Visibility(x => x.Binding(() => ViewModel.IsEditMode).Convert((bool edit) => CatalogViewParts.ShowIf(!edit))),
                 saveProgress,
                 new Button()
                     .Content("Hủy bỏ")

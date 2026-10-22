@@ -37,7 +37,19 @@ public sealed partial class ProductDetailViewModel : PageViewModel
     public bool HasNoSpecs => !HasSpecs;
     public bool HasNoVariants => !HasVariants;
     public bool HasActionError => !string.IsNullOrWhiteSpace(ActionError);
-    public string ToggleStatusText => Product?.IsActive == true ? "Ngừng kinh doanh" : "Mở bán lại";
+    public string ToggleStatusText => Product?.IsActive == true ? "Ngừng kinh doanh" : "Mở bán";
+
+    /// <summary>Reminds the owner what still blocks selling (API design D15, UI design D19).</summary>
+    public string SellingHint => Product switch
+    {
+        null => string.Empty,
+        { IsActive: false, Variants.Count: > 0 } => "Sản phẩm đang không bán nên chưa chọn được khi lập đơn. Khi sẵn sàng, bấm Mở bán và bật Đang bán cho các biến thể cần bán.",
+        { IsActive: false } => "Sản phẩm đang không bán nên chưa chọn được khi lập đơn. Bấm Mở bán khi sẵn sàng.",
+        { Variants.Count: > 0 } p when p.Variants.All(v => !v.IsActive) => "Sản phẩm đang bán nhưng chưa có biến thể nào đang bán. Vào Sửa và tick Đang bán cho biến thể cần bán.",
+        _ => string.Empty
+    };
+
+    public bool HasSellingHint => SellingHint.Length > 0;
 
     public ProductDetailViewModel(
         IProductRepository products,
@@ -171,6 +183,8 @@ public sealed partial class ProductDetailViewModel : PageViewModel
         OnPropertyChanged(nameof(HasNoSpecs));
         OnPropertyChanged(nameof(HasNoVariants));
         OnPropertyChanged(nameof(ToggleStatusText));
+        OnPropertyChanged(nameof(SellingHint));
+        OnPropertyChanged(nameof(HasSellingHint));
         NotifyActionCommands();
     }
 
@@ -215,9 +229,9 @@ public sealed partial class ProductDetailViewModel : PageViewModel
                 "Ngừng kinh doanh",
                 "Hủy")
             : new DialogRequest(
-                "Mở bán lại?",
-                $"Sản phẩm {Product.Name} sẽ được chọn lại khi lập đơn.",
-                "Mở bán lại",
+                "Mở bán?",
+                $"Sản phẩm {Product.Name} sẽ được chọn khi lập đơn, với các biến thể đang bán.",
+                "Mở bán",
                 "Hủy");
 
         var confirmation = await _dialogs.ConfirmAsync(request, ActivationToken);

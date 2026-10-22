@@ -164,7 +164,8 @@ public sealed partial class VariantRowItem : ObservableObject
     [ObservableProperty] private string sku = string.Empty;
     [ObservableProperty] private string priceText = string.Empty;
     [ObservableProperty] private string barcode = string.Empty;
-    [ObservableProperty] private bool isActive = true;
+    // New variants start not selling (API design D15); the owner ticks Đang bán when stock is ready.
+    [ObservableProperty] private bool isActive;
 
     [ObservableProperty] private string? nameError;
     [ObservableProperty] private string? skuError;

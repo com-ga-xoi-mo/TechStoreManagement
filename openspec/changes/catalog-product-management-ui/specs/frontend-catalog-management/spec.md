@@ -7,15 +7,15 @@ Cho phép người dùng desktop có vai trò Admin hoặc Manager tạo, sửa,
 ## ADDED Requirements
 
 ### Requirement: Write actions follow the session role
-Client SHALL chỉ hiện các nút Thêm sản phẩm, Sửa, Ngừng kinh doanh, Mở bán lại và Xóa khi phiên đang hoạt động có vai trò `Admin` hoặc `Manager`. Server vẫn là nơi quyết định quyền: khi server trả 401 hoặc 403 cho một thao tác ghi, client SHALL báo lỗi tương ứng và không coi thao tác là thành công.
+Client SHALL chỉ hiện các nút Thêm sản phẩm, Sửa, Ngừng kinh doanh, Mở bán và Xóa khi phiên đang hoạt động có vai trò `Admin` hoặc `Manager`. Server vẫn là nơi quyết định quyền: khi server trả 401 hoặc 403 cho một thao tác ghi, client SHALL báo lỗi tương ứng và không coi thao tác là thành công.
 
 #### Scenario: Sales staff browses products
 - **WHEN** người dùng đăng nhập với vai trò `SalesStaff` mở danh sách và chi tiết sản phẩm
-- **THEN** không có nút Thêm sản phẩm, Sửa, Ngừng kinh doanh, Mở bán lại hay Xóa; việc xem vẫn hoạt động như trước
+- **THEN** không có nút Thêm sản phẩm, Sửa, Ngừng kinh doanh, Mở bán hay Xóa; việc xem vẫn hoạt động như trước
 
 #### Scenario: Manager sees write actions
 - **WHEN** người dùng vai trò `Manager` mở chi tiết một sản phẩm
-- **THEN** các nút Sửa, Ngừng kinh doanh (hoặc Mở bán lại) và Xóa hiện ra
+- **THEN** các nút Sửa, Ngừng kinh doanh (hoặc Mở bán) và Xóa hiện ra
 
 #### Scenario: Server refuses the role
 - **WHEN** server trả 403 cho một yêu cầu lưu
@@ -90,7 +90,7 @@ Màn soạn SHALL gợi ý các thương hiệu đang có (từ `GET /api/produc
 - **THEN** ô hiện ghi chú sản phẩm sẽ dùng cách viết `Apple`, không có gợi ý nào khác
 
 ### Requirement: Variant rows in the editor
-Màn soạn SHALL cho thêm dòng biến thể mới (tên, SKU, giá, barcode, thông số riêng, đang bán) và bỏ dòng mới khi chưa lưu. Biến thể đã lưu SHALL không có thao tác xóa; người dùng ngừng bán chúng bằng công tắc Đang bán. Client SHALL chặn lưu khi hai biến thể mới trùng SKU (không phân biệt hoa thường) hoặc trùng SKU sản phẩm.
+Màn soạn SHALL cho thêm dòng biến thể mới (tên, SKU, giá, barcode, thông số riêng, đang bán) và bỏ dòng mới khi chưa lưu; ô Đang bán của dòng mới mặc định không tick, vì biến thể mới bắt đầu ở trạng thái chưa bán. Biến thể đã lưu SHALL không có thao tác xóa; người dùng ngừng bán chúng bằng công tắc Đang bán. Client SHALL chặn lưu khi hai biến thể mới trùng SKU (không phân biệt hoa thường) hoặc trùng SKU sản phẩm.
 
 #### Scenario: Retire a saved variant
 - **WHEN** Admin tắt công tắc Đang bán của một biến thể đã lưu rồi bấm Lưu
@@ -160,15 +160,26 @@ Khi người dùng bấm Hủy hoặc Quay lại trong màn soạn đã có thay
 - **THEN** màn soạn giữ nguyên mọi dữ liệu đang nhập
 
 ### Requirement: Stop and resume selling
-Trên trang chi tiết, client SHALL cho Ngừng kinh doanh một sản phẩm đang bán và Mở bán lại một sản phẩm đã ngừng, mỗi lần sau một hộp xác nhận, bằng `PATCH /api/products/{id}/status`. Thành công SHALL làm mới nhãn trạng thái theo response; trạng thái kinh doanh của biến thể không đổi.
+Trên trang chi tiết, client SHALL cho Ngừng kinh doanh một sản phẩm đang bán và Mở bán một sản phẩm chưa bán hoặc đã ngừng, mỗi lần sau một hộp xác nhận, bằng `PATCH /api/products/{id}/status`. Thành công SHALL làm mới nhãn trạng thái theo response; trạng thái kinh doanh của biến thể không đổi.
 
 #### Scenario: Stop selling
 - **WHEN** Admin bấm Ngừng kinh doanh và xác nhận
-- **THEN** client gửi `{"isActive": false}`, nhãn đổi thành Ngừng hoạt động và nút đổi thành Mở bán lại
+- **THEN** client gửi `{"isActive": false}`, nhãn đổi thành Ngừng hoạt động và nút đổi thành Mở bán
 
 #### Scenario: Confirmation declined
 - **WHEN** người dùng bấm Ngừng kinh doanh rồi chọn Hủy trong hộp xác nhận
 - **THEN** không có request nào được gửi
+
+### Requirement: Selling state is visible on the detail page
+Trang chi tiết SHALL hiện nhãn trạng thái cho từng biến thể. Khi sản phẩm chưa bán, trang SHALL nhắc rằng sản phẩm chưa chọn được khi lập đơn và cần Mở bán khi sẵn sàng; khi sản phẩm đang bán và có biến thể nhưng không biến thể nào đang bán, trang SHALL cảnh báo cần bật biến thể trong màn Sửa. Màn thêm sản phẩm SHALL ghi rằng sản phẩm và biến thể mới được lưu ở trạng thái chưa bán.
+
+#### Scenario: New product after saving
+- **WHEN** Admin tạo sản phẩm có một biến thể và được đưa tới trang chi tiết
+- **THEN** sản phẩm và biến thể đều có nhãn Ngừng hoạt động, trang nhắc Mở bán khi sẵn sàng, nút hiện Mở bán
+
+#### Scenario: Product opened but no variant selling
+- **WHEN** Admin Mở bán một sản phẩm có biến thể mà chưa biến thể nào đang bán
+- **THEN** trang cảnh báo chưa có biến thể nào đang bán và hướng dẫn bật trong màn Sửa
 
 ### Requirement: Delete only unused products
 Trên trang chi tiết, client SHALL cho Xóa sau một hộp xác nhận nói rõ chỉ xóa được sản phẩm chưa phát sinh giao dịch, gửi `DELETE /api/products/{id}`. 204 SHALL đưa người dùng về danh sách; 409 SHALL hiện thông điệp của server kèm gợi ý dùng Ngừng kinh doanh; 404 SHALL báo sản phẩm không còn tồn tại.

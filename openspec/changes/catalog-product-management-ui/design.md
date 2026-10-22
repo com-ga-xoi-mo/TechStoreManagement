@@ -238,6 +238,11 @@ Trang 1/1 · 20 kết quả               Mỗi trang [20 v] [Trang trước] [T
 ### D18. Giá vốn dự kiến (thống nhất với nhóm)
 `costPrice` của Catalog là **giá vốn dự kiến** do chủ cửa hàng nhập tay để định giá bán và ước tính lãi; nhập hàng không ghi đè nó. Giá vốn thực tế của đơn bán do Orders lấy từ Inventory (`order_items.unit_cost`), độc lập với `costPrice` (phần của Dev 3/Dev 4). Vì vậy giao diện Catalog ghi "Giá vốn dự kiến" (ô nhập, trang chi tiết, thông báo lỗi) và "Lãi gộp dự kiến" / "Lỗ gộp dự kiến" (nhãn ở màn soạn), để không ai nhầm với kết quả bán thực tế. Ví dụ: giá bán 20 triệu, giá vốn dự kiến 17 triệu → màn soạn hiện lãi gộp dự kiến 3 triệu; nếu giá vốn thực tế lúc bán là 18 triệu thì đơn ghi nhận lãi gộp 2 triệu.
 
+### D19. Selling state on the client (follows API D15)
+- `VariantRowItem.IsActive` defaults to `false` (new rows unticked); `ProductDraftValidator` sends it on create (`CreateProductVariantRequest.IsActive`) and update.
+- `ProductDetailViewModel.ToggleStatusText` is "Ngừng kinh doanh" / "Mở bán" (confirm "Mở bán?"); `SellingHint` (+ `HasSellingHint`) is "Sản phẩm đang không bán…" when the product is inactive and "Sản phẩm đang bán nhưng chưa có biến thể nào đang bán…" when it is active, has variants and none is active.
+- The detail page shows a `StatusBadge` per variant (`VariantLine.Variant.IsActive`) and the hint in the warning color under the action bar; the editor in create mode shows "Sản phẩm và các biến thể mới được lưu ở trạng thái chưa bán…" next to Save.
+
 ## Risks / Trade-offs
 
 - [`ItemTemplate<T>` có thể không có cho `ItemsRepeater` trong Uno Markup] → D7 có phương án `GridView` đã định sẵn; task ghi lại lựa chọn.

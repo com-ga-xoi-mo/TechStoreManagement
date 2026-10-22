@@ -66,13 +66,21 @@ public sealed class ProductDetailPage : Page, IRoutePage
             .HorizontalAlignment(HorizontalAlignment.Left);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(backButton, "Quay lại danh sách sản phẩm");
 
+        var sellingHint = new TextBlock()
+            .Text(x => x.Binding(() => ViewModel.SellingHint))
+            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+            .Foreground(AppColors.Brushes.WarningText)
+            .TextWrapping(TextWrapping.Wrap)
+            .Visibility(x => x.Binding(() => ViewModel.HasSellingHint).Convert((bool v) => CatalogViewParts.ShowIf(v)));
+
         var headerStack = new StackPanel()
             .Spacing(10)
             .Children(
                 backButton,
                 heading,
                 actionBar,
-                actionErrorBanner);
+                actionErrorBanner,
+                sellingHint);
 
         var loadingRing = new ProgressRing()
             .IsActive(x => x.Binding(() => ViewModel.IsLoading))
@@ -248,10 +256,18 @@ public sealed class ProductDetailPage : Page, IRoutePage
                                                         new StackPanel()
                                                             .Spacing(4)
                                                             .Children(
-                                                                new TextBlock()
-                                                                    .Text(x => x.Binding(() => v.Variant.VariantName))
-                                                                    .Style(AppResources.GetStyle(AppTypography.BodyText))
-                                                                    .Foreground(AppColors.Brushes.Text),
+                                                                new StackPanel()
+                                                                    .Orientation(Orientation.Horizontal)
+                                                                    .Spacing(8)
+                                                                    .Children(
+                                                                        new TextBlock()
+                                                                            .Text(x => x.Binding(() => v.Variant.VariantName))
+                                                                            .Style(AppResources.GetStyle(AppTypography.BodyText))
+                                                                            .Foreground(AppColors.Brushes.Text)
+                                                                            .VerticalAlignment(VerticalAlignment.Center),
+                                                                        new StatusBadge()
+                                                                            .Label(x => x.Binding(() => v.Variant.IsActive).Convert((bool a) => CatalogPresentation.ActiveLabel(a)))
+                                                                            .Tone(x => x.Binding(() => v.Variant.IsActive).Convert((bool a) => CatalogPresentation.ActiveTone(a)))),
                                                                 new TextBlock()
                                                                     .Text(x => x.Binding(() => v.Variant).Convert((ProductVariant pv) => pv is null ? string.Empty : $"SKU: {pv.Sku}   ·   Barcode: {CatalogPresentation.OptionalText(pv.Barcode)}"))
                                                                     .Style(AppResources.GetStyle(AppTypography.CaptionText))

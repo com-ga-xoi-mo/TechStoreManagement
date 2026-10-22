@@ -193,7 +193,8 @@ public static class ProductDraftValidator
                         Sku = v.Sku.Trim(),
                         Barcode = string.IsNullOrWhiteSpace(v.Barcode) ? null : v.Barcode.Trim(),
                         Price = ProductInputParser.TryParseMoney(v.Price, out var vp) ? vp : 0m,
-                        Specs = ProductInputParser.ParseSpecs(v.Specs ?? []).Values
+                        Specs = ProductInputParser.ParseSpecs(v.Specs ?? []).Values,
+                        IsActive = v.IsActive
                     }).ToList()
                 };
             }

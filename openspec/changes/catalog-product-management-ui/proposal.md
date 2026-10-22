@@ -13,7 +13,7 @@ Sprint 2 giao cho Dev 2 lát cắt full-stack Quản lý Sản phẩm (MILESTONE
   - bảng biến thể: biến thể đã lưu có SKU chỉ đọc và công tắc Đang bán, dòng mới chưa lưu có thể bỏ; không xóa biến thể đã lưu;
   - khóa và xóa trắng ô barcode sản phẩm khi có biến thể; công tắc theo dõi IMEI;
   - lỗi 400 hiện tại đúng ô (kể cả `variants[i].sku`, `specs`), lỗi 409/401/403 hiện ở banner; chặn bấm Lưu hai lần, không tự gửi lại.
-- **Hành động trên trang chi tiết**: Sửa, Ngừng kinh doanh / Mở bán lại (`PATCH .../status`), Xóa (`DELETE`; khi server trả 409 thì hiện lời khuyên ngừng kinh doanh). Mỗi hành động có hộp xác nhận chữ qua `IDialogService`.
+- **Hành động trên trang chi tiết**: Sửa, Ngừng kinh doanh / Mở bán (`PATCH .../status`; sản phẩm và biến thể mới bắt đầu ở trạng thái chưa bán, design D19), Xóa (`DELETE`; khi server trả 409 thì hiện lời khuyên ngừng kinh doanh). Mỗi hành động có hộp xác nhận chữ qua `IDialogService`.
 - **Nút "Thêm sản phẩm"** trên danh sách. Mọi nút ghi chỉ hiện với phiên có vai trò `Admin` hoặc `Manager`; server vẫn là nơi quyết định quyền.
 - **Tầng dữ liệu ghi**: interface mới `IProductCommandRepository` (Create/Update/SetStatus/Delete) do `ProductRepository` hiện có cài đặt, dùng lại phần kiểm tra JSON chi tiết sản phẩm. `IProductRepository` (mà màn lập đơn của Dev 4 đang dùng) không đổi.
 - **Transport**: thêm `DeleteAsync(relativePath)` (không cần body, chấp nhận 204) vào `IApiClient`/`ApiClient` và 4 stub test cài đặt `IApiClient`.

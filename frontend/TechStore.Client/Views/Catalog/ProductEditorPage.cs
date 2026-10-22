@@ -203,7 +203,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
             .ColumnSpacing(20)
             .ColumnDefinitions("1*, 2*")
             .Children(
-                new Border(),
+                new ProductImageGalleryView(ViewModel.Gallery, _apiBase),
                 rightInfoCol.Grid(column: 1));
 
         // 2. Pricing & Margin section
@@ -571,7 +571,10 @@ public sealed class ProductEditorPage : Page, IRoutePage
                 new StackPanel().Spacing(4).Grid(column: 1).Children(skuBox, skuError),
                 new StackPanel().Spacing(4).Grid(column: 2).Children(priceBox, priceError),
                 new StackPanel().Spacing(4).Grid(column: 3).Children(barcodeBox, barcodeError),
-                activeCheck.Grid(column: 4),
+                new StackPanel().Spacing(4).Grid(column: 4).Children(
+                    activeCheck,
+                    new TextBlock().Text(x => x.Binding(() => variant.ImageCountText))
+                        .Style(AppResources.GetStyle(AppTypography.CaptionText)).Foreground(AppColors.Brushes.SecondaryText)),
                 removeBtn.Grid(column: 5));
 
         var variantSpecsError = new TextBlock()

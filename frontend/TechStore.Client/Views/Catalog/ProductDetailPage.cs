@@ -116,7 +116,7 @@ public sealed class ProductDetailPage : Page, IRoutePage
             .BorderBrush(AppColors.Brushes.Stroke)
             .BorderThickness(new Thickness(1))
             .MinHeight(260)
-            .Child(CatalogViewParts.ProductImage(x => x.Binding(() => ViewModel.Product!.ImageUrl), apiBase, 44));
+            .Child(new ProductImageViewerView(ViewModel.ImageViewer, apiBase));
 
         var mainInfo = new StackPanel()
             .Spacing(12)

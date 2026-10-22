@@ -1,4 +1,7 @@
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.WindowsRuntime;
+using TechStore.Client.ViewModels.Catalog;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -11,6 +14,27 @@ namespace TechStore.Client.Views.Catalog;
 
 internal static class CatalogViewParts
 {
+    private static readonly ConditionalWeakTable<byte[], BitmapImage> PreviewCache = new();
+
+    public static ImageSource? ToImageSource(ImagePreview? preview, Uri apiBase)
+    {
+        if (preview?.Bytes is { } bytes)
+        {
+            try
+            {
+                return PreviewCache.GetValue(bytes, content =>
+                {
+                    var bitmap = new BitmapImage();
+                    using var stream = new MemoryStream(content);
+                    bitmap.SetSource(stream.AsRandomAccessStream());
+                    return bitmap;
+                });
+            }
+            catch (Exception) { return null; }
+        }
+        return CatalogPresentation.ResolveImageUri(preview?.Url, apiBase) is { } uri ? new BitmapImage(uri) : null;
+    }
+
     public static Visibility ShowIf(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
 
     public static TextBlock Caption(string text) =>

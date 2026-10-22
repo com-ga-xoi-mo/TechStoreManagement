@@ -501,12 +501,12 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 
   Verify `TEST_CLIENT` passes and `wc -l frontend/TechStore.Client/ViewModels/Catalog/ProductEditorViewModel.cs` is at most 760 (observed: 740 lines).
 - [x] 18.5 In `ViewModels/Catalog/CatalogApiErrors.cs` add `{ StatusCode: 503 } => "Nơi lưu ảnh đang không truy cập được. Hãy thử lại sau.",` before the default case (design D12), and add `Describe_503_ReturnsStorageMessage` to `tests/Frontend.UnitTests/ViewModels/Catalog/CatalogApiErrorsTests.cs`; verify `TEST_CLIENT` passes
-- [ ] 18.6 Commit: `feat(client): save product images with the product`
+- [x] 18.6 Commit: `feat(client): save product images with the product`
 
 ## 19. Views (design D13) and project docs
 
-- [ ] 19.1 Add `ToImageSource(ImagePreview? preview, Uri apiBase)` to `Views/Catalog/CatalogViewParts.cs` as design D13 (with the `ConditionalWeakTable` cache). The repo has never built a `BitmapImage` from bytes: try option 1 of D13 (`BitmapImage.SetSource`), and use option 2 (temp file + `file://` URI) if option 1 does not compile on `net10.0-desktop`. Write the option used into this line; verify `BUILD_CLIENT` passes (the picture itself is checked by the owner in 20.2 item 1)
-- [ ] 19.2 Create `Views/Catalog/ProductImageGalleryView.cs` (`public sealed class ProductImageGalleryView : UserControl`, constructor `(ProductImageGallery gallery, Uri apiBase)`, property `Gallery`, root element `.DataContext(gallery)`). Content, top to bottom:
+- [x] 19.1 Option 1 compiled: BitmapImage.SetSource with AsRandomAccessStream (runtime picture check pending 20.2). Add `ToImageSource(ImagePreview? preview, Uri apiBase)` to `Views/Catalog/CatalogViewParts.cs` as design D13 (with the `ConditionalWeakTable` cache). The repo has never built a `BitmapImage` from bytes: try option 1 of D13 (`BitmapImage.SetSource`), and use option 2 (temp file + `file://` URI) if option 1 does not compile on `net10.0-desktop`. Write the option used into this line; verify `BUILD_CLIENT` passes (the picture itself is checked by the owner in 20.2 item 1)
+- [x] 19.2 Create `Views/Catalog/ProductImageGalleryView.cs` (`public sealed class ProductImageGalleryView : UserControl`, constructor `(ProductImageGallery gallery, Uri apiBase)`, property `Gallery`, root element `.DataContext(gallery)`). Content, top to bottom:
   - the section title "Ảnh sản phẩm" with `CountText` on the right;
   - the large preview through `CatalogViewParts.ProductImage(x => x.Binding(() => Gallery.LargePreview).Convert(...), 44)` with min height 260;
   - a "Bìa" badge (`StatusBadge` tone `Info`, visible when the selected item `IsCover`);
@@ -517,19 +517,19 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - the caption "JPG, PNG, WebP – tối đa 5 MB mỗi ảnh, 20 ảnh mỗi sản phẩm".
 
   Verify `BUILD_CLIENT` passes and `grep -nE "Click \+=|ImageFailed|FromArgb|SolidColorBrush|PropertyChanged \+=" frontend/TechStore.Client/Views/Catalog/ProductImage*View.cs` prints nothing.
-- [ ] 19.3 Create `Views/Catalog/ProductImageViewerView.cs` (same pattern):
+- [x] 19.3 Create `Views/Catalog/ProductImageViewerView.cs` (same pattern):
   - large image bound to `SelectedUrl` through the existing `ProductImage(url, apiBase, 44)` overload;
   - "Xem ảnh của" `ComboBox` (visible `HasFilter`);
   - thumbnail row (visible `HasThumbnails`) built with the same `ItemsRepeater` + horizontal `StackLayout` as 19.2, with the selected overlay.
 
   Verify `BUILD_CLIENT` passes.
-- [ ] 19.4 Edit `ProductEditorPage.cs`:
+- [x] 19.4 Edit `ProductEditorPage.cs`:
   - replace the empty `Border` that 18.1 left in column 0 of `topSectionGrid` with `new ProductImageGalleryView(ViewModel.Gallery, _apiBase)`;
   - in the variant row add a `TextBlock` bound to `variant.ImageCountText` (caption style, `SecondaryText`), next to the selling tick box.
 
   Edit `ProductDetailPage.cs`: the `imageContainer` child becomes `new ProductImageViewerView(ViewModel.ImageViewer, apiBase)`. Verify `BUILD_CLIENT` passes and `grep -n "URL ảnh" frontend/TechStore.Client/Views` prints nothing.
-- [ ] 19.5 Run the client against the scratch backend from 10.1 (local storage) and check the bindings yourself with the screenshot probe, if one is available: editor in create mode shows the empty gallery `0/20`; detail page of a product with two images shows the thumbnail row. Write what you saw, or "no probe, left to 20.2", into this line. Remove any probe file afterwards (`git status --short` must not list it)
-- [ ] 19.6 Update `AGENTS.md` for the client (the backend parts were done in 3.9 and 8.4):
+- [x] 19.5 Run the client against the scratch backend from 10.1 (local storage) and check the bindings yourself with the screenshot probe, if one is available: editor in create mode shows the empty gallery `0/20`; detail page of a product with two images shows the thumbnail row. Observed: API listening on 5177 and desktop client reached Shell (1024×640); no screenshot probe, left to 20.2 for empty gallery and detail thumbnails. Uno logged RemoteControl endpoint and X11 presenter warnings. Remove any probe file afterwards (`git status --short` must not list it)
+- [x] 19.6 Update `AGENTS.md` for the client (the backend parts were done in 3.9 and 8.4):
   - "Key Modules", `frontend/TechStore.Client/` bullet and "Key Directories": `Services/` lists `Files` (`IImageFilePicker`; WinUI implementation `Views/Shell/ImageFilePicker.cs`);
   - section 9, Frontend `AddFrontendUi` bullet: `ImageFilePicker` / `IImageFilePicker` (Singleton) and `IProductImageRepository` (Transient);
   - section 6 "Conversion status of views" table: add `ProductImageGalleryView`, `ProductImageViewerView` to the "C# Markup with theme-aware tokens" row.

@@ -156,12 +156,20 @@ public sealed partial class VariantRowItem : ObservableObject
         Id = id;
     }
 
-    public Guid? Id { get; }
+    public Guid? Id { get; private set; }
+    public void MarkSaved(Guid id)
+    {
+        Id = id;
+        OnPropertyChanged(nameof(Id)); OnPropertyChanged(nameof(IsSaved)); OnPropertyChanged(nameof(IsSkuEditable));
+    }
     public bool IsSaved => Id.HasValue;
     public bool IsSkuEditable => !IsSaved;
 
     /// <summary>False while creating a product: every new variant starts not selling and is opened later in Sửa (design D19).</summary>
-    public bool CanChooseSelling { get; init; } = true;
+    [ObservableProperty] private bool canChooseSelling = true;
+    [ObservableProperty] private int imageCount;
+    public string ImageCountText => ImageCount == 0 ? string.Empty : $"{ImageCount} ảnh";
+    partial void OnImageCountChanged(int value) => OnPropertyChanged(nameof(ImageCountText));
 
     [ObservableProperty] private string variantName = string.Empty;
     [ObservableProperty] private string sku = string.Empty;

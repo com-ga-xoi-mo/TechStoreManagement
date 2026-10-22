@@ -345,11 +345,11 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 
   Verify `BUILD_CLIENT` passes.
 - [x] 13.3 Register the picker in `UiServiceCollectionExtensions.cs` as design D14 and set `Host` in `App.xaml.cs` next to the `MarkupReferenceNavigator` line (outside the gallery `if`, right after `MainWindow` is created); verify `BUILD_CLIENT` passes and `TEST_CLIENT` passes (composition test)
-- [ ] 13.4 Commit: `feat(client): add image file picker`
+- [x] 13.4 Commit: `feat(client): add image file picker`
 
 ## 14. Pure image rules and items on the client (design D11)
 
-- [ ] 14.1 Create `frontend/TechStore.Client/ViewModels/Catalog/ProductImageRules.cs` (`public static class`) with:
+- [x] 14.1 Create `frontend/TechStore.Client/ViewModels/Catalog/ProductImageRules.cs` (`public static class`) with:
   - `MaxImages = 20`, `MaxBytes = 5_242_880`;
   - `IsAllowedExtension(string fileName)` (case-insensitive `.jpg .jpeg .png .webp`);
   - `ContentTypeFor(string fileName)` (`image/jpeg`, `image/png`, `image/webp`);
@@ -361,7 +361,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
     - when `n` is 0: `"Đã đủ 20 ảnh"`.
 
   Verify `BUILD_CLIENT` passes.
-- [ ] 14.2 Create `ProductImageItem.cs` (design D11) with `public sealed record ImagePreview(string? Url, byte[]? Bytes);` in the same file:
+- [x] 14.2 Create `ProductImageItem.cs` (design D11) with `public sealed record ImagePreview(string? Url, byte[]? Bytes);` in the same file:
   - `IsNew => Id is null`;
   - `VariantLabel => Variant?.VariantName ?? string.Empty`;
   - `HasVariantLabel`;
@@ -370,14 +370,14 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - static factories `FromSaved(ProductImage image, VariantRowItem? row)` and `FromPicked(PickedImageFile file)`.
 
   Verify `BUILD_CLIENT` passes.
-- [ ] 14.3 Change `VariantRowItem` in `ProductEditorItems.cs`:
+- [x] 14.3 Change `VariantRowItem` in `ProductEditorItems.cs`:
   - `Id` gets a private setter and `public void MarkSaved(Guid id)`, which sets it and raises `Id`, `IsSaved`, `IsSkuEditable`;
   - `CanChooseSelling` becomes `[ObservableProperty] private bool canChooseSelling = true;` (keep object-initializer use working);
   - add `[ObservableProperty] private int imageCount;` and `ImageCountText => ImageCount == 0 ? string.Empty : $"{ImageCount} ảnh"`, raised on change.
 
   Verify `TEST_CLIENT` passes.
-- [ ] 14.4 Create `VariantSkuMatcher.cs` (`public static class`, `public static SkuMatchResult Match(IReadOnlyList<VariantRowItem> rows, IReadOnlyList<ProductVariant> saved)`, with `public sealed record SkuMatchResult(IReadOnlyDictionary<VariantRowItem, Guid> Matches, IReadOnlyList<string> MissingSkus)` in the same file). Only rows with `Id == null` are matched, by trimmed SKU with `StringComparer.OrdinalIgnoreCase`; verify `BUILD_CLIENT` passes
-- [ ] 14.5 Tests in `tests/Frontend.UnitTests/ViewModels/Catalog/ProductImageRulesTests.cs`:
+- [x] 14.4 Create `VariantSkuMatcher.cs` (`public static class`, `public static SkuMatchResult Match(IReadOnlyList<VariantRowItem> rows, IReadOnlyList<ProductVariant> saved)`, with `public sealed record SkuMatchResult(IReadOnlyDictionary<VariantRowItem, Guid> Matches, IReadOnlyList<string> MissingSkus)` in the same file). Only rows with `Id == null` are matched, by trimmed SKU with `StringComparer.OrdinalIgnoreCase`; verify `BUILD_CLIENT` passes
+- [x] 14.5 Tests in `tests/Frontend.UnitTests/ViewModels/Catalog/ProductImageRulesTests.cs`:
   - `IsAllowedExtension` for `A.JPG`, `b.webp`, `c.heic`;
   - `CoverIndex` (variant first then shared → 1; only variants → 0; empty → -1);
   - `FilterPicked`: wrong type, oversize (`Content` null), limit with 18 existing and 4 picked (2 accepted + one message), 20 existing.

@@ -130,13 +130,13 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `ProductImage_Model_HasRequiredIndexes`.
 
   Verify `TEST_BACKEND` passes.
-- [ ] 4.7 Commit: `feat(catalog): add product_images table`
+- [x] 4.7 Commit: `feat(catalog): add product_images table`
 
 ## 5. Repositories (design D4)
 
-- [ ] 5.1 Create `backend/Catalog/Repositories/IProductImageRepository.cs` with `void Add(ProductImage image);` and `void Remove(ProductImage image);` (XML comment: "Stages changes only; the service saves through IUnitOfWork"). Create `ProductImageRepository.cs` (`public sealed class ProductImageRepository(AppDbContext dbContext)`) using `dbContext.Set<ProductImage>()`. Register `builder.Services.AddScoped<IProductImageRepository, ProductImageRepository>();` under "Catalog Module repositories" in `Program.cs`; verify the backend builds
-- [ ] 5.2 In `IProductRepository` add `Task<Product?> GetDetailAsync(Guid id, CancellationToken cancellationToken = default);` with comment "Read-only product with category, variants and images (sorted by SortOrder) for the detail response." Implement it in `ProductRepository` with `AsNoTracking().AsSplitQuery().Include(p => p.Category).Include(p => p.Variants).Include(p => p.Images.OrderBy(i => i.SortOrder))`. In `GetForUpdateAsync`, after loading variants, also `await dbContext.Entry(product).Collection(p => p.Images).LoadAsync(cancellationToken);`. Do **not** change `GetWithVariantsAsync`; verify `git diff backend/Catalog/Repositories/ProductRepository.cs` shows no change inside `GetWithVariantsAsync`, and the backend builds
-- [ ] 5.3 Test doubles:
+- [x] 5.1 Create `backend/Catalog/Repositories/IProductImageRepository.cs` with `void Add(ProductImage image);` and `void Remove(ProductImage image);` (XML comment: "Stages changes only; the service saves through IUnitOfWork"). Create `ProductImageRepository.cs` (`public sealed class ProductImageRepository(AppDbContext dbContext)`) using `dbContext.Set<ProductImage>()`. Register `builder.Services.AddScoped<IProductImageRepository, ProductImageRepository>();` under "Catalog Module repositories" in `Program.cs`; verify the backend builds
+- [x] 5.2 In `IProductRepository` add `Task<Product?> GetDetailAsync(Guid id, CancellationToken cancellationToken = default);` with comment "Read-only product with category, variants and images (sorted by SortOrder) for the detail response." Implement it in `ProductRepository` with `AsNoTracking().AsSplitQuery().Include(p => p.Category).Include(p => p.Variants).Include(p => p.Images.OrderBy(i => i.SortOrder))`. In `GetForUpdateAsync`, after loading variants, also `await dbContext.Entry(product).Collection(p => p.Images).LoadAsync(cancellationToken);`. Do **not** change `GetWithVariantsAsync`; verify `git diff backend/Catalog/Repositories/ProductRepository.cs` shows no change inside `GetWithVariantsAsync`, and the backend builds
+- [x] 5.3 Test doubles:
   - In `tests/Backend.UnitTests/FakeProductRepository.cs` add `GetDetailAsync` returning the stored product (same instance), and keep every existing member unchanged.
   - Create `tests/Backend.UnitTests/FakeProductImageRepository.cs` with `List<ProductImage> Added` and `List<ProductImage> Removed`.
 

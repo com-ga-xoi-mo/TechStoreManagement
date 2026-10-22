@@ -5,6 +5,12 @@ namespace TechStore.UnitTests;
 
 public class FakeProductRepository : IProductRepository
 {
+    public Task<Product?> GetDetailAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        Products.TryGetValue(id, out var product);
+        return Task.FromResult(product);
+    }
+
     public Dictionary<Guid, Product> Products { get; } = new();
     public List<Product> AddedProducts { get; } = [];
     public HashSet<string> ExistingSkus { get; } = new(StringComparer.OrdinalIgnoreCase);

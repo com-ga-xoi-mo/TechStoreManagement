@@ -4,6 +4,9 @@ namespace TechStore.Api.Catalog.Repositories;
 
 public interface IProductRepository
 {
+    /// <summary>Read-only product with category, variants and images (sorted by SortOrder) for the detail response.</summary>
+    Task<Product?> GetDetailAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<(IReadOnlyList<Product> Items, int TotalCount)> SearchAsync(
         ProductSearchCriteria criteria,
         CancellationToken cancellationToken = default);

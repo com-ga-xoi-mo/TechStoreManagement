@@ -6,6 +6,12 @@ namespace TechStore.Api.Catalog.Repositories;
 
 public class ProductRepository(AppDbContext dbContext) : IProductRepository
 {
+    public Task<Product?> GetDetailAsync(Guid id, CancellationToken cancellationToken = default) =>
+        dbContext.Products.AsNoTracking().AsSplitQuery()
+            .Include(p => p.Category).Include(p => p.Variants)
+            .Include(p => p.Images.OrderBy(i => i.SortOrder))
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
     public async Task<(IReadOnlyList<Product> Items, int TotalCount)> SearchAsync(
         ProductSearchCriteria criteria,
         CancellationToken cancellationToken = default)
@@ -150,6 +156,7 @@ public class ProductRepository(AppDbContext dbContext) : IProductRepository
         if (product != null)
         {
             await dbContext.Entry(product).Collection(p => p.Variants).LoadAsync(cancellationToken);
+            await dbContext.Entry(product).Collection(p => p.Images).LoadAsync(cancellationToken);
         }
 
         return product;

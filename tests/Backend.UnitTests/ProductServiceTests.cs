@@ -564,7 +564,7 @@ public class ProductServiceTests
     // Task 5.3: CreateAsync Tests
     // -------------------------------------------------------------
     [Fact]
-    public async Task CreateAsync_Should_Succeed_With_One_Save_And_IsActive_True()
+    public async Task CreateAsync_Should_Succeed_With_One_Save_And_Start_Not_Selling()
     {
         // Arrange
         var productRepo = new FakeProductRepository();
@@ -590,9 +590,9 @@ public class ProductServiceTests
         unitOfWork.SaveChangesCount.Should().Be(1);
         productRepo.AddedProducts.Should().HaveCount(1);
         var added = productRepo.AddedProducts[0];
-        added.IsActive.Should().BeTrue();
+        added.IsActive.Should().BeFalse();
         added.Variants.Should().HaveCount(1);
-        added.Variants.First().IsActive.Should().BeTrue();
+        added.Variants.First().IsActive.Should().BeFalse();
     }
 
     [Fact]

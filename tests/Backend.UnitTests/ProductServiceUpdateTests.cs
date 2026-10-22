@@ -208,7 +208,7 @@ public class ProductServiceUpdateTests
         product.Variants.Should().HaveCount(1);
         productRepo.AddedVariants.Should().HaveCount(1);
         var added = productRepo.AddedVariants[0];
-        added.IsActive.Should().BeTrue();
+        added.IsActive.Should().BeFalse();
         added.ProductId.Should().Be(product.Id);
         added.Sku.Should().Be("MBA-M3-SG");
     }

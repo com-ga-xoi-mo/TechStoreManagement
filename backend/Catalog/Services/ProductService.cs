@@ -296,7 +296,7 @@ public class ProductService(
             return CreateProductResult.Conflict(allConflicts);
         }
 
-        // 4. Build product and variant entities (IsActive always true)
+        // 4. Build product and variant entities: new products start not selling (design D15)
         var now = DateTime.UtcNow;
         var prodSpecsDict = request.Specs ?? new Dictionary<string, JsonElement>();
         var prodSpecsJson = ProductSpecHelper.SerializeSpecs(prodSpecsDict);
@@ -315,7 +315,7 @@ public class ProductService(
             ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
             Specs = prodSpecsJson,
             IsSerialTracked = request.IsSerialTracked ?? true,
-            IsActive = true,
+            IsActive = false,
             CreatedAt = now,
             UpdatedAt = null
         };
@@ -336,7 +336,7 @@ public class ProductService(
                     Barcode = string.IsNullOrWhiteSpace(vReq.Barcode) ? null : vReq.Barcode.Trim(),
                     Price = vReq.Price!.Value,
                     Specs = vSpecsJson,
-                    IsActive = true,
+                    IsActive = vReq.IsActive ?? false,
                     CreatedAt = now,
                     UpdatedAt = null
                 };
@@ -539,7 +539,7 @@ public class ProductService(
                             Barcode = string.IsNullOrWhiteSpace(item.Barcode) ? null : item.Barcode.Trim(),
                             Price = item.Price!.Value,
                             Specs = ProductSpecHelper.SerializeSpecs(item.Specs),
-                            IsActive = item.IsActive ?? true,
+                            IsActive = item.IsActive ?? false,
                             CreatedAt = now,
                             UpdatedAt = null
                         };

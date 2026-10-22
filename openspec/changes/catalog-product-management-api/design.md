@@ -177,6 +177,9 @@ Spec keys stay snake_case data inside `specs` (schema contract); their human nam
 ### D14. One spelling per brand (added after review)
 Brand stays a free-text column (no table: a brand has nothing but its name). Two repository reads, both `AsNoTracking`: `GetBrandCountsAsync()` (`GROUP BY brand` with counts) and `GetBrandSpellingsAsync(brand, excludeProductId)` (`ILIKE` on the escaped brand, so an exact match ignoring case; the product under update is excluded). The service picks the spelling used by most products (ties: ordinal order) for create/update and merges spellings for `GET /api/products/brands` (`BrandDto { Name, ProductCount }`, anonymous). No migration; existing mixed spellings are merged in the list and fixed the next time each product is saved.
 
+### D15. New products and variants start not selling (owner decision)
+A product is sellable only when the product and the chosen variant are both active (Orders already checks both). The owner opens a product for sale when stock is ready, so creation stores the product with `IsActive = false` and every variant with `IsActive = item.IsActive ?? false`; a variant added by an update also defaults to `false`. `CreateProductVariantRequest` gains an optional `IsActive`. Opening a product (`PATCH .../status`) does not touch variant flags, so the owner also enables the variants to sell; the client warns when a selling product has no selling variant (UI design D19). Seeders create entities directly and keep their products active. Receiving stock does not check `IsActive`, so goods can be received for a product that is not selling yet.
+
 ## Risks / Trade-offs
 
 - [`FOR UPDATE` raw SQL cannot run on the EF InMemory provider] → unit tests use `FakeProductRepository`; the real lock is checked by the manual `.http` run against PostgreSQL (task group 9).
@@ -192,6 +195,7 @@ Brand stays a free-text column (no table: a brand has nothing but its name). Two
 
 These notes replace direct messages to other developers. They are copied into the pull request description (task 13.4) so every reviewer sees them before the code reaches `dev`.
 
+- **New products start not selling (D15):** a product created through the API and its variants are inactive until the owner opens them. Dev 3: receiving stock and serials still works for them (Inventory does not check `IsActive`). Dev 4: they do not appear in the order product picker until opened.
 - **Dev 4 (Orders) and Dev 3 (Inventory):** `IProductRepository` only gains new members (`GetForUpdateAsync`, `IsInUseAsync`, `AddVariant`, `Remove`). `GetWithVariantsAsync`, `SearchAsync` and `FindExistingSkusAsync` are unchanged, so `OrderService`, `InventoryService` and `SerialImeiService` behave as before. The shared `FakeProductRepository` keeps all existing members.
 - **Dev 6 (Seeder / Analytics):** a product's category can now be changed through `PUT /api/products/{id}`. The demo seeder on `feat/dev6-sprint2-analytics-dashboard` throws (and skips seeding) when a demo product's category differs from the fixture, so it should accept an edited category. SKU is immutable, and `isSerialTracked` cannot change once a product has stock, serials or orders, so the seeder's SKU key and serial-tracking check stay valid.
 - **Dev 3 (Categories):** `POST /api/categories` still has no `[Authorize]`, although `category-catalog` requires Admin or Manager. Product writes in this change use `[Authorize(Roles = "Admin,Manager")]` per action, which can be reused.

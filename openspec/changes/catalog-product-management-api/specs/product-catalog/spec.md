@@ -52,10 +52,14 @@ The product SKU SHALL NOT be changeable: the update request has no product `sku`
 - **THEN** the variant is updated and its SKU stays `OLD-SKU`
 
 ### Requirement: Variant upsert on update
-Each variant item with an `id` SHALL update that variant's `variantName`, `barcode`, `price`, `specs` and, when given, `isActive`. Each item without `id` SHALL add a new active variant (unless `isActive` is false) whose `sku` is required and unique as on creation. Variants not listed SHALL stay unchanged; no variant is ever deleted by an update.
+Each variant item with an `id` SHALL update that variant's `variantName`, `barcode`, `price`, `specs` and, when given, `isActive`. Each item without `id` SHALL add a new variant that is not selling (`isActive` false) unless the item has `isActive` true, whose `sku` is required and unique as on creation. Variants not listed SHALL stay unchanged; no variant is ever deleted by an update.
 
 #### Scenario: Add a new variant
-- **WHEN** an update contains a variant item without `id`, with `sku` = `MBA-M3-16-512` and a valid price
+- **WHEN** an update contains a variant item without `id`, with `sku` = `MBA-M3-16-512`, a valid price and no `isActive`
+- **THEN** the product detail lists the new variant with `isActive` = false
+
+#### Scenario: Add a variant that sells at once
+- **WHEN** a new variant item has `isActive` true
 - **THEN** the product detail lists the new variant with `isActive` = true
 
 #### Scenario: Retire a variant
@@ -259,6 +263,21 @@ Product creation and update SHALL store the brand with the spelling already used
 - **THEN** `costPrice` is still 17,000,000
 
 ## MODIFIED Requirements
+
+### Requirement: Product creation
+`POST /api/products` SHALL create a product with `categoryId`, `name`, `sku`, `brand`, `basePrice`, `costPrice` and optional `barcode`, `description`, `imageUrl`, `specs` (default `{}`), `isSerialTracked` (default true) and `variants`, atomically. The new product SHALL be stored not selling (`isActive` false) and each variant SHALL be stored not selling unless its item has `isActive` true; the owner opens them for sale later. Success SHALL return 201 with a `Location` header to the new product and the product detail as body.
+
+#### Scenario: Create product with variants
+- **WHEN** a client posts a valid product with two valid variants
+- **THEN** the response is 201, `Location` points to `/api/products/{newId}`, and the body contains the product with both variants
+
+#### Scenario: New product and variants start not selling
+- **WHEN** a client posts a valid product with one variant without `isActive`
+- **THEN** the created product has `isActive` false, its variant has `isActive` false, and `GET /api/products?isActive=true` does not return it
+
+#### Scenario: Atomic creation
+- **WHEN** a create request fails for any reason
+- **THEN** neither the product nor any of its variants is stored
 
 ### Requirement: Typed specification filter
 The repeatable `spec` parameter (`key:value`, split at the first colon) SHALL filter by containment against effective specs (`product.specs || variant.specs`). A value wrapped in double quotes (`"5.2"`) SHALL match the JSON string inside the quotes. Otherwise, values that parse as numbers match JSON numbers, `true`/`false` match JSON booleans, and other values match JSON strings. All `spec` filters SHALL be satisfied together by the same effective specs.

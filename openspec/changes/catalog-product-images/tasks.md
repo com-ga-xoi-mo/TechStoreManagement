@@ -30,14 +30,14 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 ## 1. Branch, baseline and planning commit
 
 - [x] 1.1 Work on the current branch `feat/catalog-product-management` (owner decision, 2026-10-23); do not create or switch branches. Verify `git branch --show-current` prints `feat/catalog-product-management` and `git status --short` shows nothing except `openspec/changes/catalog-product-images/`
-- [ ] 1.2 Commit only the planning artifacts: `git add openspec/changes/catalog-product-images && git commit -m "docs(openspec): record catalog-product-images change artifacts"`; verify `git show --stat HEAD` lists only files under that folder
-- [ ] 1.3 Record the baseline: run `BUILD_ALL`, `TEST_BACKEND`, `TEST_CLIENT`; verify all pass and write both passed counts into this line (baseline: backend ___, client ___)
-- [ ] 1.4 Read design "Coordination notes" once. You never send it to anyone; it is handed to the owner in `evidence.md` in 20.4. Verify `grep -n "## Coordination notes" openspec/changes/catalog-product-images/design.md` prints one line
+- [x] 1.2 Commit only the planning artifacts: `git add openspec/changes/catalog-product-images && git commit -m "docs(openspec): record catalog-product-images change artifacts"`; verify `git show --stat HEAD` lists only files under that folder
+- [x] 1.3 Record the baseline: run `BUILD_ALL`, `TEST_BACKEND`, `TEST_CLIENT`; verify all pass and write both passed counts into this line (baseline: backend 383, client 616)
+- [x] 1.4 Read design "Coordination notes" once. You never send it to anyone; it is handed to the owner in `evidence.md` in 20.4. Verify `grep -n "## Coordination notes" openspec/changes/catalog-product-images/design.md` prints one line
 
 ## 2. Shared contracts (additive only)
 
-- [ ] 2.1 Create `shared/DTOs/ProductImageDto.cs` (namespace `TechStore.Shared.DTOs`, class `ProductImageDto`) with `Guid Id`, `Guid? VariantId`, `string Url = string.Empty`, `string ContentType = string.Empty`, `int SizeBytes`, `int SortOrder`. In `shared/DTOs/ProductDto.cs` add `public List<ProductImageDto> Images { get; set; } = [];` after `ImageUrl`; verify `dotnet build shared/TechStore.Shared.csproj` passes
-- [ ] 2.2 Create `shared/Requests/ProductImageLayoutItemRequest.cs` (`Guid? Id`, `Guid? VariantId`) and `shared/Requests/UpdateProductImagesLayoutRequest.cs` (`List<ProductImageLayoutItemRequest>? Items`), each class in its own file, all properties nullable with no initializer; verify `BUILD_ALL` passes and `TEST_BACKEND` / `TEST_CLIENT` keep the 1.3 counts
+- [x] 2.1 Create `shared/DTOs/ProductImageDto.cs` (namespace `TechStore.Shared.DTOs`, class `ProductImageDto`) with `Guid Id`, `Guid? VariantId`, `string Url = string.Empty`, `string ContentType = string.Empty`, `int SizeBytes`, `int SortOrder`. In `shared/DTOs/ProductDto.cs` add `public List<ProductImageDto> Images { get; set; } = [];` after `ImageUrl`; verify `dotnet build shared/TechStore.Shared.csproj` passes
+- [x] 2.2 Create `shared/Requests/ProductImageLayoutItemRequest.cs` (`Guid? Id`, `Guid? VariantId`) and `shared/Requests/UpdateProductImagesLayoutRequest.cs` (`List<ProductImageLayoutItemRequest>? Items`), each class in its own file, all properties nullable with no initializer; verify `BUILD_ALL` passes and `TEST_BACKEND` / `TEST_CLIENT` keep the 1.3 counts
 - [ ] 2.3 Commit: `feat(shared): add product image contracts`
 
 ## 3. Object storage in `backend/Common/Storage/` (design D2, D3)

@@ -42,7 +42,7 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 > **Cardinal Rule:** The frontend client **never** connects directly to the database. All interactions must pass through ASP.NET Core REST endpoints secured by JWT Bearer tokens and role policies.
 
 ### 2. Key Modules
-- **`backend/Catalog/`**: Product categories, variants, and dynamic hardware specifications stored in JSONB columns (`IProductService`, `ICategoryService`, `IProductRepository`, `ICategoryRepository`, `ISpecDefinitionRepository`, `ProductsController`, `CategoriesController`); spec display names, units and value kinds live in the `spec_definitions` table.
+- **`backend/Catalog/`**: Product categories, variants, and dynamic hardware specifications stored in JSONB columns (`IProductService`, `ICategoryService`, `IProductRepository`, `ICategoryRepository`, `ISpecDefinitionRepository`, `ProductsController`, `CategoriesController`, `IProductImageService`, `IProductImageRepository`, `ProductImagesController`); spec display names, units and value kinds live in the `spec_definitions` table.
 - **`backend/Inventory/`**: Stock counts, append-only movement audit ledger (`inventory_movements`), supplier purchases, unique Serial/IMEI lifecycle states (`InStock`, `Reserved`, `Sold`, `Returned`, `UnderRepair`, `Defective`), composite foreign keys, and pessimistic row-locking (`IInventoryService`, `IInventoryStockRepository`, `ISerialImeiRepository`, `IInventoryFulfillmentService`, `InventoryController`).
 - **`backend/Orders/`**: Order processing, sold IMEI linkage, order status lifecycle transitions, returns, and refunds (`IOrderService`, `IOrderRepository`, `OrdersController`).
 - **`backend/Customers/`**: Customer profiles, loyalty point accrual, discount vouchers, and revenue analytics (`ICustomerRepository`, `CustomerRepository`).
@@ -275,6 +275,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
       .AreNullsDistinct(false)
       .HasDatabaseName("idx_inventory_stocks_product_variant");
   ```
+- **Product images:** Files live in object storage; `product_images` stores references only. `products.image_url` is the server-computed cover (first shared image, else first image, else null). At most 20 images per product, at most 5 MB each, JPEG/PNG/WebP identified by content. Credentials only through user-secrets or environment variables.
 - **Spec definitions:** spec keys stay snake_case data inside `specs`; their display name, unit and value kind live in `spec_definitions` (one row per key, seeded, insert-only through product create/update `specLabels`). Clients show `label`/`unit` from `GET /api/products/spec-definitions` and never store names inside `specs`.
 - **JSONB Hardware Specs Indexing:** GIN index configured with `jsonb_path_ops` on `specs` column in `products` and `product_variants` for fast containment queries (`specs @> '{"ram_gb": 16}'`). Flat JSON contract with snake_case keys; effective specs = `product.specs || variant.specs`.
 - **Partial Indexes:** High-selectivity operational indexes:
@@ -351,7 +352,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 
 ### 9. Dependency Injection Pattern
 - **Backend (`backend/Program.cs`):**
-  - **Scoped:** DbContext (`AppDbContext`), Unit of Work (`IUnitOfWork`), repositories (`IProductRepository`, `IOrderRepository`), domain services (`IProductService`, `IOrderService`), and `IDataSeeder`.
+  - **Scoped:** DbContext (`AppDbContext`), Unit of Work (`IUnitOfWork`), repositories (`IProductRepository`, `IOrderRepository`, `IProductImageRepository`), domain services (`IProductService`, `IOrderService`, `IProductImageService`), and `IDataSeeder`.
   - **Singleton:** Stateless utility services (`TimeProvider.System`), token generators, `IObjectStorage` (`R2ObjectStorage` or `LocalObjectStorage`).
 - **Frontend (`frontend/TechStore.Client/App.xaml.cs`):**
   - `AddFrontendFoundation`: Registers `ApiClientOptions`, `ISessionStore` (Singleton), `BearerTokenHandler` (Transient), and configured `IApiClient` / `ApiClient` via `AddHttpClient`.

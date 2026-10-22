@@ -950,3 +950,27 @@ Content-Type: application/json
 ### W22. (r) Search products with keyword TEST-WRITE without header (200 OK)
 GET {{host}}/api/products?q=TEST-WRITE
 Accept: application/json
+
+### Product image upload (201; Admin/Manager)
+# @name uploadProductImage
+POST {{host}}/api/products/{{findMacbook.response.body.$.items[0].id}}/images
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
+Content-Type: multipart/form-data; boundary=TechStoreImage
+
+--TechStoreImage
+Content-Disposition: form-data; name="file"; filename="pixel.png"
+Content-Type: image/png
+
+< ./samples/pixel.png
+--TechStoreImage--
+
+### Product image layout (200; every current image exactly once)
+PUT {{host}}/api/products/{{findMacbook.response.body.$.items[0].id}}/images/layout
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "items": [{ "id": "{{uploadProductImage.response.body.$.id}}", "variantId": null }] }
+
+### Product image delete (204)
+DELETE {{host}}/api/products/{{findMacbook.response.body.$.items[0].id}}/images/{{uploadProductImage.response.body.$.id}}
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}

@@ -219,11 +219,11 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `SaveLayoutAsync_UnknownProduct_ReturnsNotFound`.
 
   Verify `TEST_BACKEND` passes.
-- [ ] 7.5 Commit: `feat(catalog): add product image service`
+- [x] 7.5 Commit: `feat(catalog): add product image service`
 
 ## 8. Controller, docs and manual requests (design D5, D7)
 
-- [ ] 8.1 Create `backend/Catalog/ProductImagesController.cs`:
+- [x] 8.1 Create `backend/Catalog/ProductImagesController.cs`:
   - `[ApiController]`, `[Route("api/products/{productId:guid}/images")]`, `[Authorize(Roles = "Admin,Manager")]` on the class;
   - constructor injection of `IProductImageService` only;
   - actions `Upload` (`[HttpPost]`, `[Consumes("multipart/form-data")]`, `[RequestSizeLimit]` + `[RequestFormLimits]` of design D5, parameters `IFormFile? file`, `[FromForm] Guid? variantId`), `Delete` (`[HttpDelete("{imageId:guid}")]`), `SaveLayout` (`[HttpPut("layout")]`, `[FromBody] UpdateProductImagesLayoutRequest request`);
@@ -231,9 +231,9 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - status mapping exactly as the design D7 table; `CreatedAtAction(nameof(ProductsController.GetById), "Products", new { id = productId }, dto)`.
 
   Verify the backend builds, start it with `ASPNETCORE_URLS=http://localhost:5177 ASPNETCORE_ENVIRONMENT=Development dotnet run --project backend/TechStore.Api.csproj --no-launch-profile`, check that Swagger (`http://localhost:5177/`) shows the three endpoints with a file input, then stop it.
-- [ ] 8.2 Add `tests/Backend.UnitTests/ProductImagesControllerAuthorizationTests.cs` following `ProductsControllerAuthorizationTests`: the class has `Authorize` with roles `Admin,Manager`; `Upload` has `Consumes("multipart/form-data")` and a request size limit of 6 MB (read it as `((IRequestSizeLimitMetadata)attribute).MaxRequestBodySize`, which must equal `6_291_456`; `RequestSizeLimitAttribute` has no public property for the limit); no action has `AllowAnonymous`. Verify `TEST_BACKEND` passes
-- [ ] 8.3 Add sample requests to `backend/TechStore.Api.http` (upload with `multipart/form-data` boundary and `< ./samples/pixel.png`, delete, layout) and create `backend/samples/pixel.png` (a valid 1×1 PNG: `echo iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg== | base64 -d > backend/samples/pixel.png`); verify `file backend/samples/pixel.png` prints `PNG image data, 1 x 1`
-- [ ] 8.4 Update `backend/Catalog/README.md`:
+- [x] 8.2 Add `tests/Backend.UnitTests/ProductImagesControllerAuthorizationTests.cs` following `ProductsControllerAuthorizationTests`: the class has `Authorize` with roles `Admin,Manager`; `Upload` has `Consumes("multipart/form-data")` and a request size limit of 6 MB (read it as `((IRequestSizeLimitMetadata)attribute).MaxRequestBodySize`, which must equal `6_291_456`; `RequestSizeLimitAttribute` has no public property for the limit); no action has `AllowAnonymous`. Verify `TEST_BACKEND` passes
+- [x] 8.3 Add sample requests to `backend/TechStore.Api.http` (upload with `multipart/form-data` boundary and `< ./samples/pixel.png`, delete, layout) and create `backend/samples/pixel.png` (a valid 1×1 PNG: `echo iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg== | base64 -d > backend/samples/pixel.png`); verify `file backend/samples/pixel.png` prints `PNG image data, 1 x 1`
+- [x] 8.4 Update `backend/Catalog/README.md`:
   - list the three image endpoints with status codes;
   - add a "Product images storage" section with the `ObjectStorage` settings, the `dotnet user-secrets` commands of design D3, the R2 setup steps (bucket, public development URL, API token with Object Read & Write on that bucket), the cover rule, and the domain-change `UPDATE` from design Risks.
 

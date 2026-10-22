@@ -40,3 +40,38 @@
 - **Giá vốn dự kiến (`costPrice`):** do chủ cửa hàng nhập tay để định giá và ước tính lãi gộp; chỉ tạo/sửa sản phẩm thay đổi nó, nhập hàng không ghi đè. Giá vốn thực tế của đơn bán là `order_items.unit_cost` (Orders/Inventory).
 - **Thương hiệu:** cột `brand` vẫn là chữ tự do, nhưng khi tạo/sửa sản phẩm, thương hiệu trùng một cách viết đã có (không phân biệt hoa thường) được lưu theo cách viết được nhiều sản phẩm dùng nhất; sản phẩm đang sửa không được tính.
   - `CategoriesController.cs` (Dev 3 - Quản lý và tra cứu cây danh mục).
+
+## Product images storage
+
+| Endpoint (Admin/Manager) | Success | Errors |
+|---|---|---|
+| `POST /api/products/{productId}/images` (multipart `file`, optional `variantId`) | 201 `ProductImageDto` | 400, 401, 403, 404, 409 (20 images), 503 (storage) |
+| `DELETE /api/products/{productId}/images/{imageId}` | 204 | 401, 403, 404 |
+| `PUT /api/products/{productId}/images/layout` (`items` with every image id and optional variant id) | 200 image list | 400, 401, 403, 404 |
+
+`ProductImageService` dùng các repository, `IUnitOfWork` và cổng `Common/Storage/IObjectStorage`; service không gọi SDK S3. `product_images` chỉ lưu tham chiếu, file nằm ngoài DB. Server nhận JPEG/PNG/WebP theo chữ ký nội dung, tối đa 5 MB mỗi ảnh và 20 ảnh mỗi sản phẩm. `products.image_url` là ảnh chung đầu tiên theo thứ tự; nếu chỉ có ảnh biến thể thì dùng ảnh đầu tiên, không có ảnh thì null. Client không đặt link bìa qua request tạo/sửa sản phẩm.
+
+Mặc định `ObjectStorage:Provider=Local`, `Local:RootPath=uploads`, `Local:RequestPath=/uploads`: file trong `backend/uploads` được API phục vụ công khai, có header `X-Content-Type-Options: nosniff`.
+
+Để dùng R2: tạo bucket trong Cloudflare R2; bật Public Development URL (hoặc custom domain); tạo API token với quyền **Object Read & Write** chỉ trên bucket đó, lấy Account ID và cặp S3 Access Key ID/Secret Access Key. Đặt cấu hình ngoài git:
+
+```bash
+dotnet user-secrets init --project backend/TechStore.Api.csproj
+dotnet user-secrets set "ObjectStorage:Provider" "R2" --project backend/TechStore.Api.csproj
+dotnet user-secrets set "ObjectStorage:R2:AccountId" "<account id>" --project backend/TechStore.Api.csproj
+dotnet user-secrets set "ObjectStorage:R2:AccessKeyId" "<access key id>" --project backend/TechStore.Api.csproj
+dotnet user-secrets set "ObjectStorage:R2:SecretAccessKey" "<secret access key>" --project backend/TechStore.Api.csproj
+dotnet user-secrets set "ObjectStorage:R2:BucketName" "<bucket name>" --project backend/TechStore.Api.csproj
+dotnet user-secrets set "ObjectStorage:R2:PublicBaseUrl" "<public base URL>" --project backend/TechStore.Api.csproj
+```
+
+R2 thiếu cấu hình sẽ dừng khởi động, chỉ nêu tên trường thiếu. Có thể dùng biến môi trường tương ứng, ví dụ `ObjectStorage__R2__SecretAccessKey`; khóa không đi vào desktop, response hoặc log. Xóa file sau commit là best effort; file mồ côi có thể dọn tay theo tiền tố `products/{productId:N}/`.
+
+Khi đổi domain công khai, cập nhật URL đã lưu (thay hai placeholder bằng URL thực, không chứa khóa):
+
+```sql
+BEGIN;
+UPDATE product_images SET url = replace(url, '<old public base URL>', '<new public base URL>');
+UPDATE products SET image_url = replace(image_url, '<old public base URL>', '<new public base URL>');
+COMMIT;
+```

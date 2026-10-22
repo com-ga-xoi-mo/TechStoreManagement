@@ -392,11 +392,11 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `VariantLabel_FollowsRowRename`.
 
   Verify `TEST_CLIENT` passes.
-- [ ] 14.6 Commit: `feat(client): add product image rules and items`
+- [x] 14.6 Commit: `feat(client): add product image rules and items`
 
 ## 15. `ProductImageGallery` (design D11, spec `frontend-product-images`)
 
-- [ ] 15.1 Create `ProductImageGallery.cs` (`public sealed partial class ProductImageGallery : ObservableObject`, constructor `(IImageFilePicker picker, ObservableCollection<VariantRowItem> variants, Func<CancellationToken> token)`). Members:
+- [x] 15.1 Create `ProductImageGallery.cs` (`public sealed partial class ProductImageGallery : ObservableObject`, constructor `(IImageFilePicker picker, ObservableCollection<VariantRowItem> variants, Func<CancellationToken> token)`). Members:
   - **state:** `Images`, `SelectedImage`, `VariantChoices`, `SelectedVariantChoice`, `CountText`, `CanAddMore`, `PickMessage` / `HasPickMessage`, `ShowMakeCover`, `CanMoveLeft`, `CanMoveRight`, `HasSelection`, `LargePreview`;
   - `public sealed record ImageVariantChoice(string Label, VariantRowItem? Row);` in the same file, where the first choice is `"Chung cho mọi biến thể"` with `Row` null;
   - **selection and cover:** selecting sets `IsSelected` on exactly one item; changing `SelectedVariantChoice` sets `SelectedImage.Variant`; after every change, recompute `IsCover` with `ProductImageRules.CoverIndex` and each row's `ImageCount`;
@@ -404,7 +404,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - **"Dùng cho" and the two-way binding** (design D11): while `VariantChoices` is rebuilt, a private `_rebuildingChoices` flag makes the `SelectedVariantChoice` change handler ignore every value, because the `ComboBox` pushes `null` back when its selected item disappears. After the rebuild, set `SelectedVariantChoice` to the choice whose `Row` is `SelectedImage?.Variant` (the first choice when that is null). A `null` value outside a rebuild is ignored too; only a non-null choice changes `SelectedImage.Variant`.
 
   Verify `BUILD_CLIENT` passes.
-- [ ] 15.2 Add the commands (`[RelayCommand]`, parameters `object?` where they come from a template):
+- [x] 15.2 Add the commands (`[RelayCommand]`, parameters `object?` where they come from a template):
   - `AddImagesAsync`: `picker.PickImagesAsync(MaxBytes, token())`, then `ProductImageRules.FilterPicked`, append `FromPicked` items, select the first added, set `PickMessage` to the joined messages (or empty). An `InvalidOperationException` from the picker sets `PickMessage` to its message.
   - `SelectImage(object?)`.
   - `MakeCover`: move the selected shared item to index 0.
@@ -412,7 +412,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `RemoveSelected`: saved items add their `Id` to `RemovedImageIds`; then select the next item, else the previous.
 
   `CanExecute` follows the matching `Can*`/`Show*` properties. Verify `BUILD_CLIENT` passes.
-- [ ] 15.3 Add the lifecycle members:
+- [x] 15.3 Add the lifecycle members:
   - `Load(IReadOnlyList<ProductImage> saved, IReadOnlyList<VariantRowItem> rows)`: maps `VariantId` to the row with that `Id` and selects the first image;
   - `Reset()`;
   - `HasChanges`: true when `RemovedImageIds` is not empty, any item `IsNew`, or the sequence of `(Id, Variant?.Id ?? row reference)` differs from the baseline taken by `Load`/`AcceptChanges`;
@@ -420,7 +420,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `ForgetRemoved(Guid id)`.
 
   Verify `BUILD_CLIENT` passes.
-- [ ] 15.4 Tests in `tests/Frontend.UnitTests/ViewModels/Catalog/ProductImageGalleryTests.cs` with a hand-written `ScriptedImageFilePicker` (in `CatalogFakes.cs`: queue of results, or an exception to throw). One test per spec scenario of "Image area in the editor", "Add images from the computer" (including picker cancelled → empty list), "Cover image in the editor", "Reorder and remove images", "Assign an image to a variant" (including unsaved row removed and `ImageCount` "2 ảnh"), plus:
+- [x] 15.4 Tests in `tests/Frontend.UnitTests/ViewModels/Catalog/ProductImageGalleryTests.cs` with a hand-written `ScriptedImageFilePicker` (in `CatalogFakes.cs`: queue of results, or an exception to throw). One test per spec scenario of "Image area in the editor", "Add images from the computer" (including picker cancelled → empty list), "Cover image in the editor", "Reorder and remove images", "Assign an image to a variant" (including unsaved row removed and `ImageCount` "2 ảnh"), plus:
   - `HasChanges_AfterLoad_IsFalse`;
   - `HasChanges_AfterReorder_IsTrue`;
   - `HasChanges_AfterVariantChange_IsTrue`;

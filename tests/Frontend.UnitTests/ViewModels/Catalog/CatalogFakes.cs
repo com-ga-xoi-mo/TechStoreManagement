@@ -201,3 +201,15 @@ internal sealed class StubBrandRepository : IProductBrandRepository
             ? Task.FromException<IReadOnlyList<BrandOption>>(new ApiException(ApiErrorKind.Network, "brands"))
             : Task.FromResult<IReadOnlyList<BrandOption>>(Brands.ToList());
 }
+
+internal sealed class ScriptedImageFilePicker : TechStore.Client.Services.Files.IImageFilePicker
+{
+    public Queue<IReadOnlyList<TechStore.Client.Services.Files.PickedImageFile>> Results { get; } = new();
+    public Exception? Error { get; set; }
+    public Task<IReadOnlyList<TechStore.Client.Services.Files.PickedImageFile>> PickImagesAsync(long maxBytesToRead, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Error != null) throw Error;
+        return Task.FromResult(Results.Count == 0 ? (IReadOnlyList<TechStore.Client.Services.Files.PickedImageFile>)[] : Results.Dequeue());
+    }
+}

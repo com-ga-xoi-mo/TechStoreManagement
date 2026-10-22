@@ -350,6 +350,24 @@ public sealed class ProductEditorViewModelTests
     }
 
     [Fact]
+    public async Task AddVariant_InEditMode_ShowsTheSellingTick_AndStartsNotSelling()
+    {
+        // Arrange
+        var vm = CreateVm();
+        vm.SetRoute(CatalogSamples.ProductId, null);
+        await vm.ActivateAsync();
+
+        // Act
+        vm.AddVariantCommand.Execute(null);
+
+        // Assert
+        var added = vm.Variants[^1];
+        Assert.True(added.CanChooseSelling);
+        Assert.False(added.IsActive);
+        Assert.All(vm.Variants, v => Assert.True(v.CanChooseSelling));
+    }
+
+    [Fact]
     public async Task RetiringSavedVariant_ThenSaving_SendsIsActiveFalseWithId()
     {
         // Arrange

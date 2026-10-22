@@ -160,11 +160,14 @@ public sealed partial class VariantRowItem : ObservableObject
     public bool IsSaved => Id.HasValue;
     public bool IsSkuEditable => !IsSaved;
 
+    /// <summary>False while creating a product: every new variant starts not selling and is opened later in Sửa (design D19).</summary>
+    public bool CanChooseSelling { get; init; } = true;
+
     [ObservableProperty] private string variantName = string.Empty;
     [ObservableProperty] private string sku = string.Empty;
     [ObservableProperty] private string priceText = string.Empty;
     [ObservableProperty] private string barcode = string.Empty;
-    // New variants start not selling (API design D15); the owner ticks Đang bán when stock is ready.
+    // New variants start not selling (API design D15); the owner ticks Đang bán in Sửa when stock is ready.
     [ObservableProperty] private bool isActive;
 
     /// <summary>The current state next to the tick box, so an unticked box does not read as "Đang bán".</summary>

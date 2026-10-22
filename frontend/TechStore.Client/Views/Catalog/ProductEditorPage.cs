@@ -371,7 +371,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
             .HorizontalAlignment(HorizontalAlignment.Right)
             .Children(
                 new TextBlock()
-                    .Text("Sản phẩm và các biến thể mới được lưu ở trạng thái chưa bán; mở bán ở trang chi tiết khi sẵn sàng.")
+                    .Text("Sản phẩm và các biến thể mới được lưu ở trạng thái chưa bán. Khi muốn bán, bấm Mở bán ở trang chi tiết, rồi vào Sửa và tick Đang bán cho từng biến thể cần bán.")
                     .Style(AppResources.GetStyle(AppTypography.CaptionText))
                     .Foreground(AppColors.Brushes.SecondaryText)
                     .TextWrapping(TextWrapping.Wrap)
@@ -578,7 +578,8 @@ public sealed class ProductEditorPage : Page, IRoutePage
         var activeCheck = new CheckBox()
             .Content(x => x.Binding(() => variant.SellingText))
             .IsChecked(x => x.Binding(() => variant.IsActive).Mode(BindingMode.TwoWay))
-            .VerticalAlignment(VerticalAlignment.Bottom);
+            .VerticalAlignment(VerticalAlignment.Bottom)
+            .Visibility(x => x.Binding(() => variant.CanChooseSelling).Convert((bool v) => CatalogViewParts.ShowIf(v)));
 
         var removeBtn = new Button()
             .Content("Bỏ")

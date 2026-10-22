@@ -62,7 +62,7 @@ public sealed class ProductSellingStateTests
     }
 
     [Fact]
-    public async Task Editor_NewVariantRow_StartsNotSelling_AndCreateSendsEachFlag()
+    public async Task Editor_CreateMode_HidesTheSellingTick_AndCreatesEveryVariantNotSelling()
     {
         // Arrange
         var commands = new RecordingProductCommands();
@@ -85,16 +85,15 @@ public sealed class ProductSellingStateTests
         vm.Variants[1].VariantName = "Trắng";
         vm.Variants[1].Sku = "IP16-WH";
         vm.Variants[1].PriceText = "23000000";
-        var defaultFlag = vm.Variants[0].IsActive;
-        vm.Variants[1].IsActive = true;
 
         // Act
         await vm.SaveCommand.ExecuteAsync(null);
 
         // Assert
-        Assert.False(defaultFlag);
+        Assert.All(vm.Variants, v => Assert.False(v.CanChooseSelling));
+        Assert.All(vm.Variants, v => Assert.False(v.IsActive));
         var request = Assert.Single(commands.Created);
-        Assert.Equal([false, true], request.Variants!.Select(v => v.IsActive ?? false));
+        Assert.All(request.Variants!, v => Assert.Null(v.IsActive));
     }
 
     [Fact]

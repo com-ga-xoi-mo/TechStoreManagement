@@ -90,11 +90,19 @@ Màn soạn SHALL gợi ý các thương hiệu đang có (từ `GET /api/produc
 - **THEN** ô hiện ghi chú sản phẩm sẽ dùng cách viết `Apple`, không có gợi ý nào khác
 
 ### Requirement: Variant rows in the editor
-Màn soạn SHALL cho thêm dòng biến thể mới (tên, SKU, giá, barcode, thông số riêng, đang bán) và bỏ dòng mới khi chưa lưu; ô Đang bán của dòng mới mặc định không tick, vì biến thể mới bắt đầu ở trạng thái chưa bán. Biến thể đã lưu SHALL không có thao tác xóa; người dùng ngừng bán chúng bằng công tắc Đang bán. Client SHALL chặn lưu khi hai biến thể mới trùng SKU (không phân biệt hoa thường) hoặc trùng SKU sản phẩm.
+Màn soạn SHALL cho thêm dòng biến thể mới (tên, SKU, giá, barcode, thông số riêng) và bỏ dòng mới khi chưa lưu. Biến thể mới bắt đầu ở trạng thái chưa bán; ô Đang bán SHALL chỉ hiện trong màn Sửa. Biến thể đã lưu SHALL không có thao tác xóa; người dùng ngừng bán chúng bằng công tắc Đang bán. Client SHALL chặn lưu khi hai biến thể mới trùng SKU (không phân biệt hoa thường) hoặc trùng SKU sản phẩm.
 
 #### Scenario: Retire a saved variant
 - **WHEN** Admin tắt công tắc Đang bán của một biến thể đã lưu rồi bấm Lưu
 - **THEN** request gửi biến thể đó kèm `id` và `isActive: false`, không có yêu cầu xóa nào
+
+#### Scenario: New product variants start not selling
+- **WHEN** người dùng thêm sản phẩm mới có hai biến thể rồi bấm Lưu
+- **THEN** các dòng biến thể không có ô Đang bán, request tạo không gửi `isActive` cho biến thể nào và cả hai được lưu ở trạng thái chưa bán
+
+#### Scenario: Selling tick in Sửa
+- **WHEN** Admin mở màn Sửa của một sản phẩm và bấm + Thêm biến thể
+- **THEN** mọi dòng biến thể có ô Đang bán, dòng mới chưa tick và chữ cạnh ô là "Chưa bán"
 
 #### Scenario: Remove an unsaved variant row
 - **WHEN** người dùng thêm một dòng biến thể rồi bấm Bỏ trước khi lưu
@@ -171,7 +179,7 @@ Trên trang chi tiết, client SHALL cho Ngừng kinh doanh một sản phẩm �
 - **THEN** không có request nào được gửi
 
 ### Requirement: Selling state is visible on the detail page
-Trang chi tiết SHALL hiện nhãn trạng thái cho từng biến thể. Khi sản phẩm chưa bán, trang SHALL nhắc rằng sản phẩm chưa chọn được khi lập đơn và cần Mở bán khi sẵn sàng; khi sản phẩm đang bán và có biến thể nhưng không biến thể nào đang bán, trang SHALL cảnh báo cần bật biến thể trong màn Sửa. Màn thêm sản phẩm SHALL ghi rằng sản phẩm và biến thể mới được lưu ở trạng thái chưa bán.
+Trang chi tiết SHALL hiện nhãn trạng thái cho từng biến thể. Khi sản phẩm chưa bán, trang SHALL nhắc rằng sản phẩm chưa chọn được khi lập đơn và cần Mở bán khi sẵn sàng; khi sản phẩm đang bán và có biến thể nhưng không biến thể nào đang bán, trang SHALL cảnh báo cần bật biến thể trong màn Sửa. Màn thêm sản phẩm SHALL ghi rằng sản phẩm và biến thể mới được lưu ở trạng thái chưa bán, và muốn bán thì bấm Mở bán ở trang chi tiết rồi bật Đang bán cho biến thể trong màn Sửa.
 
 #### Scenario: New product after saving
 - **WHEN** Admin tạo sản phẩm có một biến thể và được đưa tới trang chi tiết

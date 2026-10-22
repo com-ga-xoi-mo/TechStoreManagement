@@ -446,7 +446,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void AddVariant() => Variants.Add(new VariantRowItem(null));
+    private void AddVariant() => Variants.Add(new VariantRowItem(null) { CanChooseSelling = IsEditMode });
 
     [RelayCommand]
     private void RemoveVariant(object? parameter)

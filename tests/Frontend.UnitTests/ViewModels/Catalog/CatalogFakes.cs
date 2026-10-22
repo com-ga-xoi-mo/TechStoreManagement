@@ -213,3 +213,28 @@ internal sealed class ScriptedImageFilePicker : TechStore.Client.Services.Files.
         return Task.FromResult(Results.Count == 0 ? (IReadOnlyList<TechStore.Client.Services.Files.PickedImageFile>)[] : Results.Dequeue());
     }
 }
+
+internal sealed class RecordingImageRepository : IProductImageRepository
+{
+    public List<string> Calls { get; } = [];
+    public List<ImageUpload> Uploads { get; } = [];
+    public IReadOnlyList<ImageLayoutEntry>? LastLayout { get; private set; }
+    public int? FailUploadNumber { get; set; }
+    public async Task<ProductImage> UploadAsync(Guid productId, ImageUpload upload, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        Calls.Add("upload"); Uploads.Add(upload);
+        if (Uploads.Count == FailUploadNumber) throw new ApiException(ApiErrorKind.Network, "network failed");
+        await Task.CompletedTask;
+        return new(Guid.NewGuid(), upload.VariantId, "/uploads/" + upload.FileName, upload.ContentType, upload.Content.Length, 0);
+    }
+    public Task DeleteAsync(Guid productId, Guid imageId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested(); Calls.Add("delete"); return Task.CompletedTask;
+    }
+    public Task<IReadOnlyList<ProductImage>> SaveLayoutAsync(Guid productId, IReadOnlyList<ImageLayoutEntry> entries, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested(); Calls.Add("layout"); LastLayout = entries;
+        return Task.FromResult<IReadOnlyList<ProductImage>>([]);
+    }
+}

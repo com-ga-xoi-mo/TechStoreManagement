@@ -430,11 +430,11 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - `VariantChoiceNull_IsIgnored`.
 
   Verify `TEST_CLIENT` passes.
-- [ ] 15.5 Commit: `feat(client): add product image gallery state`
+- [x] 15.5 Commit: `feat(client): add product image gallery state`
 
 ## 16. `ProductImageSaver` (design D11, D12)
 
-- [ ] 16.1 Create `ProductImageSaver.cs` (`public sealed class ProductImageSaver(IProductImageRepository images)`, `Task SaveAsync(Guid productId, ProductImageGallery gallery, CancellationToken cancellationToken)`):
+- [x] 16.1 Create `ProductImageSaver.cs` (`public sealed class ProductImageSaver(IProductImageRepository images)`, `Task SaveAsync(Guid productId, ProductImageGallery gallery, CancellationToken cancellationToken)`):
   - return when `!gallery.HasChanges`;
   - for each id in `gallery.RemovedImageIds` (copy the list first): `DeleteAsync`, then `gallery.ForgetRemoved(id)`;
   - for each `IsNew` item in display order: `UploadAsync` with `item.Variant?.Id`, then `item.MarkSaved(result.Id, result.Url)`; throw `InvalidOperationException("Biến thể của ảnh chưa được lưu.")` if `item.Variant` is set but its `Id` is null;
@@ -442,7 +442,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   - finally `gallery.AcceptChanges()`.
 
   Exceptions propagate. Verify `BUILD_CLIENT` passes.
-- [ ] 16.2 Tests in `ProductImageSaverTests.cs` with a hand-written `RecordingImageRepository` (in `CatalogFakes.cs`; records calls in order; can throw on the n-th upload):
+- [x] 16.2 Tests in `ProductImageSaverTests.cs` with a hand-written `RecordingImageRepository` (in `CatalogFakes.cs`; records calls in order; can throw on the n-th upload):
   - `SaveAsync_NoChanges_SendsNothing`;
   - `SaveAsync_DeletesThenUploadsThenLayout` (call order);
   - `SaveAsync_VariantImage_SendsRowId`;

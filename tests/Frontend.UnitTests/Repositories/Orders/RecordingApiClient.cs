@@ -25,6 +25,12 @@ internal sealed class RecordingApiClient(Func<string, string, object?, string> r
     public Task<TResponse> PatchAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) =>
         Handle<TResponse>("PATCH", relativePath, request, cancellationToken);
 
+    public Task PatchAsync(string relativePath, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
     private Task<TResponse> Handle<TResponse>(string method, string path, object? body, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

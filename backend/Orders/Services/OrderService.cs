@@ -571,20 +571,27 @@ public class OrderService(
         return true;
     }
 
-    private static OrderSummaryDto MapToSummary(Order order) => new()
+    private static OrderSummaryDto MapToSummary(Order order)
     {
-        Id = order.Id,
-        OrderCode = order.OrderCode,
-        Status = order.Status.ToString(),
-        PaymentMethod = order.PaymentMethod.ToString(),
-        CustomerId = order.CustomerId,
-        CustomerName = order.Customer?.FullName,
-        TotalAmount = order.TotalAmount,
-        ItemCount = order.Items.Count,
-        CreatedAt = order.CreatedAt,
-        PaidAt = order.PaidAt,
-        CompletedAt = order.CompletedAt
-    };
+        var primaryItem = order.Items.OrderBy(item => item.Id).FirstOrDefault();
+        return new OrderSummaryDto
+        {
+            Id = order.Id,
+            OrderCode = order.OrderCode,
+            Status = order.Status.ToString(),
+            PaymentMethod = order.PaymentMethod.ToString(),
+            CustomerId = order.CustomerId,
+            CustomerName = order.Customer?.FullName,
+            TotalAmount = order.TotalAmount,
+            ItemCount = order.Items.Count,
+            PrimaryProductName = primaryItem?.ProductName,
+            PrimaryVariantName = primaryItem?.VariantName,
+            PrimaryCategoryName = primaryItem?.Product?.Category?.Name,
+            CreatedAt = order.CreatedAt,
+            PaidAt = order.PaidAt,
+            CompletedAt = order.CompletedAt
+        };
+    }
 
     private static OrderDto MapToDto(Order order) => new()
     {

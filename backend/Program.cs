@@ -9,6 +9,7 @@ using TechStore.Api.Analytics.Repositories;
 using TechStore.Api.Analytics.Services;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Customers.Repositories;
+using TechStore.Api.Customers.Services;
 using TechStore.Api.Identity.Configurations;
 using TechStore.Api.Identity.Repositories;
 using TechStore.Api.Identity.Services;
@@ -84,6 +85,7 @@ builder.Services.AddScoped<IInventoryFulfillmentService, InventoryFulfillmentSer
 
 // Customers Module repositories
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 // Orders Module repositories
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -150,3 +152,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

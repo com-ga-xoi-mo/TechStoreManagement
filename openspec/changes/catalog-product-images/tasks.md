@@ -554,7 +554,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 ## 20. Real app check with the owner and hand-off
 
 - [x] 20.1 Run `BUILD_ALL`, `TEST_BACKEND`, `TEST_CLIENT`; verify all pass and recorded: backend 447 passed, client 689 passed after task 18.8; desktop build 0 errors, prior solution build 0 errors (baseline backend 383, client 616; +64 backend, +73 client). Run `openspec validate catalog-product-images --strict`; verify it prints "is valid" (the two INFO lines about archive order are expected)
-- [ ] 20.2 Real app check **with the project owner**. You cannot click in the desktop app yourself: start the backend with the 8.1 command (local storage, port 5177) and the client (`TECHSTORE_API_BASE_URL=http://localhost:5177/ dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop`), give the owner this checklist and write down only what the owner reports. Do not tick until the owner confirms every item:
+- [x] 20.2 Owner result (2026-10-23): the owner reported "ok chuẩn hết rồi" for the whole checklist (one confirmation, no per-item notes). Known exception outside the app: on Linux GNOME the portal file dialog (GTK4) does not select files with Ctrl+click (GTK #5669); Shift+click or picking several times works. Real app check **with the project owner**. You cannot click in the desktop app yourself: start the backend with the 8.1 command (local storage, port 5177) and the client (`TECHSTORE_API_BASE_URL=http://localhost:5177/ dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop`), give the owner this checklist and write down only what the owner reports. Do not tick until the owner confirms every item:
   1. **Thêm sản phẩm:**
      - the image area shows `0/20`;
      - hovering the frame shows the downward-arrow-to-tray icon and "Thêm ảnh"; leaving hides it;
@@ -586,13 +586,13 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
      - restart the backend without the override before item 7.
   7. **Theme:** switch Sáng/Tối in Settings while the editor is open → thumbnails, labels and the selected border stay readable.
   8. **Delete:** delete the test product from the detail page → its files are removed from `uploads/`.
-- [ ] 20.3 R2 check **with the owner's keys**:
+- [x] 20.3 Outcome (2026-10-23, no keys recorded): owner bucket `tech-store` with a public r2.dev URL; keys set by the owner in the git-ignored `backend/.env` (environment variables, task 19.9) instead of user-secrets. Port 5177 (`source backend/.env`) and port 5179 (plain `dotnet run`): upload 201 with an `https://pub-….r2.dev/products/…` URL, public GET 200 with identical bytes, delete 204, GET after delete 404; no key in the backend log. Owner confirmed the Cloudflare configuration. R2 check **with the owner's keys**:
   - the owner sets the user-secrets of design D3 (never paste keys into chat or files);
   - restart the backend, upload one image → its `url` starts with the R2 public base URL and opens in a browser;
   - delete it → the object is gone from the bucket.
 
   Write the outcome (no keys) into this line. If the owner has no bucket yet, ask the owner; when the owner agrees, write "R2 not checked: no bucket (owner decision, <date>)" into this line, record the same in `evidence.md`, and tick the task so it does not block archiving.
-- [ ] 20.4 Write `openspec/changes/catalog-product-images/evidence.md` with:
+- [x] 20.4 Write `openspec/changes/catalog-product-images/evidence.md` with:
   - commit hash, date, test counts;
   - the 10.1/10.2 status codes;
   - the request-size check of design D7 (2026-10-23, port 5177, product id that does not exist): 5,767,168 and 6,100,000 bytes → 400 with an error for `file`; 7,340,032 bytes → 400 with the error under the empty key;

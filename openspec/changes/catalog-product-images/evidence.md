@@ -1,9 +1,10 @@
 # Catalog product images — verification evidence
 
-Status: implementation and automated verification complete; owner checks 20.2 and 20.3 pending. Task 20.4 remains open until the owner's results are recorded and the final evidence commit is made.
+Status: complete. Implementation, automated checks, owner app check (20.2) and R2 check (20.3) are recorded; all tasks are ticked.
 
-Recorded at: 2026-10-23T01:51:21+07:00.
-Implementation commit: `65a8682` (images changed elsewhere; gallery/viewer at `f5fec6d`), on `feat/catalog-product-management`. Local commits only; nothing pushed and no pull request opened.
+Final update: 2026-10-23T16:34:07+07:00. Last code commit: `673eabe` (`.env` loader), after `df6adfc` and `ac07bf7`; first recorded at 2026-10-23T01:51:21+07:00 with `65a8682`. Branch `feat/catalog-product-management`. Local commits only; nothing pushed and no pull request opened.
+
+Final counts: backend 450 passed (447 + 3 `DotEnvFileTests`), client 689 passed, solution build 0 errors (the same 2 EF Relational version warnings as baseline), `openspec validate catalog-product-images --strict` valid.
 
 ## Automated checks
 
@@ -87,16 +88,18 @@ For owner review, the backend now runs from the repository on port 5177, using `
 
 | Item | Expected (full checklist: tasks.md 20.2) | Owner result |
 |---|---|---|
-| 1 | Empty `0/20`; click the large image frame for the multi-file picker (no separate add button); valid image previews; rejected filename shown | Pending |
-| 2 | Thumbnail selection, cover, left/right and removal work | Pending |
-| 3 | Variant assignment/count/rename follow rows; removing unsaved row makes image shared | Pending |
-| 4 | Save order, variant filter and listing cover match | Pending |
-| 5 | Cancel warns; saving edit persists; removed file gone; missing file shows placeholder without blocking save | Pending |
-| 6 | Read-only storage yields 503 after product save; retry uploads successfully without duplicate product | Pending; coordinate backend restart before and after this item |
-| 7 | Light/Dark keeps thumbnails, labels and selected border readable | Pending |
-| 8 | Deleting the test product removes its files | Pending |
+| 1 | Empty `0/20`; click the large image frame for the multi-file picker (no separate add button); valid image previews; rejected filename shown | OK (see exception below) |
+| 2 | Thumbnail selection, cover, left/right and removal work | OK |
+| 3 | Variant assignment/count/rename follow rows; removing unsaved row makes image shared | OK |
+| 4 | Save order, variant filter and listing cover match | OK |
+| 5 | Cancel warns; saving edit persists; removed file gone; missing file shows placeholder without blocking save | OK |
+| 6 | Read-only storage yields 503 after product save; retry uploads successfully without duplicate product | OK |
+| 7 | Light/Dark keeps thumbnails, labels and selected border readable | OK |
+| 8 | Deleting the test product removes its files | OK |
 
-Do not mark task 20.2 complete until the owner confirms every item. Start with items 1–5; before item 6 switch the backend's local root to a scratch read-only folder; restore the normal backend before items 7–8.
+On 2026-10-23 the owner confirmed the whole checklist in one message ("ok chuẩn hết rồi"); no per-item notes were given, so the results above record that single confirmation.
+
+**Exception (outside the app):** on Ubuntu 24.04 GNOME, Uno opens the `org.freedesktop.portal.FileChooser` dialog drawn by `xdg-desktop-portal-gnome` 46.2 / GTK 4.14. Ctrl+click only highlights files without selecting them (GTK issue #5669), so "Submit" stays disabled. Shift+click or picking several times works. Windows, macOS and KDE are not affected. The owner chose to keep the design.
 
 ## Button template follow-up
 
@@ -115,7 +118,17 @@ Temporary probe code and entry-point changes were removed. Desktop build and str
 
 ## R2 owner check (task 20.3)
 
-Pending. No owner keys or real R2 bucket were used. Unit checks and SDK compilation do not establish that R2 uploads/deletes work. If the owner has no bucket, record the owner's explicit decision before accepting the specified exception. Never put credentials in chat, this evidence or git.
+Checked on 2026-10-23 with the owner's bucket `tech-store` and its public r2.dev URL. The owner put the keys in the git-ignored `backend/.env` (mode 600); no key appears in chat, this evidence, git or the backend log. Key shapes were checked without printing them (Account ID and Access Key ID 32 hex characters, Secret 64).
+
+| Backend | Request/check | Observed result |
+|---|---|---|
+| Port 5177, started with `source backend/.env` | Upload 75-byte PNG | 201; URL `https://pub-….r2.dev/products/<productId:N>/<key>.png` |
+| | Public GET | 200 `image/png`, bytes identical to the upload |
+| | Delete image | 204 |
+| | Public GET after delete | 404 |
+| Port 5179, plain `dotnet run` (task 19.9 loader) | Upload / public GET / delete / GET after delete | 201 with r2.dev URL / 200 / 204 / 404 |
+
+Both test images were deleted, so the product returned to its previous images. The owner confirmed the Cloudflare configuration (bucket-scoped Object Read & Write token).
 
 ## Hand-off
 
@@ -127,6 +140,6 @@ When the owner decides to share the branch, relay the following to Dev 3 (Invent
 - `IProductRepository.GetWithVariantsAsync` is unchanged.
 - Deleting an unused product now removes its images too.
 
-Images work with local storage by default. To enable R2, create a bucket, enable its public development URL or custom domain, create a bucket-scoped Object Read & Write API token, then set `ObjectStorage:Provider=R2` and `ObjectStorage:R2:{AccountId,AccessKeyId,SecretAccessKey,BucketName,PublicBaseUrl}` using backend user-secrets or environment variables. Exact commands are in `backend/Catalog/README.md`; keys remain server-side.
+Images work with local storage by default. To enable R2, create a bucket, enable its public development URL or custom domain, create a bucket-scoped Object Read & Write API token, then set `ObjectStorage:Provider=R2` and `ObjectStorage:R2:{AccountId,AccessKeyId,SecretAccessKey,BucketName,PublicBaseUrl}` using backend user-secrets, environment variables, or the git-ignored `backend/.env` that `dotnet run` loads in Development. Exact commands are in `backend/Catalog/README.md`; keys remain server-side. Never include `backend/.env` in a zipped submission.
 
-Archive order: `catalog-product-management-api`, then `catalog-product-management-ui`, then `catalog-product-images`. Do not archive this change until the owner checks and final evidence are complete. Pushing or opening a PR remains the owner's decision.
+Archive order: `catalog-product-management-api`, then `catalog-product-management-ui`, then `catalog-product-images`. Pushing or opening a PR remains the owner's decision.

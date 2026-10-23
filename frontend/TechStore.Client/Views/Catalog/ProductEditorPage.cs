@@ -273,7 +273,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
                 CatalogViewParts.SectionTitle("3. Thông số kỹ thuật"),
                 new Button()
                     .Grid(column: 1)
-                    .Content("+ Thêm thông số")
+                    .Content("Thêm thông số")
                     .Command(x => x.Binding(() => ViewModel.AddSpecCommand))
                     .Style(AppControlStyles.Styles.Button));
 
@@ -311,7 +311,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
                 CatalogViewParts.SectionTitle("4. Biến thể"),
                 new Button()
                     .Grid(column: 1)
-                    .Content("+ Thêm biến thể")
+                    .Content("Thêm biến thể")
                     .Command(x => x.Binding(() => ViewModel.AddVariantCommand))
                     .Style(AppControlStyles.Styles.Button));
 
@@ -593,7 +593,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
                     .VerticalAlignment(VerticalAlignment.Center),
                 new Button()
                     .Grid(column: 1)
-                    .Content("+ Thêm thông số")
+                    .Content("Thêm thông số")
                     .Command(ViewModel.AddVariantSpecCommand)
                     .CommandParameter(x => x.Binding(() => variant))
                     .Style(AppControlStyles.Styles.QuietButton));

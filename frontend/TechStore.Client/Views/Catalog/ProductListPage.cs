@@ -142,7 +142,7 @@ public sealed class ProductListPage : Page, IRoutePage
                             .Visibility(x => x.Binding(() => ViewModel.HasSpecOptionsError).Convert((bool v) => CatalogViewParts.ShowIf(v)))),
                 specRows,
                 new Button()
-                    .Content("+ Thêm điều kiện")
+                    .Content("Thêm điều kiện")
                     .Command(x => x.Binding(() => ViewModel.AddSpecFilterCommand))
                     .Style(AppControlStyles.Styles.QuietButton));
 

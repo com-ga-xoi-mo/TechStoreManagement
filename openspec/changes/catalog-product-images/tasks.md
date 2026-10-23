@@ -502,7 +502,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   Verify `TEST_CLIENT` passes and `wc -l frontend/TechStore.Client/ViewModels/Catalog/ProductEditorViewModel.cs` is at most 760 (observed: 740 lines).
 - [x] 18.5 In `ViewModels/Catalog/CatalogApiErrors.cs` add `{ StatusCode: 503 } => "Nơi lưu ảnh đang không truy cập được. Hãy thử lại sau.",` before the default case (design D12), and add `Describe_503_ReturnsStorageMessage` to `tests/Frontend.UnitTests/ViewModels/Catalog/CatalogApiErrorsTests.cs`; verify `TEST_CLIENT` passes
 - [x] 18.6 Commit: `feat(client): save product images with the product`
-- [ ] 18.7 Images changed elsewhere (design D12, table "Ảnh bị người khác đổi trong lúc đang sửa"; added after review on 2026-10-23):
+- [x] 18.7 Images changed elsewhere (design D12, table "Ảnh bị người khác đổi trong lúc đang sửa"; added after review on 2026-10-23):
   - `ProductImageSaver.SaveAsync`: wrap each `DeleteAsync` so that `ApiException { StatusCode: 404 }` calls `gallery.ForgetRemoved(id)` and continues; every other exception still propagates;
   - `CatalogApiErrors`: add `internal static bool IsImageSetChanged(ApiException exception)`, true for status 409, or status 400 whose `FieldErrors` has the key `items` (case-insensitive); false otherwise;
   - `ProductEditorViewModel.SaveAsync`: in the image-save `catch (ApiException ex)`, when `CatalogApiErrors.IsImageSetChanged(ex)` set `GeneralError = "Đã lưu sản phẩm nhưng chưa lưu được ảnh: ảnh của sản phẩm vừa được thay đổi ở nơi khác. Hãy mở lại sản phẩm để xem ảnh mới nhất."`; keep the current message for all other errors;
@@ -512,7 +512,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
     - `ProductEditorImageTests`: `Save_LayoutRejectedForItems_ShowsChangedElsewhereMessage` (message has no "Bấm Lưu để thử lại"), `Save_RemovedImageAlreadyGone_OpensDetail`.
 
   Extend `RecordingImageRepository` in `CatalogFakes.cs` so it can throw a given `ApiException` on delete or on layout. Verify `BUILD_CLIENT` and `TEST_CLIENT` pass and `wc -l frontend/TechStore.Client/ViewModels/Catalog/ProductEditorViewModel.cs` is at most 760.
-- [ ] 18.8 Commit: `fix(client): handle product images changed elsewhere while saving`. Then re-run `TEST_BACKEND` and `TEST_CLIENT` and update the counts in 20.1 and in `evidence.md` (backend stays 447; client 680 plus the new tests).
+- [x] 18.8 Commit: `fix(client): handle product images changed elsewhere while saving`. Then re-run `TEST_BACKEND` and `TEST_CLIENT` and update the counts in 20.1 and in `evidence.md` (backend stays 447; client 680 plus the new tests).
 
 ## 19. Views (design D13) and project docs
 
@@ -550,7 +550,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 
 ## 20. Real app check with the owner and hand-off
 
-- [x] 20.1 Run `BUILD_ALL`, `TEST_BACKEND`, `TEST_CLIENT`; verify all pass and recorded: backend 447 passed, client 680 passed; build 0 errors (baseline backend 383, client 616; +64 each). Run `openspec validate catalog-product-images --strict`; verify it prints "is valid" (the two INFO lines about archive order are expected)
+- [x] 20.1 Run `BUILD_ALL`, `TEST_BACKEND`, `TEST_CLIENT`; verify all pass and recorded: backend 447 passed, client 689 passed after task 18.8; desktop build 0 errors, prior solution build 0 errors (baseline backend 383, client 616; +64 backend, +73 client). Run `openspec validate catalog-product-images --strict`; verify it prints "is valid" (the two INFO lines about archive order are expected)
 - [ ] 20.2 Real app check **with the project owner**. You cannot click in the desktop app yourself: start the backend with the 8.1 command (local storage, port 5177) and the client (`TECHSTORE_API_BASE_URL=http://localhost:5177/ dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop`), give the owner this checklist and write down only what the owner reports. Do not tick until the owner confirms every item:
   1. **Thêm sản phẩm:**
      - the image area shows `0/20`;

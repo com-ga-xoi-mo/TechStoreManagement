@@ -3,7 +3,7 @@
 Status: implementation and automated verification complete; owner checks 20.2 and 20.3 pending. Task 20.4 remains open until the owner's results are recorded and the final evidence commit is made.
 
 Recorded at: 2026-10-23T01:51:21+07:00.
-Implementation commit: `f5fec6d` (gallery/viewer), on `feat/catalog-product-management`. Local commits only; nothing pushed and no pull request opened.
+Implementation commit: `65a8682` (images changed elsewhere; gallery/viewer at `f5fec6d`), on `feat/catalog-product-management`. Local commits only; nothing pushed and no pull request opened.
 
 ## Automated checks
 
@@ -11,13 +11,30 @@ Implementation commit: `f5fec6d` (gallery/viewer), on `feat/catalog-product-mana
 |---|---|
 | Baseline solution build | Passed |
 | Baseline backend / client unit tests | 383 / 616 passed |
-| Final `dotnet build TechStore.sln` | Passed, 0 errors |
+| Solution build before task 18.7 follow-up | Passed, 0 errors |
+| Desktop client build after task 18.7 | Passed, 0 errors, 0 warnings |
 | Final backend unit tests | 447 passed, 0 failed, 0 skipped |
-| Final client unit tests | 680 passed, 0 failed, 0 skipped |
+| Final client unit tests | 689 passed, 0 failed, 0 skipped |
 | `openspec validate catalog-product-images --strict` | Valid; two expected INFO messages about prerequisite archives |
 | `git diff --check` | Passed |
 
 Build emits an EF Core Relational assembly version conflict warning (10.0.4 versus 10.0.12); this warning was also present in the baseline. It did not fail the build or unit tests. These counts do not certify desktop bindings or real R2 access.
+
+## Review follow-up (tasks 18.7–18.8)
+
+Verified at: 2026-10-23T12:10:00+07:00. Commit `65a8682` implements delete-404 continuation and the changed-elsewhere message for a mismatched image set. The added tests verify deletion failures other than 404 still propagate and the editor stays open when layout is stale. No automatic reload or retry was added.
+
+Post-commit reruns: backend 447 passed; client 689 passed (+9 tests over the preceding implementation). `ProductEditorViewModel` is 742 lines (limit 760). OpenSpec strict validation is valid with the same two expected archive-order INFO messages.
+
+The updated request-size contract was checked again on port 5177 against a newly generated, confirmed nonexistent product id:
+
+| File size (bytes; multipart request is slightly larger) | HTTP | Validation error key |
+|---|---|---|
+| 5,767,168 | 400 | `file` |
+| 6,100,000 | 400 | `file` |
+| 7,340,032 | 400 | Empty key `""` |
+
+These were rejected requests; they did not create product or image data. The owner checks below remain pending.
 
 ## Migration and schema
 

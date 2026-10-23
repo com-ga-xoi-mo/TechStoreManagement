@@ -7,7 +7,7 @@ Cho người dùng desktop có vai trò Admin hoặc Manager chọn nhiều ản
 ## ADDED Requirements
 
 ### Requirement: Image area in the editor
-Màn soạn SHALL có khu "Ảnh sản phẩm" thay cho ô URL ảnh, gồm: ảnh lớn của ảnh đang chọn, hàng ảnh nhỏ theo đúng thứ tự, ô "+ Thêm", bộ đếm dạng `3/20`, và dòng gợi ý loại và dung lượng cho phép. Bấm một ảnh nhỏ SHALL chọn ảnh đó và hiện nó ở ảnh lớn. Khi chưa có ảnh, ảnh lớn SHALL là ảnh giữ chỗ.
+Màn soạn SHALL có khu "Ảnh sản phẩm" thay cho ô URL ảnh, gồm: ảnh lớn của ảnh đang chọn, hàng ảnh nhỏ theo đúng thứ tự, khung ảnh lớn có thể bấm để chọn thêm ảnh, bộ đếm dạng `3/20`, và dòng gợi ý loại và dung lượng cho phép. Bấm một ảnh nhỏ SHALL chọn ảnh đó và hiện nó ở ảnh lớn. Khi chưa có ảnh, ảnh lớn SHALL là ảnh giữ chỗ.
 
 #### Scenario: Select a thumbnail
 - **WHEN** sản phẩm có ba ảnh và người dùng bấm ảnh nhỏ thứ hai
@@ -15,10 +15,10 @@ Màn soạn SHALL có khu "Ảnh sản phẩm" thay cho ô URL ảnh, gồm: ả
 
 #### Scenario: No image yet
 - **WHEN** người dùng mở màn thêm sản phẩm mới
-- **THEN** khu ảnh hiện ảnh giữ chỗ, bộ đếm `0/20` và ô "+ Thêm"
+- **THEN** khu ảnh hiện ảnh giữ chỗ, bộ đếm `0/20` và khung ảnh lớn cho phép bấm để chọn ảnh
 
 ### Requirement: Add images from the computer
-Ô "+ Thêm" SHALL mở hộp chọn file cho phép chọn nhiều file JPG, JPEG, PNG, WebP một lần. File lớn hơn 5 MB, file có đuôi khác hoặc file vượt quá tổng 20 ảnh SHALL không được thêm, và màn soạn SHALL báo tên từng file bị bỏ qua cùng lý do. Ảnh vừa thêm SHALL có nhãn "Mới" cho đến khi được lưu. Khi đã có 20 ảnh, ô "+ Thêm" SHALL ẩn.
+Bấm vào khung ảnh lớn SHALL mở hộp chọn file cho phép chọn nhiều file JPG, JPEG, PNG, WebP một lần. File lớn hơn 5 MB, file có đuôi khác hoặc file vượt quá tổng 20 ảnh SHALL không được thêm, và màn soạn SHALL báo tên từng file bị bỏ qua cùng lý do. Ảnh vừa thêm SHALL có nhãn "Mới" cho đến khi được lưu. Không có nút "+ Thêm" riêng. Khi đã có 20 ảnh, thao tác chọn thêm bằng khung ảnh SHALL bị vô hiệu. Chọn ảnh chỉ thêm vào bản nháp; file chỉ được tải lên khi bấm Lưu sản phẩm.
 
 #### Scenario: Pick three files
 - **WHEN** người dùng chọn `a.jpg`, `b.png` và `c.webp` dưới 5 MB

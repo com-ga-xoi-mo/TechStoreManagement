@@ -18,7 +18,7 @@ Hiện mỗi sản phẩm chỉ có một cột `products.image_url`, và ngư�
 - **Ảnh bìa do server tính**: `products.image_url` luôn là link của ảnh dùng chung đứng đầu (nếu không có ảnh chung thì là ảnh đầu tiên; không có ảnh thì null). Trang danh sách và `ProductSummaryDto` không đổi.
 - **BREAKING (hợp đồng API)**: bỏ `imageUrl` khỏi `CreateProductRequest` và `UpdateProductRequest`; client không còn tự đặt link ảnh. `ProductDto` thêm danh sách `images`.
 - **Xóa sản phẩm chưa dùng** (`DELETE /api/products/{id}`) xóa luôn các dòng ảnh và file của sản phẩm đó.
-- **Client – màn soạn**: bỏ ô "URL ảnh"; thay bằng khu "Ảnh sản phẩm": ảnh lớn đang chọn, hàng ảnh nhỏ, nút "+ Thêm" chọn nhiều file, các nút "Đặt làm ảnh bìa", `<`, `>`, "Xóa ảnh", và ô "Dùng cho" để gắn ảnh cho một biến thể. Mọi thay đổi ảnh chỉ được gửi khi bấm Lưu; Hủy bỏ hết.
+- **Client – màn soạn**: bỏ ô "URL ảnh"; thay bằng khu "Ảnh sản phẩm": ảnh lớn đang chọn, hàng ảnh nhỏ, bấm vào khung ảnh lớn để chọn nhiều file (không có nút "+ Thêm" riêng), các nút "Đặt làm ảnh bìa", `<`, `>`, "Xóa ảnh", và ô "Dùng cho" để gắn ảnh cho một biến thể. Mọi thay đổi ảnh chỉ được gửi khi bấm Lưu; Hủy bỏ hết.
 - **Client – gắn ảnh cho biến thể chưa lưu**: ảnh trỏ tới dòng biến thể trên màn hình; sau khi lưu sản phẩm, app ghép dòng với `id` biến thể theo SKU (không phân biệt hoa thường) rồi mới tải ảnh lên.
 - **Client – trang chi tiết**: ảnh lớn, hàng ảnh nhỏ bấm để đổi ảnh, và ô "Xem ảnh của" (Tất cả / từng biến thể).
 - **Client – transport**: `IApiClient` thêm `PostFileAsync` gửi multipart; hộp chọn file qua `IImageFilePicker` (Uno `FileOpenPicker`, trên Linux đi qua xdg-desktop-portal).

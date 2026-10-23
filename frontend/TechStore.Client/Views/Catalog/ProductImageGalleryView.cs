@@ -19,12 +19,22 @@ public sealed class ProductImageGalleryView : UserControl
         var thumbnails = new ItemsRepeater().ItemsSource(x => x.Binding(() => Gallery.Images))
             .Layout(new StackLayout { Orientation = Orientation.Horizontal, Spacing = 8 })
             .ItemTemplate<ProductImageItem>(BuildThumbnail);
+        var imagePicker = new Button().Padding(0)
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
+            .HorizontalContentAlignment(HorizontalAlignment.Stretch)
+            .VerticalContentAlignment(VerticalAlignment.Stretch)
+            .Background(AppColors.Brushes.Subtle).BorderBrush(AppColors.Brushes.Stroke)
+            .BorderThickness(new Thickness(1)).CornerRadius(AppMetrics.Values.CardRadius)
+            .Command(x => x.Binding(() => Gallery.AddImagesCommand))
+            .Content(CatalogViewParts.ProductImage(x => x.Binding(() => Gallery.LargePreview)
+                .Convert((ImagePreview? p) => CatalogViewParts.ToImageSource(p, apiBase)!), 44).MinHeight(260));
+        AutomationProperties.SetName(imagePicker, "Chọn ảnh sản phẩm");
+        ToolTipService.SetToolTip(imagePicker, "Bấm để chọn ảnh từ máy");
         Content = new StackPanel().DataContext(gallery).Spacing(10).Children(
             new Grid().ColumnDefinitions("*, Auto").Children(
                 CatalogViewParts.SectionTitle("Ảnh sản phẩm"),
                 new TextBlock().Grid(column: 1).Text(x => x.Binding(() => Gallery.CountText)).Foreground(AppColors.Brushes.SecondaryText)),
-            CatalogViewParts.ProductImage(x => x.Binding(() => Gallery.LargePreview)
-                .Convert((ImagePreview? p) => CatalogViewParts.ToImageSource(p, apiBase)!), 44).MinHeight(260),
+            imagePicker,
             new StatusBadge().Label("Bìa").Tone(StatusTone.Info)
                 .Visibility(x => x.Binding(() => Gallery.SelectedImage!.IsCover).Convert((bool v) => CatalogViewParts.ShowIf(v))),
             new ComboBox().Header("Dùng cho").ItemsSource(x => x.Binding(() => Gallery.VariantChoices))
@@ -39,14 +49,11 @@ public sealed class ProductImageGalleryView : UserControl
                 new Button().Content("Xóa ảnh").Command(x => x.Binding(() => Gallery.RemoveSelectedCommand))),
             new ScrollViewer().HorizontalScrollBarVisibility(ScrollBarVisibility.Auto).VerticalScrollBarVisibility(ScrollBarVisibility.Disabled)
                 .HorizontalScrollMode(ScrollMode.Enabled).VerticalScrollMode(ScrollMode.Disabled)
-                .Content(new StackPanel().Orientation(Orientation.Horizontal).Spacing(8).Children(
-                    thumbnails,
-                    new Button().Content("+ Thêm").MinHeight(72).Command(x => x.Binding(() => Gallery.AddImagesCommand))
-                        .Visibility(x => x.Binding(() => Gallery.CanAddMore).Convert((bool v) => CatalogViewParts.ShowIf(v))))),
+                .Content(thumbnails),
             new TextBlock().Text(x => x.Binding(() => Gallery.PickMessage)).TextWrapping(TextWrapping.Wrap)
                 .Foreground(AppColors.Brushes.WarningText)
                 .Visibility(x => x.Binding(() => Gallery.HasPickMessage).Convert((bool v) => CatalogViewParts.ShowIf(v))),
-            CatalogViewParts.Caption("JPG, PNG, WebP – tối đa 5 MB mỗi ảnh, 20 ảnh mỗi sản phẩm"));
+            CatalogViewParts.Caption("Bấm vào khung ảnh để chọn. JPG, PNG, WebP – tối đa 5 MB mỗi ảnh, 20 ảnh mỗi sản phẩm"));
     }
     private UIElement BuildThumbnail(ProductImageItem item) => new StackPanel().Spacing(2).Children(
         new Button().Padding(0).Width(72).Height(72).Command(Gallery.SelectImageCommand)

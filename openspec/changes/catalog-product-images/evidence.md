@@ -61,6 +61,10 @@ API was built and run from `/tmp/catalog-images-live/api`, port 5177. Smoke uplo
 
 Deleted throwaway product: `9cbe6b92-6db7-4233-9eb1-2c1e8c63449d`. Real concurrent requests and live SalesStaff authorization were not exercised by these smoke checks; the service race recheck and authorization metadata are covered by unit tests.
 
+## Preview-frame picker adjustment
+
+Owner confirmed that clicking the large image frame should open the picker, replacing the separate "+ Thêm" button. The frame now uses `AddImagesCommand`; selecting files still only changes the draft and uploads wait for Save product. The existing command disables adding at 20 images. Desktop build passed with 0 warnings and 0 errors; OpenSpec strict validation passed. Manual picker interaction and theme confirmation remain part of task 20.2.
+
 ## Desktop owner checks (task 20.2)
 
 The client started against port 5177 and logged a Shell viewport of 1024×640. No screenshot probe for Catalog pages was available. Image preview uses option 1, `BitmapImage.SetSource` with `AsRandomAccessStream`, which compiles. Actual rendered images and theme switching remain unverified.
@@ -71,7 +75,7 @@ For owner review, the backend now runs from the repository on port 5177, using `
 
 | Item | Expected (full checklist: tasks.md 20.2) | Owner result |
 |---|---|---|
-| 1 | Empty `0/20`; multi-file picker; valid image previews; rejected filename shown | Pending |
+| 1 | Empty `0/20`; click the large image frame for the multi-file picker (no separate add button); valid image previews; rejected filename shown | Pending |
 | 2 | Thumbnail selection, cover, left/right and removal work | Pending |
 | 3 | Variant assignment/count/rename follow rows; removing unsaved row makes image shared | Pending |
 | 4 | Save order, variant filter and listing cover match | Pending |

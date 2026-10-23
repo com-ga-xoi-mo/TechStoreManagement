@@ -519,11 +519,11 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 - [x] 19.1 Option 1 compiled: BitmapImage.SetSource with AsRandomAccessStream (runtime picture check pending 20.2). Add `ToImageSource(ImagePreview? preview, Uri apiBase)` to `Views/Catalog/CatalogViewParts.cs` as design D13 (with the `ConditionalWeakTable` cache). The repo has never built a `BitmapImage` from bytes: try option 1 of D13 (`BitmapImage.SetSource`), and use option 2 (temp file + `file://` URI) if option 1 does not compile on `net10.0-desktop`. Write the option used into this line; verify `BUILD_CLIENT` passes (the picture itself is checked by the owner in 20.2 item 1)
 - [x] 19.2 Create `Views/Catalog/ProductImageGalleryView.cs` (`public sealed class ProductImageGalleryView : UserControl`, constructor `(ProductImageGallery gallery, Uri apiBase)`, property `Gallery`, root element `.DataContext(gallery)`). Content, top to bottom:
   - the section title "Ảnh sản phẩm" with `CountText` on the right;
-  - the large preview through `CatalogViewParts.ProductImage(x => x.Binding(() => Gallery.LargePreview).Convert(...), 44)` with min height 260;
+  - the large preview inside a full-width Button bound to `AddImagesCommand` (owner-approved replacement for the separate "+ Thêm" button), through `CatalogViewParts.ProductImage(x => x.Binding(() => Gallery.LargePreview).Convert(...), 44)` with min height 260;
   - a "Bìa" badge (`StatusBadge` tone `Info`, visible when the selected item `IsCover`);
   - the "Dùng cho" `ComboBox` (`ItemsSource` `VariantChoices`, `DisplayMemberPath("Label")`, `SelectedItem` TwoWay `SelectedVariantChoice`, visible when `HasSelection`);
   - the buttons "Đặt làm ảnh bìa" (visible `ShowMakeCover`), `<`, `>`, "Xóa ảnh", each bound to its command;
-  - the thumbnail row: `new ItemsRepeater().ItemsSource(x => x.Binding(() => Gallery.Images)).Layout(new StackLayout { Orientation = Orientation.Horizontal, Spacing = 8 }).ItemTemplate<ProductImageItem>(BuildThumbnail)` (the same `ItemsRepeater` API `ProductListPage` uses; no `ItemsPanel`), where each thumbnail follows the design D13 rules (`Button` with `CommandParameter` binding, overlay `Border` with `AppColors.Brushes.Primary` for `IsSelected`, labels "Bìa" / "Mới" / `VariantLabel`, 72×72), followed by a "+ Thêm" button (`AddImagesCommand`, visible `CanAddMore`); both sit in a horizontal `StackPanel` inside a `ScrollViewer` with horizontal scrolling enabled and vertical scrolling disabled;
+  - the thumbnail row: `new ItemsRepeater().ItemsSource(x => x.Binding(() => Gallery.Images)).Layout(new StackLayout { Orientation = Orientation.Horizontal, Spacing = 8 }).ItemTemplate<ProductImageItem>(BuildThumbnail)` (the same `ItemsRepeater` API `ProductListPage` uses; no `ItemsPanel`), where each thumbnail follows the design D13 rules (`Button` with `CommandParameter` binding, overlay `Border` with `AppColors.Brushes.Primary` for `IsSelected`, labels "Bìa" / "Mới" / `VariantLabel`, 72×72), inside a `ScrollViewer` with horizontal scrolling enabled and vertical scrolling disabled; no separate "+ Thêm" button;
   - `PickMessage` in `WarningText` when `HasPickMessage`;
   - the caption "JPG, PNG, WebP – tối đa 5 MB mỗi ảnh, 20 ảnh mỗi sản phẩm".
 
@@ -554,7 +554,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 - [ ] 20.2 Real app check **with the project owner**. You cannot click in the desktop app yourself: start the backend with the 8.1 command (local storage, port 5177) and the client (`TECHSTORE_API_BASE_URL=http://localhost:5177/ dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop`), give the owner this checklist and write down only what the owner reports. Do not tick until the owner confirms every item:
   1. **Thêm sản phẩm:**
      - the image area shows `0/20`;
-     - "+ Thêm" opens the system file dialog and allows selecting several files;
+     - clicking the large image frame opens the system file dialog and allows selecting several files; there is no separate "+ Thêm" button;
      - pick 3 images and one `.heic` or text file → 3 images added and each shows its own picture (not only the placeholder) in the thumbnail and the large preview, the wrong file named in the message.
   2. **Ảnh bìa và thứ tự:**
      - select the third image → large preview changes;

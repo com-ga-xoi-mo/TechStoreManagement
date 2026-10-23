@@ -304,7 +304,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - returning focus to the text box when "Xóa" is pressed (focus cannot be bound);
   - `PasswordBox` sync in `LoginPage` via `PasswordChanged` (and `ViewModel.PropertyChanged` for show/hide), because `PasswordBox.Password` is not a DependencyProperty;
   - a DependencyProperty changed-callback in a shared control that only computes derived display properties through `Controls/Presentation` helpers;
-  - focus restore in Catalog pages (`ProductListPage` returns focus to the product card or heading after coming back from detail via `ViewModel.PropertyChanged` on `Snapshot`; `ProductDetailPage`/`ProductEditorPage` focus their heading on `Loaded`), because focus cannot be bound — see `openspec/changes/catalog-product-management-ui/design.md` D8.
+  - focus restore in Catalog pages (`ProductListPage` returns focus to the product card or heading after coming back from detail via `ViewModel.PropertyChanged` on `Snapshot`; `ProductDetailPage`/`ProductEditorPage` focus their heading on `Loaded`), because focus cannot be bound — see `openspec/changes/archive/2026-10-23-catalog-product-management-ui/design.md` D8.
   Any new exception must be added to design D2 first.
 - **Theme tokens (`frontend/TechStore.Client/Styles/`):**
   - Values live in C#: `AppColors`, `AppTypography`, `AppMetrics`, `AppIcons`, `AppControlStyles`. Key names are string constants (`AppColors.Canvas == "TechStoreCanvasBrush"`, pure C#, unit-tested). `AppResources.Register(this)` merges them into `Application.Resources` in the `App` constructor, after `XamlControlsResources`. `App.xaml` has no `Styles/*.xaml`.

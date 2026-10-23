@@ -548,6 +548,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 
   Verify `grep -n "IImageFilePicker" AGENTS.md` prints at least two lines and `grep -n "ProductImageGalleryView" AGENTS.md` prints one.
 - [x] 19.7 Commit: `feat(client): add product image gallery and viewer`
+- [x] 19.8 Cleanup after review on 2026-10-23 (design D13): remove the unused `Padding`, `HorizontalContentAlignment` and `VerticalContentAlignment` from `imagePicker` (its custom template ignores them); add the Uno-upgrade overlay check for `ImagePickerButton`/`TemplateRoot` to AGENTS.md section 6, theme rule 6. Build desktop, run `TEST_CLIENT`, commit `refactor(client): drop unused image picker button settings`.
 
 ## 20. Real app check with the owner and hand-off
 

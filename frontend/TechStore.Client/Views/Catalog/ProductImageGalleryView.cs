@@ -19,10 +19,8 @@ public sealed class ProductImageGalleryView : UserControl
         var thumbnails = new ItemsRepeater().ItemsSource(x => x.Binding(() => Gallery.Images))
             .Layout(new StackLayout { Orientation = Orientation.Horizontal, Spacing = 8 })
             .ItemTemplate<ProductImageItem>(BuildThumbnail);
-        var imagePicker = new ImagePickerButton().Padding(0)
+        var imagePicker = new ImagePickerButton()
             .HorizontalAlignment(HorizontalAlignment.Stretch)
-            .HorizontalContentAlignment(HorizontalAlignment.Stretch)
-            .VerticalContentAlignment(VerticalAlignment.Stretch)
             .UseSystemFocusVisuals(true)
             .Command(x => x.Binding(() => Gallery.AddImagesCommand));
         ButtonMarkup.Template(imagePicker, BuildImagePickerTemplate);

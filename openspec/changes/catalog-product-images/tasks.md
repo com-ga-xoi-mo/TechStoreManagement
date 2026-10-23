@@ -549,6 +549,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   Verify `grep -n "IImageFilePicker" AGENTS.md` prints at least two lines and `grep -n "ProductImageGalleryView" AGENTS.md` prints one.
 - [x] 19.7 Commit: `feat(client): add product image gallery and viewer`
 - [x] 19.8 Cleanup after review on 2026-10-23 (design D13): remove the unused `Padding`, `HorizontalContentAlignment` and `VerticalContentAlignment` from `imagePicker` (its custom template ignores them); add the Uno-upgrade overlay check for `ImagePickerButton`/`TemplateRoot` to AGENTS.md section 6, theme rule 6. Build desktop, run `TEST_CLIENT`, commit `refactor(client): drop unused image picker button settings`.
+- [x] 19.9 Owner request on 2026-10-23 (design D3): plain `dotnet run` loads the git-ignored `backend/.env` in Development through `backend/Common/Configuration/DotEnvFile.cs` (already-set variables win); `RunWorkingDirectory` set in `TechStore.Api.csproj`; tests in `DotEnvFileTests`; README and AGENTS.md section 5 updated. Verified on port 5179 with plain `dotnet run --project ... -- --urls`: upload 201 with an r2.dev URL, public GET 200, delete 204, GET after delete 404. Commit `feat(api): load backend .env in development`.
 
 ## 20. Real app check with the owner and hand-off
 

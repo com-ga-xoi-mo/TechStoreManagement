@@ -7,6 +7,7 @@ using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Catalog.Services;
 using TechStore.Api.Analytics.Repositories;
 using TechStore.Api.Analytics.Services;
+using TechStore.Api.Common.Configuration;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Common.Storage;
 using TechStore.Api.Customers.Repositories;
@@ -17,6 +18,10 @@ using TechStore.Api.Inventory.Repositories;
 using TechStore.Api.Inventory.Services;
 using TechStore.Api.Orders.Repositories;
 using TechStore.Api.Orders.Services;
+
+// Development only: backend/.env (git-ignored) can hold local settings such as R2 keys.
+if (string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase))
+    DotEnvFile.LoadIfPresent(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 
 var builder = WebApplication.CreateBuilder(args);
 

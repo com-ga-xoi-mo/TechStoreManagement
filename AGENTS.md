@@ -275,7 +275,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
       .AreNullsDistinct(false)
       .HasDatabaseName("idx_inventory_stocks_product_variant");
   ```
-- **Product images:** Files live in object storage; `product_images` stores references only. `products.image_url` is the server-computed cover (first shared image, else first image, else null). At most 20 images per product, at most 5 MB each, JPEG/PNG/WebP identified by content. Credentials only through user-secrets or environment variables.
+- **Product images:** Files live in object storage; `product_images` stores references only. `products.image_url` is the server-computed cover (first shared image, else first image, else null). At most 20 images per product, at most 5 MB each, JPEG/PNG/WebP identified by content. Credentials only through user-secrets or environment variables; in Development, `dotnet run` also loads the git-ignored `backend/.env` (`DotEnvFile`, variables already set win).
 - **Spec definitions:** spec keys stay snake_case data inside `specs`; their display name, unit and value kind live in `spec_definitions` (one row per key, seeded, insert-only through product create/update `specLabels`). Clients show `label`/`unit` from `GET /api/products/spec-definitions` and never store names inside `specs`.
 - **JSONB Hardware Specs Indexing:** GIN index configured with `jsonb_path_ops` on `specs` column in `products` and `product_variants` for fast containment queries (`specs @> '{"ram_gb": 16}'`). Flat JSON contract with snake_case keys; effective specs = `product.specs || variant.specs`.
 - **Partial Indexes:** High-selectivity operational indexes:

@@ -65,6 +65,8 @@ dotnet user-secrets set "ObjectStorage:R2:BucketName" "<bucket name>" --project 
 dotnet user-secrets set "ObjectStorage:R2:PublicBaseUrl" "<public base URL>" --project backend/TechStore.Api.csproj
 ```
 
+Hoặc tạo `backend/.env` (git bỏ qua theo `*.env`, nên `chmod 600`) với các dòng `ObjectStorage__Provider=R2`, `ObjectStorage__R2__AccountId=...`, `ObjectStorage__R2__AccessKeyId=...`, `ObjectStorage__R2__SecretAccessKey=...`, `ObjectStorage__R2__BucketName=...`, `ObjectStorage__R2__PublicBaseUrl=...`. Khi `ASPNETCORE_ENVIRONMENT=Development` (profile `http`/`https`), `Program.cs` nạp file này trước khi tạo builder qua `Common/Configuration/DotEnvFile`; biến đã có sẵn trong shell hoặc launch profile được giữ nguyên. `RunWorkingDirectory` trong csproj cho `dotnet run` chạy trong `backend/` dù gọi từ thư mục nào. Không đưa file này vào bản nén nộp bài.
+
 R2 thiếu cấu hình sẽ dừng khởi động, chỉ nêu tên trường thiếu. Có thể dùng biến môi trường tương ứng, ví dụ `ObjectStorage__R2__SecretAccessKey`; khóa không đi vào desktop, response hoặc log. Xóa file sau commit là best effort; file mồ côi có thể dọn tay theo tiền tố `products/{productId:N}/`.
 
 Khi đổi domain công khai, cập nhật URL đã lưu (thay hai placeholder bằng URL thực, không chứa khóa):

@@ -129,6 +129,8 @@ dotnet user-secrets set "ObjectStorage:R2:AccountId" "<account id>" --project ba
 
 Khi chạy thật có thể dùng biến môi trường `ObjectStorage__R2__SecretAccessKey`.
 
+Theo yêu cầu của chủ dự án (2026-10-23), máy dev còn có thể dùng `backend/.env` (git bỏ qua theo `*.env`): khi `ASPNETCORE_ENVIRONMENT=Development`, `Program.cs` gọi `DotEnvFile.LoadIfPresent` trước `WebApplication.CreateBuilder`, chỉ đặt biến chưa có (shell và launch profile thắng). `RunWorkingDirectory=$(MSBuildProjectDirectory)` để `dotnet run` luôn chạy trong `backend/`. Đây vẫn là cấu hình qua biến môi trường; khóa không vào git, response hay log.
+
 *Cách khác:* Cloudflare Images (resize sẵn) bị loại vì tính phí theo tháng. Presigned URL (client tải thẳng lên R2) bị loại vì phải kiểm quyền và kiểm file ở hai nơi, và app desktop phải nói chuyện với một origin thứ hai.
 
 ### D4. Tầng Catalog phía backend: mỗi file một việc

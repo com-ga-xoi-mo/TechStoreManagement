@@ -114,6 +114,11 @@ public sealed class ApiClient : IApiClient
         CancellationToken cancellationToken = default) =>
         SendWithoutResponseBodyAsync(HttpMethod.Delete, relativePath, content: null, cancellationToken);
 
+    public Task PatchAsync(
+        string relativePath,
+        CancellationToken cancellationToken = default) =>
+        SendWithoutResponseBodyAsync(HttpMethod.Patch, relativePath, content: null, cancellationToken);
+
     private async Task SendWithoutResponseBodyAsync(
         HttpMethod method,
         string relativePath,

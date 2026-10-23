@@ -267,6 +267,38 @@ public sealed class ApiClientTransportTests
     }
 
     [Fact]
+    public async Task DeleteAsync_SendsNoBodyAndAcceptsNoContent()
+    {
+        var handler = new RecordingHttpMessageHandler((_, _) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent)));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        await api.DeleteAsync("customers/11111111-1111-1111-1111-111111111111");
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, request.Method);
+        Assert.Null(request.Body);
+        Assert.Equal("https://localhost:7207/api/customers/11111111-1111-1111-1111-111111111111", request.RequestUri?.ToString());
+    }
+
+    [Fact]
+    public async Task PatchAsync_SendsNoBodyAndAcceptsNoContent()
+    {
+        var handler = new RecordingHttpMessageHandler((_, _) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent)));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        await api.PatchAsync("customers/11111111-1111-1111-1111-111111111111/deactivate");
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Patch, request.Method);
+        Assert.Null(request.Body);
+        Assert.Equal("https://localhost:7207/api/customers/11111111-1111-1111-1111-111111111111/deactivate", request.RequestUri?.ToString());
+    }
+
+    [Fact]
     public async Task PostAsync_WithResponseType_RejectsNoContent()
     {
         // Arrange

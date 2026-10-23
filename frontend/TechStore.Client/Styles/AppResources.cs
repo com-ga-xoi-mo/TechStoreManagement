@@ -25,7 +25,7 @@ public static class AppResources
 
     private const string MergedMarker = "TechStoreTokensRegistered";
 
-    /// <summary>Merge the tokens. Call after InitializeComponent (XamlControlsResources loaded) and before the first page is created.</summary>
+    /// <summary>Merge the tokens after XAML activation and before the first page is created.</summary>
     public static void Register(Application application)
     {
         var resources = application.Resources;
@@ -153,10 +153,11 @@ public static class AppResources
             .FontFamily(medium).FontSize(13).CornerRadius(controlRadius).MinHeight(minHeight).Padding(new Thickness(14, 8, 14, 8))));
 
         var accent = host.TryGetValue("AccentButtonStyle", out var accentStyle) ? accentStyle as Style : null;
-        var primary = new Style<Button>().Setters(s => s
+        Style primary = (Style)new Style<Button>().Setters(s => s
             .FontFamily(medium).FontSize(13).CornerRadius(controlRadius).MinHeight(minHeight).Padding(new Thickness(14, 8, 14, 8)));
-        if (accent is not null) primary = primary.BasedOn(accent);
-        Put(d, AppControlStyles.PrimaryButton, primary);
+        // Set BasedOn on the converted WinUI Style; the Markup builder's BasedOn crashes WinAppSDK at startup.
+        if (accent is not null) primary.BasedOn = accent;
+        d[AppControlStyles.PrimaryButton] = primary;
 
         Put(d, AppControlStyles.QuietButton, new Style<Button>().Setters(s => s
             .FontFamily(medium).FontSize(13).CornerRadius(controlRadius).MinHeight(minHeight).Padding(new Thickness(14, 8, 14, 8))

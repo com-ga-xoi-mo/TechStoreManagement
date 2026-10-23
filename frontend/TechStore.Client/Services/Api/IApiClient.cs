@@ -22,6 +22,10 @@ public interface IApiClient
         IReadOnlyDictionary<string, string>? fields = null,
         CancellationToken cancellationToken = default);
 
+    Task PatchAsync(
+        string relativePath,
+        CancellationToken cancellationToken = default);
+
     Task<TResponse> PutAsync<TRequest, TResponse>(
         string relativePath,
         TRequest request,

@@ -14,6 +14,8 @@ public class OrderRepository(AppDbContext dbContext) : IOrderRepository
             .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.Items)
+                .ThenInclude(i => i.Product)
+                    .ThenInclude(p => p.Category)
             .AsQueryable();
 
         if (criteria.Status.HasValue)

@@ -520,6 +520,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 - [x] 19.2 Create `Views/Catalog/ProductImageGalleryView.cs` (`public sealed class ProductImageGalleryView : UserControl`, constructor `(ProductImageGallery gallery, Uri apiBase)`, property `Gallery`, root element `.DataContext(gallery)`). Content, top to bottom:
   - the section title "Ảnh sản phẩm" with `CountText` on the right;
   - the large preview inside a full-width Button bound to `AddImagesCommand` (owner-approved replacement for the separate "+ Thêm" button), through `CatalogViewParts.ProductImage(x => x.Binding(() => Gallery.LargePreview).Convert(...), 44)` with min height 260;
+  - on pointer hover, show a theme-aware translucent overlay with a downward-arrow-to-tray icon and "Thêm ảnh"; hide it on exit and when `CanAddMore` is false; pointer handlers only change visual states, not ViewModel data;
   - a "Bìa" badge (`StatusBadge` tone `Info`, visible when the selected item `IsCover`);
   - the "Dùng cho" `ComboBox` (`ItemsSource` `VariantChoices`, `DisplayMemberPath("Label")`, `SelectedItem` TwoWay `SelectedVariantChoice`, visible when `HasSelection`);
   - the buttons "Đặt làm ảnh bìa" (visible `ShowMakeCover`), `<`, `>`, "Xóa ảnh", each bound to its command;
@@ -554,6 +555,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 - [ ] 20.2 Real app check **with the project owner**. You cannot click in the desktop app yourself: start the backend with the 8.1 command (local storage, port 5177) and the client (`TECHSTORE_API_BASE_URL=http://localhost:5177/ dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop`), give the owner this checklist and write down only what the owner reports. Do not tick until the owner confirms every item:
   1. **Thêm sản phẩm:**
      - the image area shows `0/20`;
+     - hovering the frame shows the downward-arrow-to-tray icon and "Thêm ảnh"; leaving hides it;
      - clicking the large image frame opens the system file dialog and allows selecting several files; there is no separate "+ Thêm" button;
      - pick 3 images and one `.heic` or text file → 3 images added and each shows its own picture (not only the placeholder) in the thumbnail and the large preview, the wrong file named in the message.
   2. **Ảnh bìa và thứ tự:**

@@ -347,6 +347,8 @@ SaveAsync (IsSaving = true cho cả chuỗi -> nút Lưu bị vô hiệu)
 
 Theo xác nhận của chủ dự án, khung ảnh lớn trong màn soạn là một `Button` chứa preview, gắn `AddImagesCommand`, padding 0 và nội dung giãn đầy khung. Bấm khung mở picker; không có nút "+ Thêm" riêng. Command bị vô hiệu khi đủ 20 ảnh. Hàng thumbnail chỉ chọn ảnh đang xem; việc tải ảnh lên vẫn đợi nút Lưu sản phẩm.
 
+Khung có lớp phủ nhẹ với `FontIcon` mũi tên xuống khay (`U+E896`) và chữ "Thêm ảnh". `PointerEntered`/`PointerExited` chỉ gọi `VisualStateManager.GoToState` để đổi trạng thái trình bày (opacity 0/1), không đồng bộ dữ liệu ViewModel hay đặt Text/Visibility trong event handler. Màu nền/chữ đặt trực tiếp qua token theme; lớp phủ không nhận hit test và có Visibility bind `CanAddMore` để không mời thêm khi đã đủ ảnh.
+
 **Quy tắc bắt buộc trong hai `UserControl`:**
 - Ảnh nhỏ là `Button` có `.Command(Gallery.SelectImageCommand)` (giá trị trực tiếp, như `RemoveVariantCommand`) và `.CommandParameter(x => x.Binding(() => item))`. Lệnh nhận `object?` (AGENTS.md mục 6).
 - Viền "đang chọn" là một `Border` thứ hai có `BorderBrush(AppColors.Brushes.Primary)` đặt thẳng trên phần tử, với `Visibility` bind `item.IsSelected`. Không dùng converter trả brush, vì brush trả từ converter không đổi theo Sáng/Tối.

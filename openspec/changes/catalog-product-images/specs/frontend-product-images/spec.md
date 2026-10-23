@@ -36,6 +36,13 @@ Bấm vào khung ảnh lớn SHALL mở hộp chọn file cho phép chọn nhi�
 - **WHEN** người dùng mở hộp chọn file rồi đóng mà không chọn
 - **THEN** danh sách ảnh và thông báo lỗi không đổi
 
+### Requirement: Image frame hover hint
+Khi rê chuột vào khung ảnh lớn và vẫn còn chỗ thêm ảnh, màn soạn SHALL hiện lớp phủ nhẹ có biểu tượng mũi tên xuống khay và chữ "Thêm ảnh"; khi rời chuột, lớp phủ SHALL ẩn.
+
+#### Scenario: Hover image frame
+- **WHEN** người dùng rê chuột vào khung ảnh lớn khi có ít hơn 20 ảnh
+- **THEN** khung hiện biểu tượng mũi tên xuống khay và chữ "Thêm ảnh"; rời chuột thì lớp phủ ẩn, và bấm khung vẫn mở hộp chọn file
+
 ### Requirement: Cover image in the editor
 Màn soạn SHALL dùng cùng quy tắc ảnh bìa với server: ảnh dùng chung đứng đầu, nếu không có ảnh chung thì ảnh đầu tiên. Ảnh đang là bìa SHALL có nhãn "Bìa". Nút "Đặt làm ảnh bìa" SHALL chỉ hiện khi ảnh đang chọn là ảnh dùng chung và chưa là bìa, và SHALL đưa ảnh đó lên đầu hàng.
 

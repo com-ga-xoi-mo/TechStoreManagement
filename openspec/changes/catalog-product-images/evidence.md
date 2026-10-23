@@ -65,6 +65,18 @@ Deleted throwaway product: `9cbe6b92-6db7-4233-9eb1-2c1e8c63449d`. Real concurre
 
 Owner confirmed that clicking the large image frame should open the picker, replacing the separate "+ Thêm" button. The frame now uses `AddImagesCommand`; selecting files still only changes the draft and uploads wait for Save product. The existing command disables adding at 20 images. Desktop build passed with 0 warnings and 0 errors; OpenSpec strict validation passed. Manual picker interaction and theme confirmation remain part of task 20.2.
 
+## Hover hint verification
+
+The large image frame now shows a downward-arrow-to-tray glyph and "Thêm ảnh" on pointer hover, using a theme-aware translucent backdrop. A temporary isolated Skia/X11 probe exercised the actual `ProductImageGalleryView` with XTest pointer motion:
+
+| Check | Observed result |
+|---|---|
+| Pointer outside / inside / outside (Light) | Overlay opacity 0 / 1 / 0; icon color `#FF0F172A` |
+| Pointer inside / outside (Dark) | Overlay opacity 1 / 0; icon color `#FFF8FAFC` |
+| 20 images while pointer is inside | Overlay Visibility `Collapsed` |
+
+The temporary probe source and entry-point modifications were removed. This verifies the hover indicator and its theme colors; it does not replace the owner's full picker/save checklist.
+
 ## Desktop owner checks (task 20.2)
 
 The client started against port 5177 and logged a Shell viewport of 1024×640. No screenshot probe for Catalog pages was available. Image preview uses option 1, `BitmapImage.SetSource` with `AsRandomAccessStream`, which compiles. Actual rendered images and theme switching remain unverified.

@@ -45,7 +45,7 @@ public sealed class ProductListPage : Page, IRoutePage
         AutomationProperties.SetName(_listHeading, "Số kết quả sản phẩm");
 
         var addProductButton = new Button()
-            .Content("+ Thêm sản phẩm")
+            .Content("Thêm sản phẩm")
             .Command(x => x.Binding(() => ViewModel.CreateProductCommand))
             .Style(AppControlStyles.Styles.PrimaryButton)
             .Visibility(x => x.Binding(() => ViewModel.CanManage).Convert((bool v) => CatalogViewParts.ShowIf(v)));

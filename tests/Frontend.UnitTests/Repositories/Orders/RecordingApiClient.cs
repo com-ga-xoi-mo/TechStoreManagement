@@ -6,6 +6,14 @@ namespace TechStore.Client.UnitTests.Repositories.Orders;
 /// <summary>Hand-written IApiClient for repository tests: records every call and answers with canned JSON or throws.</summary>
 internal sealed class RecordingApiClient(Func<string, string, object?, string> respond) : IApiClient
 {
+    public Dictionary<string, string>? LastFields { get; private set; }
+
+    public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default)
+    {
+        LastFields = fields?.ToDictionary(pair => pair.Key, pair => pair.Value);
+        return Handle<TResponse>("POST", relativePath, file, cancellationToken);
+    }
+
     public List<RecordedCall> Calls { get; } = [];
 
     public RecordedCall Single => Assert.Single(Calls);
@@ -17,7 +25,7 @@ internal sealed class RecordingApiClient(Func<string, string, object?, string> r
         Handle<TResponse>("POST", relativePath, request, cancellationToken);
 
     public Task<TResponse> PutAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+        Handle<TResponse>("PUT", relativePath, request, cancellationToken);
 
     public Task PostAsync<TRequest>(string relativePath, TRequest request, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
@@ -28,8 +36,13 @@ internal sealed class RecordingApiClient(Func<string, string, object?, string> r
     public Task PatchAsync(string relativePath, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
-    public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+    public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        Calls.Add(new RecordedCall("DELETE", relativePath, null));
+        respond("DELETE", relativePath, null);
+        return Task.CompletedTask;
+    }
 
     private Task<TResponse> Handle<TResponse>(string method, string path, object? body, CancellationToken cancellationToken)
     {

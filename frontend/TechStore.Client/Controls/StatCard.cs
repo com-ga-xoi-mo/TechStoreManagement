@@ -41,6 +41,7 @@ public sealed class StatCard : UserControl
 
         _value = new TextBlock()
             .Style(AppResources.GetStyle(AppTypography.MetricText))
+            .Foreground(AppColors.Brushes.Text)
             .TextWrapping(TextWrapping.NoWrap)
             .Text(x => x.Binding(() => Self.ValueText).Convert((string value) => StatCardPresentation.GetDisplayValue(value)));
 

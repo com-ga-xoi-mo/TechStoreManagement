@@ -193,7 +193,7 @@ internal static class Catalog
         return new ProductDetail(
             productId, Guid.NewGuid(), "Điện thoại", name, "SKU-" + name.Replace(' ', '-'), null, "Brand", basePrice, 1m, null, null,
             new Dictionary<string, JsonElement>(), serialTracked, active, DateTime.UtcNow, null,
-            (variants ?? []).Select(v => v with { ProductId = productId }).ToArray());
+            (variants ?? []).Select(v => v with { ProductId = productId }).ToArray(), []);
     }
 
     public static ProductVariant Variant(string name, decimal price, bool active = true, Guid? id = null) => new(

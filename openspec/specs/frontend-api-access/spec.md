@@ -113,3 +113,33 @@ Client SHALL hỗ trợ gửi PATCH có thân JSON và nhận thân JSON thành 
 #### Scenario: Foreign destination
 - **WHEN** caller truyền URL tuyệt đối hoặc network-path khác origin cho PATCH
 - **THEN** client từ chối trước khi gửi và không gắn bearer token vào đích đó
+
+### Requirement: Delete requests
+Client SHALL hỗ trợ gửi DELETE không có thân yêu cầu và không cần thân phản hồi. Mọi status thành công, kể cả 204, SHALL hoàn tất mà không deserialize JSON. DELETE SHALL dùng cùng ràng buộc với các thao tác ghi khác: chỉ gửi đến origin đã cấu hình, chuẩn hóa lỗi HTTP, timeout và lỗi mạng theo cùng quy tắc, và MUST NOT tự gửi lại.
+
+#### Scenario: Successful DELETE
+- **WHEN** caller gửi DELETE với route tương đối và server trả 204 không có body
+- **THEN** thao tác hoàn tất thành công; yêu cầu dùng đúng phương thức DELETE, không có body và dùng base URL đã cấu hình
+
+#### Scenario: Failed DELETE
+- **WHEN** server trả 409 hoặc 404 kèm ProblemDetails cho một DELETE
+- **THEN** client ném lỗi HTTP đã chuẩn hóa mang mã trạng thái, `detail` và lỗi theo trường, và chỉ có đúng một yêu cầu được gửi
+
+#### Scenario: Foreign destination
+- **WHEN** caller truyền URL tuyệt đối hoặc network-path khác origin cho DELETE
+- **THEN** client từ chối trước khi gửi và không gắn bearer token vào đích đó
+
+### Requirement: File upload requests
+Client SHALL gửi được một file bằng POST `multipart/form-data`, gồm tên trường, tên file, loại nội dung, nội dung file và các trường chữ kèm theo, rồi đọc thân phản hồi JSON như các yêu cầu khác. Yêu cầu này SHALL dùng cùng ràng buộc với các thao tác ghi khác: chỉ gửi đến origin đã cấu hình, gắn bearer token hiện tại, chuẩn hóa lỗi HTTP, timeout, lỗi mạng, và MUST NOT tự gửi lại.
+
+#### Scenario: Upload one file
+- **WHEN** caller gửi file `a.jpg` (image/jpeg) ở trường `file` kèm trường `variantId` tới route tương đối và server trả 201 kèm JSON
+- **THEN** yêu cầu là POST multipart có đúng một phần file và một phần `variantId`, và caller nhận object đã deserialize
+
+#### Scenario: Rejected upload
+- **WHEN** server trả 400 ProblemDetails có lỗi cho `file`
+- **THEN** client ném lỗi HTTP đã chuẩn hóa mang mã 400 và lỗi theo trường `file`, và chỉ có đúng một yêu cầu được gửi
+
+#### Scenario: Foreign destination
+- **WHEN** caller truyền URL tuyệt đối khác origin
+- **THEN** client từ chối trước khi gửi và không gắn bearer token

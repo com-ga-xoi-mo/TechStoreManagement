@@ -47,6 +47,29 @@ public sealed class ApiClient : IApiClient
             cancellationToken);
     }
 
+    public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file,
+        IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentException.ThrowIfNullOrWhiteSpace(file.FieldName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(file.FileName);
+        var multipart = new MultipartFormDataContent();
+        try
+        {
+            foreach (var field in fields ?? new Dictionary<string, string>())
+                multipart.Add(new StringContent(field.Value), field.Key);
+            var bytes = new ByteArrayContent(file.Content);
+            bytes.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            multipart.Add(bytes, file.FieldName, file.FileName);
+            return SendForBodyAsync<TResponse>(HttpMethod.Post, relativePath, multipart, cancellationToken);
+        }
+        catch
+        {
+            multipart.Dispose();
+            throw;
+        }
+    }
+
     public Task<TResponse> PutAsync<TRequest, TResponse>(
         string relativePath,
         TRequest request,
@@ -79,22 +102,31 @@ public sealed class ApiClient : IApiClient
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return SendWithoutResponseAsync(HttpMethod.Post, relativePath, JsonContent.Create(request, options: JsonOptions), cancellationToken);
+        return SendWithoutResponseBodyAsync(
+            HttpMethod.Post,
+            relativePath,
+            JsonContent.Create(request, options: JsonOptions),
+            cancellationToken);
     }
 
-    public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default) =>
-        SendWithoutResponseAsync(HttpMethod.Delete, relativePath, content: null, cancellationToken);
+    public Task DeleteAsync(
+        string relativePath,
+        CancellationToken cancellationToken = default) =>
+        SendWithoutResponseBodyAsync(HttpMethod.Delete, relativePath, content: null, cancellationToken);
 
-    public Task PatchAsync(string relativePath, CancellationToken cancellationToken = default) =>
-        SendWithoutResponseAsync(HttpMethod.Patch, relativePath, content: null, cancellationToken);
+    public Task PatchAsync(
+        string relativePath,
+        CancellationToken cancellationToken = default) =>
+        SendWithoutResponseBodyAsync(HttpMethod.Patch, relativePath, content: null, cancellationToken);
 
-    private async Task SendWithoutResponseAsync(
+    private async Task SendWithoutResponseBodyAsync(
         HttpMethod method,
         string relativePath,
         HttpContent? content,
         CancellationToken cancellationToken)
     {
-        using var requestMessage = CreateRequest(method, relativePath, content);
+        using var requestContent = content;
+        using var requestMessage = CreateRequest(method, relativePath, requestContent);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(_options.TimeoutSeconds));
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
         try

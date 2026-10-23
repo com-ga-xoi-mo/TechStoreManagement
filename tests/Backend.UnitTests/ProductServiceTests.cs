@@ -11,6 +11,52 @@ namespace TechStore.UnitTests;
 
 public class ProductServiceTests
 {
+    [Fact]
+    public async Task GetByIdAsync_ProductWithImages_ReturnsImagesInSortOrder()
+    {
+        // Arrange
+        var products = new FakeProductRepository();
+        var product = ProductCommandTestData.NewProduct(Guid.NewGuid());
+        product.Images.Add(new() { Url = "second", SortOrder = 1 });
+        product.Images.Add(new() { Url = "first", SortOrder = 0 });
+        products.Products[product.Id] = product;
+        var service = new ProductService(products, new FakeCategoryRepository(), new FakeUnitOfWork(), new FakeSpecDefinitionRepository(), new FakeObjectStorage());
+        // Act
+        var result = await service.GetByIdAsync(product.Id);
+        // Assert
+        result.Data!.Images.Select(i => i.Url).Should().Equal("first", "second");
+    }
+
+    [Fact]
+    public async Task CreateAsync_NewProduct_HasNoImagesAndNullCover()
+    {
+        // Arrange
+        var products = new FakeProductRepository();
+        var categories = new FakeCategoryRepository();
+        var category = ProductCommandTestData.NewActiveCategory();
+        categories.Categories[category.Id] = category;
+        var request = CreateValidRequest(); request.CategoryId = category.Id;
+        var service = new ProductService(products, categories, new FakeUnitOfWork(), new FakeSpecDefinitionRepository(), new FakeObjectStorage());
+        // Act
+        var result = await service.CreateAsync(request);
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.ImageUrl.Should().BeNull();
+        result.Data.Images.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CreateProductRequest_LegacyImageUrl_IsIgnored()
+    {
+        // Arrange
+        const string json = "{\"name\":\"Phone\",\"imageUrl\":\"https://example.com/a.png\"}";
+        // Act
+        var request = System.Text.Json.JsonSerializer.Deserialize<CreateProductRequest>(json, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        // Assert
+        request!.Name.Should().Be("Phone");
+        System.Text.Json.JsonSerializer.Serialize(request).Should().NotContain("imageUrl").And.NotContain("ImageUrl");
+    }
+
     [Theory]
     [InlineData(null, null, 1, 20)]
     [InlineData(0, null, 1, 20)]
@@ -404,6 +450,82 @@ public class ProductServiceTests
         errors.Should().ContainKey("costPrice");
     }
 
+    [Fact]
+    public void CreateProductValidator_BarcodeWithVariants_ReturnsBarcodeError()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.Barcode = "8934567890123";
+        request.Variants =
+        [
+            new TechStore.Shared.Requests.CreateProductVariantRequest
+            {
+                VariantName = "Titanium",
+                Sku = "IP15PM-256-TI",
+                Price = 30000000m
+            }
+        ];
+
+        // Act
+        var errors = CreateProductValidator.Validate(request);
+
+        // Assert
+        errors.Should().ContainKey("barcode");
+    }
+
+    [Fact]
+    public void CreateProductValidator_BarcodeWithoutVariants_Passes()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.Barcode = "8934567890123";
+        request.Variants = null;
+
+        // Act
+        var errors = CreateProductValidator.Validate(request);
+
+        // Assert
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CreateProductValidator_BarcodeWithEmptyVariantList_Passes()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.Barcode = "8934567890123";
+        request.Variants = new();
+
+        // Act
+        var errors = CreateProductValidator.Validate(request);
+
+        // Assert
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CreateProductValidator_WhitespaceBarcodeWithVariants_Passes()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.Barcode = "   ";
+        request.Variants =
+        [
+            new TechStore.Shared.Requests.CreateProductVariantRequest
+            {
+                VariantName = "Titanium",
+                Sku = "IP15PM-256-TI",
+                Price = 30000000m
+            }
+        ];
+
+        // Act
+        var errors = CreateProductValidator.Validate(request);
+
+        // Assert
+        errors.Should().BeEmpty();
+    }
+
     // -------------------------------------------------------------
     // Task 5.2: GetByIdAsync Tests
     // -------------------------------------------------------------
@@ -414,7 +536,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         // Act
         var result = await service.GetByIdAsync(Guid.NewGuid());
@@ -431,7 +553,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         var productId = Guid.NewGuid();
         var product = new Product
@@ -488,13 +610,13 @@ public class ProductServiceTests
     // Task 5.3: CreateAsync Tests
     // -------------------------------------------------------------
     [Fact]
-    public async Task CreateAsync_Should_Succeed_With_One_Save_And_IsActive_True()
+    public async Task CreateAsync_Should_Succeed_With_One_Save_And_Start_Not_Selling()
     {
         // Arrange
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         var categoryId = Guid.NewGuid();
         categoryRepo.Categories[categoryId] = new Category { Id = categoryId, Name = "Phones" };
@@ -514,9 +636,9 @@ public class ProductServiceTests
         unitOfWork.SaveChangesCount.Should().Be(1);
         productRepo.AddedProducts.Should().HaveCount(1);
         var added = productRepo.AddedProducts[0];
-        added.IsActive.Should().BeTrue();
+        added.IsActive.Should().BeFalse();
         added.Variants.Should().HaveCount(1);
-        added.Variants.First().IsActive.Should().BeTrue();
+        added.Variants.First().IsActive.Should().BeFalse();
     }
 
     [Fact]
@@ -526,7 +648,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         var request = CreateValidRequest();
         request.CategoryId = Guid.NewGuid(); // not in categoryRepo
@@ -548,7 +670,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         var categoryId = Guid.NewGuid();
         categoryRepo.Categories[categoryId] = new Category { Id = categoryId, Name = "Phones" };
@@ -577,7 +699,7 @@ public class ProductServiceTests
         {
             ExceptionToThrowOnSave = new DuplicateKeyException("uq_products_sku")
         };
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         var categoryId = Guid.NewGuid();
         categoryRepo.Categories[categoryId] = new Category { Id = categoryId, Name = "Phones" };
@@ -600,7 +722,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         var request = CreateValidRequest();
         request.Name = ""; // invalid
@@ -629,7 +751,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         var request = new ProductSearchRequest
         {
@@ -655,7 +777,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         var categoryId = Guid.NewGuid();
         var request = new ProductSearchRequest
@@ -699,7 +821,7 @@ public class ProductServiceTests
         var productRepo = new FakeProductRepository();
         var categoryRepo = new FakeCategoryRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var service = new ProductService(productRepo, categoryRepo, unitOfWork);
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         var productWithVariants = new Product
         {

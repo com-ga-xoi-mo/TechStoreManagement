@@ -42,20 +42,20 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 > **Cardinal Rule:** The frontend client **never** connects directly to the database. All interactions must pass through ASP.NET Core REST endpoints secured by JWT Bearer tokens and role policies.
 
 ### 2. Key Modules
-- **`backend/Catalog/`**: Product categories, variants, and dynamic hardware specifications stored in JSONB columns (`IProductService`, `ICategoryService`, `IProductRepository`, `ICategoryRepository`, `ProductsController`, `CategoriesController`).
+- **`backend/Catalog/`**: Product categories, variants, and dynamic hardware specifications stored in JSONB columns (`IProductService`, `ICategoryService`, `IProductRepository`, `ICategoryRepository`, `ISpecDefinitionRepository`, `ProductsController`, `CategoriesController`, `IProductImageService`, `IProductImageRepository`, `ProductImagesController`); spec display names, units and value kinds live in the `spec_definitions` table.
 - **`backend/Inventory/`**: Stock counts, append-only movement audit ledger (`inventory_movements`), supplier purchases, unique Serial/IMEI lifecycle states (`InStock`, `Reserved`, `Sold`, `Returned`, `UnderRepair`, `Defective`), composite foreign keys, and pessimistic row-locking (`IInventoryService`, `IInventoryStockRepository`, `ISerialImeiRepository`, `IInventoryFulfillmentService`, `InventoryController`).
 - **`backend/Orders/`**: Order processing, sold IMEI linkage, order status lifecycle transitions, returns, and refunds (`IOrderService`, `IOrderRepository`, `OrdersController`).
 - **`backend/Customers/`**: Customer profiles, loyalty point accrual, discount vouchers, and revenue analytics (`ICustomerRepository`, `CustomerRepository`).
 - **`backend/Sales/`**: POS counter register sessions, cashier cart calculation, and dynamic VietQR generation (`PosSession`, `VietQrTransaction`).
 - **`backend/Identity/`**: User credentials, refresh tokens, store configuration settings, RBAC authorization, initial database seeding (`IAuthService`, `IStoreSettingsService`, `AuthController`, `StoreController`, `DataSeeder`, `IDataSeeder`).
-- **`backend/Common/`**: Core infrastructure including `AppDbContext`, `IUnitOfWork` / `UnitOfWork` (saves and transactions), `DuplicateKeyException`, `BaseEntity`, and HTTP exception handling.
-- **`frontend/TechStore.Client/`**: Cross-platform desktop application organized into `Views/`, `ViewModels/`, `Models/`, `Repositories/`, `Services/`, `Controls/`, and `Styles/`.
+- **`backend/Common/`**: Core infrastructure including `AppDbContext`, `IUnitOfWork` / `UnitOfWork` (saves and transactions), `DuplicateKeyException`, `BaseEntity`, HTTP exception handling, and `Storage/` (`IObjectStorage`, `ObjectStorageOptions`, R2 or a local folder).
+- **`frontend/TechStore.Client/`**: Cross-platform desktop application organized into `Views/`, `ViewModels/`, `Models/`, `Repositories/`, `Services/` (including `Files/IImageFilePicker`; WinUI implementation `Views/Shell/ImageFilePicker.cs`), `Controls/`, and `Styles/`.
 - **`shared/`**: Common domain contracts consumed across backend, client, and test projects (`DTOs/`, `Requests/`, `Enums/`).
 
 ### 3. Data Flow
 1. **User Interaction**: UI triggers a bound command (C# Markup `.Command(x => x.Binding(() => ViewModel.XCommand))`, or `{x:Bind}` on the pages not yet converted) on a ViewModel in `frontend/TechStore.Client/ViewModels/<Module>/`.
 2. **ViewModel Execution**: The ViewModel executes a command decorated with `[RelayCommand]`, coordinates loading/error/content state via `PageViewModel` (`PageContentState`), and invokes a client repository in `frontend/TechStore.Client/Repositories/`.
-3. **Client Repository & HTTP Transport**: The client repository converts request parameters into query URIs, calls `IApiClient` / `ApiClient` (`GetAsync`, `PostAsync`, `PutAsync`, `PatchAsync`; backed by `HttpClient` configured with `BearerTokenHandler`), and maps response DTOs to client domain models (`frontend/TechStore.Client/Models/`).
+3. **Client Repository & HTTP Transport**: The client repository converts request parameters into query URIs, calls `IApiClient` / `ApiClient` (`GetAsync`, `PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync`; backed by `HttpClient` configured with `BearerTokenHandler`), and maps response DTOs to client domain models (`frontend/TechStore.Client/Models/`).
 4. **API Routing & RBAC**: The request reaches an `[ApiController]`, passes through JWT authentication and role authorization checks, then calls the corresponding domain service interface (controllers never call repositories directly).
 5. **Business Logic & Concurrency**: The domain service validates input and applies business rules. When the use case locks rows or performs multi-step writes, it initiates a transaction via `IUnitOfWork.BeginTransactionAsync`.
 6. **Data Access**: The service invokes repository interfaces (`backend/<Module>/Repositories/`). Repositories are the only classes that interact with `AppDbContext`: they query (using `AsNoTracking` for reads), acquire row locks (`SELECT ... FOR UPDATE`), and stage entity additions or removals, but never save.
@@ -72,6 +72,7 @@ SalesManagement/
 │   ├── Catalog/                   # Products, categories, JSONB specs (Services, Repositories, Entities, Configurations)
 │   ├── Common/                    # Infrastructure: AppDbContext, IUnitOfWork/UnitOfWork, DuplicateKeyException, DataSeeder
 │   │   ├── Data/                  # DbContext, UnitOfWork, Migrations/, DataSeeder
+│   │   ├── Storage/               # IObjectStorage: R2 or local image files
 │   │   └── Entities/              # BaseEntity
 │   ├── Customers/                 # Customers, loyalty points, vouchers (Repositories, Entities, Configurations)
 │   ├── Identity/                  # RBAC, users, roles, refresh tokens (Entities, Configurations)
@@ -85,11 +86,11 @@ SalesManagement/
 │   ├── Directory.Packages.props   # Central Package Management package definitions
 │   └── TechStore.Client/          # Uno Platform multi-targeted client project
 │       ├── App.xaml / App.xaml.cs # DI bootstrap (AddFrontendFoundation, AddFrontendUi) and window lifecycle
-│       ├── Views/                 # UI pages: C# Markup (Identity, Settings, Shell, Development/MarkupReferencePage) and legacy XAML (Catalog, Customers, Dashboard, Inventory, Orders, Development/ComponentGalleryPage, MainPage)
+│       ├── Views/                 # UI pages: C# Markup (Catalog, Identity, Settings, Shell, Development/MarkupReferencePage) and legacy XAML (Customers, Dashboard, Inventory, Orders, Development/ComponentGalleryPage, MainPage)
 │       ├── ViewModels/            # MVVM ViewModels extending PageViewModel (Catalog, Customers, Dashboard, Inventory, Orders)
 │       ├── Repositories/          # Client data repositories mapping DTOs to client Models (Catalog, Analytics)
 │       ├── Models/                # Client-side presentation models (ProductSummary, ProductDetail, DashboardSnapshot)
-│       ├── Services/              # Client services (Api, Navigation, Session, Theme, Dialog, Window)
+│       ├── Services/              # Client services (Api, Files/IImageFilePicker, Navigation, Session, Theme, Dialog, Window); picker in Views/Shell/ImageFilePicker.cs
 │       ├── Controls/              # Shared controls in C# Markup (StatCard, StatusBadge, SearchBoxControl, EmptyStateControl), Presentation/ (pure display rules), Charts/
 │       ├── Styles/                # C# design tokens: AppColors, AppTypography, AppMetrics, AppIcons, AppControlStyles (+ *.Resources.cs accessors), AppResources (registration); StitchTokens (legacy static colors)
 │       └── Platforms/             # Desktop (Skia macOS/Linux) and Windows entry points
@@ -218,7 +219,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 ### 3. Backend Layering & Repository Pattern
 - **Strict Layering Rule:** `Controller → Service → Repository → AppDbContext`.
   - **Controllers** call domain services only. Controllers never inject `AppDbContext` or repository interfaces.
-  - **Services** encapsulate validation, business rules, transaction boundaries, orchestration, and entity-to-DTO mapping. Services depend only on repository interfaces and `IUnitOfWork`.
+  - **Services** encapsulate validation, business rules, transaction boundaries, orchestration, and entity-to-DTO mapping. Services depend only on repository interfaces, `IUnitOfWork` and infrastructure ports from `Common/` (`IObjectStorage`, `TimeProvider`).
   - **Repositories** live in `backend/<Module>/Repositories/` as `I<Aggregate>Repository` / `<Aggregate>Repository`. They are the **only** classes that reference `AppDbContext` (LINQ, `FromSqlInterpolated`, `AsNoTracking`, `Include`).
   - **Repository Query Inputs:** Repositories accept module-internal criteria records with pre-validated, parsed values (e.g. `ProductSearchCriteria`, `OrderSearchCriteria`), never raw `shared/Requests` models.
   - **Repository Methods:** Repositories express business query intent (`SearchAsync(criteria)`, `GetWithVariantsAsync(id)`, `FindExistingSkusAsync(skus)`, `Add(product)`). Read-only methods MUST use `AsNoTracking()`. Repositories stage changes (`Add`, `Remove`) and **never** invoke `SaveChanges`, `BeginTransaction`, `Commit`, or `Rollback`.
@@ -265,7 +266,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - Physical stock adjustments are tracked via the append-only `inventory_movements` ledger (`quantity_change <> 0`, `quantity_after >= 0`).
 
 ### 5. PostgreSQL 16 & Supabase Best Practices (Schema Contract: `docs/database/schema.dbml`)
-- **100% Foreign Key Indexing:** Every foreign key column across all 21 tables MUST have an explicit B-tree index (`idx_<table>_<column>`) to prevent table locks and sequential scans during cascade checks.
+- **100% Foreign Key Indexing:** Every foreign key column across all tables MUST have an explicit B-tree index (`idx_<table>_<column>`) to prevent table locks and sequential scans during cascade checks.
 - **Composite Foreign Keys:** Enforce `(variant_id, product_id)` referencing `product_variants(id, product_id)` on `inventory_stocks`, `purchase_order_items`, `serial_imeis`, and `order_items`.
 - **PostgreSQL 16 `UNIQUE NULLS NOT DISTINCT`:** Enforced on `inventory_stocks(product_id, variant_id)` and `purchase_order_items(purchase_order_id, product_id, variant_id)` using `.AreNullsDistinct(false)` in EF Core Fluent API:
   ```csharp
@@ -274,6 +275,8 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
       .AreNullsDistinct(false)
       .HasDatabaseName("idx_inventory_stocks_product_variant");
   ```
+- **Product images:** Files live in object storage; `product_images` stores references only. `products.image_url` is the server-computed cover (first shared image, else first image, else null). At most 20 images per product, at most 5 MB each, JPEG/PNG/WebP identified by content. Credentials only through user-secrets or environment variables; in Development, `dotnet run` also loads the git-ignored `backend/.env` (`DotEnvFile`, variables already set win).
+- **Spec definitions:** spec keys stay snake_case data inside `specs`; their display name, unit and value kind live in `spec_definitions` (one row per key, seeded, insert-only through product create/update `specLabels`). Clients show `label`/`unit` from `GET /api/products/spec-definitions` and never store names inside `specs`.
 - **JSONB Hardware Specs Indexing:** GIN index configured with `jsonb_path_ops` on `specs` column in `products` and `product_variants` for fast containment queries (`specs @> '{"ram_gb": 16}'`). Flat JSON contract with snake_case keys; effective specs = `product.specs || variant.specs`.
 - **Partial Indexes:** High-selectivity operational indexes:
   - `serial_imeis`: `(product_id, status)` WHERE `status = 'InStock'` for fast POS scanning.
@@ -293,23 +296,27 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - Binding: `.Text(x => x.Binding(() => ViewModel.Title))`; two-way: `.Text(x => x.Binding(() => ViewModel.Query).Mode(BindingMode.TwoWay))`; type change: `.Visibility(x => x.Binding(() => ViewModel.IsError).Convert((bool v) => v ? Visibility.Visible : Visibility.Collapsed))`; command: `.Command(x => x.Binding(() => ViewModel.SubmitCommand))`. The old `x.Bind(...)` form is not used.
   - Typed WinUI properties bind the same way, e.g. `this.RequestedTheme(x => x.Binding(() => ViewModel.ThemeIndex).Convert((int i) => ...))`.
   - The binding path is derived from the lambda text at run time, so a wrong path still builds. Always run the page and check the binding, not only the build.
+  - Grid sizes in strings (`.ColumnDefinitions("2*, 1*, Auto")`) take whole numbers only: Uno Markup 6.7 reads a star size with the regex `(\d+)\*`, so `"1.15*"` silently becomes `15*`. Write `"6*, 5*"` instead of `"1.2*, 1*"`.
+  - Item templates: Uno calls the builder passed to `ItemTemplate<T>(Func<T, UIElement>)` with `default`, so the item parameter is always `null` when the template is built. Use it only inside binding lambdas (`.Text(x => x.Binding(() => item.Name))`, `.CommandParameter(x => x.Binding(() => item))`, `.ItemsSource(x => x.Binding(() => item.Children))`); never `.Text(item.Name)`, `.CommandParameter(item)` or `.ItemsSource(item.Children)`, which build but break at run time. A command that receives such a `CommandParameter` binding takes `object?` and checks the type (`if (parameter is Row row)`): while a row is being removed the binding can briefly hand over the page's DataContext, and a typed `RelayCommand<T>` then throws.
 - **Forbidden in View/Control files when syncing data with the ViewModel:** `PropertyChanged +=`, `TextChanged +=`, `Checked +=`, `Click +=`, `Color.FromArgb`, `new SolidColorBrush(...)`, and setting `Visibility`/`Text` from event handlers. Use bindings, converters and commands instead.
 - **Allowed exceptions (documented in `openspec/changes/csharp-markup-foundation/design.md` D2):**
   - `AutoSuggestBox.QuerySubmitted` in `SearchBoxControl` to raise `SearchCommand` (no command exists for submit);
   - returning focus to the text box when "Xóa" is pressed (focus cannot be bound);
   - `PasswordBox` sync in `LoginPage` via `PasswordChanged` (and `ViewModel.PropertyChanged` for show/hide), because `PasswordBox.Password` is not a DependencyProperty;
-  - a DependencyProperty changed-callback in a shared control that only computes derived display properties through `Controls/Presentation` helpers.
+  - a DependencyProperty changed-callback in a shared control that only computes derived display properties through `Controls/Presentation` helpers;
+  - focus restore in Catalog pages (`ProductListPage` returns focus to the product card or heading after coming back from detail via `ViewModel.PropertyChanged` on `Snapshot`; `ProductDetailPage`/`ProductEditorPage` focus their heading on `Loaded`), because focus cannot be bound — see `openspec/changes/archive/2026-10-23-catalog-product-management-ui/design.md` D8.
   Any new exception must be added to design D2 first.
 - **Theme tokens (`frontend/TechStore.Client/Styles/`):**
   - Values live in C#: `AppColors`, `AppTypography`, `AppMetrics`, `AppIcons`, `AppControlStyles`. Key names are string constants (`AppColors.Canvas == "TechStoreCanvasBrush"`, pure C#, unit-tested). `AppResources.Register(this)` merges them into `Application.Resources` in the `App` constructor, after `XamlControlsResources`. `App.xaml` has no `Styles/*.xaml`.
   - Typed accessors for C# Markup return theme references, so colors follow Light/Dark: `.Background(AppColors.Brushes.Canvas)`, `.Foreground(AppColors.Brushes.SecondaryText)`, `.Style(AppTypography.Styles.HeadingText)`, `.Style(AppControlStyles.Styles.PrimaryButton)`, `AppMetrics.Values.CardRadius`. Do not use a static `Brush` or `Color` for themed UI. When the same element also sets its own theme color (e.g. `.Foreground(AppColors.Brushes.SecondaryText)`), apply the style with `.Style(AppResources.GetStyle(AppTypography.CaptionText))` instead of `AppTypography.Styles.*`, so the style cannot override that color (see `MarkupReferencePage`).
+  - Icons: pass the registered instance, `.IconSource(AppIcons.Get(AppIcons.EmptyIcon))`. Do not bind an `IconSource` through a Markup `StaticResource` builder: on Skia it made the first layout of the product list take about 8.5 s instead of 0.2 s.
   - **Theme colors and Styles (verified on Skia, see `design.md` D3 and "Việc về sau"):** in Uno C# Markup, a Style `Setter` whose value is a theme color (`new Style<T>().Setters(s => s.Background(AppColors.Brushes.Surface))`) is resolved once and does NOT update when the theme changes at run time. Rules:
     1. **In C# Markup views and controls, set theme colors directly on the element**: `.Background(AppColors.Brushes.Surface)`, `.Foreground(AppColors.Brushes.Text)`. This updates live on Light/Dark switch.
     2. **Markup `Style<T>` holds only non-color properties** (font, size, line height, padding, corner radius, min height). Do not put theme colors in a Markup style.
     3. **`AppResources.AddThemedStyles` is legacy compatibility only.** It builds the 10 existing styles that carry theme colors (`TechStore*TextStyle`, `TechStoreFieldErrorStyle`, `TechStoreTableHeaderStyle`, `TechStorePanelStyle`, `TechStoreDangerButtonStyle`) through `XamlReader.Load`, because the remaining XAML pages use them by name and need live theme updates. **Do not add new styles to it.** If a converted page needs the same look, use a Markup style for the non-color part plus colors on the element.
     4. **When converting a XAML page**, check with `git grep -n "<StyleKey>" -- '*.xaml'` whether any other XAML page still uses each themed style. When none does, move that style out of `AddThemedStyles`: color parts to the elements, the rest to a Markup `Style<T>`. When `AddThemedStyles` becomes empty, delete it. Icons (`AddIcons`) keep `XamlReader` until `PathIconSource.Foreground` can follow the theme from code.
     5. **Always check theme switching at run time** after touching colors or styles: run the app, switch Sáng/Tối in Settings (or in the gallery with `TECHSTORE_UI_GALLERY=1`) while the page is open, and confirm text, panels and buttons stay readable. Build and headless tests cannot catch this bug.
-    6. On a Uno upgrade, re-test rule 1–2 in the gallery; if Markup style setters start following the theme, `AddThemedStyles` can be removed earlier.
+    6. On a Uno upgrade, re-test rule 1–2 in the gallery; if Markup style setters start following the theme, `AddThemedStyles` can be removed earlier. Also hover the image frame in the product editor and check that the "Thêm ảnh" overlay still appears: `ImagePickerButton` in `ProductImageGalleryView` relies on Uno Markup's internal `TemplateRoot` name.
   - Remaining XAML pages keep using the same keys (`{ThemeResource TechStoreCanvasBrush}`, `{StaticResource TechStorePanelStyle}`).
   - HighContrast maps to system colors in the token tables (tested); it cannot be exercised on Skia/Linux.
 - **Shared controls (`Controls/`):** `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl` are `UserControl`s built in C# Markup with an unchanged DependencyProperty API.
@@ -322,9 +329,9 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 
   |State|Views|
   |:---|:---|
-  |C# Markup with theme-aware tokens|`MarkupReferencePage`, `OrderListPage`, `OrderCreatePage`, `OrderDetailDialog`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
+  |C# Markup with theme-aware tokens|`MarkupReferencePage`, `OrderListPage`, `OrderCreatePage`, `OrderDetailDialog`, `ProductListPage`, `ProductDetailPage`, `ProductEditorPage`, `ProductImageGalleryView`, `ProductImageViewerView`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
   |C# Markup, colors still static (`StitchTokens` / `Color.FromArgb`), light only|`LoginPage`, `ShellPage`, `SettingsPage` (backlog: move to the theme accessors, then delete `StitchTokens`)|
-  |Still XAML|`ProductListPage`, `ProductDetailPage`, `DashboardPage`, `InventoryPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
+  |Still XAML|`DashboardPage`, `InventoryPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
 
 ### 7. Asynchronous Programming Pattern
 - Pure non-blocking `async`/`await` end-to-end.
@@ -345,11 +352,11 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 
 ### 9. Dependency Injection Pattern
 - **Backend (`backend/Program.cs`):**
-  - **Scoped:** DbContext (`AppDbContext`), Unit of Work (`IUnitOfWork`), repositories (`IProductRepository`, `IOrderRepository`), domain services (`IProductService`, `IOrderService`), and `IDataSeeder`.
-  - **Singleton:** Stateless utility services (`TimeProvider.System`), token generators.
+  - **Scoped:** DbContext (`AppDbContext`), Unit of Work (`IUnitOfWork`), repositories (`IProductRepository`, `IOrderRepository`, `IProductImageRepository`), domain services (`IProductService`, `IOrderService`, `IProductImageService`), and `IDataSeeder`.
+  - **Singleton:** Stateless utility services (`TimeProvider.System`), token generators, `IObjectStorage` (`R2ObjectStorage` or `LocalObjectStorage`).
 - **Frontend (`frontend/TechStore.Client/App.xaml.cs`):**
   - `AddFrontendFoundation`: Registers `ApiClientOptions`, `ISessionStore` (Singleton), `BearerTokenHandler` (Transient), and configured `IApiClient` / `ApiClient` via `AddHttpClient`.
-  - `AddFrontendUi`: Registers core client services (`INavigationService`, `IDialogService`, `IThemePreferenceService`, `IWindowLifetime`) as Singleton; ViewModels, Views, and Client Repositories (`IProductRepository`, `ICategoryRepository`) as Transient.
+  - `AddFrontendUi`: Registers core client services (`INavigationService`, `IDialogService`, `IThemePreferenceService`, `IWindowLifetime`) as Singleton; `ImageFilePicker` / `IImageFilePicker` as Singleton; ViewModels, Views, and Client Repositories (`IProductRepository`, `ICategoryRepository`, `IProductImageRepository`) as Transient.
 
 ---
 
@@ -373,7 +380,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 - `docs/database/schema.dbml`: Authoritative relational database schema definition.
 
 ### 3. Key Domain & UI Implementations
-- `backend/Catalog/Services/ProductService.cs`: Product creation, SKU validation, JSONB spec parsing/merging, and paged catalog queries.
+- `backend/Catalog/Services/ProductService.cs`: Product creation, update with variant upsert, activation status, unused-product deletion, SKU validation, JSONB spec parsing/merging, and paged catalog queries.
 - `backend/Orders/Services/OrderService.cs`: Order lifecycle state machine, fulfillment reservations, and sale confirmation.
 - `backend/Inventory/Repositories/InventoryStockRepository.cs`: Row-level locked stock queries (`GetForUpdateAsync`).
 - `frontend/TechStore.Client/ViewModels/Pages/PageViewModel.cs`: Base ViewModel providing observable loading states and activation leases.

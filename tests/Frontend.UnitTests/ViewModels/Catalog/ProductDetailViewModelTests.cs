@@ -12,6 +12,19 @@ namespace TechStore.Client.UnitTests.ViewModels.Catalog;
 public sealed class ProductDetailViewModelTests
 {
     [Fact]
+    public async Task ProductDetailViewModel_Load_FillsViewer()
+    {
+        // Arrange
+        var product = Detail(ProductId) with { Images = [new(Guid.NewGuid(), null, "/image.png", "image/png", 1, 0)] };
+        var viewModel = Create(new FakeProductRepository((_, _) => Task.FromResult<ProductDetail?>(product)));
+        viewModel.SetRoute(ProductId, null, null);
+        // Act
+        await viewModel.ActivateAsync();
+        // Assert
+        Assert.Equal("/image.png", viewModel.ImageViewer.SelectedUrl);
+    }
+
+    [Fact]
     public async Task ConstructorDoesNoIo_AndActivationLoadsOnlyConfiguredId()
     {
         var repository = new FakeProductRepository((_, _) => Task.FromResult<ProductDetail?>(Detail(ProductId)));
@@ -81,7 +94,7 @@ public sealed class ProductDetailViewModelTests
         var navigation = new NavigationService(new AllowingPreparer());
         var criteria = new ProductQuery { Query = "Pixel", Page = 4, PageSize = 50, Sort = "name:asc" };
         var repository = new FakeProductRepository((id, _) => Task.FromResult<ProductDetail?>(Detail(id)));
-        var viewModel = new ProductDetailViewModel(repository, navigation, new InMemorySessionStore());
+        var viewModel = new ProductDetailViewModel(repository, navigation, new InMemorySessionStore(), new RecordingProductCommands(), new ScriptedDialogService(), new StubSpecRepository());
         viewModel.SetRoute(ProductId, criteria, ProductId);
         await viewModel.ActivateAsync();
 
@@ -96,11 +109,11 @@ public sealed class ProductDetailViewModelTests
     private static Guid ProductId => Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
     private static ProductDetailViewModel Create(FakeProductRepository repository) =>
-        new(repository, new NavigationService(new AllowingPreparer()), new InMemorySessionStore());
+        new(repository, new NavigationService(new AllowingPreparer()), new InMemorySessionStore(), new RecordingProductCommands(), new ScriptedDialogService(), new StubSpecRepository());
 
     private static ProductDetail Detail(Guid id) => new(
         id, Guid.NewGuid(), "Mobile", "Test phone", "SKU-1", null, "Brand", 100m, 80m,
-        null, null, new Dictionary<string, JsonElement>(), false, true, DateTime.UtcNow, null, []);
+        null, null, new Dictionary<string, JsonElement>(), false, true, DateTime.UtcNow, null, [], []);
 
     private sealed class FakeProductRepository(Func<Guid, CancellationToken, Task<ProductDetail?>> detail) : IProductRepository
     {

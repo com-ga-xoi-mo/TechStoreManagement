@@ -47,7 +47,16 @@ public static class ProductSpecFilterHelper
             }
 
             object typedVal;
-            if (string.Equals(valStr, "true", StringComparison.OrdinalIgnoreCase))
+            if (valStr.Length >= 2 && valStr[0] == '"' && valStr[^1] == '"')
+            {
+                // A quoted value is always a string, so stored strings such as "5.2" can be matched.
+                typedVal = valStr[1..^1];
+                if (((string)typedVal).Length == 0)
+                {
+                    return new ParseResult(false, null, null, $"Spec value for key '{key}' cannot be empty.");
+                }
+            }
+            else if (string.Equals(valStr, "true", StringComparison.OrdinalIgnoreCase))
             {
                 typedVal = true;
             }

@@ -10,6 +10,73 @@ namespace TechStore.Client.UnitTests.Transport;
 public sealed class ApiClientTransportTests
 {
     [Fact]
+    public async Task PostFileAsync_SendsMultipartWithFileAndFields()
+    {
+        // Arrange
+        var handler = new RecordingHttpMessageHandler((_, _) => Task.FromResult(JsonResponse("{\"id\":7}", HttpStatusCode.Created)));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+        // Act
+        var result = await api.PostFileAsync<CreateResponse>("products/images", new("file", "a.jpg", "image/jpeg", "image-bytes"u8.ToArray()), new Dictionary<string, string> { ["variantId"] = "variant" });
+        // Assert
+        Assert.Equal(7, result.Id);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, request.Method);
+        Assert.StartsWith("multipart/form-data", request.ContentHeaders["Content-Type"].Single());
+        Assert.Contains("name=file; filename=a.jpg", request.Body!.Replace("\"", ""));
+        Assert.Contains("Content-Type: image/jpeg", request.Body);
+        Assert.Contains("image-bytes", request.Body);
+        Assert.Contains("name=variantId", request.Body.Replace("\"", ""));
+        Assert.Contains("variant", request.Body);
+    }
+
+    [Fact]
+    public async Task PostFileAsync_MapsValidationProblemAndDoesNotRetry()
+    {
+        // Arrange
+        var handler = new RecordingHttpMessageHandler((_, _) => Task.FromResult(JsonResponse("{\"errors\":{\"file\":[\"Invalid image\"]}}", HttpStatusCode.BadRequest)));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+        // Act
+        var error = await Assert.ThrowsAsync<ApiException>(() => api.PostFileAsync<JsonElement>("images", new("file", "a.jpg", "image/jpeg", [1])));
+        // Assert
+        Assert.Equal(400, error.StatusCode);
+        Assert.Equal("Invalid image", Assert.Single(error.FieldErrors["file"]));
+        Assert.Single(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData("https://attacker.test/upload")]
+    [InlineData("//attacker.test/upload")]
+    public async Task PostFileAsync_RejectsForeignOrAbsoluteRoutesBeforeSending(string path)
+    {
+        // Arrange
+        var handler = new RecordingHttpMessageHandler((_, _) => Task.FromResult(JsonResponse("{}")));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+        // Act
+        await Assert.ThrowsAsync<ArgumentException>(() => api.PostFileAsync<JsonElement>(path, new("file", "a.jpg", "image/jpeg", [1])));
+        // Assert
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task PostFileAsync_SendsBearerToken()
+    {
+        // Arrange
+        var handler = new RecordingHttpMessageHandler((_, _) => Task.FromResult(JsonResponse("{}")));
+        var store = new TechStore.Client.Services.Session.InMemorySessionStore(); store.SetAccessToken("upload-token");
+        using var client = new HttpClient(new BearerTokenHandler(store) { InnerHandler = handler }) { Timeout = Timeout.InfiniteTimeSpan };
+        var api = new ApiClient(client, Options());
+        // Act
+        await api.PostFileAsync<JsonElement>("images", new("file", "a.jpg", "image/jpeg", [1]));
+        // Assert
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("Bearer", request.Authorization!.Scheme);
+        Assert.Equal("upload-token", request.Authorization.Parameter);
+    }
+
+    [Fact]
     public async Task GetAsync_PreservesRelativeRouteAndEncodedQuery()
     {
         // Arrange
@@ -341,6 +408,66 @@ public sealed class ApiClientTransportTests
         // Act
         var error = await Assert.ThrowsAsync<ArgumentException>(
             () => api.PatchAsync<CreateRequest, CreateResponse>(path, new("Completed")));
+
+        // Assert
+        Assert.Contains("relative", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_SendsDeleteWithoutBodyAndAccepts204()
+    {
+        // Arrange
+        var handler = new RecordingHttpMessageHandler((_, _) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent)));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        // Act
+        await api.DeleteAsync("products/1");
+
+        // Assert
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Delete, request.Method);
+        Assert.Equal("https://localhost:7207/api/products/1", request.RequestUri?.ToString());
+        Assert.True(string.IsNullOrEmpty(request.Body));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_MapsConflictProblemDetailsAndDoesNotRetry()
+    {
+        // Arrange
+        const string json = """{"title":"Conflict","detail":"Product is in use.","status":409}""";
+        var handler = new RecordingHttpMessageHandler((_, _) =>
+            Task.FromResult(JsonResponse(json, HttpStatusCode.Conflict)));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        // Act
+        var error = await Assert.ThrowsAsync<ApiException>(
+            () => api.DeleteAsync("products/1"));
+
+        // Assert
+        Assert.Equal(ApiErrorKind.Http, error.Kind);
+        Assert.Equal((int)HttpStatusCode.Conflict, error.StatusCode);
+        Assert.Equal("Product is in use.", error.Detail);
+        Assert.Single(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData("https://attacker.test/steal")]
+    [InlineData("//attacker.test/steal")]
+    [InlineData("\\\\attacker.test\\steal")]
+    public async Task DeleteAsync_RejectsForeignOrAbsoluteRoutesBeforeSending(string path)
+    {
+        // Arrange
+        var handler = new RecordingHttpMessageHandler((_, _) => Task.FromResult(JsonResponse("{}")));
+        using var client = CreateClient(handler);
+        var api = new ApiClient(client, Options());
+
+        // Act
+        var error = await Assert.ThrowsAsync<ArgumentException>(
+            () => api.DeleteAsync(path));
 
         // Assert
         Assert.Contains("relative", error.Message, StringComparison.OrdinalIgnoreCase);

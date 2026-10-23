@@ -1,5 +1,4 @@
-using System.Globalization;
-using System.Text.RegularExpressions;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Models.Catalog;
@@ -24,18 +23,21 @@ public sealed partial class ProductListViewModel : PageViewModel
     private readonly ICategoryRepository _categories;
     private readonly ISessionStore _sessionStore;
     private readonly INavigationService _navigation;
+    private readonly IProductSpecRepository _specs;
     private bool _categoriesRequested;
+    private bool _specKeysRequested;
+    private int _specKeysVersion;
     private bool _hasActivated;
     private bool _suppressImmediateCriteria;
     private static readonly IReadOnlyList<ProductSummary> NoProducts = Array.Empty<ProductSummary>();
 
     [ObservableProperty] private string searchText = string.Empty;
-    [ObservableProperty] private string brandText = string.Empty;
     [ObservableProperty] private Guid? selectedCategoryId;
     [ObservableProperty] private string activeFilter = "all";
-    [ObservableProperty] private string minPriceText = string.Empty;
-    [ObservableProperty] private string maxPriceText = string.Empty;
-    [ObservableProperty] private string specsText = string.Empty;
+    [ObservableProperty] private bool isSpecFilterOpen;
+    [ObservableProperty] private IReadOnlyList<SpecKeyOption> specKeyOptions = [];
+    [ObservableProperty] private string specOptionsMessage = string.Empty;
+    [ObservableProperty] private bool hasSpecOptionsError;
     [ObservableProperty] private string selectedSort = "createdAt:desc";
     [ObservableProperty] private int selectedPageSize = 20;
     [ObservableProperty] private ProductPage? snapshot;
@@ -46,6 +48,7 @@ public sealed partial class ProductListViewModel : PageViewModel
     [ObservableProperty] private string? categoryError;
     [ObservableProperty] private bool isOutOfRange;
     [ObservableProperty] private Guid? focusProductId;
+    [ObservableProperty] private bool canManage;
     [ObservableProperty] private string resultContext = string.Empty;
     [ObservableProperty] private IReadOnlyList<CategoryOption> categories = [];
 
@@ -61,6 +64,9 @@ public sealed partial class ProductListViewModel : PageViewModel
     public bool HasNextPage => Snapshot is { } page && page.Page < page.TotalPages && !IsLoading;
     public bool HasCategoryError => !string.IsNullOrWhiteSpace(CategoryError);
     public bool HasValidationError => !string.IsNullOrWhiteSpace(ValidationMessage);
+    public ObservableCollection<SpecFilterRow> SpecFilters { get; } = [];
+    public bool HasSpecOptionsMessage => !string.IsNullOrWhiteSpace(SpecOptionsMessage);
+    public bool HasFilterMessages => HasCategoryError || HasValidationError || !string.IsNullOrWhiteSpace(FieldErrorSummary);
     public bool ShowEmptyState => IsEmpty && Snapshot is not null && Snapshot.Items.Count == 0 && !IsOutOfRange;
     public bool ShowInitialLoading => IsLoading && Snapshot is null;
     public bool ShowPagination => Snapshot is { TotalCount: > 0 } && !IsOutOfRange;
@@ -75,13 +81,16 @@ public sealed partial class ProductListViewModel : PageViewModel
         IProductRepository products,
         ICategoryRepository categories,
         ISessionStore sessionStore,
-        INavigationService navigation)
+        INavigationService navigation,
+        IProductSpecRepository specs)
     {
         _products = products ?? throw new ArgumentNullException(nameof(products));
+        _specs = specs ?? throw new ArgumentNullException(nameof(specs));
         _categories = categories ?? throw new ArgumentNullException(nameof(categories));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _sessionStore.SessionChanged += OnSessionChanged;
+        CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
     }
 
     protected override bool ManagesLoadState => true;
@@ -117,6 +126,11 @@ public sealed partial class ProductListViewModel : PageViewModel
             _categoriesRequested = true;
             _ = RunTrackedRequestAsync(LoadCategoriesAsync);
         }
+        if (!_specKeysRequested)
+        {
+            _specKeysRequested = true;
+            RequestSpecKeys();
+        }
 
         RequestedCriteria = AppliedCriteria;
         return await SearchAsync(AppliedCriteria, clearOnForbidden: true);
@@ -139,12 +153,9 @@ public sealed partial class ProductListViewModel : PageViewModel
         try
         {
             SearchText = string.Empty;
-            BrandText = string.Empty;
             SelectedCategoryId = null;
             ActiveFilter = "all";
-            MinPriceText = string.Empty;
-            MaxPriceText = string.Empty;
-            SpecsText = string.Empty;
+            SpecFilters.Clear();
             SelectedSort = "createdAt:desc";
             SelectedPageSize = 20;
         }
@@ -154,6 +165,32 @@ public sealed partial class ProductListViewModel : PageViewModel
         }
         return ApplyDraftAsync();
     }
+
+    [RelayCommand]
+    private void ToggleSpecFilter()
+    {
+        IsSpecFilterOpen = !IsSpecFilterOpen;
+        if (IsSpecFilterOpen && SpecFilters.Count == 0) AddSpecFilter();
+    }
+
+    [RelayCommand]
+    private void AddSpecFilter()
+    {
+        var row = new SpecFilterRow();
+        row.SetOptions(SpecKeyOptions);
+        SpecFilters.Add(row);
+    }
+
+    // CommandParameter comes from a binding inside an item template; while a row is removed it can briefly be
+    // the page DataContext, so the command takes object and ignores anything else.
+    [RelayCommand]
+    private void RemoveSpecFilter(object? parameter)
+    {
+        if (parameter is SpecFilterRow row) SpecFilters.Remove(row);
+    }
+
+    [RelayCommand]
+    private void RetrySpecKeys() => RequestSpecKeys();
 
     [RelayCommand]
     private Task RetryCategories()
@@ -182,6 +219,15 @@ public sealed partial class ProductListViewModel : PageViewModel
         if (product is null || product.Id == Guid.Empty) return;
         _navigation.Navigate(AppRoute.ProductDetail(product.Id, AppliedCriteria, product.Id));
     }
+
+    [RelayCommand]
+    private void CreateProduct()
+    {
+        if (!CanManage) return;
+        _navigation.Navigate(AppRoute.ProductCreate(AppliedCriteria));
+    }
+
+    public void ClearFocusRequest() => FocusProductId = null;
 
     private async Task ApplyDraftAsync()
     {
@@ -268,6 +314,38 @@ public sealed partial class ProductListViewModel : PageViewModel
         }
     }
 
+    // Keys follow the drafted category; the latest request wins.
+    private void RequestSpecKeys()
+    {
+        var version = ++_specKeysVersion;
+        var categoryId = SelectedCategoryId;
+        _ = RunTrackedRequestAsync(token => LoadSpecKeysAsync(version, categoryId, token));
+    }
+
+    private async Task LoadSpecKeysAsync(int version, Guid? categoryId, CancellationToken cancellationToken)
+    {
+        HasSpecOptionsError = false;
+        SpecOptionsMessage = "Đang tải danh sách thông số...";
+        try
+        {
+            var options = await _specs.GetSpecKeysAsync(categoryId, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (version != _specKeysVersion) return;
+            SpecKeyOptions = options;
+            foreach (var row in SpecFilters) row.SetOptions(options);
+            SpecOptionsMessage = options.Count == 0 ? "Chưa có thông số nào trong phạm vi đang chọn." : string.Empty;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
+            if (version != _specKeysVersion) return;
+            HasSpecOptionsError = true;
+            SpecOptionsMessage = "Không tải được danh sách thông số. Tìm kiếm khác vẫn dùng được.";
+        }
+    }
+
     private async Task LoadCategoriesAsync(CancellationToken cancellationToken)
     {
         try
@@ -293,22 +371,6 @@ public sealed partial class ProductListViewModel : PageViewModel
     private bool TryBuildCriteria(out ProductQuery query, out string? error)
     {
         error = null;
-        decimal? min = ParseOptionalPrice(MinPriceText, "Giá tối thiểu", out error);
-        if (error is not null) { query = AppliedCriteria; return false; }
-        decimal? max = ParseOptionalPrice(MaxPriceText, "Giá tối đa", out error);
-        if (error is not null) { query = AppliedCriteria; return false; }
-        if (min is < 0 || max is < 0)
-        {
-            error = "Giá không được là số âm.";
-            query = AppliedCriteria;
-            return false;
-        }
-        if (min.HasValue && max.HasValue && min > max)
-        {
-            error = "Giá tối thiểu phải nhỏ hơn hoặc bằng giá tối đa.";
-            query = AppliedCriteria;
-            return false;
-        }
         if (!AllowedSorts.Contains(SelectedSort, StringComparer.Ordinal))
         {
             error = "Thứ tự sắp xếp không hợp lệ.";
@@ -321,10 +383,21 @@ public sealed partial class ProductListViewModel : PageViewModel
             query = AppliedCriteria;
             return false;
         }
-        if (!TryParseSpecs(SpecsText, out var specs, out error))
+        var specs = new List<string>();
+        foreach (var row in SpecFilters)
         {
-            query = AppliedCriteria;
-            return false;
+            if (!row.HasKey) continue;
+            if (string.IsNullOrEmpty(row.SelectedFilterValue))
+                error = $"Hãy chọn giá trị cho thông số {row.SelectedKey}.";
+            else if (specs.Any(spec => spec.StartsWith(row.SelectedKey + ":", StringComparison.Ordinal)))
+                error = $"Thông số {row.SelectedKey} chỉ được chọn một lần.";
+            if (error is not null)
+            {
+                IsSpecFilterOpen = true;
+                query = AppliedCriteria;
+                return false;
+            }
+            specs.Add($"{row.SelectedKey}:{row.SelectedFilterValue}");
         }
 
         bool? isActive = ActiveFilter switch
@@ -344,60 +417,13 @@ public sealed partial class ProductListViewModel : PageViewModel
         query = new ProductQuery
         {
             Query = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
-            Brand = string.IsNullOrWhiteSpace(BrandText) ? null : BrandText.Trim(),
             CategoryId = SelectedCategoryId,
             IsActive = isActive,
-            MinPrice = min,
-            MaxPrice = max,
             Specs = specs,
             Sort = SelectedSort,
             Page = 1,
             PageSize = SelectedPageSize
         };
-        return true;
-    }
-
-    private static decimal? ParseOptionalPrice(string text, string label, out string? error)
-    {
-        error = null;
-        if (string.IsNullOrWhiteSpace(text)) return null;
-        if (!decimal.TryParse(text, NumberStyles.Number, CultureInfo.GetCultureInfo("vi-VN"), out var value)
-            && !decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out value))
-            error = $"{label} không hợp lệ.";
-        return error is null ? value : null;
-    }
-
-    private static bool TryParseSpecs(string text, out IReadOnlyList<string> specs, out string? error)
-    {
-        var result = new List<string>();
-        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        error = null;
-        foreach (var rawLine in text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var separator = rawLine.IndexOf('=');
-            if (separator <= 0 || separator == rawLine.Length - 1)
-            {
-                error = "Mỗi thông số phải có dạng key=value.";
-                specs = [];
-                return false;
-            }
-            var key = rawLine[..separator].Trim();
-            var value = rawLine[(separator + 1)..].Trim();
-            if (!Regex.IsMatch(key, "^[a-z][a-z0-9_]*$", RegexOptions.CultureInvariant))
-            {
-                error = "Tên thông số phải dùng snake_case.";
-                specs = [];
-                return false;
-            }
-            if (value.Length == 0 || !keys.Add(key))
-            {
-                error = "Giá trị thông số không được rỗng hoặc lặp key.";
-                specs = [];
-                return false;
-            }
-            result.Add($"{key}:{value}");
-        }
-        specs = result;
         return true;
     }
 
@@ -418,16 +444,18 @@ public sealed partial class ProductListViewModel : PageViewModel
         try
         {
         SearchText = criteria.Query ?? string.Empty;
-        BrandText = criteria.Brand ?? string.Empty;
         SelectedCategoryId = criteria.CategoryId;
         ActiveFilter = criteria.IsActive switch { true => "active", false => "inactive", null => "all" };
-        MinPriceText = criteria.MinPrice?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-        MaxPriceText = criteria.MaxPrice?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-        SpecsText = string.Join(Environment.NewLine, criteria.Specs.Select(spec =>
+        SpecFilters.Clear();
+        foreach (var spec in criteria.Specs)
         {
             var separator = spec.IndexOf(':');
-            return separator < 0 ? spec : string.Concat(spec.AsSpan(0, separator), "=", spec.AsSpan(separator + 1));
-        }));
+            if (separator <= 0) continue;
+            var row = new SpecFilterRow { SelectedKey = spec[..separator], SelectedFilterValue = spec[(separator + 1)..] };
+            row.SetOptions(SpecKeyOptions);
+            SpecFilters.Add(row);
+        }
+        if (criteria.Specs.Count > 0) IsSpecFilterOpen = true;
         SelectedSort = criteria.Sort;
         SelectedPageSize = criteria.PageSize;
         }
@@ -437,6 +465,15 @@ public sealed partial class ProductListViewModel : PageViewModel
         }
     }
 
+    partial void OnValidationMessageChanged(string? value) => OnPropertyChanged(nameof(HasFilterMessages));
+    partial void OnSpecOptionsMessageChanged(string value) => OnPropertyChanged(nameof(HasSpecOptionsMessage));
+    // Only a category the user picks reloads the keys; copying a draft (route or session change) must not send requests.
+    partial void OnSelectedCategoryIdChanged(Guid? value)
+    {
+        if (_hasActivated && !_suppressImmediateCriteria) RequestSpecKeys();
+    }
+    partial void OnCategoryErrorChanged(string? value) => OnPropertyChanged(nameof(HasFilterMessages));
+    partial void OnFieldErrorSummaryChanged(string value) => OnPropertyChanged(nameof(HasFilterMessages));
     partial void OnSelectedSortChanged(string value) => ApplyImmediateCriteriaChange();
     partial void OnSelectedPageSizeChanged(int value) => ApplyImmediateCriteriaChange();
 
@@ -505,6 +542,7 @@ public sealed partial class ProductListViewModel : PageViewModel
 
     private void OnSessionChanged(object? sender, SessionChangedEventArgs args)
     {
+        CanManage = CatalogPermissions.CanManage(_sessionStore.Current);
         CancelTrackedRequests();
         ClearSnapshot();
         AppliedCriteria = new ProductQuery();
@@ -513,6 +551,11 @@ public sealed partial class ProductListViewModel : PageViewModel
         FocusProductId = null;
         Categories = [];
         _categoriesRequested = false;
+        SpecKeyOptions = [];
+        _specKeysRequested = false;
+        _specKeysVersion++;
+        SpecOptionsMessage = string.Empty;
+        HasSpecOptionsError = false;
         CategoryError = null;
         OnPropertyChanged(nameof(HasCategoryError));
         FieldErrorSummary = string.Empty;

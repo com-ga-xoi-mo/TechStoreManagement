@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+    public DbSet<SpecDefinition> SpecDefinitions => Set<SpecDefinition>();
 
     // Inventory Module (6 tables)
     public DbSet<InventoryStock> InventoryStocks => Set<InventoryStock>();

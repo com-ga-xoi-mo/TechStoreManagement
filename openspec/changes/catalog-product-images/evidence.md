@@ -98,6 +98,21 @@ For owner review, the backend now runs from the repository on port 5177, using `
 
 Do not mark task 20.2 complete until the owner confirms every item. Start with items 1–5; before item 6 switch the backend's local root to a scratch read-only folder; restore the normal backend before items 7–8.
 
+## Button template follow-up
+
+Verified at: 2026-10-23T14:43:58+07:00. The image picker now uses Button's `CommonStates` in its C# Markup control template. `PointerEntered`/`PointerExited` handlers and manual `GoToState` calls were removed. Because Uno Markup inserts `TemplateRoot`, the private Button subclass attaches the declared groups to that root in `OnApplyTemplate` before calling base; it contains no ViewModel synchronization or pointer handlers. No new D2 exception is required.
+
+A temporary isolated Skia/X11 probe exercised the final template with native XTest pointer/button/Space events and a fake picker returning PNG bytes:
+
+| Check | Observed result |
+|---|---|
+| Pointer outside / inside / pressed / outside | `Normal` / `PointerOver` / `Pressed` / `Normal`; overlay opacity 0 / 1 / 1 / 0 |
+| Click and keyboard Space | Command invoked once per action; image count 0 → 1 → 2 and large preview source became `BitmapImage` |
+| Light → Dark while hovered | Glyph color `#FF0F172A` → `#FFF8FAFC`; overlay remained visible |
+| Fill gallery to 20 | `Disabled`, button disabled, overlay opacity 0 and Visibility Collapsed; preview source retained |
+
+Temporary probe code and entry-point changes were removed. Desktop build and strict OpenSpec validation were rerun after cleanup. This does not certify real portal file selection, server upload, native Windows rendering, or complete owner task 20.2. Tracking remains 98/101.
+
 ## R2 owner check (task 20.3)
 
 Pending. No owner keys or real R2 bucket were used. Unit checks and SDK compilation do not establish that R2 uploads/deletes work. If the owner has no bucket, record the owner's explicit decision before accepting the specified exception. Never put credentials in chat, this evidence or git.

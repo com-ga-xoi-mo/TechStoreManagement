@@ -9,6 +9,54 @@ public sealed class CatalogApiErrorsTests
     private const string Subject = "Sản phẩm";
 
     [Fact]
+    public void IsImageSetChanged_409_True()
+    {
+        // Arrange
+        var error = new ApiException(ApiErrorKind.Http, "Conflict", 409);
+        // Act
+        var changed = CatalogApiErrors.IsImageSetChanged(error);
+        // Assert
+        Assert.True(changed);
+    }
+
+    [Theory]
+    [InlineData("items")]
+    [InlineData("ITEMS")]
+    public void IsImageSetChanged_400WithItems_True(string key)
+    {
+        // Arrange
+        var error = new ApiException(ApiErrorKind.Http, "Invalid layout", 400,
+            fieldErrors: new Dictionary<string, IReadOnlyList<string>> { [key] = ["Layout changed"] });
+        // Act
+        var changed = CatalogApiErrors.IsImageSetChanged(error);
+        // Assert
+        Assert.True(changed);
+    }
+
+    [Fact]
+    public void IsImageSetChanged_400WithFile_False()
+    {
+        // Arrange
+        var error = new ApiException(ApiErrorKind.Http, "Invalid file", 400,
+            fieldErrors: new Dictionary<string, IReadOnlyList<string>> { ["file"] = ["Invalid image"] });
+        // Act
+        var changed = CatalogApiErrors.IsImageSetChanged(error);
+        // Assert
+        Assert.False(changed);
+    }
+
+    [Fact]
+    public void IsImageSetChanged_404_False()
+    {
+        // Arrange
+        var error = new ApiException(ApiErrorKind.Http, "Gone", 404);
+        // Act
+        var changed = CatalogApiErrors.IsImageSetChanged(error);
+        // Assert
+        Assert.False(changed);
+    }
+
+    [Fact]
     public void Describe_503_ReturnsStorageMessage()
     {
         // Arrange

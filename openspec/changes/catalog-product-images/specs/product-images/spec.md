@@ -36,12 +36,19 @@ The server SHALL accept only JPEG, PNG and WebP files, recognized from the file 
 - **THEN** the response is 400 with an error for `file`
 
 #### Scenario: Too large
-- **WHEN** an Admin uploads a 6 MB PNG
+- **WHEN** an Admin uploads a PNG of 6,000,000 bytes (larger than 5 MB, request still under 6 MiB)
 - **THEN** the response is 400 with an error for `file` and the product's images are unchanged
 
 #### Scenario: WebP accepted
 - **WHEN** an Admin uploads a valid WebP file named `image.bin`
 - **THEN** the response is 201 with `contentType` `image/webp`
+
+### Requirement: Upload request size limit
+The server SHALL reject an upload request whose body is larger than 6 MiB (6,291,456 bytes) with 400 before the form is read, and nothing SHALL be stored. The error MAY be reported under an empty key instead of `file`.
+
+#### Scenario: Request body over the limit
+- **WHEN** an Admin uploads a 7 MiB file
+- **THEN** the response is 400 before the form is read and the product's images are unchanged
 
 ### Requirement: Image limit per product
 A product SHALL have at most 20 images, counting shared and variant images together. An upload that would exceed the limit SHALL return 409 ProblemDetails and store nothing. The check SHALL hold when several uploads for the same product run at the same time.

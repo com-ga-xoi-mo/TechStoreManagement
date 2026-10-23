@@ -220,6 +220,8 @@ internal sealed class RecordingImageRepository : IProductImageRepository
     public List<ImageUpload> Uploads { get; } = [];
     public IReadOnlyList<ImageLayoutEntry>? LastLayout { get; private set; }
     public int? FailUploadNumber { get; set; }
+    public ApiException? DeleteError { get; set; }
+    public ApiException? LayoutError { get; set; }
     public async Task<ProductImage> UploadAsync(Guid productId, ImageUpload upload, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -230,11 +232,14 @@ internal sealed class RecordingImageRepository : IProductImageRepository
     }
     public Task DeleteAsync(Guid productId, Guid imageId, CancellationToken cancellationToken = default)
     {
-        cancellationToken.ThrowIfCancellationRequested(); Calls.Add("delete"); return Task.CompletedTask;
+        cancellationToken.ThrowIfCancellationRequested(); Calls.Add("delete");
+        if (DeleteError != null) throw DeleteError;
+        return Task.CompletedTask;
     }
     public Task<IReadOnlyList<ProductImage>> SaveLayoutAsync(Guid productId, IReadOnlyList<ImageLayoutEntry> entries, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested(); Calls.Add("layout"); LastLayout = entries;
+        if (LayoutError != null) throw LayoutError;
         return Task.FromResult<IReadOnlyList<ProductImage>>([]);
     }
 }

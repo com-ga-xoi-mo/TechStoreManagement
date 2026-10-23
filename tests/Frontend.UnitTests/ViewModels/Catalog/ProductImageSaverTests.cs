@@ -12,6 +12,31 @@ public class ProductImageSaverTests
     private readonly Guid _id = Guid.NewGuid();
     private void AddNew(string name = "a.png") => _gallery.Images.Add(ProductImageItem.FromPicked(new(name, 1, [1])));
     [Fact]
+    public async Task SaveAsync_DeleteReturns404_ForgetsIdAndContinues()
+    {
+        // Arrange
+        _gallery.RemovedImageIds.Add(Guid.NewGuid()); AddNew();
+        _repository.DeleteError = new(ApiErrorKind.Http, "Gone", 404);
+        // Act
+        await new ProductImageSaver(_repository).SaveAsync(_id, _gallery, default);
+        // Assert
+        Assert.Equal(new[] { "delete", "upload", "layout" }, _repository.Calls);
+        Assert.Empty(_gallery.RemovedImageIds); Assert.False(_gallery.HasChanges);
+    }
+    [Fact]
+    public async Task SaveAsync_DeleteReturns500_Throws()
+    {
+        // Arrange
+        var id = Guid.NewGuid(); _gallery.RemovedImageIds.Add(id); AddNew();
+        var expected = new ApiException(ApiErrorKind.Http, "Server error", 500);
+        _repository.DeleteError = expected;
+        // Act
+        var error = await Assert.ThrowsAsync<ApiException>(() => new ProductImageSaver(_repository).SaveAsync(_id, _gallery, default));
+        // Assert
+        Assert.Same(expected, error); Assert.Equal(new[] { "delete" }, _repository.Calls);
+        Assert.Equal(id, Assert.Single(_gallery.RemovedImageIds)); Assert.True(_gallery.Images[0].IsNew);
+    }
+    [Fact]
     public async Task SaveAsync_NoChanges_SendsNothing()
     {
         // Arrange / Act

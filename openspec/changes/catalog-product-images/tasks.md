@@ -502,6 +502,17 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
   Verify `TEST_CLIENT` passes and `wc -l frontend/TechStore.Client/ViewModels/Catalog/ProductEditorViewModel.cs` is at most 760 (observed: 740 lines).
 - [x] 18.5 In `ViewModels/Catalog/CatalogApiErrors.cs` add `{ StatusCode: 503 } => "Nơi lưu ảnh đang không truy cập được. Hãy thử lại sau.",` before the default case (design D12), and add `Describe_503_ReturnsStorageMessage` to `tests/Frontend.UnitTests/ViewModels/Catalog/CatalogApiErrorsTests.cs`; verify `TEST_CLIENT` passes
 - [x] 18.6 Commit: `feat(client): save product images with the product`
+- [ ] 18.7 Images changed elsewhere (design D12, table "Ảnh bị người khác đổi trong lúc đang sửa"; added after review on 2026-10-23):
+  - `ProductImageSaver.SaveAsync`: wrap each `DeleteAsync` so that `ApiException { StatusCode: 404 }` calls `gallery.ForgetRemoved(id)` and continues; every other exception still propagates;
+  - `CatalogApiErrors`: add `internal static bool IsImageSetChanged(ApiException exception)`, true for status 409, or status 400 whose `FieldErrors` has the key `items` (case-insensitive); false otherwise;
+  - `ProductEditorViewModel.SaveAsync`: in the image-save `catch (ApiException ex)`, when `CatalogApiErrors.IsImageSetChanged(ex)` set `GeneralError = "Đã lưu sản phẩm nhưng chưa lưu được ảnh: ảnh của sản phẩm vừa được thay đổi ở nơi khác. Hãy mở lại sản phẩm để xem ảnh mới nhất."`; keep the current message for all other errors;
+  - tests:
+    - `ProductImageSaverTests`: `SaveAsync_DeleteReturns404_ForgetsIdAndContinues` (upload and layout still sent, `RemovedImageIds` empty), `SaveAsync_DeleteReturns500_Throws`;
+    - `CatalogApiErrorsTests`: `IsImageSetChanged_409_True`, `IsImageSetChanged_400WithItems_True`, `IsImageSetChanged_400WithFile_False`, `IsImageSetChanged_404_False`;
+    - `ProductEditorImageTests`: `Save_LayoutRejectedForItems_ShowsChangedElsewhereMessage` (message has no "Bấm Lưu để thử lại"), `Save_RemovedImageAlreadyGone_OpensDetail`.
+
+  Extend `RecordingImageRepository` in `CatalogFakes.cs` so it can throw a given `ApiException` on delete or on layout. Verify `BUILD_CLIENT` and `TEST_CLIENT` pass and `wc -l frontend/TechStore.Client/ViewModels/Catalog/ProductEditorViewModel.cs` is at most 760.
+- [ ] 18.8 Commit: `fix(client): handle product images changed elsewhere while saving`. Then re-run `TEST_BACKEND` and `TEST_CLIENT` and update the counts in 20.1 and in `evidence.md` (backend stays 447; client 680 plus the new tests).
 
 ## 19. Views (design D13) and project docs
 
@@ -580,6 +591,7 @@ Read `proposal.md`, `design.md` (D1–D15) and every file under `specs/` before 
 - [ ] 20.4 Write `openspec/changes/catalog-product-images/evidence.md` with:
   - commit hash, date, test counts;
   - the 10.1/10.2 status codes;
+  - the request-size check of design D7 (2026-10-23, port 5177, product id that does not exist): 5,767,168 and 6,100,000 bytes → 400 with an error for `file`; 7,340,032 bytes → 400 with the error under the empty key;
   - the owner's answers to 20.2 (item / expected / owner result) and 20.3;
   - exceptions.
 

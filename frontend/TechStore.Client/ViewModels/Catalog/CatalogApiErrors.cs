@@ -4,6 +4,10 @@ namespace TechStore.Client.ViewModels.Catalog;
 
 internal static class CatalogApiErrors
 {
+    internal static bool IsImageSetChanged(ApiException exception) =>
+        exception.StatusCode == 409 || exception.StatusCode == 400
+        && exception.FieldErrors.Keys.Any(key => string.Equals(key, "items", StringComparison.OrdinalIgnoreCase));
+
     public static string Describe(ApiException exception, string subject)
     {
         ArgumentNullException.ThrowIfNull(exception);

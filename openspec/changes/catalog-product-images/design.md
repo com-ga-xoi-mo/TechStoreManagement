@@ -229,6 +229,8 @@ Bước 2 chỉ để trả lỗi sớm mà không phải đẩy file. Bước 4
 
 Endpoint upload dùng `[Consumes("multipart/form-data")]`, tham số `IFormFile? file`, `[FromForm] Guid? variantId`.
 
+Request có thân lớn hơn 6 MiB bị ASP.NET dừng khi đọc form. Kiểm thật trên cổng 5177 (2026-10-23) trả **400**, lỗi nằm ở khóa rỗng `""` ("Failed to read the request form. Request body too large…"), không phải ở `file`. Từ trên 5 MB tới 6 MiB thì controller trả 400 với lỗi `file`. Hai trường hợp đều không lưu gì. Client đã lọc file trên 5 MB nên người dùng không gặp trường hợp đầu; spec ghi đúng hành vi này thay vì thêm code ép lỗi về `file`.
+
 ### D8. Hợp đồng shared
 
 - **Mới** `shared/DTOs/ProductImageDto.cs`: `Guid Id`, `Guid? VariantId`, `string Url`, `string ContentType`, `int SizeBytes`, `int SortOrder`.
@@ -320,6 +322,18 @@ SaveAsync (IsSaving = true cho cả chuỗi -> nút Lưu bị vô hiệu)
 - Bước 3 làm cho lần bấm Lưu kế tiếp gửi `PUT` thay vì `POST`, nên không tạo trùng sản phẩm.
 - Route vẫn là route tạo. Nút Quay lại khi đó về danh sách, đúng với spec "Leave the editor".
 - Không tự gửi lại; người dùng bấm Lưu thì chỉ các bước ảnh còn thiếu được gửi (`ProductImageSaver` dựa trên `IsNew` và `RemovedImageIds`).
+
+**Ảnh bị người khác đổi trong lúc đang sửa.** Hai người cùng sửa một sản phẩm thì bấm Lưu lại không được kẹt mãi ở cùng một lỗi:
+
+| Tình huống | Server trả | Client xử lý |
+|:--|:--|:--|
+| Xóa ảnh đã bị người khác xóa | 404 ở `DELETE .../images/{imageId}` | `ProductImageSaver` coi như đã xóa: `ForgetRemoved(id)` rồi làm tiếp. Lỗi khác vẫn ném ra như cũ |
+| Layout không còn khớp ảnh trên server (người khác vừa thêm hoặc xóa ảnh) | 400 ở `PUT .../layout`, lỗi theo trường `items` | Không bảo "Bấm Lưu để thử lại" vì lưu lại vẫn lỗi. Hiện "Đã lưu sản phẩm nhưng chưa lưu được ảnh: ảnh của sản phẩm vừa được thay đổi ở nơi khác. Hãy mở lại sản phẩm để xem ảnh mới nhất." |
+| Tải ảnh khi server đã đủ 20 ảnh (người khác vừa thêm) | 409 ở `POST .../images` | Cùng thông báo như dòng trên |
+
+- Chỉ 404 của bước xóa ảnh được bỏ qua. 404 của bước tải ảnh hay layout nghĩa là sản phẩm không còn, nên vẫn báo lỗi như cũ.
+- Nhận diện hai trường hợp sau bằng `ApiException` (`StatusCode == 400` và `FieldErrors` có khóa `items`, không phân biệt hoa thường; hoặc `StatusCode == 409` từ bước tải ảnh). `ProductImageSaver` ném lại đúng `ApiException` đó; `ProductEditorViewModel` chọn thông báo qua hàm thuần `CatalogApiErrors.IsImageSetChanged(ApiException)`.
+- Không tự tải lại sản phẩm: người dùng chủ động mở lại để thấy ảnh mới nhất trước khi sửa tiếp.
 
 ### D13. Giao diện
 

@@ -1,5 +1,6 @@
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
+using TechStore.Client.Services.Api;
 
 namespace TechStore.Client.ViewModels.Catalog;
 
@@ -10,7 +11,9 @@ public sealed class ProductImageSaver(IProductImageRepository images)
         if (!gallery.HasChanges) return;
         foreach (var id in gallery.RemovedImageIds.ToArray())
         {
-            await images.DeleteAsync(productId, id, cancellationToken); gallery.ForgetRemoved(id);
+            try { await images.DeleteAsync(productId, id, cancellationToken); }
+            catch (ApiException ex) when (ex.StatusCode == 404) { }
+            gallery.ForgetRemoved(id);
         }
         foreach (var item in gallery.Images.Where(i => i.IsNew))
         {

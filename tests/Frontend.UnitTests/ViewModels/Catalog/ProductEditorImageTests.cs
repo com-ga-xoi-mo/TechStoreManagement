@@ -22,6 +22,36 @@ public class ProductEditorImageTests
     }
     private static void Add(ProductEditorViewModel vm, string name = "a.png") => vm.Gallery.Images.Add(ProductImageItem.FromPicked(new(name, 1, [1])));
     [Fact]
+    public async Task Save_LayoutRejectedForItems_ShowsChangedElsewhereMessage()
+    {
+        // Arrange
+        var vm = await Ready(); Add(vm);
+        _images.LayoutError = new(ApiErrorKind.Http, "Invalid layout", 400,
+            fieldErrors: new Dictionary<string, IReadOnlyList<string>> { ["items"] = ["Layout changed"] });
+        // Act
+        await vm.SaveCommand.ExecuteAsync(null);
+        // Assert
+        Assert.Contains("ảnh của sản phẩm vừa được thay đổi ở nơi khác", vm.GeneralError);
+        Assert.Contains("Hãy mở lại sản phẩm", vm.GeneralError);
+        Assert.DoesNotContain("Bấm Lưu để thử lại", vm.GeneralError);
+        Assert.True(vm.IsEditMode); Assert.True(vm.Gallery.HasChanges);
+        Assert.NotEqual(AppRouteKind.ProductDetail, _navigation.CurrentRoute.Kind);
+    }
+
+    [Fact]
+    public async Task Save_RemovedImageAlreadyGone_OpensDetail()
+    {
+        // Arrange
+        var vm = await Ready(); vm.Gallery.RemovedImageIds.Add(Guid.NewGuid()); Add(vm);
+        _images.DeleteError = new(ApiErrorKind.Http, "Gone", 404);
+        // Act
+        await vm.SaveCommand.ExecuteAsync(null);
+        // Assert
+        Assert.Equal(new[] { "delete", "upload", "layout" }, _images.Calls);
+        Assert.Empty(vm.Gallery.RemovedImageIds); Assert.Empty(vm.GeneralError);
+        Assert.Equal(AppRouteKind.ProductDetail, _navigation.CurrentRoute.Kind);
+    }
+    [Fact]
     public async Task Cancel_OnlyReorderedImages_AsksToDiscard()
     {
         // Arrange

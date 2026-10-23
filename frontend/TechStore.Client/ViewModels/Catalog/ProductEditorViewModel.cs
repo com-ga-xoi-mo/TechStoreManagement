@@ -518,7 +518,9 @@ public sealed partial class ProductEditorViewModel : PageViewModel
             try { await _imageSaver.SaveAsync(saved.Id, Gallery, ActivationToken); }
             catch (ApiException ex)
             {
-                GeneralError = $"Đã lưu sản phẩm nhưng chưa lưu được ảnh: {CatalogApiErrors.Describe(ex, "Ảnh")}. Bấm Lưu để thử lại.";
+                GeneralError = CatalogApiErrors.IsImageSetChanged(ex)
+                    ? "Đã lưu sản phẩm nhưng chưa lưu được ảnh: ảnh của sản phẩm vừa được thay đổi ở nơi khác. Hãy mở lại sản phẩm để xem ảnh mới nhất."
+                    : $"Đã lưu sản phẩm nhưng chưa lưu được ảnh: {CatalogApiErrors.Describe(ex, "Ảnh")}. Bấm Lưu để thử lại.";
                 return;
             }
             catch (InvalidOperationException ex)

@@ -1,6 +1,8 @@
 using TechStore.Client.Features.Inventory.Models;
 using TechStore.Client.Features.Inventory.ViewModels;
+using TechStore.Client.Models.Catalog;
 using TechStore.Client.Services.Api;
+using TechStore.Client.UnitTests.ViewModels.Catalog;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -74,9 +76,78 @@ public sealed class InventoryStockViewModelTests
 
         Assert.False(vm.IsCategoryFilterAvailable);
         Assert.False(vm.IsWarehouseFilterAvailable);
-        vm.SelectedCategory = "Laptop";
+        vm.SelectedCategoryId = Guid.NewGuid();
         vm.SelectedWarehouse = "Kho Cửa hàng chính";
         Assert.Single(vm.VisibleItems);
+    }
+
+    [Fact]
+    public async Task CategoryFilter_TwoCategoriesWithSameName_FiltersByCategoryId()
+    {
+        var cat1Id = Guid.NewGuid();
+        var cat2Id = Guid.NewGuid();
+        var categories = new StubCategoryReader
+        {
+            CustomOptions =
+            [
+                new(cat1Id, null, "Phụ kiện", "Điện thoại / Phụ kiện"),
+                new(cat2Id, null, "Phụ kiện", "Laptop / Phụ kiện")
+            ]
+        };
+        var item1 = new InventoryStockDto { Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), ProductName = "Ốp lưng", ProductSku = "CASE-1", CategoryId = cat1Id, CategoryName = "Phụ kiện", Quantity = 10 };
+        var item2 = new InventoryStockDto { Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), ProductName = "Đế tản nhiệt", ProductSku = "COOL-1", CategoryId = cat2Id, CategoryName = "Phụ kiện", Quantity = 10 };
+        var api = new FakeApi(Page(item1, item2));
+        var vm = new InventoryStockViewModel(api, categoryRepository: categories);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.True(vm.IsCategoryFilterAvailable);
+        Assert.Equal(3, vm.CategoryOptions.Count);
+        vm.SelectedCategoryId = cat2Id;
+
+        var visible = Assert.Single(vm.VisibleItems);
+        Assert.Equal("Đế tản nhiệt", visible.ProductName);
+        Assert.Equal(cat2Id, visible.CategoryId);
+    }
+
+    [Fact]
+    public async Task LowStockFilter_ShowsEveryServerRow_AndKeepsServerTotals()
+    {
+        var items = Enumerable.Range(1, 15)
+            .Select(i => new InventoryStockDto
+            {
+                Id = Guid.NewGuid(),
+                ProductId = Guid.NewGuid(),
+                ProductName = $"Item {i}",
+                ProductSku = $"SKU-{i}",
+                Quantity = 8,
+                ReservedQuantity = 0,
+                MinStockAlert = 10
+            })
+            .ToArray();
+        var api = new FakeApi(Page(items, page: 1, pageSize: 20, totalCount: 40, totalPages: 2));
+        var vm = new InventoryStockViewModel(api)
+        {
+            StockStatusFilter = InventoryStockStatusFilter.LowStock
+        };
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal(15, vm.VisibleItems.Count);
+        Assert.Equal(40, vm.TotalCount);
+        Assert.Equal(2, vm.TotalPages);
+    }
+
+    [Fact]
+    public void StatusFor_UsesRowMinStockAlert()
+    {
+        var rowMin10 = new InventoryStockRow(new InventoryStockDto { Quantity = 8, MinStockAlert = 10 });
+        var rowMin0 = new InventoryStockRow(new InventoryStockDto { Quantity = 5, MinStockAlert = 0 });
+        var rowOut = new InventoryStockRow(new InventoryStockDto { Quantity = 0, MinStockAlert = 10 });
+
+        Assert.Equal(InventoryStockStatus.LowStock, rowMin10.Status);
+        Assert.Equal(InventoryStockStatus.LowStock, rowMin0.Status);
+        Assert.Equal(InventoryStockStatus.OutOfStock, rowOut.Status);
     }
 
     [Fact]

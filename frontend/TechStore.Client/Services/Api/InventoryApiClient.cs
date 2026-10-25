@@ -178,7 +178,7 @@ public sealed class InventoryApiClient(IApiClient apiClient) : IInventoryApiClie
         ArgumentNullException.ThrowIfNull(request);
         var parameters = new List<string>();
         Add("search", request.Search);
-        Add("categoryName", request.CategoryName);
+        Add("categoryId", request.CategoryId?.ToString("D"));
         Add("productId", request.ProductId?.ToString("D"));
         Add("variantId", request.VariantId?.ToString("D"));
         Add("lowStock", request.LowStock?.ToString().ToLowerInvariant());

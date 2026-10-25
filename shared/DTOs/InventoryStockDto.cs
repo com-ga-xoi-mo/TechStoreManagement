@@ -6,6 +6,7 @@ public class InventoryStockDto
     public Guid ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string ProductSku { get; set; } = string.Empty;
+    public Guid? CategoryId { get; set; }
     /// <summary>Display name of the product category.</summary>
     public string CategoryName { get; set; } = string.Empty;
     /// <summary>Current selling price: variant price when a variant exists, otherwise product base price.</summary>

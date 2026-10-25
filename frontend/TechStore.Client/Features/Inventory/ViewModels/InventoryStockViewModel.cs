@@ -1,9 +1,10 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Inventory.Models;
 using TechStore.Client.Features.Inventory.Services;
+using TechStore.Client.Models.Catalog;
+using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Services.Api;
 using TechStore.Shared.Requests;
 
@@ -12,16 +13,18 @@ namespace TechStore.Client.Features.Inventory.ViewModels;
 public sealed partial class InventoryStockViewModel(
     IInventoryApiClient apiClient,
     IInventoryReportExporter? reportExporter = null,
-    ICategoryApiClient? categoryApiClient = null) : ObservableObject
+    ICategoryRepository? categoryRepository = null) : ObservableObject
 {
     public const int DefaultPageSize = 20;
+    public static readonly CategoryOption AllCategories = new(Guid.Empty, null, "Danh mục: Tất cả", "Danh mục: Tất cả");
 
     private readonly List<InventoryStockRow> _loadedRows = [];
     private readonly IInventoryReportExporter _reportExporter = reportExporter ?? new CsvInventoryReportExporter();
-    private readonly ICategoryApiClient? _categoryApiClient = categoryApiClient;
+    private readonly ICategoryRepository? _categoryRepository = categoryRepository;
     private CancellationTokenSource? _loadCancellation;
     private int _loadGeneration;
     private bool _serverFilterApplied;
+    private bool _serverStatusFilterApplied;
 
     public ObservableCollection<InventoryStockRow> StockItems { get; } = [];
     public ObservableCollection<InventoryStockRow> VisibleItems { get; } = [];
@@ -35,14 +38,14 @@ public sealed partial class InventoryStockViewModel(
         new(InventoryStockStatusFilter.OutOfStock, "Hết hàng")
     ];
 
-    /// <summary>Categories are populated from the inventory response; no catalog names are fabricated in the client.</summary>
-    public ObservableCollection<string> CategoryOptions { get; } = ["Danh mục: Tất cả"];
+    /// <summary>Categories are populated from the category tree; no catalog names are fabricated in the client.</summary>
+    public ObservableCollection<CategoryOption> CategoryOptions { get; } = [AllCategories];
     /// <summary>Warehouses are not yet a dimension in the inventory API/schema, so only the actual aggregate warehouse is shown.</summary>
     public IReadOnlyList<string> WarehouseOptions { get; } = ["Kho: Kho Tổng"];
 
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private InventoryStockStatusFilter _stockStatusFilter;
-    [ObservableProperty] private string _selectedCategory = "Danh mục: Tất cả";
+    [ObservableProperty] private Guid _selectedCategoryId = Guid.Empty;
     [ObservableProperty] private string _selectedWarehouse = "Kho: Kho Tổng";
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _hasLoaded;
@@ -119,8 +122,8 @@ public sealed partial class InventoryStockViewModel(
     public event Action<InventoryStockRow>? StockAdjustmentRequested;
 
     partial void OnSearchTextChanged(string value) { ProjectVisibleItems(); ReloadServerFilterIfPaged(); }
-    partial void OnStockStatusFilterChanged(InventoryStockStatusFilter value) { ProjectVisibleItems(); ReloadServerFilterIfPaged(); }
-    partial void OnSelectedCategoryChanged(string value) { ProjectVisibleItems(); ReloadServerFilterIfPaged(); }
+    partial void OnStockStatusFilterChanged(InventoryStockStatusFilter value) { _serverStatusFilterApplied = false; ProjectVisibleItems(); ReloadServerFilterIfPaged(); }
+    partial void OnSelectedCategoryIdChanged(Guid value) { ProjectVisibleItems(); ReloadServerFilterIfPaged(); }
     partial void OnSelectedWarehouseChanged(string value) => ProjectVisibleItems();
     partial void OnErrorMessageChanged(string? value) => NotifyState();
     partial void OnIsLoadingChanged(bool value) => NotifyState();
@@ -171,7 +174,7 @@ public sealed partial class InventoryStockViewModel(
             var result = await apiClient.GetStocksAsync(new InventoryStockFilterRequest
             {
                 Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
-                CategoryName = IsCategoryFilterAvailable && SelectedCategory != "Danh mục: Tất cả" ? SelectedCategory : null,
+                CategoryId = IsCategoryFilterAvailable && SelectedCategoryId != Guid.Empty ? SelectedCategoryId : null,
                 Page = Math.Max(1, Page),
                 PageSize = Math.Clamp(PageSize, 1, 100),
                 LowStock = StockStatusFilter == InventoryStockStatusFilter.LowStock ? true : null,
@@ -181,29 +184,25 @@ public sealed partial class InventoryStockViewModel(
             if (load.IsCancellationRequested || generation != _loadGeneration) return;
 
             _serverFilterApplied = !string.IsNullOrWhiteSpace(SearchText)
-                || (IsCategoryFilterAvailable && SelectedCategory != "Danh mục: Tất cả")
+                || (IsCategoryFilterAvailable && SelectedCategoryId != Guid.Empty)
                 || StockStatusFilter != InventoryStockStatusFilter.All;
+            _serverStatusFilterApplied = StockStatusFilter != InventoryStockStatusFilter.All;
 
             _loadedRows.Clear();
             foreach (var item in result.Items ?? []) _loadedRows.Add(new InventoryStockRow(item));
             CategoryOptions.Clear();
-            CategoryOptions.Add("Danh mục: Tất cả");
-            if (_categoryApiClient is not null)
+            CategoryOptions.Add(AllCategories);
+            if (_categoryRepository is not null)
             {
                 try
                 {
-                    var categories = await _categoryApiClient.GetTreeAsync(load.Token);
-                    foreach (var category in FlattenCategoryNames(categories))
-                        if (!CategoryOptions.Contains(category, StringComparer.OrdinalIgnoreCase)) CategoryOptions.Add(category);
+                    var categories = await _categoryRepository.GetTreeAsync(load.Token);
+                    foreach (var category in categories)
+                        if (CategoryOptions.All(o => o.Id != category.Id)) CategoryOptions.Add(category);
                 }
                 catch (OperationCanceledException) when (load.IsCancellationRequested) { throw; }
                 catch { /* inventory data remains usable when the category facet is unavailable */ }
             }
-            foreach (var category in _loadedRows.Select(row => row.CategoryName)
-                         .Where(category => category is not "—")
-                         .Distinct(StringComparer.OrdinalIgnoreCase)
-                         .OrderBy(category => category, StringComparer.OrdinalIgnoreCase))
-                if (!CategoryOptions.Contains(category, StringComparer.OrdinalIgnoreCase)) CategoryOptions.Add(category);
             OnPropertyChanged(nameof(IsCategoryFilterAvailable));
             Reconcile(StockItems, _loadedRows);
             Page = Math.Max(1, result.Page);
@@ -229,6 +228,7 @@ public sealed partial class InventoryStockViewModel(
                 : "Không thể tải tồn kho. Vui lòng thử lại.";
             _loadedRows.Clear();
             _serverFilterApplied = false;
+            _serverStatusFilterApplied = false;
             Reconcile(StockItems, []);
             Reconcile(VisibleItems, []);
             NotifyState();
@@ -332,8 +332,8 @@ public sealed partial class InventoryStockViewModel(
         var query = SearchText.Trim();
         var filtered = _loadedRows.Where(row =>
             (query.Length == 0 || row.SearchText.Contains(query, StringComparison.OrdinalIgnoreCase))
-            && (!IsCategoryFilterAvailable || SelectedCategory == "Danh mục: Tất cả" || row.CategoryName.Equals(SelectedCategory, StringComparison.OrdinalIgnoreCase))
-            && (StockStatusFilter == InventoryStockStatusFilter.All || row.Status == ToStatus(StockStatusFilter)))
+            && (!IsCategoryFilterAvailable || SelectedCategoryId == Guid.Empty || row.CategoryId == SelectedCategoryId)
+            && (_serverStatusFilterApplied || StockStatusFilter == InventoryStockStatusFilter.All || row.Status == ToStatus(StockStatusFilter)))
             .ToList();
         FilteredCount = filtered.Count;
         Reconcile(VisibleItems, filtered);
@@ -345,15 +345,6 @@ public sealed partial class InventoryStockViewModel(
     {
         if (HasLoaded && TotalPages > 1)
             _ = LoadCommand.ExecuteAsync(null);
-    }
-
-    private static IEnumerable<string> FlattenCategoryNames(IEnumerable<CategoryNode> roots)
-    {
-        foreach (var root in roots)
-        {
-            if (!string.IsNullOrWhiteSpace(root.Name)) yield return root.Name;
-            foreach (var child in FlattenCategoryNames(root.Children)) yield return child;
-        }
     }
 
     private void RefreshPageNumbers()

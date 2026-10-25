@@ -2,7 +2,7 @@ namespace TechStore.Api.Inventory.Repositories;
 
 public sealed record InventoryStockSearchCriteria(
     string? Search,
-    string? CategoryName,
+    Guid? CategoryId,
     Guid? ProductId,
     Guid? VariantId,
     bool? LowStock,

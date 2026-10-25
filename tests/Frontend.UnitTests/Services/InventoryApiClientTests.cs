@@ -20,13 +20,15 @@ public sealed class InventoryApiClientTests
         var result = await client.GetStocksAsync(new InventoryStockFilterRequest
         {
             Page = 2, PageSize = 20, LowStock = false,
+            CategoryId = Guid.Parse("33333333-3333-3333-3333-333333333333"),
             ProductId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             VariantId = Guid.Parse("22222222-2222-2222-2222-222222222222")
         });
 
         Assert.Equal(expected.TotalCount, result.TotalCount);
         Assert.Equal(expected.TotalPages, result.TotalPages);
-        Assert.Equal("api/inventory/stocks?productId=11111111-1111-1111-1111-111111111111&variantId=22222222-2222-2222-2222-222222222222&lowStock=false&page=2&pageSize=20", api.Path);
+        Assert.DoesNotContain("categoryName", api.Path);
+        Assert.Equal("api/inventory/stocks?categoryId=33333333-3333-3333-3333-333333333333&productId=11111111-1111-1111-1111-111111111111&variantId=22222222-2222-2222-2222-222222222222&lowStock=false&page=2&pageSize=20", api.Path);
     }
 
     [Fact]

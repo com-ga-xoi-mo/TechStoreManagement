@@ -70,6 +70,7 @@ public class InventoryServiceTests
             Id = Guid.NewGuid(),
             Name = "iPhone 15",
             Sku = "IP15",
+            CategoryId = category.Id,
             Category = category,
             BasePrice = 24_000_000m
         };
@@ -102,9 +103,35 @@ public class InventoryServiceTests
 
         result.Data.Should().NotBeNull();
         result.Data!.Items.Should().ContainSingle();
+        result.Data.Items[0].CategoryId.Should().Be(category.Id);
         result.Data.Items[0].CategoryName.Should().Be("Điện thoại");
         result.Data.Items[0].SellingPrice.Should().Be(24_990_000m);
         result.Data.Items[0].TotalSerialsCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetStocksAsync_CategoryId_ReturnsOnlyDirectCategory()
+    {
+        // Arrange
+        var cat1 = new Category { Id = Guid.NewGuid(), Name = "Phones", Slug = "phones" };
+        var cat2 = new Category { Id = Guid.NewGuid(), Name = "Laptops", Slug = "laptops" };
+        var prod1 = new Product { Id = Guid.NewGuid(), Name = "iPhone", Sku = "IP", CategoryId = cat1.Id, Category = cat1 };
+        var prod2 = new Product { Id = Guid.NewGuid(), Name = "MacBook", Sku = "MB", CategoryId = cat2.Id, Category = cat2 };
+
+        _stockRepository.Stocks.AddRange(
+        [
+            new InventoryStock { Id = Guid.NewGuid(), ProductId = prod1.Id, Product = prod1, Quantity = 5 },
+            new InventoryStock { Id = Guid.NewGuid(), ProductId = prod2.Id, Product = prod2, Quantity = 5 }
+        ]);
+
+        // Act
+        var result = await _service.GetStocksAsync(new InventoryStockFilterRequest { CategoryId = cat1.Id });
+
+        // Assert
+        var item = result.Data!.Items.Should().ContainSingle().Subject;
+        item.ProductId.Should().Be(prod1.Id);
+        item.CategoryId.Should().Be(cat1.Id);
+        item.CategoryName.Should().Be("Phones");
     }
 
     [Fact]

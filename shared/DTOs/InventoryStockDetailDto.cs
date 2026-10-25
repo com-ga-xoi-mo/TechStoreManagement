@@ -9,6 +9,7 @@ public sealed class InventoryStockDetailDto
     public string ProductSku { get; set; } = string.Empty;
     public string? VariantName { get; set; }
     public string? VariantSku { get; set; }
+    public Guid? CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public decimal? SellingPrice { get; set; }
     public int Quantity { get; set; }

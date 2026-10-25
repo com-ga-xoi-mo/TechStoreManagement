@@ -70,6 +70,7 @@ public sealed partial class InventoryStockRow(InventoryStockDto dto) : Observabl
     public InventoryStockDto Dto { get; } = dto ?? throw new ArgumentNullException(nameof(dto));
     public Guid Id => Dto.Id;
     public Guid ProductId => Dto.ProductId;
+    public Guid? CategoryId => Dto.CategoryId;
     public string ProductName => InventoryStockPresentationRules.Unavailable(Dto.ProductName);
     public string Sku => InventoryStockPresentationRules.Unavailable(Dto.VariantSku ?? Dto.ProductSku);
     public string VariantName => Dto.VariantName ?? string.Empty;

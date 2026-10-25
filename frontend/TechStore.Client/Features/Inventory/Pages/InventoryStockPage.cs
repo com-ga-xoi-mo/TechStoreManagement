@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Data;
 using TechStore.Client.Features.Categories.Pages;
 using TechStore.Client.Features.Inventory.Models;
 using TechStore.Client.Features.Inventory.ViewModels;
+using TechStore.Client.Models.Catalog;
 using Uno.Extensions.Markup;
 using static TechStore.Client.Features.Categories.Pages.CategoryWorkspaceStyles;
 
@@ -57,8 +58,8 @@ public sealed class InventoryStockPage : Page
         Grid.SetColumn(searchSlot, 0);
         grid.Children.Add(searchSlot);
 
-        var category = CreateCombo(ViewModel.CategoryOptions, "Danh mục");
-        category.SelectedValue(x => x.Binding(() => ViewModel.SelectedCategory).Mode(BindingMode.TwoWay));
+        var category = CreateCombo(ViewModel.CategoryOptions, "Danh mục", nameof(CategoryOption.Label), nameof(CategoryOption.Id));
+        category.SelectedValue(x => x.Binding(() => ViewModel.SelectedCategoryId).Mode(BindingMode.TwoWay));
         category.IsEnabled(x => x.Binding(() => ViewModel.IsCategoryFilterAvailable));
         Grid.SetColumn(category, 1);
         grid.Children.Add(category);

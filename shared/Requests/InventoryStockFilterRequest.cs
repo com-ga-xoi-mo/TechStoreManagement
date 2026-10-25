@@ -3,7 +3,7 @@ namespace TechStore.Shared.Requests;
 public class InventoryStockFilterRequest
 {
     public string? Search { get; set; }
-    public string? CategoryName { get; set; }
+    public Guid? CategoryId { get; set; }
     public Guid? ProductId { get; set; }
     public Guid? VariantId { get; set; }
     public bool? LowStock { get; set; }

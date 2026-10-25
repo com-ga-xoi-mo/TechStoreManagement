@@ -33,9 +33,9 @@ public class InventoryStockRepository(AppDbContext dbContext) : IInventoryStockR
                 (s.Variant != null && EF.Functions.ILike(s.Variant.VariantName, pattern, "!")));
         }
 
-        if (!string.IsNullOrWhiteSpace(criteria.CategoryName))
+        if (criteria.CategoryId.HasValue)
         {
-            query = query.Where(s => s.Product.Category != null && s.Product.Category.Name == criteria.CategoryName);
+            query = query.Where(s => s.Product.CategoryId == criteria.CategoryId.Value);
         }
 
         if (criteria.VariantId.HasValue)

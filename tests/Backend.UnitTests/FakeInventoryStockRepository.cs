@@ -23,6 +23,11 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
             query = query.Where(s => s.ProductId == criteria.ProductId.Value);
         }
 
+        if (criteria.CategoryId.HasValue)
+        {
+            query = query.Where(s => s.Product != null && s.Product.CategoryId == criteria.CategoryId.Value);
+        }
+
         if (criteria.VariantId.HasValue)
         {
             query = query.Where(s => s.VariantId == criteria.VariantId.Value);

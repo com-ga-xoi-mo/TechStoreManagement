@@ -30,7 +30,7 @@ public class InventoryService(
 
         var criteria = new InventoryStockSearchCriteria(
             request.Search,
-            request.CategoryName,
+            request.CategoryId,
             request.ProductId,
             request.VariantId,
             request.LowStock,
@@ -329,6 +329,7 @@ public class InventoryService(
             ProductId = stock.ProductId,
             ProductName = stock.Product?.Name ?? string.Empty,
             ProductSku = stock.Product?.Sku ?? string.Empty,
+            CategoryId = stock.Product?.CategoryId,
             CategoryName = stock.Product?.Category?.Name ?? string.Empty,
             SellingPrice = stock.Variant?.Price ?? stock.Product?.BasePrice,
             VariantId = stock.VariantId,
@@ -355,6 +356,7 @@ public class InventoryService(
             ProductSku = stock.Product?.Sku ?? string.Empty,
             VariantName = stock.Variant?.VariantName,
             VariantSku = stock.Variant?.Sku,
+            CategoryId = stock.Product?.CategoryId,
             CategoryName = stock.Product?.Category?.Name ?? string.Empty,
             SellingPrice = stock.Variant?.Price ?? stock.Product?.BasePrice,
             Quantity = stock.Quantity,

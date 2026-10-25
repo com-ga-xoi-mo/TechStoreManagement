@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using TechStore.Api.Identity.Authentication;
 using TechStore.Api.Inventory;
 
 namespace TechStore.UnitTests.Inventory;
@@ -31,11 +30,11 @@ public sealed class InventoryApiHost : IAsyncDisposable
         {
             ["Jwt:Issuer"] = _issuer,
             ["Jwt:Audience"] = _audience,
-            ["Jwt:SigningKey"] = Convert.ToBase64String(_key)
+            ["Jwt:SecretKey"] = Convert.ToBase64String(_key)
         });
         builder.Services.AddControllers().AddApplicationPart(typeof(InventoryController).Assembly);
         builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddStoreAuthentication(builder.Configuration);
+        builder.Services.AddStoreJwtAuthentication(builder.Configuration);
         registerServices(builder.Services);
         App = builder.Build();
         App.UseAuthentication();

@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using TechStore.Api.Catalog;
 using TechStore.Api.Catalog.Services;
-using TechStore.Api.Identity.Authentication;
 
 namespace TechStore.UnitTests.Catalog;
 
@@ -22,22 +21,20 @@ public sealed class CategoryApiHost : IAsyncDisposable
     public WebApplication App { get; }
     public HttpClient Client { get; private set; } = null!;
 
-    public CategoryApiHost(Action<IServiceCollection> registerServices, string? invalidSetting = null, string invalidValue = "")
+    public CategoryApiHost(Action<IServiceCollection> registerServices)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
         builder.Logging.ClearProviders();
         builder.WebHost.UseTestServer();
-        var configuration = new Dictionary<string, string?>
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Jwt:Issuer"] = _issuer, ["Jwt:Audience"] = _audience,
-            ["Jwt:SigningKey"] = Convert.ToBase64String(_key)
-        };
-        if (invalidSetting is not null) configuration[invalidSetting] = invalidValue;
-        builder.Configuration.AddInMemoryCollection(configuration);
+            ["Jwt:SecretKey"] = Convert.ToBase64String(_key)
+        });
         builder.Services.AddControllers().AddApplicationPart(typeof(CategoriesController).Assembly);
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-        builder.Services.AddStoreAuthentication(builder.Configuration);
+        builder.Services.AddStoreJwtAuthentication(builder.Configuration);
         registerServices(builder.Services);
         App = builder.Build();
         App.UseSwagger();

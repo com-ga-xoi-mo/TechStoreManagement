@@ -39,17 +39,27 @@ public class CategoryAuthorizationTests
     }
 
     [Theory]
-    [InlineData("Jwt:Issuer", "")]
-    [InlineData("Jwt:Audience", "")]
-    [InlineData("Jwt:SigningKey", "")]
-    [InlineData("Jwt:SigningKey", "short")]
-    public async Task Startup_Should_Reject_Invalid_Jwt_Configuration(string setting, string value)
+    [InlineData("missing", "Admin", 401)]
+    [InlineData("malformed", "Admin", 401)]
+    [InlineData("expired", "Admin", 401)]
+    [InlineData("valid", "Admin", 200)]
+    [InlineData("valid", "Manager", 200)]
+    [InlineData("valid", "SalesStaff", 200)]
+    [InlineData("valid", "WarehouseStaff", 200)]
+    public async Task Tree_Should_Require_Session_And_Allow_Every_Authenticated_Role(string kind, string role, int expected)
     {
-        // Arrange / Act / Assert
-        await FluentActions.Awaiting(async () =>
-        {
-            await using var host = new CategoryApiHost(services => services.AddSingleton<ICategoryService>(new FakeCategoryService()), setting, value);
-            await host.StartAsync();
-        }).Should().ThrowAsync<InvalidOperationException>().WithMessage("Configure Jwt:Issuer*");
+        // Arrange
+        var service = new FakeCategoryService();
+        await using var host = new CategoryApiHost(services => services.AddSingleton<ICategoryService>(service));
+        await host.StartAsync();
+        if (kind != "missing") host.Client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", kind == "malformed" ? "not-a-token" : host.Token(role, kind));
+
+        // Act
+        using var response = await host.Client.GetAsync("/api/categories/tree");
+
+        // Assert
+        response.StatusCode.Should().Be((HttpStatusCode)expected);
+        service.TreeCount.Should().Be(expected == 200 ? 1 : 0);
     }
 }

@@ -21,7 +21,9 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet("tree")]
+    [Authorize]
     [ProducesResponseType(typeof(IReadOnlyList<CategoryTreeNodeDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetTree(CancellationToken cancellationToken)
     {
         var result = await _categoryService.GetTreeAsync(cancellationToken);

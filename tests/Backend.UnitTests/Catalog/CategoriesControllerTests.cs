@@ -155,6 +155,7 @@ public sealed class FakeCategoryService : ICategoryService
     public DeleteCategoryResult DeleteResult { get; set; } = DeleteCategoryResult.Success();
     public int UpdateCount { get; private set; }
     public int DeleteCount { get; private set; }
+    public int TreeCount { get; private set; }
     public Guid LastId { get; private set; }
     public Guid LastDeleteId { get; private set; }
     public UpdateCategoryRequest? LastRequest { get; private set; }
@@ -178,8 +179,11 @@ public sealed class FakeCategoryService : ICategoryService
         return Task.FromResult(DeleteResult);
     }
 
-    public Task<CategoryTreeResult> GetTreeAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult(new CategoryTreeResult(true, []));
+    public Task<CategoryTreeResult> GetTreeAsync(CancellationToken cancellationToken = default)
+    {
+        TreeCount++;
+        return Task.FromResult(new CategoryTreeResult(true, []));
+    }
 
     public Task<CreateCategoryResult> CreateAsync(CreateCategoryRequest request, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();

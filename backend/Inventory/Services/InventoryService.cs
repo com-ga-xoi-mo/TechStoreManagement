@@ -127,10 +127,6 @@ public class InventoryService(
                 ReservedQuantity = 0,
                 MinStockAlert = request.MinStockAlert.GetValueOrDefault(5)
             };
-            stock.Product = validatedProduct!;
-            stock.Variant = request.VariantId.HasValue
-                ? validatedProduct!.Variants?.FirstOrDefault(v => v.Id == request.VariantId.Value)
-                : null;
             stockRepository.Add(stock);
 
             var movement = new InventoryMovement
@@ -146,6 +142,11 @@ public class InventoryService(
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
             await unitOfWork.CommitAsync(cancellationToken);
+
+            stock.Product = validatedProduct!;
+            stock.Variant = request.VariantId.HasValue
+                ? validatedProduct!.Variants?.FirstOrDefault(v => v.Id == request.VariantId.Value)
+                : null;
 
             return InitializeStockResult.Success(MapToDto(stock));
         }

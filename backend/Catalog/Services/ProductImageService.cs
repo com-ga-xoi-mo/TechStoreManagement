@@ -8,9 +8,10 @@ using TechStore.Shared.Requests;
 namespace TechStore.Api.Catalog.Services;
 
 public sealed class ProductImageService(IProductRepository productRepository, IProductImageRepository imageRepository,
-    IUnitOfWork unitOfWork, IObjectStorage storage) : IProductImageService
+    IUnitOfWork unitOfWork, IObjectStorage storage, TimeProvider? timeProvider = null) : IProductImageService
 {
     private const string LimitMessage = "A product can have at most 20 images.";
+    private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
 
     public async Task<ProductImageCommandResult<ProductImageDto>> UploadAsync(Guid productId, ProductImageUpload upload, CancellationToken cancellationToken = default)
     {
@@ -129,7 +130,7 @@ public sealed class ProductImageService(IProductRepository productRepository, IP
             for (var i = 0; i < ordered.Count; i++)
             {
                 ordered[i].VariantId = items[i].VariantId;
-                ordered[i].UpdatedAt = DateTime.UtcNow;
+                ordered[i].UpdatedAt = _time.GetUtcNow().UtcDateTime;
             }
             ProductCoverImage.Renumber(ordered);
             product.ImageUrl = ProductCoverImage.UrlOf(ordered);

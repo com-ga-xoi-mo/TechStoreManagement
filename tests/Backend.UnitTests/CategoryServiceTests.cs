@@ -207,4 +207,28 @@ public class CategoryServiceTests
         result.ValidationErrors.Should().ContainKey("slug");
         _unitOfWork.SaveChangesCount.Should().Be(0);
     }
+
+    [Fact]
+    public async Task UpdateAsync_UsesTimeProvider_ForUpdatedAt()
+    {
+        // Arrange
+        var expected = new DateTimeOffset(2026, 10, 25, 8, 0, 0, TimeSpan.Zero);
+        var service = new CategoryService(_categoryRepository, _unitOfWork, new FixedTimeProvider(expected));
+        var id = Guid.NewGuid();
+        _categoryRepository.Add(new Category { Id = id, Name = "Laptops", Slug = "laptops", IsActive = true });
+
+        var request = new UpdateCategoryRequest
+        {
+            Name = "Laptops Updated",
+            Slug = "laptops-updated",
+            IsActive = true
+        };
+
+        // Act
+        var result = await service.UpdateAsync(id, request);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.UpdatedAt.Should().Be(expected.UtcDateTime);
+    }
 }

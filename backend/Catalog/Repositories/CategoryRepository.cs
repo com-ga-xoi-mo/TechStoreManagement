@@ -13,13 +13,20 @@ public class CategoryRepository(AppDbContext dbContext) : ICategoryRepository
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Category>> GetActiveCategoriesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CategoryTreeRow>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await dbContext.Categories
             .AsNoTracking()
-            .Include(c => c.Products)
-            .ThenInclude(p => p.Variants)
             .OrderBy(c => c.Name)
+            .Select(c => new CategoryTreeRow(
+                c.Id,
+                c.Name,
+                c.Slug,
+                c.Description,
+                c.ParentId,
+                c.IsActive,
+                c.Products.Count(),
+                c.Products.Sum(p => p.Variants.Count() == 0 ? 1 : p.Variants.Count())))
             .ToListAsync(cancellationToken);
     }
 

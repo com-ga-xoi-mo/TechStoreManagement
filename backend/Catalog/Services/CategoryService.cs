@@ -11,13 +11,15 @@ namespace TechStore.Api.Catalog.Services;
 
 public class CategoryService(
     ICategoryRepository categoryRepository,
-    IUnitOfWork unitOfWork) : ICategoryService
+    IUnitOfWork unitOfWork,
+    TimeProvider? timeProvider = null) : ICategoryService
 {
     private static readonly Regex SlugRegex = new(@"^[a-z0-9]+(?:-[a-z0-9]+)*$", RegexOptions.Compiled);
+    private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
 
     public async Task<CategoryTreeResult> GetTreeAsync(CancellationToken cancellationToken = default)
     {
-        var categories = await categoryRepository.GetActiveCategoriesAsync(cancellationToken);
+        var categories = await categoryRepository.GetAllAsync(cancellationToken);
 
         var nodes = categories.Select(c => new CategoryTreeNodeDto
         {
@@ -27,8 +29,8 @@ public class CategoryService(
             Description = c.Description,
             ParentId = c.ParentId,
             IsActive = c.IsActive,
-            ProductCount = c.Products.Count,
-            SkuCount = c.Products.Sum(p => p.Variants.Count == 0 ? 1 : p.Variants.Count),
+            ProductCount = c.ProductCount,
+            SkuCount = c.SkuCount,
             SubCategories = []
         }).ToDictionary(n => n.Id);
 
@@ -172,30 +174,16 @@ public class CategoryService(
 
     public async Task<UpdateCategoryResult> UpdateAsync(Guid id, UpdateCategoryRequest request, CancellationToken cancellationToken = default)
     {
-        Category? category = null;
-        string? originalName = null;
-        string? originalSlug = null;
-        Guid? originalParentId = null;
-        string? originalDescription = null;
-        bool originalIsActive = false;
-        DateTime? originalUpdatedAt = null;
         await unitOfWork.BeginTransactionAsync(cancellationToken);
         try
         {
             await categoryRepository.AcquireHierarchyUpdateLockAsync(cancellationToken);
-            category = await categoryRepository.GetTrackedByIdAsync(id, cancellationToken);
+            var category = await categoryRepository.GetTrackedByIdAsync(id, cancellationToken);
             if (category is null)
             {
                 await unitOfWork.RollbackAsync(CancellationToken.None);
                 return UpdateCategoryResult.NotFound();
             }
-
-            originalName = category.Name;
-            originalSlug = category.Slug;
-            originalParentId = category.ParentId;
-            originalDescription = category.Description;
-            originalIsActive = category.IsActive;
-            originalUpdatedAt = category.UpdatedAt;
 
             var errors = new Dictionary<string, string[]>();
             if (string.IsNullOrWhiteSpace(request.Name))
@@ -238,7 +226,7 @@ public class CategoryService(
             category.ParentId = request.ParentId;
             category.Description = request.Description is null ? category.Description : string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
             category.IsActive = request.IsActive!.Value;
-            category.UpdatedAt = DateTime.UtcNow;
+            category.UpdatedAt = _time.GetUtcNow().UtcDateTime;
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
             await unitOfWork.CommitAsync(cancellationToken);
@@ -246,13 +234,11 @@ public class CategoryService(
         }
         catch (DuplicateKeyException)
         {
-            RestoreCategory(category, originalName, originalSlug, originalParentId, originalDescription, originalIsActive, originalUpdatedAt);
             await unitOfWork.RollbackAsync(CancellationToken.None);
             return UpdateCategoryResult.Conflict("A category with the same slug already exists.");
         }
         catch
         {
-            RestoreCategory(category, originalName, originalSlug, originalParentId, originalDescription, originalIsActive, originalUpdatedAt);
             await unitOfWork.RollbackAsync(CancellationToken.None);
             throw;
         }
@@ -314,24 +300,6 @@ public class CategoryService(
         CreatedAt = category.CreatedAt,
         UpdatedAt = category.UpdatedAt
     };
-
-    private static void RestoreCategory(
-        Category? category,
-        string? name,
-        string? slug,
-        Guid? parentId,
-        string? description,
-        bool isActive,
-        DateTime? updatedAt)
-    {
-        if (category is null || name is null || slug is null) return;
-        category.Name = name;
-        category.Slug = slug;
-        category.ParentId = parentId;
-        category.Description = description;
-        category.IsActive = isActive;
-        category.UpdatedAt = updatedAt;
-    }
 
     public static string GenerateSlug(string text)
     {

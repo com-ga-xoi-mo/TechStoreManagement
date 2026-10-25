@@ -5,7 +5,7 @@ namespace TechStore.Api.Catalog.Repositories;
 public interface ICategoryRepository
 {
     Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Category>> GetActiveCategoriesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CategoryTreeRow>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<Category?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<bool> ExistsBySlugAsync(string slug, CancellationToken cancellationToken = default);
     Task<bool> ExistsBySlugExceptIdAsync(string slug, Guid excludedId, CancellationToken cancellationToken = default);

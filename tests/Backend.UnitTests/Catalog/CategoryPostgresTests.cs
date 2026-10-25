@@ -285,7 +285,7 @@ public class CategoryPostgresTests
         public Task<Category?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default) => inner.GetTrackedByIdAsync(id, cancellationToken);
         public Task<bool> HasSubCategoriesAsync(Guid id, CancellationToken cancellationToken = default) => inner.HasSubCategoriesAsync(id, cancellationToken);
         public Task<bool> HasProductsAsync(Guid id, CancellationToken cancellationToken = default) => inner.HasProductsAsync(id, cancellationToken);
-        public Task<IReadOnlyList<Category>> GetActiveCategoriesAsync(CancellationToken cancellationToken = default) => inner.GetActiveCategoriesAsync(cancellationToken);
+        public Task<IReadOnlyList<CategoryTreeRow>> GetAllAsync(CancellationToken cancellationToken = default) => inner.GetAllAsync(cancellationToken);
         public Task<bool> ExistsBySlugAsync(string slug, CancellationToken cancellationToken = default) => inner.ExistsBySlugAsync(slug, cancellationToken);
         public Task<IReadOnlyList<Guid>> GetDescendantIdsAsync(Guid id, CancellationToken cancellationToken = default) => inner.GetDescendantIdsAsync(id, cancellationToken);
         public Task AcquireHierarchyUpdateLockAsync(CancellationToken cancellationToken = default) => inner.AcquireHierarchyUpdateLockAsync(cancellationToken);

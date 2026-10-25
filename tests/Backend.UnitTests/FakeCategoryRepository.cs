@@ -16,12 +16,21 @@ public class FakeCategoryRepository : ICategoryRepository
     public Task<Category?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => GetByIdAsync(id, cancellationToken);
 
-    public Task<IReadOnlyList<Category>> GetActiveCategoriesAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<CategoryTreeRow>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<Category> active = Categories.Values
+        IReadOnlyList<CategoryTreeRow> rows = Categories.Values
             .OrderBy(c => c.Name)
+            .Select(c => new CategoryTreeRow(
+                c.Id,
+                c.Name,
+                c.Slug,
+                c.Description,
+                c.ParentId,
+                c.IsActive,
+                c.Products.Count,
+                c.Products.Sum(p => p.Variants.Count == 0 ? 1 : p.Variants.Count)))
             .ToList();
-        return Task.FromResult(active);
+        return Task.FromResult(rows);
     }
 
     public Task<bool> ExistsBySlugAsync(string slug, CancellationToken cancellationToken = default)

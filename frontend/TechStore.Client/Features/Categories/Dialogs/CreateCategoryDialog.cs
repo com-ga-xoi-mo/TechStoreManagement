@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using TechStore.Client.Features.Categories.ViewModels;
+using Uno.Extensions.Markup;
 using static TechStore.Client.Features.Categories.Pages.CategoryWorkspaceStyles;
 
 namespace TechStore.Client.Features.Categories.Dialogs;
@@ -234,23 +235,9 @@ public sealed class CreateCategoryDialog : ContentDialog
 
         var msgText = Text("", 13, ErrorText, 500);
         msgText.TextWrapping = TextWrapping.Wrap;
-        Bind(msgText, TextBlock.TextProperty, ViewModel, nameof(ViewModel.ErrorMessage));
+        msgText.Text(x => x.Binding(() => ViewModel.ErrorMessage));
         banner.Child = msgText;
-
-        void UpdateVisibility(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName is nameof(ViewModel.HasError) or nameof(ViewModel.ErrorMessage))
-            {
-                banner.Visibility = ViewModel.HasError ? Visibility.Visible : Visibility.Collapsed;
-            }
-        }
-
-        banner.Loaded += (_, _) =>
-        {
-            ViewModel.PropertyChanged += UpdateVisibility;
-            banner.Visibility = ViewModel.HasError ? Visibility.Visible : Visibility.Collapsed;
-        };
-        banner.Unloaded += (_, _) => ViewModel.PropertyChanged -= UpdateVisibility;
+        banner.Visibility(x => x.Binding(() => ViewModel.HasError).Convert(ShowIf));
 
         return banner;
     }
@@ -280,7 +267,7 @@ public sealed class CreateCategoryDialog : ContentDialog
         };
         slugStack.Children.Add(Text("Slug tự động: ", 12, Slate500, 400));
         var slugVal = Text("", 12, Primary, 600);
-        Bind(slugVal, TextBlock.TextProperty, ViewModel, nameof(ViewModel.AutoSlug));
+        slugVal.Text(x => x.Binding(() => ViewModel.AutoSlug));
         slugStack.Children.Add(slugVal);
         Grid.SetColumn(slugStack, 1);
         labelGrid.Children.Add(slugStack);
@@ -301,7 +288,7 @@ public sealed class CreateCategoryDialog : ContentDialog
             PlaceholderText = "Ví dụ: Tai nghe & Âm thanh, Đồng hồ thông minh...",
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        Bind(input, TextBox.TextProperty, ViewModel, nameof(ViewModel.Name), BindingMode.TwoWay);
+        input.Text(x => x.Binding(() => ViewModel.Name).Mode(BindingMode.TwoWay));
         panel.Children.Add(input);
 
         return panel;
@@ -322,7 +309,7 @@ public sealed class CreateCategoryDialog : ContentDialog
             ItemsSource = ViewModel.ParentOptions,
             DisplayMemberPath = nameof(ParentCategoryOption.DisplayName)
         };
-        Bind(combo, ComboBox.SelectedItemProperty, ViewModel, nameof(ViewModel.SelectedParentOption), BindingMode.TwoWay);
+        combo.SelectedItem(x => x.Binding(() => ViewModel.SelectedParentOption).Mode(BindingMode.TwoWay));
         panel.Children.Add(combo);
 
         panel.Children.Add(Text("Chọn danh mục cha để phân cấp phân loại hoặc giữ nguyên để làm danh mục gốc.", 12, Slate500, 400));
@@ -352,7 +339,7 @@ public sealed class CreateCategoryDialog : ContentDialog
             PlaceholderText = "VD: CAT-AUDIO-01",
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        Bind(codeInput, TextBox.TextProperty, ViewModel, nameof(ViewModel.ClientCode), BindingMode.TwoWay);
+        codeInput.Text(x => x.Binding(() => ViewModel.ClientCode).Mode(BindingMode.TwoWay));
         codePanel.Children.Add(codeInput);
         Grid.SetColumn(codePanel, 0);
         grid.Children.Add(codePanel);
@@ -382,21 +369,11 @@ public sealed class CreateCategoryDialog : ContentDialog
             Height = 26,
             CornerRadius = new CornerRadius(6),
             Background = Brush("#FFFFFF"),
-            Child = Icon(ViewModel.SelectedIcon, Primary, 16),
             VerticalAlignment = VerticalAlignment.Center
         };
+        iconBox.Child(x => x.Binding(() => ViewModel.SelectedIcon).Convert((string symbol) => Icon(symbol, Primary, 16)));
         var iconNameText = Text(ViewModel.SelectedIconLabel, 13, Slate900, 500);
-        Bind(iconNameText, TextBlock.TextProperty, ViewModel, nameof(ViewModel.SelectedIconLabel));
-
-        void UpdateIcon(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName is nameof(ViewModel.SelectedIcon) or nameof(ViewModel.SelectedIconLabel))
-            {
-                iconBox.Child = Icon(ViewModel.SelectedIcon, Primary, 16);
-            }
-        }
-        iconSelector.Loaded += (_, _) => ViewModel.PropertyChanged += UpdateIcon;
-        iconSelector.Unloaded += (_, _) => ViewModel.PropertyChanged -= UpdateIcon;
+        iconNameText.Text(x => x.Binding(() => ViewModel.SelectedIconLabel));
 
         iconPreviewStack.Children.Add(iconBox);
         iconPreviewStack.Children.Add(iconNameText);
@@ -409,10 +386,10 @@ public sealed class CreateCategoryDialog : ContentDialog
             CornerRadius = new CornerRadius(6),
             Background = Brush("#00000000"),
             BorderThickness = new Thickness(0),
-            Command = ViewModel.CycleIconCommand,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center
         };
+        cycleBtn.Command(x => x.Binding(() => ViewModel.CycleIconCommand));
         var cycleContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
         cycleContent.Children.Add(Icon("sync", Primary, 14));
         cycleContent.Children.Add(Text("Chọn icon", 12, Primary, 500));
@@ -460,7 +437,7 @@ public sealed class CreateCategoryDialog : ContentDialog
         input.Resources["TextControlBackgroundFocused"] = Brush("#00000000");
         input.Resources["TextControlBorderBrush"] = Brush("#00000000");
         input.Resources["TextControlBorderBrushFocused"] = Brush("#00000000");
-        Bind(input, NumberBox.ValueProperty, ViewModel, nameof(ViewModel.DisplayOrder), BindingMode.TwoWay);
+        input.Value(x => x.Binding(() => ViewModel.DisplayOrder).Mode(BindingMode.TwoWay));
         panel.Children.Add(input);
 
         return panel;
@@ -503,7 +480,7 @@ public sealed class CreateCategoryDialog : ContentDialog
             PlaceholderText = "Mô tả vắn tắt về danh mục sản phẩm, phục vụ tìm kiếm và quản lý nội bộ...",
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        Bind(input, TextBox.TextProperty, ViewModel, nameof(ViewModel.Description), BindingMode.TwoWay);
+        input.Text(x => x.Binding(() => ViewModel.Description).Mode(BindingMode.TwoWay));
         panel.Children.Add(input);
 
         return panel;
@@ -549,7 +526,7 @@ public sealed class CreateCategoryDialog : ContentDialog
         toggle.Resources["ToggleSwitchFillOffPressed"] = Brush("#64748B");
         toggle.Resources["ToggleSwitchThumbFillOn"] = Brush("#FFFFFF");
         toggle.Resources["ToggleSwitchThumbFillOff"] = Brush("#FFFFFF");
-        Bind(toggle, ToggleSwitch.IsOnProperty, ViewModel, nameof(ViewModel.IsActive), BindingMode.TwoWay);
+        toggle.IsOn(x => x.Binding(() => ViewModel.IsActive).Mode(BindingMode.TwoWay));
         Grid.SetColumn(toggle, 1);
         grid.Children.Add(toggle);
 
@@ -626,7 +603,7 @@ public sealed class CreateCategoryDialog : ContentDialog
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left
         };
-        Bind(keepCreatingCheck, CheckBox.IsCheckedProperty, ViewModel, nameof(ViewModel.KeepCreating), BindingMode.TwoWay);
+        keepCreatingCheck.IsChecked(x => x.Binding(() => ViewModel.KeepCreating).Mode(BindingMode.TwoWay));
         Grid.SetColumn(keepCreatingCheck, 0);
         footerGrid.Children.Add(keepCreatingCheck);
 
@@ -659,9 +636,9 @@ public sealed class CreateCategoryDialog : ContentDialog
             BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(18, 9, 18, 9),
-            Height = 40,
-            Command = ViewModel.SaveCommand
+            Height = 40
         };
+        saveBtn.Command(x => x.Binding(() => ViewModel.SaveCommand));
         saveBtn.Resources["ButtonBackgroundPointerOver"] = Brush("#1D4ED8");
         saveBtn.Resources["ButtonBackgroundPressed"] = Brush("#1E40AF");
         // WinUI applies its disabled visual state when SaveCommand.CanExecute is
@@ -677,29 +654,13 @@ public sealed class CreateCategoryDialog : ContentDialog
         {
             Width = 16,
             Height = 16,
-            IsActive = false,
-            Foreground = Brush("#FFFFFF"),
-            Visibility = Visibility.Collapsed
+            Foreground = Brush("#FFFFFF")
         };
+        ring.IsActive(x => x.Binding(() => ViewModel.IsBusy));
+        ring.Visibility(x => x.Binding(() => ViewModel.IsBusy).Convert(ShowIf));
         var addIcon = Icon("add", "#FFFFFF", 16);
+        addIcon.Visibility(x => x.Binding(() => ViewModel.IsBusy).Convert((bool busy) => busy ? Visibility.Collapsed : Visibility.Visible));
         var addText = Text("Thêm danh mục", 14, "#FFFFFF", 600);
-
-        void UpdateBusyState(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(ViewModel.IsBusy))
-            {
-                ring.IsActive = ViewModel.IsBusy;
-                ring.Visibility = ViewModel.IsBusy ? Visibility.Visible : Visibility.Collapsed;
-                addIcon.Visibility = ViewModel.IsBusy ? Visibility.Collapsed : Visibility.Visible;
-            }
-        }
-
-        saveBtn.Loaded += (_, _) =>
-        {
-            ViewModel.PropertyChanged += UpdateBusyState;
-            UpdateBusyState(null, new(nameof(ViewModel.IsBusy)));
-        };
-        saveBtn.Unloaded += (_, _) => ViewModel.PropertyChanged -= UpdateBusyState;
 
         saveContent.Children.Add(ring);
         saveContent.Children.Add(addIcon);

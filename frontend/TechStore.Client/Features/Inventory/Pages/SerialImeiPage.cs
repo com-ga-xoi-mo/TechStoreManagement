@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Data;
 using TechStore.Client.Features.Categories.Pages;
 using TechStore.Client.Features.Inventory.ViewModels;
 using TechStore.Shared.DTOs;
+using Uno.Extensions.Markup;
 using static TechStore.Client.Features.Categories.Pages.CategoryWorkspaceStyles;
 
 namespace TechStore.Client.Features.Inventory.Pages;
@@ -41,7 +42,7 @@ public sealed class SerialImeiPage : Page
             PlaceholderText = "Tìm theo Serial, IMEI hoặc sản phẩm"
         };
         AutomationProperties.SetName(search, "Tìm theo Serial, IMEI hoặc sản phẩm");
-        Bind(search, TextBox.TextProperty, ViewModel, nameof(ViewModel.SearchText), BindingMode.TwoWay);
+        search.Text(x => x.Binding(() => ViewModel.SearchText).Mode(BindingMode.TwoWay));
         var searchSlot = new Grid();
         searchSlot.Children.Add(search);
         var searchIcon = Icon("search", "#94A3B8", 18);
@@ -59,7 +60,7 @@ public sealed class SerialImeiPage : Page
             ItemsSource = ViewModel.StatusOptions, DisplayMemberPath = nameof(SerialImeiStatusOption.Label),
             SelectedValuePath = nameof(SerialImeiStatusOption.Value)
         };
-        Bind(status, ComboBox.SelectedValueProperty, ViewModel, nameof(ViewModel.StatusFilter), BindingMode.TwoWay);
+        status.SelectedValue(x => x.Binding(() => ViewModel.StatusFilter).Mode(BindingMode.TwoWay));
         Grid.SetColumn(status, 1);
         grid.Children.Add(status);
         return grid;
@@ -68,7 +69,7 @@ public sealed class SerialImeiPage : Page
     private UIElement BuildCard()
     {
         var table = new SerialRows();
-        Bind(table, ItemsControl.ItemsSourceProperty, ViewModel, nameof(ViewModel.Items));
+        table.ItemsSource(x => x.Binding(() => ViewModel.Items));
         var body = new StackPanel();
         body.Children.Add(new ScrollViewer
         {
@@ -78,20 +79,20 @@ public sealed class SerialImeiPage : Page
         });
         var states = new Grid { MinHeight = 72, Padding = new Thickness(24) };
         var busy = new ProgressRing { Width = 24, Height = 24, Foreground = Brush(Primary), IsActive = true, HorizontalAlignment = HorizontalAlignment.Center };
-        Bind(busy, VisibilityProperty, ViewModel, nameof(ViewModel.IsLoading), converter: new VisibilityConverter());
+        busy.Visibility(x => x.Binding(() => ViewModel.IsLoading).Convert(ShowIf));
         states.Children.Add(busy);
         var empty = Text("Chưa có Serial / IMEI phù hợp.", color: Slate500);
         empty.HorizontalAlignment = HorizontalAlignment.Center;
-        Bind(empty, VisibilityProperty, ViewModel, nameof(ViewModel.IsEmpty), converter: new VisibilityConverter());
+        empty.Visibility(x => x.Binding(() => ViewModel.IsEmpty).Convert(ShowIf));
         states.Children.Add(empty);
         var error = Text(color: "#B91C1C");
         error.HorizontalAlignment = HorizontalAlignment.Center;
-        Bind(error, TextBlock.TextProperty, ViewModel, nameof(ViewModel.ErrorMessage));
-        Bind(error, VisibilityProperty, ViewModel, nameof(ViewModel.HasError), converter: new VisibilityConverter());
+        error.Text(x => x.Binding(() => ViewModel.ErrorMessage));
+        error.Visibility(x => x.Binding(() => ViewModel.HasError).Convert(ShowIf));
         states.Children.Add(error);
         body.Children.Add(states);
         var footer = Text(color: Slate500);
-        Bind(footer, TextBlock.TextProperty, ViewModel, nameof(ViewModel.FooterText));
+        footer.Text(x => x.Binding(() => ViewModel.FooterText));
         body.Children.Add(new Border { Background = Brush(Slate50), Padding = new Thickness(16), Child = new ResponsivePair(footer, new SerialPageButtons(ViewModel)) });
         return new Border { Child = body, Background = Brush("#FFFFFF"), BorderBrush = Brush(Slate200), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Shadow = new ThemeShadow() };
     }
@@ -172,19 +173,19 @@ internal sealed class SerialPageButtons : StackPanel
     {
         Children.Clear();
         var previous = Button(Icon("left", size: 18), tooltip: "Trang trước");
-        previous.Command = _viewModel.PreviousPageCommand;
-        Bind(previous, Control.IsEnabledProperty, _viewModel, nameof(_viewModel.CanGoPrevious));
+        previous.Command(x => x.Binding(() => _viewModel.PreviousPageCommand));
+        previous.IsEnabled(x => x.Binding(() => _viewModel.CanGoPrevious));
         Children.Add(previous);
         foreach (var page in _viewModel.PageNumbers)
         {
             var button = Button(Text(page.ToString(), 12, Slate500, 600), tooltip: $"Trang {page}");
-            button.Command = _viewModel.GoToPageCommand;
+            button.Command(x => x.Binding(() => _viewModel.GoToPageCommand));
             button.CommandParameter = page;
             Children.Add(button);
         }
         var next = Button(Icon("right", size: 18), tooltip: "Trang sau");
-        next.Command = _viewModel.NextPageCommand;
-        Bind(next, Control.IsEnabledProperty, _viewModel, nameof(_viewModel.CanGoNext));
+        next.Command(x => x.Binding(() => _viewModel.NextPageCommand));
+        next.IsEnabled(x => x.Binding(() => _viewModel.CanGoNext));
         Children.Add(next);
     }
 }

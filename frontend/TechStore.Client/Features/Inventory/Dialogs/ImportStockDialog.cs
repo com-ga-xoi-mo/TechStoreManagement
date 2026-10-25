@@ -89,7 +89,7 @@ public sealed class ImportStockDialog : ContentDialog
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.Children.Add(title);
         var close = Button(Icon("close", Slate500, 20), tooltip: "Đóng nhập kho");
-        close.Command = ViewModel.CloseCommand;
+        close.Command(x => x.Binding(() => ViewModel.CloseCommand));
         Grid.SetColumn(close, 1);
         header.Children.Add(close);
         return header;
@@ -108,12 +108,12 @@ public sealed class ImportStockDialog : ContentDialog
             HorizontalContentAlignment = HorizontalAlignment.Left,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        Bind(productPicker, ItemsControl.ItemsSourceProperty, ViewModel, nameof(ViewModel.ProductOptions));
-        Bind(productPicker, ComboBox.SelectedItemProperty, ViewModel, nameof(ViewModel.SelectedProduct), BindingMode.TwoWay);
+        productPicker.ItemsSource(x => x.Binding(() => ViewModel.ProductOptions));
+        productPicker.SelectedItem(x => x.Binding(() => ViewModel.SelectedProduct).Mode(BindingMode.TwoWay));
         body.Children.Add(productPicker);
 
         var productMeta = Text("", 12, Slate500);
-        Bind(productMeta, TextBlock.TextProperty, ViewModel, nameof(ViewModel.ProductMetaText));
+        productMeta.Text(x => x.Binding(() => ViewModel.ProductMetaText));
         body.Children.Add(productMeta);
 
         var variantPicker = new ComboBox
@@ -124,9 +124,9 @@ public sealed class ImportStockDialog : ContentDialog
             HorizontalContentAlignment = HorizontalAlignment.Left,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        Bind(variantPicker, ItemsControl.ItemsSourceProperty, ViewModel, nameof(ViewModel.VariantOptions));
-        Bind(variantPicker, ComboBox.SelectedItemProperty, ViewModel, nameof(ViewModel.SelectedVariant), BindingMode.TwoWay);
-        Bind(variantPicker, UIElement.VisibilityProperty, ViewModel, nameof(ViewModel.HasVariants), converter: new VisibilityConverter());
+        variantPicker.ItemsSource(x => x.Binding(() => ViewModel.VariantOptions));
+        variantPicker.SelectedItem(x => x.Binding(() => ViewModel.SelectedVariant).Mode(BindingMode.TwoWay));
+        variantPicker.Visibility(x => x.Binding(() => ViewModel.HasVariants).Convert(ShowIf));
         body.Children.Add(variantPicker);
 
         body.Children.Add(RequiredLabel("Số lượng nhập kho"));
@@ -138,7 +138,7 @@ public sealed class ImportStockDialog : ContentDialog
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Hidden,
             HorizontalContentAlignment = HorizontalAlignment.Left
         };
-        Bind(quantity, NumberBox.ValueProperty, ViewModel, nameof(ViewModel.Quantity), BindingMode.TwoWay);
+        quantity.Value(x => x.Binding(() => ViewModel.Quantity).Mode(BindingMode.TwoWay));
         body.Children.Add(quantity);
 
         var serialHeader = new Grid();
@@ -146,7 +146,7 @@ public sealed class ImportStockDialog : ContentDialog
         serialHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         serialHeader.Children.Add(Text("Danh sách Serial / IMEI", 13, Slate900, 600));
         var serialCount = Text("", 12, Slate500);
-        Bind(serialCount, TextBlock.TextProperty, ViewModel, nameof(ViewModel.SerialCountText));
+        serialCount.Text(x => x.Binding(() => ViewModel.SerialCountText));
         Grid.SetColumn(serialCount, 1);
         serialHeader.Children.Add(serialCount);
         body.Children.Add(serialHeader);
@@ -159,7 +159,7 @@ public sealed class ImportStockDialog : ContentDialog
             TextWrapping = TextWrapping.Wrap,
             PlaceholderText = "Mỗi mã một dòng (không bắt buộc)..."
         };
-        Bind(serials, TextBox.TextProperty, ViewModel, nameof(ViewModel.SerialLines), BindingMode.TwoWay);
+        serials.Text(x => x.Binding(() => ViewModel.SerialLines).Mode(BindingMode.TwoWay));
         body.Children.Add(serials);
         body.Children.Add(Text("Nếu nhập Serial/IMEI, số mã phải khớp với số lượng tồn ban đầu.", 11, Slate500));
 
@@ -169,19 +169,19 @@ public sealed class ImportStockDialog : ContentDialog
             Height = 42,
             PlaceholderText = "Ví dụ: Nhập lô hàng đầu kỳ từ kho tổng..."
         };
-        Bind(reason, TextBox.TextProperty, ViewModel, nameof(ViewModel.Reason), BindingMode.TwoWay);
+        reason.Text(x => x.Binding(() => ViewModel.Reason).Mode(BindingMode.TwoWay));
         body.Children.Add(reason);
 
         var validation = Text("", 12, "#DC2626");
         validation.TextWrapping = TextWrapping.Wrap;
-        Bind(validation, TextBlock.TextProperty, ViewModel, nameof(ViewModel.ValidationMessage));
-        Bind(validation, VisibilityProperty, ViewModel, nameof(ViewModel.HasValidationError), converter: new VisibilityConverter());
+        validation.Text(x => x.Binding(() => ViewModel.ValidationMessage));
+        validation.Visibility(x => x.Binding(() => ViewModel.HasValidationError).Convert(ShowIf));
         body.Children.Add(validation);
 
         var error = Text("", 12, "#DC2626");
         error.TextWrapping = TextWrapping.Wrap;
-        Bind(error, TextBlock.TextProperty, ViewModel, nameof(ViewModel.ErrorMessage));
-        Bind(error, VisibilityProperty, ViewModel, nameof(ViewModel.HasError), converter: new VisibilityConverter());
+        error.Text(x => x.Binding(() => ViewModel.ErrorMessage));
+        error.Visibility(x => x.Binding(() => ViewModel.HasError).Convert(ShowIf));
         body.Children.Add(error);
         return body;
     }
@@ -200,9 +200,9 @@ public sealed class ImportStockDialog : ContentDialog
         var cancel = Button(Text("Hủy", 14, Slate500, 500));
         cancel.Height = 36;
         cancel.Padding = new Thickness(16, 0, 16, 0);
-        cancel.Command = ViewModel.CloseCommand;
+        cancel.Command(x => x.Binding(() => ViewModel.CloseCommand));
         var busy = new ProgressRing { Width = 16, Height = 16, IsActive = true };
-        Bind(busy, VisibilityProperty, ViewModel, nameof(ViewModel.IsBusy), converter: new VisibilityConverter());
+        busy.Visibility(x => x.Binding(() => ViewModel.IsBusy).Convert(ShowIf));
         var saveContent = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -215,8 +215,8 @@ public sealed class ImportStockDialog : ContentDialog
         save.Padding = new Thickness(20, 0, 20, 0);
         save.Background = Brush(Primary);
         save.Foreground = Brush("#FFFFFF");
-        save.Command = ViewModel.ConfirmCommand;
-        Bind(save, Control.IsEnabledProperty, ViewModel, nameof(ViewModel.CanSubmit));
+        save.Command(x => x.Binding(() => ViewModel.ConfirmCommand));
+        save.IsEnabled(x => x.Binding(() => ViewModel.CanSubmit));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { cancel, save } };
         Grid.SetColumn(buttons, 1);
         footer.Children.Add(buttons);

@@ -57,7 +57,7 @@ public sealed class StockAdjustmentDialog : ContentDialog
         var header = new Grid { Padding = new Thickness(16, 12, 12, 8), BorderBrush = Brush("#E0E3E5"), BorderThickness = new Thickness(0, 0, 0, 1) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.Children.Add(Text("Điều chỉnh tồn kho", 16, Slate900, 600));
-        var close = Button(Icon("close", Slate500, 20), tooltip: "Đóng điều chỉnh tồn kho"); close.Command = ViewModel.CloseCommand; Grid.SetColumn(close, 1); header.Children.Add(close);
+        var close = Button(Icon("close", Slate500, 20), tooltip: "Đóng điều chỉnh tồn kho"); close.Command(x => x.Binding(() => ViewModel.CloseCommand)); Grid.SetColumn(close, 1); header.Children.Add(close);
         return header;
     }
 
@@ -73,10 +73,13 @@ public sealed class StockAdjustmentDialog : ContentDialog
         body.Children.Add(BuildAmountInput());
         body.Children.Add(RequiredLabel("Lý do"));
         var reason = new TextBox { MinHeight = 64, MaxLength = 200, TextWrapping = TextWrapping.Wrap, AcceptsReturn = true, PlaceholderText = "Nhập lý do điều chỉnh kho..." };
-        Bind(reason, TextBox.TextProperty, ViewModel, nameof(ViewModel.Reason), BindingMode.TwoWay); body.Children.Add(reason);
+        reason.Text(x => x.Binding(() => ViewModel.Reason).Mode(BindingMode.TwoWay)); body.Children.Add(reason);
         body.Children.Add(Text("Lý do sẽ được ghi vào lịch sử biến động kho", 11, Slate500));
         body.Children.Add(BuildPreview());
-        var error = Text("", 12, "#DC2626"); Bind(error, TextBlock.TextProperty, ViewModel, nameof(ViewModel.ErrorMessage)); Bind(error, VisibilityProperty, ViewModel, nameof(ViewModel.HasError), converter: new VisibilityConverter()); body.Children.Add(error);
+        var error = Text("", 12, "#DC2626");
+        error.Text(x => x.Binding(() => ViewModel.ErrorMessage));
+        error.Visibility(x => x.Binding(() => ViewModel.HasError).Convert(ShowIf));
+        body.Children.Add(error);
         return body;
     }
 
@@ -122,22 +125,24 @@ public sealed class StockAdjustmentDialog : ContentDialog
         add.HorizontalAlignment = HorizontalAlignment.Stretch;
         add.HorizontalContentAlignment = HorizontalAlignment.Center;
         add.Padding = new Thickness(12, 0, 12, 0);
-        add.Command = ViewModel.SetIncreaseCommand;
+        add.Command(x => x.Binding(() => ViewModel.SetIncreaseCommand));
+        add.Background(x => x.Binding(() => ViewModel.IsIncrease).Convert((bool increase) => increase ? Brush("#2563EB") : Brush("#F1F3F5")));
+        add.Foreground(x => x.Binding(() => ViewModel.IsIncrease).Convert((bool increase) => increase ? Brush("#FFFFFF") : Brush(Slate500)));
         var decrease = Button(Text("Giảm tồn", 14, Slate500, 600));
         decrease.Height = 32;
         decrease.HorizontalAlignment = HorizontalAlignment.Stretch;
         decrease.HorizontalContentAlignment = HorizontalAlignment.Center;
         decrease.Padding = new Thickness(12, 0, 12, 0);
-        decrease.Command = ViewModel.SetDecreaseCommand;
-        Bind(add, Control.BackgroundProperty, ViewModel, nameof(ViewModel.IsIncrease), converter: new SegmentBackgroundConverter(true)); Bind(add, Control.ForegroundProperty, ViewModel, nameof(ViewModel.IsIncrease), converter: new SegmentForegroundConverter(true));
-        Bind(decrease, Control.BackgroundProperty, ViewModel, nameof(ViewModel.IsIncrease), converter: new SegmentBackgroundConverter(false)); Bind(decrease, Control.ForegroundProperty, ViewModel, nameof(ViewModel.IsIncrease), converter: new SegmentForegroundConverter(false));
+        decrease.Command(x => x.Binding(() => ViewModel.SetDecreaseCommand));
+        decrease.Background(x => x.Binding(() => ViewModel.IsIncrease).Convert((bool increase) => !increase ? Brush("#2563EB") : Brush("#F1F3F5")));
+        decrease.Foreground(x => x.Binding(() => ViewModel.IsIncrease).Convert((bool increase) => !increase ? Brush("#FFFFFF") : Brush(Slate500)));
         grid.Children.Add(add); Grid.SetColumn(decrease, 1); grid.Children.Add(decrease); return grid;
     }
 
     private Grid BuildAmountInput()
     {
         var amount = new NumberBox { Minimum = 0, Maximum = 1000000, Height = 40, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Hidden, HorizontalContentAlignment = HorizontalAlignment.Left };
-        Bind(amount, NumberBox.ValueProperty, ViewModel, nameof(ViewModel.Amount), BindingMode.TwoWay);
+        amount.Value(x => x.Binding(() => ViewModel.Amount).Mode(BindingMode.TwoWay));
         var grid = new Grid(); grid.Children.Add(amount);
         var unit = Text("sản phẩm", 13, Slate500, 500); unit.HorizontalAlignment = HorizontalAlignment.Right; unit.Margin = new Thickness(0, 0, 14, 0); unit.IsHitTestVisible = false; grid.Children.Add(unit); return grid;
     }
@@ -162,7 +167,7 @@ public sealed class StockAdjustmentDialog : ContentDialog
     {
         var footer = new Grid { Padding = new Thickness(16, 8, 16, 8), Background = Brush("#F2F4F6"), BorderBrush = Brush("#E0E3E5"), BorderThickness = new Thickness(0, 1, 0, 0) };
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var cancel = Button(Text("Hủy", 14, Slate500, 500)); cancel.Height = 36; cancel.Padding = new Thickness(16, 0, 16, 0); cancel.Command = ViewModel.CloseCommand;
+        var cancel = Button(Text("Hủy", 14, Slate500, 500)); cancel.Height = 36; cancel.Padding = new Thickness(16, 0, 16, 0); cancel.Command(x => x.Binding(() => ViewModel.CloseCommand));
         var save = Button(Text("Xác nhận", 14, "#FFFFFF", 500), primary: true);
         save.Height = 36;
         save.Padding = new Thickness(20, 0, 20, 0);
@@ -171,22 +176,15 @@ public sealed class StockAdjustmentDialog : ContentDialog
         save.Resources["ButtonBackgroundPointerOver"] = Brush("#1D4ED8");
         save.Resources["ButtonBackgroundPressed"] = Brush("#1E40AF");
         save.Resources["ButtonForegroundPointerOver"] = Brush("#FFFFFF");
-        save.Command = ViewModel.ConfirmCommand;
-        Bind(save, Control.IsEnabledProperty, ViewModel, nameof(ViewModel.CanSubmit));
+        save.Command(x => x.Binding(() => ViewModel.ConfirmCommand));
+        save.IsEnabled(x => x.Binding(() => ViewModel.CanSubmit));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { cancel, save } }; Grid.SetColumn(buttons, 1); footer.Children.Add(buttons); return footer;
     }
 
-    private TextBlock BoundText(string path, double size, string color, ushort weight = 400) { var text = Text("", size, color, weight); Bind(text, TextBlock.TextProperty, ViewModel, path); return text; }
-}
-
-internal sealed class SegmentBackgroundConverter(bool increase) : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language) => value is bool active && active == increase ? Brush("#2563EB") : Brush("#F1F3F5");
-    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
-}
-
-internal sealed class SegmentForegroundConverter(bool increase) : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language) => value is bool active && active == increase ? Brush("#FFFFFF") : Brush(Slate500);
-    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
+    private TextBlock BoundText(string path, double size, string color, ushort weight = 400)
+    {
+        var text = Text("", size, color, weight);
+        text.Text(x => x.Binding<StockAdjustmentDialogViewModel>(path));
+        return text;
+    }
 }

@@ -1,7 +1,6 @@
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 using Windows.UI.Text;
@@ -43,13 +42,7 @@ internal static class CategoryWorkspaceStyles
         TextTrimming = TextTrimming.CharacterEllipsis
     };
 
-    internal static void Bind(DependencyObject target, DependencyProperty property, object source, string path,
-        BindingMode mode = BindingMode.OneWay, IValueConverter? converter = null) =>
-        BindingOperations.SetBinding(target, property, new Binding
-        {
-            Source = source, Path = new PropertyPath(path), Mode = mode, Converter = converter,
-            UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
-        });
+    internal static Visibility ShowIf(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
 
     internal static Border Badge(UIElement content, string background, string border = "#00000000") => new()
     {
@@ -145,18 +138,6 @@ internal static class CategoryWorkspaceStyles
         }
         return new Viewbox { Width = size, Height = size, Child = canvas, VerticalAlignment = VerticalAlignment.Center };
     }
-}
-
-internal sealed class VisibilityConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language) => value is true ? Visibility.Visible : Visibility.Collapsed;
-    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
-}
-
-internal sealed class ExpansionAngleConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language) => value is true ? 90d : 0d;
-    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
 }
 
 /// <summary>View-only reflow corresponding to the HTML's sm:flex-row breakpoint.</summary>

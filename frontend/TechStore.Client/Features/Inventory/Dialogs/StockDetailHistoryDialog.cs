@@ -68,7 +68,7 @@ public sealed class StockDetailHistoryDialog : ContentDialog
         chips.Children.Add(Text("·", 14, Slate500));
         chips.Children.Add(Badge(BoundText(nameof(ViewModel.CategoryName), 13, Slate500, 500), "#E5E7EB"));
         var copy = new StackPanel { Spacing = 0, Children = { titleLine, chips } };
-        var close = Button(Icon("close", Slate500, 21), tooltip: "Đóng chi tiết tồn kho"); close.Command = ViewModel.CloseCommand;
+        var close = Button(Icon("close", Slate500, 21), tooltip: "Đóng chi tiết tồn kho"); close.Command(x => x.Binding(() => ViewModel.CloseCommand));
         var header = new Grid { Padding = new Thickness(24, 16, 16, 16), Background = Brush("#FFFFFF") };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.Children.Add(copy); Grid.SetColumn(close, 1); header.Children.Add(close); return header;
@@ -142,12 +142,14 @@ public sealed class StockDetailHistoryDialog : ContentDialog
         history.Children.Add(new Border { BorderBrush = Brush(Slate200), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), Child = BuildMovementTable() });
         var serials = Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { Icon("qr_code", Primary, 16), BoundText(nameof(ViewModel.SerialsLinkText), 12, Primary, 600), Icon("right", Primary, 16) } });
         serials.HorizontalAlignment = HorizontalAlignment.Left;
-        serials.Command = ViewModel.RequestSerialsCommand;
+        serials.Command(x => x.Binding(() => ViewModel.RequestSerialsCommand));
         var serialFooter = new Grid { Margin = new Thickness(0, 0, 0, 2) };
         serialFooter.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         serialFooter.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         serialFooter.Children.Add(serials);
-        var shown = Text("", 12, Slate500); Bind(shown, TextBlock.TextProperty, ViewModel, nameof(ViewModel.MovementSummaryText)); Grid.SetColumn(shown, 1); serialFooter.Children.Add(shown);
+        var shown = Text("", 12, Slate500);
+        shown.Text(x => x.Binding(() => ViewModel.MovementSummaryText));
+        Grid.SetColumn(shown, 1); serialFooter.Children.Add(shown);
         history.Children.Add(serialFooter);
         return new Border { Background = Brush("#FFFFFF"), CornerRadius = new CornerRadius(12), Padding = new Thickness(16), Child = history };
     }
@@ -183,19 +185,29 @@ public sealed class StockDetailHistoryDialog : ContentDialog
 
     private static void AddBound(Grid row, string path, int column, IValueConverter? converter = null, IValueConverter? foregroundConverter = null)
     {
-        var text = Text("—", 13, Slate500); text.SetBinding(TextBlock.TextProperty, new Binding { Path = new PropertyPath(path), Mode = BindingMode.OneWay, Converter = converter });
-        if (foregroundConverter is not null) text.SetBinding(TextBlock.ForegroundProperty, new Binding { Path = new PropertyPath(path), Mode = BindingMode.OneWay, Converter = foregroundConverter });
+        var text = Text("—", 13, Slate500);
+        if (converter is null)
+            text.Text(x => x.Binding<InventoryMovementDto>(path));
+        else
+            text.Text(x => x.Binding<InventoryMovementDto>(path).Converter(converter));
+        if (foregroundConverter is not null)
+            text.Foreground(x => x.Binding<InventoryMovementDto>(path).Converter(foregroundConverter));
         Grid.SetColumn(text, column); row.Children.Add(text);
     }
 
-    private TextBlock BoundText(string path, double size, string color, ushort weight = 400) { var text = Text("", size, color, weight); Bind(text, TextBlock.TextProperty, ViewModel, path); return text; }
+    private TextBlock BoundText(string path, double size, string color, ushort weight = 400)
+    {
+        var text = Text("", size, color, weight);
+        text.Text(x => x.Binding<StockDetailHistoryDialogViewModel>(path));
+        return text;
+    }
 
     private Grid BuildFooter()
     {
         var footer = new Grid { Padding = new Thickness(24, 8, 24, 8), Background = Brush("#F2F4F6"), BorderBrush = Brush("#E0E3E5"), BorderThickness = new Thickness(0, 1, 0, 0) };
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); footer.Children.Add(BoundText(nameof(ViewModel.LastUpdatedText), 13, Slate500));
-        var adjust = Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { Icon("tune", Slate900, 18), Text("Điều chỉnh tồn kho", 14, Slate900, 600) } }); adjust.Command = ViewModel.RequestAdjustmentCommand;
-        var close = Button(Text("Đóng", 14, "#FFFFFF", 600), primary: true); close.Command = ViewModel.CloseCommand;
+        var adjust = Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { Icon("tune", Slate900, 18), Text("Điều chỉnh tồn kho", 14, Slate900, 600) } }); adjust.Command(x => x.Binding(() => ViewModel.RequestAdjustmentCommand));
+        var close = Button(Text("Đóng", 14, "#FFFFFF", 600), primary: true); close.Command(x => x.Binding(() => ViewModel.CloseCommand));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { adjust, close } }; Grid.SetColumn(buttons, 1); footer.Children.Add(buttons); return footer;
     }
 }

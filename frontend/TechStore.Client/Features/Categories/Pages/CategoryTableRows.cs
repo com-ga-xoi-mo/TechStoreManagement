@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.ViewModels;
+using Uno.Extensions.Markup;
 using static TechStore.Client.Features.Categories.Pages.CategoryWorkspaceStyles;
 
 namespace TechStore.Client.Features.Categories.Pages;
@@ -53,15 +54,19 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
         }
         if (!row.IsRoot) AddNamePart(Text("↳", 14, "#94A3B8"));
         var chevron = Icon("right", "#94A3B8", 18);
-        var rotation = new RotateTransform { CenterX = 9, CenterY = 9 };
-        chevron.RenderTransform = rotation;
-        Bind(rotation, RotateTransform.AngleProperty, row, nameof(row.IsExpanded), converter: new ExpansionAngleConverter());
+        chevron.DataContext = row;
+        chevron.RenderTransform(x => x.Binding(() => row.IsExpanded)
+            .Convert((bool expanded) => (Transform)new RotateTransform { Angle = expanded ? 90d : 0d, CenterX = 9, CenterY = 9 }));
         var expand = Button(chevron, tooltip: $"Mở hoặc thu gọn {row.Name}");
         expand.Width = expand.Height = 24;
         expand.Padding = new Thickness(3);
-        expand.Command = viewModel.ToggleExpansionCommand;
+        expand.DataContext = viewModel;
+        expand.Command(x => x.Binding(() => viewModel.ToggleExpansionCommand));
         expand.CommandParameter = row;
-        Bind(expand, IsEnabledProperty, row, nameof(row.CanToggle));
+        // The expand button is the only element in a row that needs both the row and
+        // the workspace ViewModel, so its enabled state keeps the platform binding.
+        BindingOperations.SetBinding(expand, IsEnabledProperty,
+            new Binding { Source = row, Path = new PropertyPath(nameof(row.CanToggle)) });
         expand.Visibility = row.HasChildren ? Visibility.Visible : Visibility.Collapsed;
         // Roots without children keep the name aligned with expandable root rows.
         if (row.IsRoot || row.HasChildren)
@@ -76,16 +81,19 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
                 BorderBrush = Brush(row.Icon.Border), BorderThickness = new Thickness(1), Child = Icon(row.Icon.Symbol, row.Icon.Foreground)
             });
         var nameText = Text(size: 14, color: row.IsRoot ? Slate900 : "#1E293B", weight: row.IsRoot ? (ushort)600 : (ushort)500);
-        Bind(nameText, TextBlock.TextProperty, row, nameof(row.Name));
+        nameText.DataContext = row;
+        nameText.Text(x => x.Binding(() => row.Name));
         ToolTipService.SetToolTip(nameText, row.Name);
         AddNamePart(nameText, fill: true);
         AddCell(grid, name, 0, row, row.IsRoot ? 16 : 48 + (row.Depth - 1) * 24);
         var parent = Text(size: 12, color: row.IsRoot ? "#475569" : Slate500, weight: row.IsRoot ? (ushort)500 : (ushort)400);
-        Bind(parent, TextBlock.TextProperty, row, nameof(row.ParentName));
+        parent.DataContext = row;
+        parent.Text(x => x.Binding(() => row.ParentName));
         AddCell(grid, row.IsRoot ? Badge(parent, "#F1F5F9") : parent, 1, row);
         var count = Text(size: 14, color: row.IsRoot ? Slate900 : "#475569", weight: row.IsRoot ? (ushort)500 : (ushort)400);
         count.HorizontalAlignment = HorizontalAlignment.Center;
-        Bind(count, TextBlock.TextProperty, row, nameof(row.CountText));
+        count.DataContext = row;
+        count.Text(x => x.Binding(() => row.CountText));
         AddCell(grid, count, 2, row);
         var status = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center };
         var trackWidth = row.IsRoot ? 36 : 28;
@@ -113,9 +121,10 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
             MinWidth = 0,
             MinHeight = 0,
             IsTabStop = true,
-            Command = viewModel.ToggleStatusCommand,
-            CommandParameter = row
+            CommandParameter = row,
+            DataContext = viewModel
         };
+        statusButton.Command(x => x.Binding(() => viewModel.ToggleStatusCommand));
         ToolTipService.SetToolTip(statusButton, $"Đổi trạng thái {row.Name}");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(statusButton, $"Đổi trạng thái {row.Name}");
         statusButton.Resources["ButtonBackgroundPointerOver"] = Brush("#00000000");
@@ -123,10 +132,12 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
         AddCell(grid, statusButton, 3, row);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Right };
         var edit = Button(Icon("edit", "#475569", row.IsRoot ? 18 : 16), tooltip: $"Sửa {row.Name}");
-        edit.Command = viewModel.EditCategoryCommand;
+        edit.DataContext = viewModel;
+        edit.Command(x => x.Binding(() => viewModel.EditCategoryCommand));
         edit.CommandParameter = row;
         var delete = Button(Icon("delete", "#94A3B8", row.IsRoot ? 18 : 16), tooltip: $"Xóa {row.Name}");
-        delete.Command = viewModel.DeleteCategoryCommand;
+        delete.DataContext = viewModel;
+        delete.Command(x => x.Binding(() => viewModel.DeleteCategoryCommand));
         delete.CommandParameter = row;
         delete.Resources["ButtonBackgroundPointerOver"] = Brush("#FEF2F2");
         delete.PointerEntered += (_, _) => delete.Content = Icon("delete", "#DC2626", row.IsRoot ? 18 : 16);

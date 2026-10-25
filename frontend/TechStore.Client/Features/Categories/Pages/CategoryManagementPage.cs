@@ -17,6 +17,7 @@ using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.Views.Shell;
 using TechStore.Shared.DTOs;
+using Uno.Extensions.Markup;
 using static TechStore.Client.Features.Categories.Pages.CategoryWorkspaceStyles;
 
 namespace TechStore.Client.Features.Categories.Pages;
@@ -79,12 +80,14 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         var categoryContent = new StackPanel { Spacing = 24 };
         categoryContent.Children.Add(BuildFilters());
         categoryContent.Children.Add(BuildCard());
-        Bind(categoryContent, VisibilityProperty, ViewModel, nameof(ViewModel.IsCategoryTab), converter: new VisibilityConverter());
+        categoryContent.Visibility(x => x.Binding(() => ViewModel.IsCategoryTab).Convert(ShowIf));
         workspace.Children.Add(categoryContent);
-        Bind(_inventoryStockPage, VisibilityProperty, ViewModel, nameof(ViewModel.IsInventoryTab), converter: new VisibilityConverter());
-        workspace.Children.Add(_inventoryStockPage);
-        Bind(_serialImeiPage, VisibilityProperty, ViewModel, nameof(ViewModel.IsSerialTab), converter: new VisibilityConverter());
-        workspace.Children.Add(_serialImeiPage);
+        var inventoryHost = new Border { Child = _inventoryStockPage };
+        inventoryHost.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
+        workspace.Children.Add(inventoryHost);
+        var serialHost = new Border { Child = _serialImeiPage };
+        serialHost.Visibility(x => x.Binding(() => ViewModel.IsSerialTab).Convert(ShowIf));
+        workspace.Children.Add(serialHost);
         var workspaceScroll = new ScrollViewer
         {
             Content = workspace, HorizontalScrollMode = ScrollMode.Disabled,
@@ -106,49 +109,56 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         title.Children.Add(Text("Danh mục và Kho", 20, Slate900, 700));
         var categoryTotal = Text(size: 14, color: Slate500);
-        Bind(categoryTotal, TextBlock.TextProperty, ViewModel, nameof(ViewModel.TotalLabel));
-        Bind(categoryTotal, VisibilityProperty, ViewModel, nameof(ViewModel.IsCategoryTab), converter: new VisibilityConverter());
+        categoryTotal.Text(x => x.Binding(() => ViewModel.TotalLabel));
+        categoryTotal.Visibility(x => x.Binding(() => ViewModel.IsCategoryTab).Convert(ShowIf));
         title.Children.Add(categoryTotal);
         var inventoryTotal = Text(size: 14, color: Slate500);
-        Bind(inventoryTotal, TextBlock.TextProperty, _inventoryStockViewModel, nameof(InventoryStockViewModel.TotalLabel));
-        Bind(inventoryTotal, VisibilityProperty, ViewModel, nameof(ViewModel.IsInventoryTab), converter: new VisibilityConverter());
-        title.Children.Add(inventoryTotal);
+        inventoryTotal.DataContext = _inventoryStockViewModel;
+        inventoryTotal.Text(x => x.Binding(() => _inventoryStockViewModel.TotalLabel));
+        var inventoryTotalHost = new Border { Child = inventoryTotal };
+        inventoryTotalHost.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
+        title.Children.Add(inventoryTotalHost);
 
         var actions = new Grid();
-        var categoryAction = BuildPrimaryAction("add", "Thêm danh mục", "Thêm danh mục", ViewModel.AddCategoryCommand);
-        Bind(categoryAction, VisibilityProperty, ViewModel, nameof(ViewModel.IsCategoryTab), converter: new VisibilityConverter());
+        var categoryAction = BuildPrimaryAction("add", "Thêm danh mục", "Thêm danh mục");
+        categoryAction.Command(x => x.Binding(() => ViewModel.AddCategoryCommand));
+        categoryAction.Visibility(x => x.Binding(() => ViewModel.IsCategoryTab).Convert(ShowIf));
         actions.Children.Add(categoryAction);
         var inventoryActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         var exportReport = Button(Text("Xuất báo cáo", color: Slate500), tooltip: "Xuất báo cáo tồn kho");
-        exportReport.Command = _inventoryStockViewModel.ExportReportCommand;
+        exportReport.DataContext = _inventoryStockViewModel;
+        exportReport.Command(x => x.Binding(() => _inventoryStockViewModel.ExportReportCommand));
         inventoryActions.Children.Add(exportReport);
-        inventoryActions.Children.Add(BuildPrimaryAction("add", "Nhập kho mới", "Nhập kho mới", _inventoryStockViewModel.ImportStockCommand));
-        Bind(inventoryActions, VisibilityProperty, ViewModel, nameof(ViewModel.IsInventoryTab), converter: new VisibilityConverter());
+        var importAction = BuildPrimaryAction("add", "Nhập kho mới", "Nhập kho mới");
+        importAction.DataContext = _inventoryStockViewModel;
+        importAction.Command(x => x.Binding(() => _inventoryStockViewModel.ImportStockCommand));
+        inventoryActions.Children.Add(importAction);
+        inventoryActions.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
         actions.Children.Add(inventoryActions);
         return new ResponsivePair(title, actions);
     }
 
-    private static Button BuildPrimaryAction(string icon, string label, string tooltip, System.Windows.Input.ICommand command)
+    private static Button BuildPrimaryAction(string icon, string label, string tooltip)
     {
         var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         content.Children.Add(Icon(icon, "#FFFFFF", 18));
         content.Children.Add(Text(label, 14, "#FFFFFF", 600));
-        var button = Button(content, primary: true, tooltip: tooltip);
-        button.Command = command;
-        return button;
+        return Button(content, primary: true, tooltip: tooltip);
     }
 
     private UIElement BuildTabs()
     {
         var tabs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 24 };
         var categoryCount = Text("0", 12, Primary, 600);
-        Bind(categoryCount, TextBlock.TextProperty, ViewModel, nameof(ViewModel.TotalCount));
+        categoryCount.Text(x => x.Binding(() => ViewModel.TotalCount));
         tabs.Children.Add(CreateTabButton("Danh mục", categoryCount, CategoryWorkspaceTab.Categories));
         var inventoryCount = Text("0", 12, Primary, 600);
-        Bind(inventoryCount, TextBlock.TextProperty, _inventoryStockViewModel, nameof(InventoryStockViewModel.TotalCount));
+        inventoryCount.DataContext = _inventoryStockViewModel;
+        inventoryCount.Text(x => x.Binding(() => _inventoryStockViewModel.TotalCount));
         tabs.Children.Add(CreateTabButton("Tồn kho", inventoryCount, CategoryWorkspaceTab.Inventory));
         var serialCount = Text("0", 12, Slate500, 600);
-        Bind(serialCount, TextBlock.TextProperty, _serialImeiViewModel, nameof(SerialImeiViewModel.TotalCount));
+        serialCount.DataContext = _serialImeiViewModel;
+        serialCount.Text(x => x.Binding(() => _serialImeiViewModel.TotalCount));
         tabs.Children.Add(CreateTabButton("Serial / IMEI", serialCount, CategoryWorkspaceTab.SerialImei));
         return new Border
         {
@@ -161,19 +171,13 @@ public sealed class CategoryManagementPage : Page, IRoutePage
     {
         var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         var labelText = Text(label, 14, Slate500, 600);
-        BindingOperations.SetBinding(labelText, TextBlock.ForegroundProperty, new Binding
-        {
-            Source = ViewModel, Path = new PropertyPath(nameof(ViewModel.SelectedTab)),
-            Converter = new TabColorConverter(), ConverterParameter = tab
-        });
+        labelText.Foreground(x => x.Binding(() => ViewModel.SelectedTab)
+            .Convert((CategoryWorkspaceTab selected) => selected == tab ? Brush(Primary) : Brush(Slate500)));
         content.Children.Add(labelText);
         var countText = count is TextBlock textBlock ? textBlock : Text((string)count, 12, Slate500, 600);
         var badge = Badge(countText, "#F1F5F9");
-        BindingOperations.SetBinding(badge, Border.BackgroundProperty, new Binding
-        {
-            Source = ViewModel, Path = new PropertyPath(nameof(ViewModel.SelectedTab)),
-            Converter = new TabBadgeConverter(), ConverterParameter = tab
-        });
+        badge.Background(x => x.Binding(() => ViewModel.SelectedTab)
+            .Convert((CategoryWorkspaceTab selected) => selected == tab ? Brush("#EFF6FF") : Brush("#F1F5F9")));
         content.Children.Add(badge);
         var underline = new Border
         {
@@ -181,14 +185,11 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             Padding = new Thickness(4, 12, 4, 12),
             BorderThickness = new Thickness(0, 0, 0, 2)
         };
-        BindingOperations.SetBinding(underline, Border.BorderBrushProperty, new Binding
-        {
-            Source = ViewModel, Path = new PropertyPath(nameof(ViewModel.SelectedTab)),
-            Converter = new TabUnderlineConverter(), ConverterParameter = tab
-        });
+        underline.BorderBrush(x => x.Binding(() => ViewModel.SelectedTab)
+            .Convert((CategoryWorkspaceTab selected) => selected == tab ? Brush(Primary) : Brush("#00000000")));
         var button = Button(underline, tooltip: $"Mở {label}");
         button.Padding = new Thickness(4, 0, 4, 0);
-        button.Command = ViewModel.SelectTabCommand;
+        button.Command(x => x.Binding(() => ViewModel.SelectTabCommand));
         button.CommandParameter = tab;
         return button;
     }
@@ -203,7 +204,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             PlaceholderText = "Tìm theo tên danh mục", HorizontalAlignment = HorizontalAlignment.Stretch
         };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(search, "Tìm theo tên danh mục");
-        Bind(search, TextBox.TextProperty, ViewModel, nameof(ViewModel.SearchText), BindingMode.TwoWay);
+        search.Text(x => x.Binding(() => ViewModel.SearchText).Mode(BindingMode.TwoWay));
         var searchBox = new Grid { MaxWidth = 512, HorizontalAlignment = HorizontalAlignment.Stretch };
         searchBox.Children.Add(search);
         var searchIcon = Icon("search", "#94A3B8", 18);
@@ -220,7 +221,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             SelectedValuePath = nameof(CategoryStatusOption.Value), HorizontalAlignment = HorizontalAlignment.Stretch
         };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(status, "Trạng thái danh mục");
-        Bind(status, ComboBox.SelectedValueProperty, ViewModel, nameof(ViewModel.StatusFilter), BindingMode.TwoWay);
+        status.SelectedValue(x => x.Binding(() => ViewModel.StatusFilter).Mode(BindingMode.TwoWay));
         var searchSlot = new Grid();
         searchBox.HorizontalAlignment = HorizontalAlignment.Left;
         searchSlot.Children.Add(searchBox);
@@ -246,7 +247,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         }
         table.Children.Add(new Border { Child = header, BorderBrush = Brush(Slate200), BorderThickness = new Thickness(0, 0, 0, 1) });
         var rows = new CategoryTableRows(ViewModel);
-        Bind(rows, ItemsControl.ItemsSourceProperty, ViewModel, nameof(ViewModel.VisibleRows));
+        rows.ItemsSource(x => x.Binding(() => ViewModel.VisibleRows));
         table.Children.Add(rows);
         body.Children.Add(new ScrollViewer
         {
@@ -256,23 +257,23 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         });
         var states = new StackPanel { Spacing = 12, Padding = new Thickness(24) };
         var busy = new ProgressRing { IsActive = true, Width = 24, Height = 24, Foreground = Brush(Primary) };
-        Bind(busy, VisibilityProperty, ViewModel, nameof(ViewModel.IsLoading), converter: new VisibilityConverter());
-        Bind(busy, ProgressRing.IsActiveProperty, ViewModel, nameof(ViewModel.IsLoading));
+        busy.Visibility(x => x.Binding(() => ViewModel.IsLoading).Convert(ShowIf));
+        busy.IsActive(x => x.Binding(() => ViewModel.IsLoading));
         states.Children.Add(busy);
         var empty = Text(color: Slate500);
         empty.HorizontalAlignment = HorizontalAlignment.Center;
-        Bind(empty, TextBlock.TextProperty, ViewModel, nameof(ViewModel.EmptyText));
-        Bind(empty, VisibilityProperty, ViewModel, nameof(ViewModel.IsEmpty), converter: new VisibilityConverter());
+        empty.Text(x => x.Binding(() => ViewModel.EmptyText));
+        empty.Visibility(x => x.Binding(() => ViewModel.IsEmpty).Convert(ShowIf));
         states.Children.Add(empty);
         var errorPanel = new StackPanel { Spacing = 12, HorizontalAlignment = HorizontalAlignment.Center };
         var error = Text(color: "#B91C1C");
         error.TextWrapping = TextWrapping.Wrap;
-        Bind(error, TextBlock.TextProperty, ViewModel, nameof(ViewModel.ErrorMessage));
+        error.Text(x => x.Binding(() => ViewModel.ErrorMessage));
         errorPanel.Children.Add(error);
         var retry = Button(Text("Thử lại", color: Primary), tooltip: "Tải lại danh mục");
-        retry.Command = ViewModel.LoadCommand;
+        retry.Command(x => x.Binding(() => ViewModel.LoadCommand));
         errorPanel.Children.Add(retry);
-        Bind(errorPanel, VisibilityProperty, ViewModel, nameof(ViewModel.HasError), converter: new VisibilityConverter());
+        errorPanel.Visibility(x => x.Binding(() => ViewModel.HasError).Convert(ShowIf));
         states.Children.Add(errorPanel);
         // A collapsed state wrapper removes the whitespace in the successful table view.
         var stateWrapper = new Border { Child = states };
@@ -286,7 +287,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         body.Children.Add(stateWrapper);
         var footerText = Text(color: Slate500);
         footerText.TextWrapping = TextWrapping.Wrap;
-        Bind(footerText, TextBlock.TextProperty, ViewModel, nameof(ViewModel.FooterText));
+        footerText.Text(x => x.Binding(() => ViewModel.FooterText));
         var paging = new CategoryPageButtons(ViewModel);
         body.Children.Add(new Border
         {
@@ -496,10 +497,10 @@ public sealed class CategoryManagementPage : Page, IRoutePage
     {
         var message = Text(size: 12, color: Slate500);
         message.TextWrapping = TextWrapping.Wrap;
-        Bind(message, TextBlock.TextProperty, _inventoryStockViewModel, nameof(InventoryStockViewModel.SuccessToastMessage));
+        message.Text(x => x.Binding(() => _inventoryStockViewModel.SuccessToastMessage));
 
         var close = Button(Icon("close", Slate500, 16), tooltip: "Đóng thông báo");
-        close.Command = _inventoryStockViewModel.DismissToastCommand;
+        close.Command(x => x.Binding(() => _inventoryStockViewModel.DismissToastCommand));
         close.Width = 28;
         close.Height = 28;
         close.Padding = new Thickness(0);
@@ -542,7 +543,8 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         };
         toast.Background(AppColors.Brushes.Surface);
         toast.BorderBrush(AppColors.Brushes.SuccessStroke);
-        Bind(toast, VisibilityProperty, _inventoryStockViewModel, nameof(InventoryStockViewModel.IsSuccessToastVisible), converter: new VisibilityConverter());
+        toast.DataContext = _inventoryStockViewModel;
+        toast.Visibility(x => x.Binding(() => _inventoryStockViewModel.IsSuccessToastVisible).Convert(ShowIf));
         return toast;
     }
 
@@ -680,7 +682,7 @@ internal sealed class CategoryPageButtons : StackPanel
     {
         Children.Clear();
         var previous = Button(Icon("left", size: 18), tooltip: "Trang trước");
-        previous.Command = _viewModel.PreviousPageCommand;
+        previous.Command(x => x.Binding(() => _viewModel.PreviousPageCommand));
         previous.Height = 32;
         Children.Add(previous);
         foreach (var page in _viewModel.PageNumbers)
@@ -690,44 +692,14 @@ internal sealed class CategoryPageButtons : StackPanel
             button.Width = 32;
             button.Height = 32;
             button.Padding = new Thickness(0);
-            button.Command = _viewModel.GoToPageCommand;
+            button.Command(x => x.Binding(() => _viewModel.GoToPageCommand));
             button.CommandParameter = page;
             if (!active) { button.Background = Brush("#FFFFFF"); button.BorderBrush = Brush(Slate200); button.BorderThickness = new Thickness(1); }
             Children.Add(button);
         }
         var next = Button(Icon("right", size: 18), tooltip: "Trang sau");
-        next.Command = _viewModel.NextPageCommand;
+        next.Command(x => x.Binding(() => _viewModel.NextPageCommand));
         next.Height = 32;
         Children.Add(next);
     }
-}
-
-internal sealed class TabColorConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language) =>
-        value is CategoryWorkspaceTab selected && parameter is CategoryWorkspaceTab tab && selected == tab
-            ? Brush(Primary)
-            : Brush(Slate500);
-
-    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
-}
-
-internal sealed class TabBadgeConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language) =>
-        value is CategoryWorkspaceTab selected && parameter is CategoryWorkspaceTab tab && selected == tab
-            ? Brush("#EFF6FF")
-            : Brush("#F1F5F9");
-
-    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
-}
-
-internal sealed class TabUnderlineConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language) =>
-        value is CategoryWorkspaceTab selected && parameter is CategoryWorkspaceTab tab && selected == tab
-            ? Brush(Primary)
-            : Brush("#00000000");
-
-    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
 }

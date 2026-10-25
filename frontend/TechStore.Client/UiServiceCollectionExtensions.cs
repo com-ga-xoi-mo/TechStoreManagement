@@ -12,6 +12,7 @@ using TechStore.Client.Repositories.Identity;
 using TechStore.Client.Repositories.Orders;
 using TechStore.Client.Services.Development;
 using TechStore.Client.Services.Dialog;
+using TechStore.Client.Services.Files;
 using TechStore.Client.Services.Navigation;
 using TechStore.Client.Services.Theme;
 using TechStore.Client.Services.Window;
@@ -59,6 +60,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<DashboardViewModel>();
         services.AddTransient<ProductListViewModel>();
         services.AddTransient<ProductDetailViewModel>();
+        services.AddTransient<ProductEditorViewModel>();
         services.AddTransient<OrderListViewModel>();
         services.AddTransient<OrderCreateViewModel>();
         services.AddTransient<CustomerListViewModel>();
@@ -80,6 +82,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<DashboardPage>();
         services.AddTransient<ProductListPage>();
         services.AddTransient<ProductDetailPage>();
+        services.AddTransient<ProductEditorPage>();
         services.AddTransient<OrderListPage>();
         services.AddTransient<OrderCreatePage>();
         services.AddSingleton<IOrderDetailPresenter, OrderDetailDialogPresenter>();
@@ -98,7 +101,13 @@ public static class UiServiceCollectionExtensions
             services.AddTransient<MarkupReferenceViewModel>();
             services.AddTransient<MarkupReferencePage>();
         }
+        services.AddSingleton<ImageFilePicker>();
+        services.AddSingleton<IImageFilePicker>(provider => provider.GetRequiredService<ImageFilePicker>());
+        services.AddTransient<IProductImageRepository, ProductImageRepository>();
         services.AddTransient<IProductRepository, ProductRepository>();
+        services.AddTransient<IProductCommandRepository, ProductRepository>();
+        services.AddTransient<IProductSpecRepository, ProductRepository>();
+        services.AddTransient<IProductBrandRepository, ProductRepository>();
         services.AddTransient<ICategoryRepository, CategoryRepository>();
         services.AddTransient<ICustomerRepository, CustomerRepository>();
         services.AddTransient<IOrderRepository, OrderRepository>();

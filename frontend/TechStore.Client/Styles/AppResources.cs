@@ -118,7 +118,6 @@ public static class AppResources
             TextStyleXaml(AppTypography.HeadingText, AppTypography.SemiBoldFont, 20, "SemiBold", 28) +
             TextStyleXaml(AppTypography.SectionText, AppTypography.SemiBoldFont, 14, "SemiBold", 20) +
             TextStyleXaml(AppTypography.CaptionText, AppTypography.MediumFont, 12, "Medium", 18) +
-            TextStyleXaml(AppTypography.MetricText, AppTypography.SemiBoldFont, 24, "SemiBold", 32) +
             TextStyleXaml(AppTypography.MonoText, AppTypography.MonoFont, 12, "Normal", 18) +
             $"<Style x:Key=\"{AppControlStyles.Panel}\" TargetType=\"Border\">" +
             $"<Setter Property=\"Background\" Value=\"{{ThemeResource {AppColors.Surface}}}\"/>" +
@@ -175,6 +174,13 @@ public static class AppResources
             .MinHeight(AppMetrics.Doubles[AppMetrics.RowMinHeight])
             .HorizontalContentAlignment(HorizontalAlignment.Stretch)
             .Padding(new Thickness(12, 8, 12, 8))));
+
+        Put(d, AppTypography.MetricText, new Style<TextBlock>().Setters(s => s
+            .FontFamily(fonts[AppTypography.SemiBoldFont])
+            .FontSize(24)
+            .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
+            .LineHeight(32)
+            .TextWrapping(TextWrapping.Wrap)));
     }
 
     // Markup's Style<T> is a builder; the resource dictionary must hold the real Style.

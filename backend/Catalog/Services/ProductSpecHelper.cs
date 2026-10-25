@@ -1,9 +1,19 @@
+using TechStore.Api.Catalog.Entities;
 using System.Text.Json;
 
 namespace TechStore.Api.Catalog.Services;
 
 public static class ProductSpecHelper
 {
+    /// <summary>The <see cref="SpecValueKinds"/> name of a scalar JSON value, or null for objects, arrays and null.</summary>
+    public static string? KindOf(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.Number => SpecValueKinds.Number,
+        JsonValueKind.String => SpecValueKinds.String,
+        JsonValueKind.True or JsonValueKind.False => SpecValueKinds.Boolean,
+        _ => null
+    };
+
     public static Dictionary<string, JsonElement> ParseJsonSpecs(string? specsJson)
     {
         if (string.IsNullOrWhiteSpace(specsJson) || specsJson.Trim() == "{}")

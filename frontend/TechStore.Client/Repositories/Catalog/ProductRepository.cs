@@ -3,10 +3,11 @@ using System.Text.Json;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Services.Api;
 using TechStore.Shared.DTOs;
+using TechStore.Shared.Requests;
 
 namespace TechStore.Client.Repositories.Catalog;
 
-public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
+public sealed class ProductRepository(IApiClient apiClient) : IProductRepository, IProductCommandRepository, IProductSpecRepository, IProductBrandRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -47,6 +48,42 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
             return null;
         }
 
+        return ParseDetail(json, id);
+    }
+
+    public async Task<ProductDetail> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var json = await apiClient.PostAsync<CreateProductRequest, JsonElement>("api/products", request, cancellationToken);
+        return ParseDetail(json, null);
+    }
+
+    public async Task<ProductDetail> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("A product id is required.", nameof(id));
+        ArgumentNullException.ThrowIfNull(request);
+        var json = await apiClient.PutAsync<UpdateProductRequest, JsonElement>($"api/products/{id:D}", request, cancellationToken);
+        return ParseDetail(json, id);
+    }
+
+    public async Task<ProductDetail> SetStatusAsync(Guid id, bool isActive, CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("A product id is required.", nameof(id));
+        var json = await apiClient.PatchAsync<UpdateProductStatusRequest, JsonElement>(
+            $"api/products/{id:D}/status",
+            new UpdateProductStatusRequest { IsActive = isActive },
+            cancellationToken);
+        return ParseDetail(json, id);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("A product id is required.", nameof(id));
+        await apiClient.DeleteAsync($"api/products/{id:D}", cancellationToken);
+    }
+
+    private static ProductDetail ParseDetail(JsonElement json, Guid? expectedId)
+    {
         ValidateDetailShape(json);
         ProductDto response;
         try
@@ -59,7 +96,7 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
             throw InvalidResponse("The product detail response did not match the API contract.", exception);
         }
 
-        if (response.Id != id)
+        if (expectedId is { } id && response.Id != id)
             throw InvalidResponse("The product detail id did not match the requested id.");
 
         ValidateDetail(response);
@@ -83,7 +120,8 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
         dto.Id, dto.CategoryId, dto.CategoryName, dto.Name, dto.Sku, dto.Barcode,
         dto.Brand, dto.BasePrice, dto.CostPrice, dto.Description, dto.ImageUrl,
         CloneSpecs(dto.Specs), dto.IsSerialTracked, dto.IsActive, dto.CreatedAt,
-        dto.UpdatedAt, dto.Variants.Select(MapVariant).ToArray());
+        dto.UpdatedAt, dto.Variants.Select(MapVariant).ToArray(),
+        dto.Images.OrderBy(i => i.SortOrder).Select(i => new ProductImage(i.Id, i.VariantId, i.Url, i.ContentType, i.SizeBytes, i.SortOrder)).ToArray());
 
     private static ProductVariant MapVariant(ProductVariantDto dto) => new(
         dto.Id, dto.ProductId, dto.VariantName, dto.Sku, dto.Barcode, dto.Price,
@@ -93,6 +131,99 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
     private static IReadOnlyDictionary<string, JsonElement> CloneSpecs(
         IReadOnlyDictionary<string, JsonElement> specs) => specs.ToDictionary(
         pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
+
+    public async Task<IReadOnlyList<SpecKeyOption>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default)
+    {
+        var relativePath = categoryId is { } id ? $"api/products/spec-keys?categoryId={id:D}" : "api/products/spec-keys";
+        var json = await apiClient.GetAsync<JsonElement>(relativePath, cancellationToken);
+        if (json.ValueKind != JsonValueKind.Array)
+            throw InvalidResponse("The spec key response must be an array.");
+
+        var keys = new List<SpecKeyOption>();
+        foreach (var item in json.EnumerateArray())
+        {
+            RequireObject(item, "spec key");
+            RequireString(item, "key");
+            RequireInt(item, "productCount");
+            Require(item, "values", JsonValueKind.Array);
+            var label = OptionalString(item, "label");
+            var unit = OptionalString(item, "unit");
+            var values = new List<SpecValueOption>();
+            foreach (var value in item.GetProperty("values").EnumerateArray())
+            {
+                RequireObject(value, "spec value");
+                RequireString(value, "label");
+                RequireString(value, "filterValue");
+                RequireInt(value, "productCount");
+                var kind = value.TryGetProperty("value", out var raw) ? KindOf(raw) : SpecValueKind.Text;
+                values.Add(new SpecValueOption(
+                    value.GetProperty("label").GetString()!,
+                    value.GetProperty("filterValue").GetString()!,
+                    value.GetProperty("productCount").GetInt32(),
+                    kind));
+            }
+
+            keys.Add(new SpecKeyOption(
+                item.GetProperty("key").GetString()!, item.GetProperty("productCount").GetInt32(), values, label, unit));
+        }
+
+        return keys;
+    }
+
+    public async Task<IReadOnlyList<SpecDefinition>> GetSpecDefinitionsAsync(CancellationToken cancellationToken = default)
+    {
+        var json = await apiClient.GetAsync<JsonElement>("api/products/spec-definitions", cancellationToken);
+        if (json.ValueKind != JsonValueKind.Array)
+            throw InvalidResponse("The spec definition response must be an array.");
+
+        var definitions = new List<SpecDefinition>();
+        foreach (var item in json.EnumerateArray())
+        {
+            RequireObject(item, "spec definition");
+            RequireString(item, "key");
+            RequireString(item, "label");
+            RequireString(item, "valueKind");
+            var kind = item.GetProperty("valueKind").GetString() switch
+            {
+                "number" => SpecValueKind.Number,
+                "boolean" => SpecValueKind.Boolean,
+                "string" => SpecValueKind.Text,
+                var other => throw InvalidResponse($"Unknown spec value kind '{other}'.")
+            };
+            definitions.Add(new SpecDefinition(
+                item.GetProperty("key").GetString()!, item.GetProperty("label").GetString()!, OptionalString(item, "unit"), kind));
+        }
+
+        return definitions;
+    }
+
+    public async Task<IReadOnlyList<BrandOption>> GetBrandsAsync(CancellationToken cancellationToken = default)
+    {
+        var json = await apiClient.GetAsync<JsonElement>("api/products/brands", cancellationToken);
+        if (json.ValueKind != JsonValueKind.Array)
+            throw InvalidResponse("The brand response must be an array.");
+
+        var brands = new List<BrandOption>();
+        foreach (var item in json.EnumerateArray())
+        {
+            RequireObject(item, "brand");
+            RequireString(item, "name");
+            RequireInt(item, "productCount");
+            brands.Add(new BrandOption(item.GetProperty("name").GetString()!, item.GetProperty("productCount").GetInt32()));
+        }
+
+        return brands;
+    }
+
+    private static string? OptionalString(JsonElement item, string property) =>
+        item.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    private static SpecValueKind KindOf(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.Number => SpecValueKind.Number,
+        JsonValueKind.True or JsonValueKind.False => SpecValueKind.Boolean,
+        _ => SpecValueKind.Text
+    };
 
     private static void ValidatePageShape(JsonElement json)
     {
@@ -139,6 +270,14 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
         RequireBoolean(json, "isActive");
         RequireDateTime(json, "createdAt");
         RequireNullableDateTime(json, "updatedAt");
+        Require(json, "images", JsonValueKind.Array);
+        foreach (var image in json.GetProperty("images").EnumerateArray())
+        {
+            RequireObject(image, "product image");
+            RequireGuid(image, "id");
+            RequireString(image, "url");
+            RequireInt(image, "sortOrder");
+        }
         Require(json, "variants", JsonValueKind.Array);
         foreach (var variant in json.GetProperty("variants").EnumerateArray())
         {

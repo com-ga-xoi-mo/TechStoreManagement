@@ -42,6 +42,7 @@
     <Compile Include="../../frontend/TechStore.Client/Styles/AppIcons.cs" Link="Production/Styles/AppIcons.cs" />
     <Compile Include="../../frontend/TechStore.Client/Styles/AppControlStyles.cs" Link="Production/Styles/AppControlStyles.cs" />
     <ProjectReference Include="..\..\shared\TechStore.Shared.csproj" />
+    <Compile Include="..\..\frontend\TechStore.Client\Services\Files\**\*.cs" Link="Production\Services\Files\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\..\frontend\TechStore.Client\Services\Api\**\*.cs"
              Link="Production\Services\Api\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\..\frontend\TechStore.Client\Services\Session\**\*.cs"

@@ -180,6 +180,80 @@ namespace TechStore.Api.Common.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TechStore.Api.Catalog.Entities.ProductImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("object_key");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<int>("SizeBytes")
+                        .HasColumnType("integer")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("url");
+
+                    b.Property<Guid?>("VariantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("variant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ObjectKey")
+                        .IsUnique()
+                        .HasDatabaseName("uq_product_images_object_key");
+
+                    b.HasIndex("ProductId", "SortOrder")
+                        .HasDatabaseName("idx_product_images_product_id");
+
+                    b.HasIndex("VariantId", "ProductId")
+                        .HasDatabaseName("idx_product_images_variant_id");
+
+                    b.ToTable("product_images", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_product_images_content_type", "content_type IN ('image/jpeg','image/png','image/webp')");
+
+                            t.HasCheckConstraint("ck_product_images_size_bytes_range", "size_bytes > 0 AND size_bytes <= 5242880");
+
+                            t.HasCheckConstraint("ck_product_images_sort_order_ge_zero", "sort_order >= 0");
+                        });
+                });
+
             modelBuilder.Entity("TechStore.Api.Catalog.Entities.ProductVariant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -259,6 +333,189 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.ToTable("product_variants", null, t =>
                         {
                             t.HasCheckConstraint("ck_product_variants_price_ge_zero", "price >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("TechStore.Api.Catalog.Entities.SpecDefinition", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("label");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("unit");
+
+                    b.Property<string>("ValueKind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("value_kind");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("spec_definitions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_spec_definitions_key_snake_case", "key ~ '^[a-z][a-z0-9_]*$'");
+
+                            t.HasCheckConstraint("ck_spec_definitions_value_kind", "value_kind IN ('number', 'string', 'boolean')");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Key = "storage_gb",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Bộ nhớ trong",
+                            Unit = "GB",
+                            ValueKind = "number"
+                        },
+                        new
+                        {
+                            Key = "ram_gb",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "RAM",
+                            Unit = "GB",
+                            ValueKind = "number"
+                        },
+                        new
+                        {
+                            Key = "cpu",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Vi xử lý (CPU)",
+                            ValueKind = "string"
+                        },
+                        new
+                        {
+                            Key = "color",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Màu sắc",
+                            ValueKind = "string"
+                        },
+                        new
+                        {
+                            Key = "battery_mah",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Dung lượng pin",
+                            Unit = "mAh",
+                            ValueKind = "number"
+                        },
+                        new
+                        {
+                            Key = "battery_hours",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Thời lượng pin",
+                            Unit = "giờ",
+                            ValueKind = "number"
+                        },
+                        new
+                        {
+                            Key = "resolution",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Độ phân giải",
+                            ValueKind = "string"
+                        },
+                        new
+                        {
+                            Key = "size_in",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Kích thước màn hình",
+                            Unit = "inch",
+                            ValueKind = "number"
+                        },
+                        new
+                        {
+                            Key = "power_w",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Công suất",
+                            Unit = "W",
+                            ValueKind = "number"
+                        },
+                        new
+                        {
+                            Key = "bluetooth",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Bluetooth",
+                            ValueKind = "string"
+                        },
+                        new
+                        {
+                            Key = "ports",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Số cổng",
+                            ValueKind = "number"
+                        },
+                        new
+                        {
+                            Key = "interface",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Cổng kết nối",
+                            ValueKind = "string"
+                        },
+                        new
+                        {
+                            Key = "length_m",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Chiều dài cáp",
+                            Unit = "m",
+                            ValueKind = "number"
+                        },
+                        new
+                        {
+                            Key = "wireless",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Không dây",
+                            ValueKind = "boolean"
+                        },
+                        new
+                        {
+                            Key = "noise_cancelling",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Chống ồn",
+                            ValueKind = "boolean"
+                        },
+                        new
+                        {
+                            Key = "microphone",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Micro",
+                            ValueKind = "boolean"
+                        },
+                        new
+                        {
+                            Key = "dpi",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Độ nhạy chuột (DPI)",
+                            ValueKind = "number"
+                        },
+                        new
+                        {
+                            Key = "layout",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Bố cục phím",
+                            ValueKind = "string"
+                        },
+                        new
+                        {
+                            Key = "weight_g",
+                            CreatedAt = new DateTime(2026, 10, 22, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Label = "Trọng lượng",
+                            Unit = "g",
+                            ValueKind = "number"
                         });
                 });
 
@@ -1763,6 +2020,25 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("TechStore.Api.Catalog.Entities.ProductImage", b =>
+                {
+                    b.HasOne("TechStore.Api.Catalog.Entities.Product", "Product")
+                        .WithMany("Images")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Catalog.Entities.ProductVariant", "Variant")
+                        .WithMany()
+                        .HasForeignKey("VariantId", "ProductId")
+                        .HasPrincipalKey("Id", "ProductId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Variant");
+                });
+
             modelBuilder.Entity("TechStore.Api.Catalog.Entities.ProductVariant", b =>
                 {
                     b.HasOne("TechStore.Api.Catalog.Entities.Product", "Product")
@@ -2072,6 +2348,8 @@ namespace TechStore.Api.Common.Data.Migrations
 
             modelBuilder.Entity("TechStore.Api.Catalog.Entities.Product", b =>
                 {
+                    b.Navigation("Images");
+
                     b.Navigation("Variants");
                 });
 

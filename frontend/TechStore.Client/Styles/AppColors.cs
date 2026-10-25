@@ -101,9 +101,7 @@ public static partial class AppColors
         [WarningText] = "#B45309",
         [WarningFill] = "#FFFBEB",
         [WarningStroke] = "#FDE68A",
-        // Bright red action/text token used by destructive dialogs and inline
-        // warnings (matches the inventory delete design's red-500 treatment).
-        [DangerText] = "#EF4444",
+        [DangerText] = "#B91C1C",
         [DangerFill] = "#FEF2F2",
         [DangerStroke] = "#FECACA",
         [AccentText] = "#6D28D9",

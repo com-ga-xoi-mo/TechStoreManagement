@@ -17,8 +17,6 @@ public sealed class EditCategoryDialog : ContentDialog
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         DataContext = viewModel;
-        RequestedTheme = ElementTheme.Default;
-        FontFamily = Typeface;
         HorizontalAlignment = HorizontalAlignment.Center;
         VerticalAlignment = VerticalAlignment.Center;
         HorizontalContentAlignment = HorizontalAlignment.Center;
@@ -78,7 +76,7 @@ public sealed class EditCategoryDialog : ContentDialog
             .CornerRadius(new CornerRadius(8))
             .Background(AppColors.Brushes.Surface)
             .BorderThickness(new Thickness(0))
-            .Content(Icon("close", Slate500, 20))
+            .Content(Icon("close", AppColors.SecondaryText, 20))
             .Command(x => x.Binding(() => ViewModel.CancelCommand));
         AutomationProperties.SetName(close, "Đóng cửa sổ sửa danh mục");
 
@@ -90,7 +88,7 @@ public sealed class EditCategoryDialog : ContentDialog
                 .BorderThickness(new Thickness(1))
                 .CornerRadius(new CornerRadius(4))
                 .Padding(new Thickness(8, 2, 8, 2))
-                            .Child(new TextBlock().Text("Danh mục gốc").FontFamily(Typeface).FontSize(12).FontWeight(Weight(600)).Foreground(AppColors.Brushes.InfoText)),
+                .Child(new TextBlock().Text("Danh mục gốc").FontFamily(AppTypography.Fonts.SemiBoldFont).FontSize(12).FontWeight(Weight(600)).Foreground(AppColors.Brushes.InfoText)),
             new Border()
                 .Visibility(x => x.Binding(() => ViewModel.IsRoot).Convert((bool value) => ShowIf(!value)))
                 .Background(AppColors.Brushes.Subtle)
@@ -98,7 +96,7 @@ public sealed class EditCategoryDialog : ContentDialog
                 .BorderThickness(new Thickness(1))
                 .CornerRadius(new CornerRadius(4))
                 .Padding(new Thickness(8, 2, 8, 2))
-                            .Child(new TextBlock().Text("Danh mục con").FontFamily(Typeface).FontSize(12).FontWeight(Weight(600)).Foreground(AppColors.Brushes.SecondaryText)));
+                .Child(new TextBlock().Text("Danh mục con").FontFamily(AppTypography.Fonts.SemiBoldFont).FontSize(12).FontWeight(Weight(600)).Foreground(AppColors.Brushes.SecondaryText)));
 
         return new Border()
             .BorderBrush(AppColors.Brushes.Stroke)
@@ -116,14 +114,14 @@ public sealed class EditCategoryDialog : ContentDialog
                             .Width(32).Height(32)
                             .CornerRadius(new CornerRadius(8))
                             .Background(AppColors.Brushes.InfoFill)
-                            .Child(Icon("edit_note", Primary, 18).HorizontalAlignment(HorizontalAlignment.Center).VerticalAlignment(VerticalAlignment.Center))
+                            .Child(Icon("edit_note", AppColors.InfoText, 18).HorizontalAlignment(HorizontalAlignment.Center).VerticalAlignment(VerticalAlignment.Center))
                             .Grid(column: 0),
                         new StackPanel()
                             .Orientation(Orientation.Horizontal)
                             .Spacing(10)
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Children(
-                                new TextBlock().Text("Sửa danh mục").FontFamily(Typeface).FontSize(18).FontWeight(Weight(600)).Foreground(AppColors.Brushes.Text),
+                                new TextBlock().Text("Sửa danh mục").FontFamily(AppTypography.Fonts.SemiBoldFont).FontSize(18).FontWeight(Weight(600)).Foreground(AppColors.Brushes.Text),
                                 badge)
                             .Grid(column: 1),
                         close.Grid(column: 2)));
@@ -153,7 +151,7 @@ public sealed class EditCategoryDialog : ContentDialog
             .CornerRadius(new CornerRadius(8))
             .Padding(new Thickness(12, 8, 12, 8))
             .Child(new TextBlock()
-                .FontFamily(Typeface)
+                .FontFamily(AppTypography.Fonts.RegularFont)
                 .FontSize(13)
                 .FontWeight(Weight(400))
                 .Foreground(AppColors.Brushes.DangerText)
@@ -172,7 +170,7 @@ public sealed class EditCategoryDialog : ContentDialog
                         new TextBlock().Text("*").FontSize(13).FontWeight(Weight(700)).Foreground(AppColors.Brushes.DangerText)),
                 new TextBox()
                     .Style(AppControlStyles.Styles.TextBox)
-                    .FontFamily(Typeface)
+                    .FontFamily(AppTypography.Fonts.MediumFont)
                     .FontSize(14)
                     .FontWeight(Weight(500))
                     .Height(40)
@@ -192,7 +190,7 @@ public sealed class EditCategoryDialog : ContentDialog
                 Label("Danh mục cha"),
                 new ComboBox()
                     .Style(AppControlStyles.Styles.ComboBox)
-                    .FontFamily(Typeface)
+                    .FontFamily(AppTypography.Fonts.RegularFont)
                     .FontSize(14)
                     .FontWeight(Weight(400))
                     .Height(40)
@@ -207,7 +205,7 @@ public sealed class EditCategoryDialog : ContentDialog
                     .DisplayMemberPath(nameof(ParentCategoryOption.DisplayName))
                     .SelectedItem(x => x.Binding(() => ViewModel.SelectedParentOption).Mode(BindingMode.TwoWay)),
                 new TextBlock()
-                    .FontFamily(Typeface)
+                    .FontFamily(AppTypography.Fonts.RegularFont)
                     .FontSize(12)
                     .FontWeight(Weight(400))
                     .Foreground(AppColors.Brushes.SecondaryText)
@@ -217,12 +215,12 @@ public sealed class EditCategoryDialog : ContentDialog
         new Grid().Children(
             ContextCard(
                 isRoot: true,
-                icon: Icon("info", Primary, 20),
+                icon: Icon("info", AppColors.InfoText, 20),
                 background: AppColors.Brushes.EditContextFill,
                 border: AppColors.Brushes.EditContextStroke),
             ContextCard(
                 isRoot: false,
-                icon: Icon("account_tree", Primary, 18),
+                icon: Icon("account_tree", AppColors.InfoText, 18),
                 background: AppColors.Brushes.Subtle,
                 border: AppColors.Brushes.Stroke));
 
@@ -247,7 +245,7 @@ public sealed class EditCategoryDialog : ContentDialog
                     .Children(
                         icon.VerticalAlignment(VerticalAlignment.Top).Grid(column: 0),
                         new TextBlock()
-                            .FontFamily(Typeface)
+                            .FontFamily(AppTypography.Fonts.RegularFont)
                             .FontSize(12)
                             .FontWeight(Weight(400))
                             .Foreground(AppColors.Brushes.Text)
@@ -310,7 +308,7 @@ public sealed class EditCategoryDialog : ContentDialog
                     .Children(
                         new Button()
                             .Style(AppControlStyles.Styles.Button)
-                            .FontFamily(Typeface)
+                            .FontFamily(AppTypography.Fonts.MediumFont)
                             .FontSize(13)
                             .FontWeight(Weight(500))
                             .Content("Hủy")
@@ -325,7 +323,7 @@ public sealed class EditCategoryDialog : ContentDialog
                             .Command(x => x.Binding(() => ViewModel.CancelCommand)),
                         new Button()
                             .Style(AppControlStyles.Styles.PrimaryButton)
-                            .FontFamily(Typeface)
+                            .FontFamily(AppTypography.Fonts.SemiBoldFont)
                             .FontSize(13)
                             .FontWeight(Weight(600))
                             .CornerRadius(new CornerRadius(6))
@@ -342,7 +340,7 @@ public sealed class EditCategoryDialog : ContentDialog
                                     new ProgressRing().Width(16).Height(16).Foreground(AppColors.Brushes.OnPrimary)
                                         .IsActive(x => x.Binding(() => ViewModel.IsBusy))
                                         .Visibility(x => x.Binding(() => ViewModel.IsBusy).Convert((bool busy) => ShowIf(busy))).Grid(column: 0),
-                                    new TextBlock().FontFamily(Typeface).FontSize(13).FontWeight(Weight(600)).Foreground(AppColors.Brushes.OnPrimary)
+                                    new TextBlock().FontFamily(AppTypography.Fonts.SemiBoldFont).FontSize(13).FontWeight(Weight(600)).Foreground(AppColors.Brushes.OnPrimary)
                                         .Text(x => x.Binding(() => ViewModel.IsBusy).Convert((bool busy) => busy ? "Đang lưu..." : "Lưu thay đổi"))
                                         .Grid(column: 1)))
                             .IsEnabled(x => x.Binding(() => ViewModel.CanSave))
@@ -350,7 +348,7 @@ public sealed class EditCategoryDialog : ContentDialog
 
     private static TextBlock Label(string text) =>
         new TextBlock()
-            .FontFamily(Typeface)
+            .FontFamily(AppTypography.Fonts.MediumFont)
             .FontSize(13)
             .Foreground(AppColors.Brushes.Text)
             .FontWeight(Weight(500))

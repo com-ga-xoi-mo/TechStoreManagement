@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using TechStore.Client.Controls.Presentation;
 using TechStore.Client.Features.Categories.ViewModels;
 using TechStore.Client.Styles;
 using Uno.Extensions.Markup;
@@ -17,8 +18,6 @@ public sealed class DeleteCategoryDialog : ContentDialog
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         DataContext = viewModel;
-        RequestedTheme = ElementTheme.Default;
-        FontFamily = Typeface;
         HorizontalAlignment = HorizontalAlignment.Center;
         VerticalAlignment = VerticalAlignment.Center;
         HorizontalContentAlignment = HorizontalAlignment.Center;
@@ -96,7 +95,7 @@ public sealed class DeleteCategoryDialog : ContentDialog
             .Background(AppColors.Brushes.Surface)
             .BorderThickness(new Thickness(0))
             .HorizontalAlignment(HorizontalAlignment.Right)
-            .Content(Icon("close", Slate500, 20))
+            .Content(Icon("close", AppColors.SecondaryText, 20))
             .Command(x => x.Binding(() => ViewModel.CancelCommand));
         AutomationProperties.SetName(close, "Đóng cửa sổ xác nhận xóa");
         return close;
@@ -112,11 +111,11 @@ public sealed class DeleteCategoryDialog : ContentDialog
                     .Height(48)
                     .CornerRadius(new CornerRadius(24))
                     .Background(AppColors.Brushes.DangerFill)
-                    .Child(Icon("delete_forever", "#B91C1C", 24)
+                    .Child(Icon("delete_forever", AppColors.DangerText, 24)
                         .HorizontalAlignment(HorizontalAlignment.Center)
                         .VerticalAlignment(VerticalAlignment.Center)),
                 new TextBlock()
-                    .FontFamily(Typeface)
+                    .FontFamily(AppTypography.Fonts.BoldFont)
                     .FontSize(20)
                     .FontWeight(Weight(700))
                     .Foreground(AppColors.Brushes.Text)
@@ -124,7 +123,7 @@ public sealed class DeleteCategoryDialog : ContentDialog
                     .Text("Xác nhận xóa danh mục?"),
                 new TextBlock()
                     .MaxWidth(390)
-                    .FontFamily(Typeface)
+                    .FontFamily(AppTypography.Fonts.RegularFont)
                     .FontSize(13)
                     .FontWeight(Weight(400))
                     .Foreground(AppColors.Brushes.SecondaryText)
@@ -132,8 +131,10 @@ public sealed class DeleteCategoryDialog : ContentDialog
                     .TextWrapping(TextWrapping.Wrap)
                     .Text("Hành động này không thể hoàn tác. Vui lòng kiểm tra kỹ các ràng buộc dữ liệu bên dưới."));
 
-    private UIElement BuildCategoryCard() =>
-        new Border()
+    private UIElement BuildCategoryCard()
+    {
+        var iconKeys = StatusBadgePresentation.GetKeys(ViewModel.Icon.Tone);
+        return new Border()
             .Margin(new Thickness(0, 20, 0, 12))
             .Background(AppColors.Brushes.Subtle)
             .CornerRadius(new CornerRadius(12))
@@ -149,10 +150,10 @@ public sealed class DeleteCategoryDialog : ContentDialog
                             .Width(40)
                             .Height(40)
                             .CornerRadius(new CornerRadius(8))
-                            .Background(Brush(ViewModel.Icon.Background))
-                            .BorderBrush(Brush(ViewModel.Icon.Border))
+                            .Background(Theme(iconKeys.Fill))
+                            .BorderBrush(Theme(iconKeys.Stroke))
                             .BorderThickness(new Thickness(1))
-                            .Child(Icon(ViewModel.Icon.Symbol, ViewModel.Icon.Foreground, 20)
+                            .Child(Icon(ViewModel.Icon.Symbol, iconKeys.Text, 20)
                                 .HorizontalAlignment(HorizontalAlignment.Center)
                                 .VerticalAlignment(VerticalAlignment.Center))
                             .Grid(column: 0),
@@ -161,20 +162,21 @@ public sealed class DeleteCategoryDialog : ContentDialog
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Children(
                                 new TextBlock()
-                                    .FontFamily(Typeface)
+                                    .FontFamily(AppTypography.Fonts.SemiBoldFont)
                                     .FontSize(14)
                                     .FontWeight(Weight(600))
                                     .Foreground(AppColors.Brushes.Text)
                                     .TextTrimming(TextTrimming.CharacterEllipsis)
                                     .Text(x => x.Binding(() => ViewModel.CategoryName)),
                                 new TextBlock()
-                                    .FontFamily(Typeface)
+                                    .FontFamily(AppTypography.Fonts.RegularFont)
                                     .FontSize(12)
                                     .FontWeight(Weight(400))
                                     .Foreground(AppColors.Brushes.SecondaryText)
                                     .TextTrimming(TextTrimming.CharacterEllipsis)
                                     .Text(x => x.Binding(() => ViewModel.LevelName)))
                             .Grid(column: 1)));
+    }
 
     private UIElement BuildConstraintCard() =>
         new Border()
@@ -189,9 +191,9 @@ public sealed class DeleteCategoryDialog : ContentDialog
                             .Orientation(Orientation.Horizontal)
                             .Spacing(8)
                             .Children(
-                                Icon("warning", "#B91C1C", 18),
+                                Icon("warning", AppColors.DangerText, 18),
                                 new TextBlock()
-                                    .FontFamily(Typeface)
+                                    .FontFamily(AppTypography.Fonts.SemiBoldFont)
                                     .FontSize(13)
                                     .FontWeight(Weight(600))
                                     .Foreground(AppColors.Brushes.Text)
@@ -207,12 +209,12 @@ public sealed class DeleteCategoryDialog : ContentDialog
             .Visibility(visible ? Visibility.Visible : Visibility.Collapsed)
             .Children(
                 new TextBlock()
-                    .FontFamily(Typeface)
+                    .FontFamily(AppTypography.Fonts.RegularFont)
                     .FontSize(13)
                     .Foreground(AppColors.Brushes.SecondaryText)
                     .Text("•"),
                 new TextBlock()
-                    .FontFamily(Typeface)
+                    .FontFamily(AppTypography.Fonts.RegularFont)
                     .FontSize(12)
                     .FontWeight(Weight(400))
                     .Foreground(AppColors.Brushes.SecondaryText)
@@ -229,7 +231,7 @@ public sealed class DeleteCategoryDialog : ContentDialog
             .Padding(new Thickness(10, 8, 10, 8))
             .Child(
                 new TextBlock()
-                    .FontFamily(Typeface)
+                    .FontFamily(AppTypography.Fonts.RegularFont)
                     .FontSize(12)
                     .Foreground(AppColors.Brushes.DangerText)
                     .TextWrapping(TextWrapping.Wrap)
@@ -249,7 +251,7 @@ public sealed class DeleteCategoryDialog : ContentDialog
                     .Children(
                         new Button()
                             .Style(AppControlStyles.Styles.Button)
-                            .FontFamily(Typeface)
+                            .FontFamily(AppTypography.Fonts.MediumFont)
                             .FontSize(13)
                             .FontWeight(Weight(500))
                             .Content("Hủy bỏ")
@@ -264,12 +266,14 @@ public sealed class DeleteCategoryDialog : ContentDialog
                             .Command(x => x.Binding(() => ViewModel.CancelCommand)),
                         new Button()
                             .Style(AppControlStyles.Styles.DangerButton)
-                            .FontFamily(Typeface)
+                            .FontFamily(AppTypography.Fonts.SemiBoldFont)
                             .FontSize(13)
                             .FontWeight(Weight(600))
                             .CornerRadius(new CornerRadius(6))
-                            .Background(AppColors.Brushes.DangerText)
-                            .Foreground(AppColors.Brushes.OnPrimary)
+                            .Background(AppColors.Brushes.DangerFill)
+                            .BorderBrush(AppColors.Brushes.DangerStroke)
+                            .BorderThickness(new Thickness(1))
+                            .Foreground(AppColors.Brushes.DangerText)
                             .Height(40)
                             .MinWidth(0)
                             .Content(new Grid()
@@ -281,15 +285,15 @@ public sealed class DeleteCategoryDialog : ContentDialog
                                     new ProgressRing()
                                         .Width(16)
                                         .Height(16)
-                                        .Foreground(AppColors.Brushes.OnPrimary)
+                                        .Foreground(AppColors.Brushes.DangerText)
                                         .IsActive(x => x.Binding(() => ViewModel.IsBusy))
                                         .Visibility(x => x.Binding(() => ViewModel.IsBusy).Convert((bool busy) => ShowIf(busy)))
                                         .Grid(column: 0),
                                     new TextBlock()
-                                        .FontFamily(Typeface)
+                                        .FontFamily(AppTypography.Fonts.SemiBoldFont)
                                         .FontSize(13)
                                         .FontWeight(Weight(600))
-                                        .Foreground(AppColors.Brushes.OnPrimary)
+                                        .Foreground(AppColors.Brushes.DangerText)
                                         .Text(x => x.Binding(() => ViewModel.IsBusy).Convert((bool busy) => busy ? "Đang xóa..." : "Xác nhận xóa"))
                                         .Grid(column: 1)))
                             .IsEnabled(x => x.Binding(() => ViewModel.CanDelete))

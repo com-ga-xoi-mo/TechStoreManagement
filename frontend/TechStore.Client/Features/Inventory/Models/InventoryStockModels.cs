@@ -1,5 +1,6 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
+using TechStore.Client.Controls;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Shared.DTOs;
 
@@ -33,8 +34,7 @@ public enum InventoryStockStatus
 public sealed record InventoryStockPresentation(
     InventoryStockStatus Status,
     string StatusText,
-    string Background,
-    string Foreground,
+    StatusTone Tone,
     bool IsDimmed);
 
 public sealed record InventoryStockDeleteRequest(
@@ -50,10 +50,10 @@ public static class InventoryStockPresentationRules
     {
         var threshold = Math.Max(0, minStockAlert);
         if (availableQuantity > threshold)
-            return new(InventoryStockStatus.InStock, "Còn hàng", "#ECFDF5", "#059669", false);
+            return new(InventoryStockStatus.InStock, "Còn hàng", StatusTone.Success, false);
         if (availableQuantity > 0)
-            return new(InventoryStockStatus.LowStock, "Sắp hết hàng", "#FFFBEB", "#B45309", false);
-        return new(InventoryStockStatus.OutOfStock, "Hết hàng", "#FEF2F2", "#DC2626", true);
+            return new(InventoryStockStatus.LowStock, "Sắp hết hàng", StatusTone.Warning, false);
+        return new(InventoryStockStatus.OutOfStock, "Hết hàng", StatusTone.Danger, true);
     }
 
     public static string QuantityLabel(int quantity) => $"{Math.Max(0, quantity).ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} chiếc";
@@ -90,8 +90,7 @@ public sealed partial class InventoryStockRow(InventoryStockDto dto) : Observabl
         Dto.MinStockAlert > 0 ? Dto.MinStockAlert : 5);
     public InventoryStockStatus Status => StockStatus.Status;
     public string StatusText => StockStatus.StatusText;
-    public string StatusBackground => StockStatus.Background;
-    public string StatusForeground => StockStatus.Foreground;
+    public StatusTone StatusTone => StockStatus.Tone;
     public bool IsDimmed => StockStatus.IsDimmed;
     public CategoryIconDescriptor Icon => CategoryIconResolver.Resolve(ProductName, Sku);
     public string SearchText => $"{ProductName} {Sku} {VariantName}";

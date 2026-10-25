@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Globalization;
+using TechStore.Client.Controls;
 using TechStore.Client.Models.Catalog;
 
 namespace TechStore.Client.Features.Categories.Models;
@@ -10,7 +11,7 @@ public enum CategoryWorkspaceTab { Categories, Inventory, SerialImei }
 
 public sealed record CategoryStatusOption(CategoryStatusFilter Value, string Label);
 
-public sealed record CategoryIconDescriptor(string Symbol, string Background, string Foreground, string Border);
+public sealed record CategoryIconDescriptor(string Symbol, StatusTone Tone);
 
 public sealed partial class CategoryRow(CategoryNode node, CategoryRow? parent) : ObservableObject
 {

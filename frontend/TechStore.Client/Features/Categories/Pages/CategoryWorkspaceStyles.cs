@@ -1,7 +1,10 @@
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using TechStore.Client.Controls;
+using TechStore.Client.Controls.Presentation;
+using TechStore.Client.Styles;
+using Uno.Extensions.Markup;
 using Windows.Foundation;
 using Windows.UI.Text;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
@@ -10,63 +13,67 @@ namespace TechStore.Client.Features.Categories.Pages;
 
 internal static class CategoryWorkspaceStyles
 {
-    internal const string Primary = "#0066FF";
-    internal const string Slate50 = "#F8FAFC";
-    internal const string Slate200 = "#E2E8F0";
-    internal const string Slate500 = "#64748B";
-    internal const string Slate900 = "#0F172A";
-    internal static readonly FontFamily Typeface = new("ms-appx:///Assets/Fonts/PlusJakartaSans.ttf");
+    internal static Action<IDependencyPropertyBuilder<Brush>> Theme(string key) => ThemeResource.Get<Brush>(key);
 
-    internal static SolidColorBrush Brush(string hex)
-    {
-        if (string.IsNullOrWhiteSpace(hex)) return new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-        if (!hex.StartsWith('#')) return new SolidColorBrush(ColorHelper.FromArgb(255, 100, 116, 139));
-        try
+    internal static TextBlock Text(string value = "", double size = 14, string color = AppColors.Text, ushort weight = 400) =>
+        new TextBlock
         {
-            return new(ColorHelper.FromArgb(
-                hex.Length == 9 ? Convert.ToByte(hex.Substring(1, 2), 16) : (byte)255,
-                Convert.ToByte(hex.Substring(hex.Length - 6, 2), 16),
-                Convert.ToByte(hex.Substring(hex.Length - 4, 2), 16),
-                Convert.ToByte(hex.Substring(hex.Length - 2, 2), 16)));
+            Text = value,
+            FontSize = size,
+            FontWeight = new FontWeight { Weight = weight },
+            VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis
         }
-        catch
-        {
-            return new SolidColorBrush(ColorHelper.FromArgb(255, 100, 116, 139));
-        }
-    }
-
-    internal static TextBlock Text(string value = "", double size = 14, string color = Slate900, ushort weight = 400) => new()
-    {
-        Text = value, FontSize = size, Foreground = Brush(color), FontFamily = Typeface,
-        FontWeight = new FontWeight { Weight = weight }, VerticalAlignment = VerticalAlignment.Center,
-        TextTrimming = TextTrimming.CharacterEllipsis
-    };
+        .FontFamily(weight >= 700 ? AppTypography.Fonts.BoldFont
+            : weight >= 600 ? AppTypography.Fonts.SemiBoldFont
+            : weight >= 500 ? AppTypography.Fonts.MediumFont
+            : AppTypography.Fonts.RegularFont)
+        .Foreground(Theme(color));
 
     internal static Visibility ShowIf(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
 
-    internal static Border Badge(UIElement content, string background, string border = "#00000000") => new()
+    internal static Border Badge(UIElement content, StatusTone tone = StatusTone.Neutral)
     {
-        Child = content, Background = Brush(background), BorderBrush = Brush(border),
-        BorderThickness = new Thickness(border == "#00000000" ? 0 : 1),
-        CornerRadius = new CornerRadius(10), Padding = new Thickness(8, 2, 8, 2),
-        VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left
-    };
+        var keys = StatusBadgePresentation.GetKeys(tone);
+        return new Border
+        {
+            Child = content,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(8, 2, 8, 2),
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left
+        }
+        .Background(Theme(keys.Fill))
+        .BorderBrush(Theme(keys.Stroke));
+    }
 
     internal static Button Button(UIElement content, bool primary = false, string? tooltip = null)
     {
         var button = new Button
         {
-            Content = content, FontFamily = Typeface, FontSize = 14,
-            Background = Brush(primary ? Primary : "#00000000"), Foreground = Brush(primary ? "#FFFFFF" : Slate500),
-            BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(8),
+            Content = content,
+            FontSize = 14,
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(8),
             Padding = primary ? new Thickness(16, 8, 16, 8) : new Thickness(6),
-            MinWidth = 0, MinHeight = 0, VerticalAlignment = VerticalAlignment.Center,
+            MinWidth = 0,
+            MinHeight = 0,
+            VerticalAlignment = VerticalAlignment.Center,
             UseSystemFocusVisuals = true
-        };
-        button.Resources["ButtonBackgroundPointerOver"] = Brush(primary ? "#1D4ED8" : "#F1F5F9");
-        button.Resources["ButtonBackgroundPressed"] = Brush(primary ? "#1E40AF" : Slate200);
-        button.Resources["ButtonForegroundPointerOver"] = Brush(primary ? "#FFFFFF" : Slate900);
-        button.Resources["ButtonBorderBrushPointerOver"] = Brush("#00000000");
+        }
+        .FontFamily(AppTypography.Fonts.MediumFont)
+        .Style(primary ? AppControlStyles.Styles.PrimaryButton : AppControlStyles.Styles.QuietButton);
+
+        if (primary)
+        {
+            button.Background(Theme(AppColors.Primary)).Foreground(Theme(AppColors.OnPrimary));
+        }
+        else
+        {
+            button.Foreground(Theme(AppColors.SecondaryText));
+        }
+
         if (tooltip is not null)
         {
             ToolTipService.SetToolTip(button, tooltip);
@@ -76,7 +83,7 @@ internal static class CategoryWorkspaceStyles
     }
 
     // Locally authored 24-unit line icons; no web fonts or platform-specific glyphs.
-    internal static FrameworkElement Icon(string symbol, string color = Slate500, double size = 20)
+    internal static FrameworkElement Icon(string symbol, string color = AppColors.SecondaryText, double size = 20)
     {
         double[][] lines = symbol switch
         {
@@ -131,10 +138,12 @@ internal static class CategoryWorkspaceStyles
             geometry.Figures.Add(figure);
             canvas.Children.Add(new Path
             {
-                Data = geometry, Stroke = Brush(color), StrokeThickness = 1.75,
-                StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round,
+                Data = geometry,
+                StrokeThickness = 1.75,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
                 StrokeLineJoin = PenLineJoin.Round
-            });
+            }.Stroke(Theme(color)));
         }
         return new Viewbox { Width = size, Height = size, Child = canvas, VerticalAlignment = VerticalAlignment.Center };
     }

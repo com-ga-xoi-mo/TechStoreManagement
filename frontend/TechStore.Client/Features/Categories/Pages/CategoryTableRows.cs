@@ -1,8 +1,12 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
+using TechStore.Client.Controls;
+using TechStore.Client.Controls.Presentation;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.ViewModels;
+using TechStore.Client.Styles;
 using Uno.Extensions.Markup;
 using static TechStore.Client.Features.Categories.Pages.CategoryWorkspaceStyles;
 
@@ -39,11 +43,11 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
     private UIElement BuildRow(CategoryRow row)
     {
         var grid = Columns();
-        var normal = row.IsRoot ? "#FFFFFF" : "#80F8FAFC";
-        grid.Background = Brush(normal);
+        var normalKey = row.IsRoot ? AppColors.Surface : AppColors.Canvas;
+        grid.Background(Theme(normalKey));
         grid.Opacity = row.IsActive ? 1 : 0.75;
-        grid.PointerEntered += (_, _) => grid.Background = Brush(Slate50);
-        grid.PointerExited += (_, _) => grid.Background = Brush(normal);
+        grid.PointerEntered += (_, _) => grid.Background(Theme(AppColors.Subtle));
+        grid.PointerExited += (_, _) => grid.Background(Theme(normalKey));
         var name = new Grid { ColumnSpacing = 8 };
         void AddNamePart(FrameworkElement part, bool fill = false)
         {
@@ -52,8 +56,8 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
             Grid.SetColumn(part, column);
             name.Children.Add(part);
         }
-        if (!row.IsRoot) AddNamePart(Text("↳", 14, "#94A3B8"));
-        var chevron = Icon("right", "#94A3B8", 18);
+        if (!row.IsRoot) AddNamePart(Text("↳", 14, AppColors.SecondaryText));
+        var chevron = Icon("right", AppColors.SecondaryText, 18);
         chevron.DataContext = row;
         chevron.RenderTransform(x => x.Binding(() => row.IsExpanded)
             .Convert((bool expanded) => (Transform)new RotateTransform { Angle = expanded ? 90d : 0d, CenterX = 9, CenterY = 9 }));
@@ -75,22 +79,25 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
             AddNamePart(slot);
         }
         if (row.IsRoot)
+        {
+            var iconKeys = StatusBadgePresentation.GetKeys(row.Icon.Tone);
             AddNamePart(new Border
             {
-                Width = 36, Height = 36, CornerRadius = new CornerRadius(8), Background = Brush(row.Icon.Background),
-                BorderBrush = Brush(row.Icon.Border), BorderThickness = new Thickness(1), Child = Icon(row.Icon.Symbol, row.Icon.Foreground)
-            });
-        var nameText = Text(size: 14, color: row.IsRoot ? Slate900 : "#1E293B", weight: row.IsRoot ? (ushort)600 : (ushort)500);
+                Width = 36, Height = 36, CornerRadius = new CornerRadius(8),
+                BorderThickness = new Thickness(1), Child = Icon(row.Icon.Symbol, iconKeys.Text)
+            }.Background(Theme(iconKeys.Fill)).BorderBrush(Theme(iconKeys.Stroke)));
+        }
+        var nameText = Text(size: 14, color: AppColors.Text, weight: row.IsRoot ? (ushort)600 : (ushort)500);
         nameText.DataContext = row;
         nameText.Text(x => x.Binding(() => row.Name));
         ToolTipService.SetToolTip(nameText, row.Name);
         AddNamePart(nameText, fill: true);
         AddCell(grid, name, 0, row, row.IsRoot ? 16 : 48 + (row.Depth - 1) * 24);
-        var parent = Text(size: 12, color: row.IsRoot ? "#475569" : Slate500, weight: row.IsRoot ? (ushort)500 : (ushort)400);
+        var parent = Text(size: 12, color: AppColors.SecondaryText, weight: row.IsRoot ? (ushort)500 : (ushort)400);
         parent.DataContext = row;
         parent.Text(x => x.Binding(() => row.ParentName));
-        AddCell(grid, row.IsRoot ? Badge(parent, "#F1F5F9") : parent, 1, row);
-        var count = Text(size: 14, color: row.IsRoot ? Slate900 : "#475569", weight: row.IsRoot ? (ushort)500 : (ushort)400);
+        AddCell(grid, row.IsRoot ? Badge(parent, StatusTone.Neutral) : parent, 1, row);
+        var count = Text(size: 14, color: row.IsRoot ? AppColors.Text : AppColors.SecondaryText, weight: row.IsRoot ? (ushort)500 : (ushort)400);
         count.HorizontalAlignment = HorizontalAlignment.Center;
         count.DataContext = row;
         count.Text(x => x.Binding(() => row.CountText));
@@ -101,20 +108,20 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
         status.Children.Add(new Border
         {
             Width = trackWidth, Height = trackHeight, CornerRadius = new CornerRadius(trackHeight / 2d),
-            Background = Brush(row.IsActive ? Primary : Slate200), Padding = new Thickness(2), VerticalAlignment = VerticalAlignment.Center,
+            Padding = new Thickness(2), VerticalAlignment = VerticalAlignment.Center,
             Child = new Border
             {
-                Width = trackHeight - 4, Height = trackHeight - 4, Background = Brush("#FFFFFF"),
-                CornerRadius = new CornerRadius((trackHeight - 4) / 2d), HorizontalAlignment = row.IsActive ? HorizontalAlignment.Right : HorizontalAlignment.Left
-            }
-        });
-        status.Children.Add(Text(row.StatusText, 12, row.IsActive ? "#334155" : "#94A3B8", 500));
+                Width = trackHeight - 4, Height = trackHeight - 4,
+                CornerRadius = new CornerRadius((trackHeight - 4) / 2d),
+                HorizontalAlignment = row.IsActive ? HorizontalAlignment.Right : HorizontalAlignment.Left
+            }.Background(Theme(row.IsActive ? AppColors.OnPrimary : AppColors.Surface))
+        }.Background(Theme(row.IsActive ? AppColors.Primary : AppColors.Subtle)));
+        status.Children.Add(Text(row.StatusText, 12, AppColors.SecondaryText, 500));
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(status, $"Trạng thái: {row.StatusText}");
         var statusButton = new Button
         {
             Content = status,
             Padding = new Thickness(0),
-            Background = Brush("#00000000"),
             BorderThickness = new Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
@@ -123,30 +130,27 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
             IsTabStop = true,
             CommandParameter = row,
             DataContext = viewModel
-        };
+        }.Style(AppControlStyles.Styles.QuietButton);
         statusButton.Command(x => x.Binding(() => viewModel.ToggleStatusCommand));
         ToolTipService.SetToolTip(statusButton, $"Đổi trạng thái {row.Name}");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(statusButton, $"Đổi trạng thái {row.Name}");
-        statusButton.Resources["ButtonBackgroundPointerOver"] = Brush("#00000000");
-        statusButton.Resources["ButtonBackgroundPressed"] = Brush("#00000000");
         AddCell(grid, statusButton, 3, row);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Right };
-        var edit = Button(Icon("edit", "#475569", row.IsRoot ? 18 : 16), tooltip: $"Sửa {row.Name}");
+        var edit = Button(Icon("edit", AppColors.SecondaryText, row.IsRoot ? 18 : 16), tooltip: $"Sửa {row.Name}");
         edit.DataContext = viewModel;
         edit.Command(x => x.Binding(() => viewModel.EditCategoryCommand));
         edit.CommandParameter = row;
-        var delete = Button(Icon("delete", "#94A3B8", row.IsRoot ? 18 : 16), tooltip: $"Xóa {row.Name}");
+        var delete = Button(Icon("delete", AppColors.SecondaryText, row.IsRoot ? 18 : 16), tooltip: $"Xóa {row.Name}");
         delete.DataContext = viewModel;
         delete.Command(x => x.Binding(() => viewModel.DeleteCategoryCommand));
         delete.CommandParameter = row;
-        delete.Resources["ButtonBackgroundPointerOver"] = Brush("#FEF2F2");
-        delete.PointerEntered += (_, _) => delete.Content = Icon("delete", "#DC2626", row.IsRoot ? 18 : 16);
-        delete.PointerExited += (_, _) => delete.Content = Icon("delete", "#94A3B8", row.IsRoot ? 18 : 16);
+        delete.PointerEntered += (_, _) => delete.Content = Icon("delete", AppColors.DangerText, row.IsRoot ? 18 : 16);
+        delete.PointerExited += (_, _) => delete.Content = Icon("delete", AppColors.SecondaryText, row.IsRoot ? 18 : 16);
         if (!row.IsRoot) { edit.Padding = new Thickness(4); delete.Padding = new Thickness(4); }
         actions.Children.Add(edit);
         actions.Children.Add(delete);
         AddCell(grid, actions, 4, row);
-        return new Border { Child = grid, BorderBrush = Brush("#F1F5F9"), BorderThickness = new Thickness(0, 0, 0, 1) };
+        return new Border { Child = grid, BorderThickness = new Thickness(0, 0, 0, 1) }.BorderBrush(Theme(AppColors.Stroke));
     }
 
     private static void AddCell(Grid grid, UIElement content, int column, CategoryRow row, double left = 16)

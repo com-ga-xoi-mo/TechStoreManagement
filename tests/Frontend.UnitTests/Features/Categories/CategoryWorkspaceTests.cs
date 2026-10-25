@@ -1,4 +1,5 @@
 using FluentAssertions;
+using TechStore.Client.Controls;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.Services;
 using TechStore.Client.Features.Categories.ViewModels;
@@ -272,23 +273,23 @@ public class CategoryWorkspaceTests
     }
 
     [Theory]
-    [InlineData("Điện thoại thông minh", "", "phone")]
-    [InlineData("", "LAPTOP-MACBOOK", "laptop")]
-    [InlineData("iPad Apple", "", "tablet")]
-    [InlineData("Tai nghe & Loa Bluetooth", "", "headphones")]
-    [InlineData("Headphones", "", "headphones")]
-    [InlineData("Phụ kiện", "", "headphones")]
-    [InlineData("Apple", "", "category")]
-    [InlineData("Samsung", "", "category")]
-    [InlineData("Unknown", "", "category")]
-    [InlineData(null, null, "category")]
-    public void IconResolver_NamesAndSlugs_SelectsSpecificFamily(string? name, string? slug, string symbol)
+    [InlineData("Điện thoại thông minh", "", "phone", StatusTone.Info)]
+    [InlineData("", "LAPTOP-MACBOOK", "laptop", StatusTone.Accent)]
+    [InlineData("iPad Apple", "", "tablet", StatusTone.Success)]
+    [InlineData("Tai nghe & Loa Bluetooth", "", "headphones", StatusTone.Warning)]
+    [InlineData("Headphones", "", "headphones", StatusTone.Warning)]
+    [InlineData("Phụ kiện", "", "headphones", StatusTone.Warning)]
+    [InlineData("Apple", "", "category", StatusTone.Neutral)]
+    [InlineData("Samsung", "", "category", StatusTone.Neutral)]
+    [InlineData("Unknown", "", "category", StatusTone.Neutral)]
+    [InlineData(null, null, "category", StatusTone.Neutral)]
+    public void IconResolver_NamesAndSlugs_SelectsSpecificFamily(string? name, string? slug, string symbol, StatusTone expectedTone)
     {
         // Act
         var icon = CategoryIconResolver.Resolve(name, slug);
         // Assert
         icon.Symbol.Should().Be(symbol);
-        icon.Background.Should().StartWith("#");
+        icon.Tone.Should().Be(expectedTone);
     }
 
     [Fact]

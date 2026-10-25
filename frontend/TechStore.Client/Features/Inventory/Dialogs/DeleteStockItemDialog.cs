@@ -18,8 +18,6 @@ public sealed class DeleteStockItemDialog : ContentDialog
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         DataContext = viewModel;
-        RequestedTheme = ElementTheme.Default;
-        FontFamily = Typeface;
         HorizontalAlignment = HorizontalAlignment.Center;
         VerticalAlignment = VerticalAlignment.Center;
         HorizontalContentAlignment = HorizontalAlignment.Center;
@@ -53,8 +51,6 @@ public sealed class DeleteStockItemDialog : ContentDialog
 
     private UIElement BuildLayout()
     {
-        // Keep the close button overlaid in the top-right corner, matching the
-        // `absolute top-4 right-4` button in delete-stock-item.html.
         var shell = new Grid()
             .Width(460)
             .MaxWidth(460)
@@ -91,11 +87,11 @@ public sealed class DeleteStockItemDialog : ContentDialog
                             .BorderBrush(AppColors.Brushes.DangerStroke)
                             .BorderThickness(new Thickness(1))
                             .Margin(new Thickness(0, 0, 0, 16))
-                            .Child(Icon("delete_forever", "#DC2626", 26)
+                            .Child(Icon("delete_forever", AppColors.DangerText, 26)
                                 .HorizontalAlignment(HorizontalAlignment.Center)
                                 .VerticalAlignment(VerticalAlignment.Center)),
                         new TextBlock()
-                            .FontFamily(Typeface)
+                            .FontFamily(AppTypography.Fonts.SemiBoldFont)
                             .FontSize(18)
                             .FontWeight(Weight(600))
                             .Foreground(AppColors.Brushes.Text)
@@ -104,7 +100,7 @@ public sealed class DeleteStockItemDialog : ContentDialog
                             .Text("Xác nhận xóa sản phẩm"),
                         new TextBlock()
                             .MaxWidth(400)
-                            .FontFamily(Typeface)
+                            .FontFamily(AppTypography.Fonts.RegularFont)
                             .FontSize(13)
                             .Foreground(AppColors.Brushes.SecondaryText)
                             .TextAlignment(TextAlignment.Center)
@@ -124,7 +120,7 @@ public sealed class DeleteStockItemDialog : ContentDialog
             .BorderThickness(new Thickness(0))
             .HorizontalAlignment(HorizontalAlignment.Right)
             .VerticalAlignment(VerticalAlignment.Top)
-            .Content(Icon("close", Slate500, 20))
+            .Content(Icon("close", AppColors.SecondaryText, 20))
             .Command(x => x.Binding(() => ViewModel.CancelCommand));
         AutomationProperties.SetName(close, "Đóng cửa sổ xác nhận xóa tồn kho");
         return close;
@@ -148,7 +144,7 @@ public sealed class DeleteStockItemDialog : ContentDialog
                                 new ColumnDefinition().Width(GridLength.Auto))
                             .Children(
                                 new TextBlock()
-                                    .FontFamily(Typeface)
+                                    .FontFamily(AppTypography.Fonts.SemiBoldFont)
                                     .FontSize(14)
                                     .FontWeight(Weight(600))
                                     .Foreground(AppColors.Brushes.Text)
@@ -156,7 +152,7 @@ public sealed class DeleteStockItemDialog : ContentDialog
                                     .Text(x => x.Binding(() => ViewModel.ProductName))
                                     .Grid(column: 0),
                                 new TextBlock()
-                                    .FontFamily(Typeface)
+                                    .FontFamily(AppTypography.Fonts.RegularFont)
                                     .FontSize(11)
                                     .Foreground(AppColors.Brushes.SecondaryText)
                                     .TextTrimming(TextTrimming.CharacterEllipsis)
@@ -170,7 +166,7 @@ public sealed class DeleteStockItemDialog : ContentDialog
                             .Padding(new Thickness(10, 8, 10, 8))
                             .Child(
                                 new TextBlock()
-                                    .FontFamily(Typeface)
+                                    .FontFamily(AppTypography.Fonts.MediumFont)
                                     .FontSize(12)
                                     .FontWeight(Weight(500))
                                     .Foreground(AppColors.Brushes.DangerText)
@@ -188,7 +184,7 @@ public sealed class DeleteStockItemDialog : ContentDialog
             .Padding(new Thickness(10, 8, 10, 8))
             .Child(
                 new TextBlock()
-                    .FontFamily(Typeface)
+                    .FontFamily(AppTypography.Fonts.RegularFont)
                     .FontSize(12)
                     .Foreground(AppColors.Brushes.DangerText)
                     .TextWrapping(TextWrapping.Wrap)
@@ -211,7 +207,7 @@ public sealed class DeleteStockItemDialog : ContentDialog
                             .Padding(new Thickness(16, 10, 16, 10))
                             .HorizontalAlignment(HorizontalAlignment.Stretch)
                             .MinWidth(0)
-                            .FontFamily(Typeface)
+                            .FontFamily(AppTypography.Fonts.RegularFont)
                             .FontSize(14)
                             .Foreground(AppColors.Brushes.Text)
                             .Background(AppColors.Brushes.Surface)
@@ -229,12 +225,13 @@ public sealed class DeleteStockItemDialog : ContentDialog
                             .Padding(new Thickness(16, 10, 16, 10))
                             .HorizontalAlignment(HorizontalAlignment.Stretch)
                             .MinWidth(0)
-                            .FontFamily(Typeface)
+                            .FontFamily(AppTypography.Fonts.SemiBoldFont)
                             .FontSize(14)
                             .FontWeight(Weight(600))
-                            .Foreground(AppColors.Brushes.OnPrimary)
-                            .Background(AppColors.Brushes.DangerText)
-                            .BorderThickness(new Thickness(0))
+                            .Foreground(AppColors.Brushes.DangerText)
+                            .Background(AppColors.Brushes.DangerFill)
+                            .BorderBrush(AppColors.Brushes.DangerStroke)
+                            .BorderThickness(new Thickness(1))
                             .CornerRadius(new CornerRadius(8))
                             .HorizontalContentAlignment(HorizontalAlignment.Center)
                             .VerticalContentAlignment(VerticalAlignment.Center)
@@ -255,15 +252,15 @@ public sealed class DeleteStockItemDialog : ContentDialog
                 new ProgressRing()
                     .Width(16)
                     .Height(16)
-                    .Foreground(AppColors.Brushes.OnPrimary)
+                    .Foreground(AppColors.Brushes.DangerText)
                     .IsActive(x => x.Binding(() => ViewModel.IsBusy))
                     .Visibility(x => x.Binding(() => ViewModel.IsBusy).Convert((bool value) => ShowIf(value)))
                     .Grid(column: 0),
                 new TextBlock()
-                    .FontFamily(Typeface)
+                    .FontFamily(AppTypography.Fonts.SemiBoldFont)
                     .FontSize(14)
                     .FontWeight(Weight(600))
-                    .Foreground(AppColors.Brushes.OnPrimary)
+                    .Foreground(AppColors.Brushes.DangerText)
                     .Text(x => x.Binding(() => ViewModel.IsBusy).Convert((bool busy) => busy ? "Đang xóa..." : "Xác nhận xóa"))
                     .Grid(column: 1));
 

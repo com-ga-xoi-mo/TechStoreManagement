@@ -9,4 +9,6 @@ public class CreateProductVariantRequest
     public string? Barcode { get; set; }
     public decimal? Price { get; set; }
     public Dictionary<string, JsonElement>? Specs { get; set; }
+    /// <summary>Whether the variant sells as soon as its product does; omitted means not selling (owner opens it later).</summary>
+    public bool? IsActive { get; set; }
 }

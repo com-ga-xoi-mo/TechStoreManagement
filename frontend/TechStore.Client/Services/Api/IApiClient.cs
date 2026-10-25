@@ -16,8 +16,10 @@ public interface IApiClient
         TRequest request,
         CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(
+    Task<TResponse> PostFileAsync<TResponse>(
         string relativePath,
+        ApiFileContent file,
+        IReadOnlyDictionary<string, string>? fields = null,
         CancellationToken cancellationToken = default);
 
     Task PatchAsync(
@@ -32,5 +34,9 @@ public interface IApiClient
     Task<TResponse> PatchAsync<TRequest, TResponse>(
         string relativePath,
         TRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(
+        string relativePath,
         CancellationToken cancellationToken = default);
 }

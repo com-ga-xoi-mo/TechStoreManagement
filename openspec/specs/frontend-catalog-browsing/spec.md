@@ -7,7 +7,7 @@ Cho phép người dùng tìm kiếm, lọc và xem chi tiết Catalog chỉ đ�
 ## Requirements
 
 ### Requirement: Live read-only catalog
-Client SHALL lấy danh sách từ `GET /api/products`, chi tiết từ `GET /api/products/{id}` và lựa chọn danh mục từ `GET /api/categories/tree`. Luồng Catalog MUST NOT gửi mutation, truy cập database trực tiếp hoặc tự thay dữ liệu thật bằng fixture khi có lỗi.
+Client SHALL lấy danh sách từ `GET /api/products`, chi tiết từ `GET /api/products/{id}` và lựa chọn danh mục từ `GET /api/categories/tree`. Việc duyệt Catalog (danh sách, lọc, chi tiết) MUST NOT gửi mutation, truy cập database trực tiếp hoặc tự thay dữ liệu thật bằng fixture khi có lỗi. Thao tác ghi chỉ xảy ra khi người dùng chủ động dùng các hành động quản lý sản phẩm thuộc capability `frontend-catalog-management`.
 
 #### Scenario: Enter products
 - **WHEN** người dùng mở Sản phẩm từ Shell và API khả dụng
@@ -17,8 +17,12 @@ Client SHALL lấy danh sách từ `GET /api/products`, chi tiết từ `GET /ap
 - **WHEN** API không thể kết nối khi mở Catalog
 - **THEN** trang báo lỗi có retry, không hiển thị dữ liệu demo hoặc empty như một lần tải thành công
 
+#### Scenario: Browsing sends no writes
+- **WHEN** người dùng tìm kiếm, lọc, sắp xếp, phân trang, mở chi tiết và quay lại mà không bấm hành động quản lý nào
+- **THEN** client chỉ gửi các yêu cầu `GET`
+
 ### Requirement: Submitted catalog criteria
-Client SHALL hỗ trợ q, brand, categoryId, isActive, minPrice, maxPrice và các spec key:value; search/filter chỉ áp dụng khi submit bằng nút hoặc Enter. Brand là khớp chính xác không phân biệt hoa thường, category chỉ lọc trực tiếp và các điều kiện kết hợp AND theo API.
+Client SHALL cho lọc trên giao diện theo từ khóa q, categoryId, isActive và các spec key:value. Từ khóa là ô tìm chung: API khớp tên, SKU, hãng và barcode, nên giao diện không có ô thương hiệu riêng. Giao diện không có ô khoảng giá; repository vẫn gửi được brand, minPrice và maxPrice theo API khi được truyền vào. Bộ lọc thông số SHALL được thu gọn mặc định, mở bằng một nút, và gồm các dòng điều kiện: chọn tên rồi chọn giá trị từ `GET /api/products/spec-keys` theo danh mục đang chọn; mỗi dòng gửi đúng `filterValue` do API trả về. Bộ lọc tự mở khi truy vấn đang áp dụng có thông số hoặc khi điều kiện chưa hợp lệ. Search/filter chỉ áp dụng khi submit bằng nút hoặc Enter. Category chỉ lọc trực tiếp và các điều kiện kết hợp AND theo API.
 
 #### Scenario: Unicode and reserved characters
 - **WHEN** submit từ khóa có dấu, khoảng trắng, `&`, `+`, `%`, `#` hoặc spec value chứa dấu hai chấm
@@ -28,9 +32,21 @@ Client SHALL hỗ trợ q, brand, categoryId, isActive, minPrice, maxPrice và c
 - **WHEN** sửa bộ lọc nhưng chưa submit
 - **THEN** kết quả vẫn ghi nhận truy vấn đã áp dụng; submit hợp lệ bắt đầu trang 1, bỏ q rỗng và isActive ở lựa chọn Tất cả
 
+#### Scenario: Search by brand
+- **WHEN** người dùng nhập `logitech` vào ô tìm kiếm và submit
+- **THEN** client gửi `q=logitech` và không gửi `brand`; danh sách gồm các sản phẩm có hãng Logitech
+
+#### Scenario: Pick spec conditions from stored values
+- **WHEN** người dùng mở lọc thông số, chọn `ram_gb` = `16` và `bluetooth` = `5.2` (giá trị chữ) rồi submit
+- **THEN** client gửi `spec=ram_gb:16` và `spec=bluetooth:"5.2"` đúng như `filterValue` của API
+
+#### Scenario: Suggestions follow the category
+- **WHEN** người dùng đổi danh mục trong bộ lọc
+- **THEN** danh sách tên thông số được tải lại cho danh mục đó; nếu tải lỗi thì hiện thông báo kèm nút Tải lại và tìm kiếm khác vẫn dùng được
+
 #### Scenario: Invalid filter input
-- **WHEN** khoảng giá âm/đảo ngược hoặc spec key/value không hợp lệ hay trùng key mâu thuẫn
-- **THEN** hiển thị lỗi tại trường nhập và không gửi truy vấn sai; lỗi validation từ API vẫn được xử lý nếu server từ chối
+- **WHEN** một dòng đã chọn tên nhưng chưa chọn giá trị, hoặc hai dòng cùng tên
+- **THEN** bộ lọc thông số mở ra và hiển thị lỗi, không gửi truy vấn; dòng chưa chọn tên được bỏ qua; lỗi validation từ API vẫn được xử lý nếu server từ chối
 
 ### Requirement: Category filter availability
 Client SHALL hiển thị tên và phân cấp danh mục từ cây API, không bịa danh mục hoặc counts. Lỗi tải cây SHALL có thông báo và retry riêng, không biến kết quả sản phẩm thành rỗng hay chặn tìm kiếm không dùng danh mục.
@@ -116,3 +132,18 @@ Catalog SHALL được kiểm chứng với API thật và app desktop Linux tr�
 #### Scenario: Evidence and owner review
 - **WHEN** bàn giao Catalog
 - **THEN** có record Linux build/hash, API/dataset, command, viewport/scale, expected/actual, ảnh/log và kết quả tests; manual acceptance chỉ hoàn tất khi chủ dự án xác nhận build đã xem; không yêu cầu kiểm thử Windows trong change này
+
+### Requirement: Readable specification names
+Trang chi tiết và bộ lọc thông số SHALL hiện tên của định nghĩa thông số thay cho key, giá trị số kèm đơn vị của định nghĩa (`16 GB`) và giá trị Đúng/Sai là `Có`/`Không`. Key chưa có định nghĩa SHALL hiện chính key. Giá trị gửi lên API và giá trị lưu không đổi.
+
+#### Scenario: Detail with defined specs
+- **WHEN** chi tiết có specs `{"ram_gb": 16, "wireless": true}` và cả hai key có định nghĩa
+- **THEN** trang hiện `RAM: 16 GB` và `Không dây: Có`
+
+#### Scenario: Key without a definition
+- **WHEN** chi tiết có spec `{"fan_rpm": 2000}` và `fan_rpm` chưa có định nghĩa
+- **THEN** trang hiện `fan_rpm: 2000`
+
+#### Scenario: Filter choices
+- **WHEN** người dùng mở lọc thông số
+- **THEN** ô tên hiện `RAM (7)` và ô giá trị hiện `16 GB (1)`, còn request vẫn gửi `spec=ram_gb:16`

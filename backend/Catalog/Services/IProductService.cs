@@ -26,7 +26,8 @@ public record CreateProductResult(
     ProductDto? Data,
     Dictionary<string, string[]>? ValidationErrors,
     IReadOnlyList<string>? ConflictingSkus,
-    bool IsConflict)
+    bool IsConflict,
+    string? ConflictMessage = null)
 {
     public static CreateProductResult Success(ProductDto data) =>
         new(true, data, null, null, false);
@@ -36,11 +37,34 @@ public record CreateProductResult(
 
     public static CreateProductResult Conflict(IReadOnlyList<string> conflictingSkus) =>
         new(false, null, null, conflictingSkus, true);
+
+    public static CreateProductResult ConflictWithMessage(string message) =>
+        new(false, null, null, null, true, message);
+}
+
+public enum ProductCommandStatus { Success, NotFound, ValidationFailed, Conflict }
+
+public record ProductCommandResult(
+    ProductCommandStatus Status,
+    ProductDto? Data,
+    Dictionary<string, string[]>? ValidationErrors,
+    string? ConflictMessage)
+{
+    public static ProductCommandResult Success(ProductDto? data) => new(ProductCommandStatus.Success, data, null, null);
+    public static ProductCommandResult NotFound() => new(ProductCommandStatus.NotFound, null, null, null);
+    public static ProductCommandResult ValidationFailed(Dictionary<string, string[]> errors) => new(ProductCommandStatus.ValidationFailed, null, errors, null);
+    public static ProductCommandResult Conflict(string message) => new(ProductCommandStatus.Conflict, null, null, message);
 }
 
 public interface IProductService
 {
     Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<ProductSearchResult> SearchAsync(ProductSearchRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ProductSpecKeyDto>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SpecDefinitionDto>> GetSpecDefinitionsAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BrandDto>> GetBrandsAsync(CancellationToken cancellationToken = default);
     Task<CreateProductResult> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default);
+    Task<ProductCommandResult> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default);
+    Task<ProductCommandResult> SetStatusAsync(Guid id, UpdateProductStatusRequest request, CancellationToken cancellationToken = default);
+    Task<ProductCommandResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

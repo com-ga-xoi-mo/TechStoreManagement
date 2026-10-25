@@ -12,6 +12,23 @@ public sealed class ProductRepositoryTests
     private static readonly Guid CategoryId = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
     [Fact]
+    public async Task ProductDetail_Images_AreMappedInSortOrder()
+    {
+        // Arrange
+        var dto = new TechStore.Shared.DTOs.ProductDto
+        {
+            Id = ProductId, CategoryId = CategoryId, CategoryName = "Phones", Name = "Phone", Sku = "P1", Brand = "Brand", CreatedAt = DateTime.UtcNow,
+            Images = [new() { Id = Guid.NewGuid(), Url = "second", SortOrder = 1 }, new() { Id = Guid.NewGuid(), Url = "first", SortOrder = 0 }]
+        };
+        var json = JsonSerializer.Serialize(dto, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var repository = new ProductRepository(new StubApiClient(_ => json));
+        // Act
+        var detail = await repository.GetByIdAsync(ProductId);
+        // Assert
+        Assert.Equal(new[] { "first", "second" }, detail!.Images.Select(i => i.Url));
+    }
+
+    [Fact]
     public async Task SearchAsync_MapsValidPageAndAcceptsLegitimateZeroFalseAndAdditiveFields()
     {
         const string json = """
@@ -88,7 +105,7 @@ public sealed class ProductRepositoryTests
     public async Task GetByIdAsync_MapsDetailAndClonesTypedSpecs()
     {
         const string json = """
-            {"id":"11111111-1111-1111-1111-111111111111","categoryId":"22222222-2222-2222-2222-222222222222","categoryName":"Điện thoại","name":"Phone","sku":"P-1","barcode":null,"brand":"Tech","basePrice":10.25,"costPrice":5,"description":null,"imageUrl":null,"specs":{"ram_gb":16,"wireless":true,"chip":"M3"},"isSerialTracked":true,"isActive":false,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null,"variants":[{"id":"33333333-3333-3333-3333-333333333333","productId":"11111111-1111-1111-1111-111111111111","variantName":"Silver","sku":"P-1-S","barcode":null,"price":10.25,"specs":{"color":"Silver"},"effectiveSpecs":{"ram_gb":16,"wireless":true,"chip":"M3","color":"Silver"},"isActive":true,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null}]}
+            {"id":"11111111-1111-1111-1111-111111111111","categoryId":"22222222-2222-2222-2222-222222222222","categoryName":"Điện thoại","name":"Phone","sku":"P-1","barcode":null,"brand":"Tech","basePrice":10.25,"costPrice":5,"description":null,"imageUrl":null,"specs":{"ram_gb":16,"wireless":true,"chip":"M3"},"isSerialTracked":true,"isActive":false,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null,"images": [], "variants":[{"id":"33333333-3333-3333-3333-333333333333","productId":"11111111-1111-1111-1111-111111111111","variantName":"Silver","sku":"P-1-S","barcode":null,"price":10.25,"specs":{"color":"Silver"},"effectiveSpecs":{"ram_gb":16,"wireless":true,"chip":"M3","color":"Silver"},"isActive":true,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null}]}
             """;
         using var document = JsonDocument.Parse(json);
         var repository = new ProductRepository(new StubApiClient(_ => document.RootElement));
@@ -135,7 +152,7 @@ public sealed class ProductRepositoryTests
     public async Task GetByIdAsync_RejectsResponseForDifferentProductId()
     {
         const string json = """
-            {"id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","categoryId":"22222222-2222-2222-2222-222222222222","categoryName":"A","name":"A","sku":"A","barcode":null,"brand":"A","basePrice":0,"costPrice":0,"description":null,"imageUrl":null,"specs":{},"isSerialTracked":true,"isActive":true,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null,"variants":[]}
+            {"id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","categoryId":"22222222-2222-2222-2222-222222222222","categoryName":"A","name":"A","sku":"A","barcode":null,"brand":"A","basePrice":0,"costPrice":0,"description":null,"imageUrl":null,"specs":{},"isSerialTracked":true,"isActive":true,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null,"images": [], "variants":[]}
             """;
         var repository = new ProductRepository(new StubApiClient(_ => json));
 
@@ -146,6 +163,7 @@ public sealed class ProductRepositoryTests
 
     private sealed class StubApiClient(Func<string, object> response) : IApiClient
     {
+        public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<TResponse> GetAsync<TResponse>(string relativePath, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -167,11 +185,12 @@ public sealed class ProductRepositoryTests
         public Task PostAsync<TRequest>(string relativePath, TRequest request, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
-        public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
         public Task PatchAsync(string relativePath, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
         public Task<TResponse> PatchAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
     }
 }

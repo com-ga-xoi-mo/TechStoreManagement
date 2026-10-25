@@ -96,6 +96,7 @@ public sealed class AnalyticsApiRepositoryTests
 
     private sealed class StubApiClient(Func<string, AdminDashboardDto> response) : IApiClient
     {
+        public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public string? LastPath { get; private set; }
 
         public Task<TResponse> GetAsync<TResponse>(string relativePath, CancellationToken cancellationToken = default)
@@ -108,5 +109,8 @@ public sealed class AnalyticsApiRepositoryTests
         public Task<TResponse> PostAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<TResponse> PutAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task PostAsync<TRequest>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<TResponse> PatchAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task PatchAsync(string relativePath, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

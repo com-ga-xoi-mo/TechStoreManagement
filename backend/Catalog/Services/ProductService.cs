@@ -2,6 +2,7 @@ using System.Text.Json;
 using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Common.Data;
+using TechStore.Api.Common.Storage;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -10,66 +11,137 @@ namespace TechStore.Api.Catalog.Services;
 public class ProductService(
     IProductRepository productRepository,
     ICategoryRepository categoryRepository,
-    IUnitOfWork unitOfWork) : IProductService
+    IUnitOfWork unitOfWork,
+    ISpecDefinitionRepository specDefinitionRepository,
+    IObjectStorage objectStorage) : IProductService
 {
+    private const string SpecNameConflictMessage = "A spec name was created by someone else at the same time. Reload the product and save again.";
+
     public async Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var product = await productRepository.GetWithVariantsAsync(id, cancellationToken);
+        var product = await productRepository.GetDetailAsync(id, cancellationToken);
         if (product == null)
         {
             return ProductDetailResult.NotFound();
         }
 
-        var prodSpecs = ProductSpecHelper.ParseJsonSpecs(product.Specs);
-
-        var variantDtos = product.Variants
-            .OrderBy(v => v.Price)
-            .ThenBy(v => v.Sku)
-            .Select(v =>
-            {
-                var vSpecs = ProductSpecHelper.ParseJsonSpecs(v.Specs);
-                var effective = ProductSpecHelper.MergeEffectiveSpecs(prodSpecs, vSpecs);
-
-                return new ProductVariantDto
-                {
-                    Id = v.Id,
-                    ProductId = v.ProductId,
-                    VariantName = v.VariantName,
-                    Sku = v.Sku,
-                    Barcode = v.Barcode,
-                    Price = v.Price,
-                    Specs = vSpecs,
-                    EffectiveSpecs = effective,
-                    IsActive = v.IsActive,
-                    CreatedAt = v.CreatedAt,
-                    UpdatedAt = v.UpdatedAt
-                };
-            })
-            .ToList();
-
-        var dto = new ProductDto
-        {
-            Id = product.Id,
-            CategoryId = product.CategoryId,
-            CategoryName = product.Category?.Name ?? string.Empty,
-            Name = product.Name,
-            Sku = product.Sku,
-            Barcode = product.Barcode,
-            Brand = product.Brand,
-            BasePrice = product.BasePrice,
-            CostPrice = product.CostPrice,
-            Description = product.Description,
-            ImageUrl = product.ImageUrl,
-            Specs = prodSpecs,
-            IsSerialTracked = product.IsSerialTracked,
-            IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt,
-            Variants = variantDtos
-        };
-
+        var dto = ProductDtoMapper.ToDto(product, product.Category?.Name ?? string.Empty);
         return ProductDetailResult.Success(dto);
     }
+
+    public async Task<IReadOnlyList<ProductSpecKeyDto>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default)
+    {
+        var rows = await productRepository.GetSpecValueCountsAsync(categoryId, cancellationToken);
+        var keys = ProductSpecSuggestionBuilder.Build(rows);
+        var definitions = (await specDefinitionRepository.GetByKeysAsync(keys.Select(k => k.Key), cancellationToken))
+            .ToDictionary(d => d.Key, StringComparer.Ordinal);
+        foreach (var key in keys)
+        {
+            if (!definitions.TryGetValue(key.Key, out var definition)) continue;
+            key.Label = definition.Label;
+            key.Unit = definition.Unit;
+            key.ValueKind = definition.ValueKind;
+        }
+        return keys;
+    }
+
+    public async Task<IReadOnlyList<SpecDefinitionDto>> GetSpecDefinitionsAsync(CancellationToken cancellationToken = default)
+    {
+        var definitions = await specDefinitionRepository.GetAllAsync(cancellationToken);
+        return definitions
+            .Select(d => new SpecDefinitionDto { Key = d.Key, Label = d.Label, Unit = d.Unit, ValueKind = d.ValueKind })
+            .ToList();
+    }
+
+    /// <summary>
+    /// Database rules of design D13: values of defined keys keep their kind, and names for new keys are free.
+    /// Returns the field errors and the definitions to insert with the product.
+    /// </summary>
+    private async Task<(Dictionary<string, List<string>> Errors, List<SpecDefinition> NewDefinitions)> CheckSpecDefinitionsAsync(
+        IDictionary<string, JsonElement>? productSpecs,
+        IReadOnlyList<IDictionary<string, JsonElement>?> variantSpecs,
+        IDictionary<string, SpecLabelRequest>? labels,
+        CancellationToken cancellationToken)
+    {
+        var errors = new Dictionary<string, List<string>>();
+        void AddError(string field, string message)
+        {
+            if (!errors.TryGetValue(field, out var list)) errors[field] = list = [];
+            list.Add(message);
+        }
+
+        var groups = new List<(string Field, IDictionary<string, JsonElement> Specs)>();
+        if (productSpecs is not null) groups.Add(("specs", productSpecs));
+        for (var i = 0; i < variantSpecs.Count; i++)
+        {
+            if (variantSpecs[i] is { } specs) groups.Add(($"variants[{i}].specs", specs));
+        }
+
+        var keys = groups.SelectMany(g => g.Specs.Keys).ToHashSet(StringComparer.Ordinal);
+        var definitions = (await specDefinitionRepository.GetByKeysAsync(keys, cancellationToken))
+            .ToDictionary(d => d.Key, StringComparer.Ordinal);
+
+        foreach (var (field, specs) in groups)
+        {
+            foreach (var (key, value) in specs)
+            {
+                if (definitions.TryGetValue(key, out var definition) && ProductSpecHelper.KindOf(value) != definition.ValueKind)
+                    AddError(field, $"Spec '{key}' must be a {definition.ValueKind} value.");
+            }
+        }
+
+        var pending = labels?
+            .Where(entry => !definitions.ContainsKey(entry.Key))
+            .Select(entry => new SpecDefinition
+            {
+                Key = entry.Key,
+                Label = entry.Value.Label!.Trim(),
+                Unit = string.IsNullOrWhiteSpace(entry.Value.Unit) ? null : entry.Value.Unit.Trim(),
+                ValueKind = entry.Value.ValueKind!,
+                CreatedAt = DateTime.UtcNow
+            })
+            .ToList() ?? [];
+
+        if (pending.Count > 0)
+        {
+            var taken = await specDefinitionRepository.FindByLabelsAsync(pending.Select(d => d.Label), cancellationToken);
+            foreach (var definition in pending)
+            {
+                var owner = taken.FirstOrDefault(t => string.Equals(t.Label, definition.Label, StringComparison.OrdinalIgnoreCase));
+                if (owner is not null)
+                    AddError($"specLabels.{definition.Key}", $"The name '{definition.Label}' is already used by spec '{owner.Key}'.");
+            }
+        }
+
+        return (errors, errors.Count == 0 ? pending : []);
+    }
+
+    public async Task<IReadOnlyList<BrandDto>> GetBrandsAsync(CancellationToken cancellationToken = default)
+    {
+        var counts = await productRepository.GetBrandCountsAsync(cancellationToken);
+        return counts
+            .GroupBy(c => c.Brand.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(g => new BrandDto { Name = MostUsedSpelling(g), ProductCount = g.Sum(c => c.ProductCount) })
+            .OrderBy(b => b.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>The brand as other products already spell it (design D14), or the trimmed input when none does.</summary>
+    private async Task<string> CanonicalBrandAsync(string brand, Guid? excludeProductId, CancellationToken cancellationToken)
+    {
+        var trimmed = brand.Trim();
+        var spellings = await productRepository.GetBrandSpellingsAsync(trimmed, excludeProductId, cancellationToken);
+        return spellings.Count == 0 ? trimmed : MostUsedSpelling(spellings);
+    }
+
+    private static string MostUsedSpelling(IEnumerable<BrandCount> spellings) =>
+        spellings
+            .OrderByDescending(c => c.ProductCount)
+            .ThenBy(c => c.Brand, StringComparer.Ordinal)
+            .First().Brand.Trim();
+
+    private static bool IsSpecDefinitionConflict(DuplicateKeyException exception) =>
+        exception.ConstraintName?.Contains("spec_definitions", StringComparison.OrdinalIgnoreCase) == true;
 
     public async Task<ProductSearchResult> SearchAsync(ProductSearchRequest request, CancellationToken cancellationToken = default)
     {
@@ -210,13 +282,23 @@ public class ProductService(
                 .Select(v => v.Sku!.Trim()));
         }
 
+        var (specErrors, newDefinitions) = await CheckSpecDefinitionsAsync(
+            request.Specs,
+            request.Variants?.Select(v => (IDictionary<string, JsonElement>?)v?.Specs).ToList() ?? [],
+            request.SpecLabels,
+            cancellationToken);
+        if (specErrors.Count > 0)
+        {
+            return CreateProductResult.ValidationFailed(specErrors.ToDictionary(k => k.Key, v => v.Value.ToArray()));
+        }
+
         var allConflicts = await productRepository.FindExistingSkusAsync(requestSkus, cancellationToken);
         if (allConflicts.Count > 0)
         {
             return CreateProductResult.Conflict(allConflicts);
         }
 
-        // 4. Build product and variant entities (IsActive always true)
+        // 4. Build product and variant entities: new products start not selling (design D15)
         var now = DateTime.UtcNow;
         var prodSpecsDict = request.Specs ?? new Dictionary<string, JsonElement>();
         var prodSpecsJson = ProductSpecHelper.SerializeSpecs(prodSpecsDict);
@@ -228,14 +310,13 @@ public class ProductService(
             Name = request.Name!.Trim(),
             Sku = request.Sku!.Trim(),
             Barcode = string.IsNullOrWhiteSpace(request.Barcode) ? null : request.Barcode.Trim(),
-            Brand = request.Brand!.Trim(),
+            Brand = await CanonicalBrandAsync(request.Brand!, null, cancellationToken),
             BasePrice = request.BasePrice!.Value,
             CostPrice = request.CostPrice!.Value,
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-            ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
             Specs = prodSpecsJson,
             IsSerialTracked = request.IsSerialTracked ?? true,
-            IsActive = true,
+            IsActive = false,
             CreatedAt = now,
             UpdatedAt = null
         };
@@ -256,7 +337,7 @@ public class ProductService(
                     Barcode = string.IsNullOrWhiteSpace(vReq.Barcode) ? null : vReq.Barcode.Trim(),
                     Price = vReq.Price!.Value,
                     Specs = vSpecsJson,
-                    IsActive = true,
+                    IsActive = vReq.IsActive ?? false,
                     CreatedAt = now,
                     UpdatedAt = null
                 };
@@ -266,11 +347,19 @@ public class ProductService(
         }
 
         productRepository.Add(product);
+        foreach (var definition in newDefinitions)
+        {
+            specDefinitionRepository.Add(definition);
+        }
 
         // 5. Persist with IUnitOfWork.SaveChangesAsync, catching DuplicateKeyException
         try
         {
             await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (DuplicateKeyException exception) when (IsSpecDefinitionConflict(exception))
+        {
+            return CreateProductResult.ConflictWithMessage(SpecNameConflictMessage);
         }
         catch (DuplicateKeyException)
         {
@@ -278,52 +367,293 @@ public class ProductService(
         }
 
         // 6. Build and return created ProductDto
-        var variantDtos = product.Variants
-            .OrderBy(v => v.Price)
-            .ThenBy(v => v.Sku)
-            .Select(v =>
-            {
-                var vSpecs = ProductSpecHelper.ParseJsonSpecs(v.Specs);
-                var effective = ProductSpecHelper.MergeEffectiveSpecs(prodSpecsDict, vSpecs);
-
-                return new ProductVariantDto
-                {
-                    Id = v.Id,
-                    ProductId = v.ProductId,
-                    VariantName = v.VariantName,
-                    Sku = v.Sku,
-                    Barcode = v.Barcode,
-                    Price = v.Price,
-                    Specs = vSpecs,
-                    EffectiveSpecs = effective,
-                    IsActive = v.IsActive,
-                    CreatedAt = v.CreatedAt,
-                    UpdatedAt = v.UpdatedAt
-                };
-            })
-            .ToList();
-
-        var createdDto = new ProductDto
-        {
-            Id = product.Id,
-            CategoryId = product.CategoryId,
-            CategoryName = category.Name,
-            Name = product.Name,
-            Sku = product.Sku,
-            Barcode = product.Barcode,
-            Brand = product.Brand,
-            BasePrice = product.BasePrice,
-            CostPrice = product.CostPrice,
-            Description = product.Description,
-            ImageUrl = product.ImageUrl,
-            Specs = prodSpecsDict,
-            IsSerialTracked = product.IsSerialTracked,
-            IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt,
-            Variants = variantDtos
-        };
-
+        var createdDto = ProductDtoMapper.ToDto(product, category.Name);
         return CreateProductResult.Success(createdDto);
+    }
+
+    public async Task<ProductCommandResult> UpdateAsync(
+        Guid id,
+        UpdateProductRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        // Step A - pure validation and lock
+        var validationErrors = UpdateProductValidator.Validate(request);
+        if (validationErrors.Count > 0)
+        {
+            return ProductCommandResult.ValidationFailed(validationErrors);
+        }
+
+        var errors = new Dictionary<string, List<string>>();
+        void AddError(string field, string message)
+        {
+            if (!errors.TryGetValue(field, out var list))
+            {
+                list = [];
+                errors[field] = list;
+            }
+            list.Add(message);
+        }
+
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var product = await productRepository.GetForUpdateAsync(id, cancellationToken);
+            if (product == null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.NotFound();
+            }
+
+            var category = await categoryRepository.GetByIdAsync(request.CategoryId!.Value, cancellationToken);
+            if (category == null || !category.IsActive)
+            {
+                AddError("categoryId", $"Category '{request.CategoryId!.Value}' does not exist or is inactive.");
+            }
+
+            // Step B - variant item checks against stored data
+            var existingById = product.Variants.ToDictionary(v => v.Id);
+            if (request.Variants != null)
+            {
+                for (var i = 0; i < request.Variants.Count; i++)
+                {
+                    var item = request.Variants[i];
+                    if (item == null) continue;
+
+                    if (item.Id.HasValue)
+                    {
+                        if (!existingById.TryGetValue(item.Id.Value, out var existing))
+                        {
+                            AddError($"variants[{i}].id", $"Variant '{item.Id.Value}' does not belong to this product.");
+                        }
+                        else if (!string.IsNullOrWhiteSpace(item.Sku) && !string.Equals(item.Sku.Trim(), existing.Sku, StringComparison.OrdinalIgnoreCase))
+                        {
+                            AddError($"variants[{i}].sku", "The SKU of an existing variant cannot be changed.");
+                        }
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrWhiteSpace(item.Sku) && string.Equals(item.Sku.Trim(), product.Sku, StringComparison.OrdinalIgnoreCase))
+                        {
+                            AddError($"variants[{i}].sku", $"SKU '{item.Sku.Trim()}' is already used by the product.");
+                        }
+                    }
+                }
+            }
+
+            var (specErrors, newDefinitions) = await CheckSpecDefinitionsAsync(
+                request.Specs,
+                request.Variants?.Select(v => (IDictionary<string, JsonElement>?)v?.Specs).ToList() ?? [],
+                request.SpecLabels,
+                cancellationToken);
+            foreach (var (field, messages) in specErrors)
+            {
+                foreach (var message in messages) AddError(field, message);
+            }
+
+            var newCount = request.Variants?.Count(v => v is { Id: null }) ?? 0;
+            if (product.Variants.Count + newCount > 0 && !string.IsNullOrWhiteSpace(request.Barcode))
+            {
+                AddError("barcode", "A product with variants cannot have a product barcode. Put barcodes on the variants.");
+            }
+
+            if (errors.Count > 0)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.ValidationFailed(errors.ToDictionary(k => k.Key, v => v.Value.ToArray()));
+            }
+
+            // Step C - usage guards (409)
+            var serialChange = request.IsSerialTracked!.Value != product.IsSerialTracked;
+            var firstVariant = product.Variants.Count == 0 && newCount > 0;
+            if (serialChange || firstVariant)
+            {
+                var inUse = await productRepository.IsInUseAsync(product.Id, cancellationToken);
+                if (inUse)
+                {
+                    await unitOfWork.RollbackAsync(cancellationToken);
+                    if (serialChange)
+                    {
+                        return ProductCommandResult.Conflict("Serial tracking cannot be changed because the product already has stock, purchase or order records.");
+                    }
+                    else
+                    {
+                        return ProductCommandResult.Conflict("Variants cannot be added because the product already has product-level stock, purchase or order records.");
+                    }
+                }
+            }
+
+            // Step D - SKU conflicts for new variants
+            var newSkus = request.Variants?
+                .Where(v => v is { Id: null } && !string.IsNullOrWhiteSpace(v.Sku))
+                .Select(v => v.Sku!.Trim())
+                .ToList() ?? [];
+
+            if (newSkus.Count > 0)
+            {
+                var conflicts = await productRepository.FindExistingSkusAsync(newSkus, cancellationToken);
+                if (conflicts.Count > 0)
+                {
+                    await unitOfWork.RollbackAsync(cancellationToken);
+                    return ProductCommandResult.Conflict($"One or more SKUs are already in use: {string.Join(", ", conflicts)}.");
+                }
+            }
+
+            // Step E - apply product fields
+            product.CategoryId = request.CategoryId!.Value;
+            product.Name = request.Name!.Trim();
+            product.Brand = await CanonicalBrandAsync(request.Brand!, product.Id, cancellationToken);
+            product.Barcode = string.IsNullOrWhiteSpace(request.Barcode) ? null : request.Barcode.Trim();
+            product.BasePrice = request.BasePrice!.Value;
+            product.CostPrice = request.CostPrice!.Value;
+            product.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+            product.Specs = ProductSpecHelper.SerializeSpecs(request.Specs);
+            product.IsSerialTracked = request.IsSerialTracked!.Value;
+            var now = DateTime.UtcNow;
+            product.UpdatedAt = now;
+
+            // Step F - apply variants
+            if (request.Variants != null)
+            {
+                foreach (var item in request.Variants)
+                {
+                    if (item == null) continue;
+
+                    if (item.Id.HasValue)
+                    {
+                        var existing = existingById[item.Id.Value];
+                        existing.VariantName = item.VariantName!.Trim();
+                        existing.Barcode = string.IsNullOrWhiteSpace(item.Barcode) ? null : item.Barcode.Trim();
+                        existing.Price = item.Price!.Value;
+                        existing.Specs = ProductSpecHelper.SerializeSpecs(item.Specs);
+                        existing.IsActive = item.IsActive ?? existing.IsActive;
+                        existing.UpdatedAt = now;
+                    }
+                    else
+                    {
+                        var variant = new ProductVariant
+                        {
+                            Id = Guid.NewGuid(),
+                            ProductId = product.Id,
+                            VariantName = item.VariantName!.Trim(),
+                            Sku = item.Sku!.Trim(),
+                            Barcode = string.IsNullOrWhiteSpace(item.Barcode) ? null : item.Barcode.Trim(),
+                            Price = item.Price!.Value,
+                            Specs = ProductSpecHelper.SerializeSpecs(item.Specs),
+                            IsActive = item.IsActive ?? false,
+                            CreatedAt = now,
+                            UpdatedAt = null
+                        };
+
+                        product.Variants.Add(variant);
+                        productRepository.AddVariant(variant);
+                    }
+                }
+            }
+
+            foreach (var definition in newDefinitions)
+            {
+                specDefinitionRepository.Add(definition);
+            }
+
+            // Step G - persist
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+
+            return ProductCommandResult.Success(ProductDtoMapper.ToDto(product, category!.Name));
+        }
+        catch (DuplicateKeyException exception)
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            return ProductCommandResult.Conflict(IsSpecDefinitionConflict(exception)
+                ? SpecNameConflictMessage
+                : "A SKU in this request is already in use.");
+        }
+        catch
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<ProductCommandResult> SetStatusAsync(
+        Guid id,
+        UpdateProductStatusRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request?.IsActive == null)
+        {
+            return ProductCommandResult.ValidationFailed(new Dictionary<string, string[]>
+            {
+                ["isActive"] = ["isActive is required."]
+            });
+        }
+
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var product = await productRepository.GetForUpdateAsync(id, cancellationToken);
+            if (product == null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.NotFound();
+            }
+
+            var category = await categoryRepository.GetByIdAsync(product.CategoryId, cancellationToken);
+            var categoryName = category?.Name ?? string.Empty;
+
+            if (product.IsActive == request.IsActive.Value)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.Success(ProductDtoMapper.ToDto(product, categoryName));
+            }
+
+            product.IsActive = request.IsActive.Value;
+            product.UpdatedAt = DateTime.UtcNow;
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+
+            return ProductCommandResult.Success(ProductDtoMapper.ToDto(product, categoryName));
+        }
+        catch
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<ProductCommandResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var product = await productRepository.GetForUpdateAsync(id, cancellationToken);
+            if (product == null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.NotFound();
+            }
+
+            var inUse = await productRepository.IsInUseAsync(product.Id, cancellationToken);
+            if (inUse)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return ProductCommandResult.Conflict("Product is in use by stock, purchase or order records. Deactivate it instead.");
+            }
+
+            var keys = product.Images.Select(i => i.ObjectKey).ToList();
+            productRepository.Remove(product);
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+
+            foreach (var key in keys) await objectStorage.TryDeleteAsync(key, cancellationToken);
+            return ProductCommandResult.Success(null);
+        }
+        catch
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }

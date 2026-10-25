@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Api.Catalog.Services;
@@ -97,12 +98,6 @@ public static class CreateProductValidator
             AddError("description", "Description cannot exceed 2000 characters.");
         }
 
-        // 9. ImageUrl
-        if (!string.IsNullOrEmpty(request.ImageUrl) && request.ImageUrl.Length > 2048)
-        {
-            AddError("imageUrl", "Image URL cannot exceed 2048 characters.");
-        }
-
         // 10. Specs
         if (request.Specs != null)
         {
@@ -186,6 +181,17 @@ public static class CreateProductValidator
                 }
             }
         }
+
+        // 13. Barcode is only for products without variants
+        if (request.Variants is { Count: > 0 } && !string.IsNullOrWhiteSpace(request.Barcode))
+        {
+            AddError("barcode", "A product with variants cannot have a product barcode. Put barcodes on the variants.");
+        }
+
+        // Names for new spec keys (design D13)
+        IEnumerable<IDictionary<string, JsonElement>?> specGroups =
+            [request.Specs, .. request.Variants?.Select(v => (IDictionary<string, JsonElement>?)v?.Specs) ?? []];
+        SpecLabelValidator.Validate(request.SpecLabels, specGroups, errors);
 
         return errors.ToDictionary(k => k.Key, v => v.Value.ToArray());
     }

@@ -66,3 +66,4 @@ schema.dbdiagram
 *.dbdiagram
 
 stitch_techstore_retail_admin_dashboard
+backend/uploads/

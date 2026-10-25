@@ -7,7 +7,9 @@ using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Catalog.Services;
 using TechStore.Api.Analytics.Repositories;
 using TechStore.Api.Analytics.Services;
+using TechStore.Api.Common.Configuration;
 using TechStore.Api.Common.Data;
+using TechStore.Api.Common.Storage;
 using TechStore.Api.Customers.Repositories;
 using TechStore.Api.Customers.Services;
 using TechStore.Api.Identity.Configurations;
@@ -17,6 +19,10 @@ using TechStore.Api.Inventory.Repositories;
 using TechStore.Api.Inventory.Services;
 using TechStore.Api.Orders.Repositories;
 using TechStore.Api.Orders.Services;
+
+// Development only: backend/.env (git-ignored) can hold local settings such as R2 keys.
+if (string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase))
+    DotEnvFile.LoadIfPresent(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,11 +72,17 @@ builder.Services.AddScoped<IDemoSeedRepository, DemoSeedRepository>();
 // Unit of Work registration
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+// Object storage (product images)
+builder.Services.AddObjectStorage(builder.Configuration);
+
 // Catalog Module repositories
+builder.Services.AddScoped<IProductImageRepository, ProductImageRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ISpecDefinitionRepository, SpecDefinitionRepository>();
 
 // Catalog Module services
+builder.Services.AddScoped<IProductImageService, ProductImageService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 
@@ -145,6 +157,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseObjectStorageFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();

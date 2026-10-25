@@ -114,6 +114,8 @@ Enum role_type {
 //   New keys are allowed. JSON null values are not part of the specs contract.
 //   Effective specs = product.specs || variant.specs (variant wins per top-level key).
 //   An absent variant key inherits the product value; filtering uses effective specs.
+//   Human names, units and value kinds of spec keys live in spec_definitions (one row per key);
+//   a key without a definition is shown as the key itself.
 // - Selling requires an active product and, when selected, an active variant.
 //   Use is_active to retire records; hard deletion is only for unused records.
 // - Category parent changes must reject self-parenting and ancestor cycles
@@ -145,9 +147,9 @@ Table products {
   barcode text [null, note: 'Retail barcode intended for a product without variants; NULL when variants exist; preserve leading zeros']
   brand text [not null, note: 'Manufacturer brand (Apple, Asus, Dell, Samsung)']
   base_price numeric(18,2) [not null, note: 'Direct-sale price without variants; reference price otherwise. Variant sales use product_variants.price (VND)']
-  cost_price numeric(18,2) [not null, note: 'Standard reference procurement cost; actual receipt costs belong to purchase_order_items.unit_cost']
+  cost_price numeric(18,2) [not null, note: 'Expected unit cost entered by the owner to price the product and estimate gross margin; changed only by product create/update, never by purchase receipts. The actual cost of a sale is order_items.unit_cost from Inventory']
   description text [null, note: 'Marketing overview and specifications summary']
-  image_url text [null, note: 'CDN image URL']
+  image_url text [null, note: 'Cover image URL, computed by the server from product_images (first shared image); clients never set it']
   specs jsonb [not null, default: `'{}'::jsonb`, note: 'Shared hardware specs object; see Catalog key, type and inheritance rules']
   is_serial_tracked boolean [not null, default: true, note: 'True if every device unit has unique Serial/IMEI']
   is_active boolean [not null, default: true, note: 'Active in catalog']
@@ -185,6 +187,35 @@ Table product_variants {
   }
 
   Note: 'SKU variants for hardware options (Storage capacity, colorways)'
+}
+
+Table product_images {
+  id uuid [pk, default: `gen_random_uuid()`]
+  product_id uuid [not null]
+  variant_id uuid [null, note: 'NULL means shared by all variants; composite FK ensures product ownership']
+  object_key varchar(300) [not null, note: 'Server-generated products/{productId:N}/{guid:N}.{ext}; file bytes live in object storage']
+  url varchar(2048) [not null, note: 'Public URL captured at upload']
+  content_type varchar(20) [not null, check: `content_type IN ('image/jpeg','image/png','image/webp')`]
+  size_bytes integer [not null, check: `size_bytes > 0 AND size_bytes <= 5242880`]
+  sort_order integer [not null, check: `sort_order >= 0`, note: 'Service maintains consecutive positions under product row lock']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [null]
+
+  indexes {
+    (product_id, sort_order) [name: 'idx_product_images_product_id']
+    (variant_id, product_id) [name: 'idx_product_images_variant_id']
+    object_key [unique, name: 'uq_product_images_object_key']
+  }
+}
+
+Table spec_definitions {
+  key varchar(64) [pk, note: 'Spec key used inside products.specs / product_variants.specs (snake_case)']
+  label varchar(100) [not null, note: 'Display name; unique ignoring letter case (idx_spec_definitions_label_lower on lower(label))']
+  unit varchar(20) [null, note: 'Display unit, e.g. GB, mAh, Hz']
+  value_kind varchar(10) [not null, note: 'number | string | boolean; values of this key must have this JSON type']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'Catalog spec dictionary. No foreign keys: specs stay schema-less JSONB; product create/update insert a row for a new key (insert-only).'
 }
 
 // ============================================================================
@@ -689,6 +720,8 @@ Table refresh_tokens {
 Ref: categories.parent_id > categories.id [delete: set null]
 Ref: products.category_id > categories.id [delete: restrict]
 Ref: product_variants.product_id > products.id [delete: cascade]
+Ref: product_images.product_id > products.id [delete: cascade]
+Ref: product_images.(variant_id, product_id) > product_variants.(id, product_id) [delete: cascade]
 
 // Inventory Relationships
 Ref: inventory_stocks.product_id > products.id [delete: restrict]
@@ -740,6 +773,7 @@ Ref: refresh_tokens.user_id > users.id [delete: cascade]
 // ============================================================================
 
 TableGroup Catalog {
+  product_images
   categories
   products
   product_variants

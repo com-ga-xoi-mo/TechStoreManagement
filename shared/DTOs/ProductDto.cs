@@ -15,6 +15,7 @@ public class ProductDto
     public decimal CostPrice { get; set; }
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
+    public List<ProductImageDto> Images { get; set; } = [];
     public Dictionary<string, JsonElement> Specs { get; set; } = [];
     public bool IsSerialTracked { get; set; }
     public bool IsActive { get; set; }

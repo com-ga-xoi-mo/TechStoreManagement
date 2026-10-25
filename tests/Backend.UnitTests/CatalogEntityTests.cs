@@ -8,6 +8,36 @@ namespace TechStore.UnitTests;
 
 public class CatalogEntityTests
 {
+    [Fact]
+    public void ProductImage_Model_HasCompositeVariantForeignKey()
+    {
+        // Arrange
+        using var context = CreateDbContext();
+        var entity = context.Model.FindEntityType(typeof(ProductImage))!;
+        // Act
+        var foreignKey = entity.GetForeignKeys().Single(f => f.PrincipalEntityType.ClrType == typeof(ProductVariant));
+        // Assert
+        foreignKey.Properties.Select(p => p.Name).Should().Equal("VariantId", "ProductId");
+        foreignKey.PrincipalKey.Properties.Select(p => p.Name).Should().Equal("Id", "ProductId");
+        foreignKey.DeleteBehavior.Should().Be(DeleteBehavior.Cascade);
+    }
+
+    [Fact]
+    public void ProductImage_Model_HasRequiredIndexes()
+    {
+        // Arrange
+        using var context = CreateDbContext();
+        // Act
+        var indexes = context.Model.FindEntityType(typeof(ProductImage))!.GetIndexes().ToList();
+        // Assert
+        indexes.Should().HaveCount(3);
+        indexes.Single(i => i.GetDatabaseName() == "idx_product_images_product_id").Properties.Select(p => p.Name)
+            .Should().Equal("ProductId", "SortOrder");
+        indexes.Single(i => i.GetDatabaseName() == "idx_product_images_variant_id").Properties.Select(p => p.Name)
+            .Should().Equal("VariantId", "ProductId");
+        indexes.Single(i => i.GetDatabaseName() == "uq_product_images_object_key").IsUnique.Should().BeTrue();
+    }
+
     private AppDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

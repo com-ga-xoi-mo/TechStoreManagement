@@ -29,6 +29,8 @@ public sealed class DesignTokenKeysTests
         "TechStoreInfoTextBrush",
         "TechStoreInfoFillBrush",
         "TechStoreInfoStrokeBrush",
+        "TechStoreEditContextFillBrush",
+        "TechStoreEditContextStrokeBrush",
         "TechStoreSuccessTextBrush",
         "TechStoreSuccessFillBrush",
         "TechStoreSuccessStrokeBrush",

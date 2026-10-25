@@ -18,6 +18,10 @@ public class UnitOfWork(AppDbContext dbContext) : IUnitOfWork
         {
             throw new DuplicateKeyException(pgEx.ConstraintName, pgEx.Message, ex);
         }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23503" } pgEx)
+        {
+            throw new ForeignKeyViolationException(pgEx.ConstraintName, pgEx.Message, ex);
+        }
     }
 
     public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)

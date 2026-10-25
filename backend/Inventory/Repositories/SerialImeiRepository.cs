@@ -21,6 +21,16 @@ public class SerialImeiRepository(AppDbContext dbContext) : ISerialImeiRepositor
             query = query.Where(s => s.ProductId == criteria.ProductId.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(criteria.Search))
+        {
+            var search = criteria.Search.Trim();
+            query = query.Where(s =>
+                (s.SerialNumber != null && EF.Functions.ILike(s.SerialNumber, $"%{search}%")) ||
+                (s.Imei != null && EF.Functions.ILike(s.Imei, $"%{search}%")) ||
+                EF.Functions.ILike(s.Product.Name, $"%{search}%") ||
+                (s.Variant != null && EF.Functions.ILike(s.Variant.VariantName, $"%{search}%")));
+        }
+
         if (criteria.VariantId.HasValue)
         {
             query = query.Where(s => s.VariantId == criteria.VariantId.Value);

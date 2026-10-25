@@ -3,11 +3,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Controls;
 using TechStore.Client.Services.Navigation;
 using TechStore.Client.Services.Window;
+using TechStore.Client.Features.Categories.Pages;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.Views.Catalog;
 using TechStore.Client.Views.Customers;
 using TechStore.Client.Views.Dashboard;
-using TechStore.Client.Views.Inventory;
 using TechStore.Client.Views.Orders;
 using TechStore.Client.Views.Settings;
 
@@ -79,7 +79,7 @@ public sealed class ShellRoutePageFactory(
     {
         ShellDestination.Dashboard => services.GetRequiredService<DashboardPage>(),
         ShellDestination.Products => services.GetRequiredService<ProductListPage>(),
-        ShellDestination.Inventory => services.GetRequiredService<InventoryPage>(),
+        ShellDestination.Inventory => services.GetRequiredService<CategoryManagementPage>(),
         ShellDestination.Orders => services.GetRequiredService<OrderListPage>(),
         ShellDestination.Customers => services.GetRequiredService<CustomerListPage>(),
         ShellDestination.Settings => services.GetRequiredService<SettingsPage>(),

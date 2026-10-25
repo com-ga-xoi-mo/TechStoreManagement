@@ -7,6 +7,7 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
 {
     public List<InventoryStock> Stocks { get; } = [];
     public List<InventoryMovement> Movements { get; } = [];
+    public List<SerialImei> Serials { get; } = [];
 
     // Stock rows locked through GetForUpdateAsync, in call order (used to assert the lock order).
     public List<(Guid ProductId, Guid? VariantId)> LockedKeys { get; } = [];
@@ -60,6 +61,38 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
         return Task.FromResult(stock);
     }
 
+    public Task<InventoryStock?> GetByIdForUpdateAsync(
+        Guid stockId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(Stocks.FirstOrDefault(stock => stock.Id == stockId));
+
+    public Task<InventoryStock?> GetDetailAsync(
+        Guid stockId,
+        CancellationToken cancellationToken = default)
+    {
+        var stock = Stocks.FirstOrDefault(candidate => candidate.Id == stockId);
+        if (stock is not null)
+        {
+            stock.Movements = Movements.Where(movement => movement.InventoryStockId == stockId).ToList();
+            stock.RelatedSerialCount = Serials.Count(serial => serial.ProductId == stock.ProductId && serial.VariantId == stock.VariantId);
+        }
+        return Task.FromResult(stock);
+    }
+
+    public Task<IReadOnlyList<SerialImei>> GetSerialsForUpdateAsync(
+        Guid productId,
+        Guid? variantId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult((IReadOnlyList<SerialImei>)Serials
+            .Where(serial => serial.ProductId == productId && serial.VariantId == variantId)
+            .OrderBy(serial => serial.Id)
+            .ToList());
+
+    public Task<int> CountMovementsAsync(
+        Guid stockId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(Movements.Count(movement => movement.InventoryStockId == stockId));
+
     public void Add(InventoryStock stock)
     {
         Stocks.Add(stock);
@@ -68,5 +101,14 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
     public void AddMovement(InventoryMovement movement)
     {
         Movements.Add(movement);
+        if (movement.InventoryStock is null)
+            movement.InventoryStock = Stocks.FirstOrDefault(stock => stock.Id == movement.InventoryStockId)!;
+    }
+
+    public void Delete(InventoryStock stock) => Stocks.Remove(stock);
+
+    public void DeleteSerials(IEnumerable<SerialImei> serials)
+    {
+        foreach (var serial in serials.ToList()) Serials.Remove(serial);
     }
 }

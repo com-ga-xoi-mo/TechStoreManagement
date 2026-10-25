@@ -1,0 +1,236 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using TechStore.Client.Features.Categories.Pages;
+using TechStore.Client.Features.Inventory.ViewModels;
+using Uno.Extensions.Markup;
+using static TechStore.Client.Features.Categories.Pages.CategoryWorkspaceStyles;
+
+namespace TechStore.Client.Features.Inventory.Dialogs;
+
+/// <summary>Initial stock import modal. Layout is authored entirely with C# Markup.</summary>
+public sealed class ImportStockDialog : ContentDialog
+{
+    public ImportStockDialogViewModel ViewModel { get; }
+
+    public ImportStockDialog(ImportStockDialogViewModel viewModel)
+    {
+        ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+        DataContext = viewModel;
+        RequestedTheme = ElementTheme.Default;
+        FontFamily = Typeface;
+        DefaultButton = ContentDialogButton.None;
+        PrimaryButtonText = string.Empty;
+        SecondaryButtonText = string.Empty;
+        CloseButtonText = string.Empty;
+        Padding = new Thickness(0);
+        BorderThickness = new Thickness(0);
+        CornerRadius = new CornerRadius(12);
+        Width = 560;
+        MaxWidth = 560;
+        Resources["ContentDialogMaxWidth"] = 560d;
+        Resources["ContentDialogPadding"] = new Thickness(0);
+        Resources["ContentDialogCommandSpace"] = 0d;
+        Background = Brush("#FFFFFF");
+        Content = BuildLayout();
+        ViewModel.RequestClose += OnRequestClose;
+        Loaded += (_, _) => _ = ViewModel.LoadProductsCommand.ExecuteAsync(null);
+        Closed += (_, _) => ViewModel.RequestClose -= OnRequestClose;
+    }
+
+    private void OnRequestClose(object? sender, EventArgs e) => Hide();
+
+    private Grid BuildLayout()
+    {
+        var root = new Grid { Width = 560, MaxWidth = 560, Background = Brush("#FFFFFF") };
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.Children.Add(BuildHeader());
+        var scroll = new ScrollViewer
+        {
+            MaxHeight = 650,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Content = BuildBody()
+        };
+        Grid.SetRow(scroll, 1);
+        root.Children.Add(scroll);
+        var footer = BuildFooter();
+        Grid.SetRow(footer, 2);
+        root.Children.Add(footer);
+        return root;
+    }
+
+    private Grid BuildHeader()
+    {
+        var iconBox = new Border
+        {
+            Width = 36,
+            Height = 36,
+            CornerRadius = new CornerRadius(8),
+            Background = Brush("#E8F0FF"),
+            Child = Icon("inventory", Primary, 20)
+        };
+        var title = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 10,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children = { iconBox, Text("Nhập kho mới", 20, Slate900, 600) }
+        };
+        var header = new Grid
+        {
+            Padding = new Thickness(20, 16, 14, 14),
+            Background = Brush("#FFFFFF"),
+            BorderBrush = Brush(Slate200),
+            BorderThickness = new Thickness(0, 0, 0, 1)
+        };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.Children.Add(title);
+        var close = Button(Icon("close", Slate500, 20), tooltip: "Đóng nhập kho");
+        close.Command = ViewModel.CloseCommand;
+        Grid.SetColumn(close, 1);
+        header.Children.Add(close);
+        return header;
+    }
+
+    private UIElement BuildBody()
+    {
+        var body = new StackPanel { Padding = new Thickness(20, 18, 20, 20), Spacing = 10 };
+        body.Children.Add(RequiredLabel("Sản phẩm / SKU"));
+
+        var productPicker = new ComboBox
+        {
+            Height = 42,
+            PlaceholderText = "Chọn sản phẩm hoặc SKU...",
+            DisplayMemberPath = nameof(ImportStockProductOption.DisplayText),
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+        Bind(productPicker, ItemsControl.ItemsSourceProperty, ViewModel, nameof(ViewModel.ProductOptions));
+        Bind(productPicker, ComboBox.SelectedItemProperty, ViewModel, nameof(ViewModel.SelectedProduct), BindingMode.TwoWay);
+        body.Children.Add(productPicker);
+
+        var productMeta = Text("", 12, Slate500);
+        Bind(productMeta, TextBlock.TextProperty, ViewModel, nameof(ViewModel.ProductMetaText));
+        body.Children.Add(productMeta);
+
+        var variantPicker = new ComboBox
+        {
+            Height = 42,
+            PlaceholderText = "Chọn biến thể / SKU...",
+            DisplayMemberPath = nameof(ImportStockVariantOption.DisplayText),
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+        Bind(variantPicker, ItemsControl.ItemsSourceProperty, ViewModel, nameof(ViewModel.VariantOptions));
+        Bind(variantPicker, ComboBox.SelectedItemProperty, ViewModel, nameof(ViewModel.SelectedVariant), BindingMode.TwoWay);
+        Bind(variantPicker, UIElement.VisibilityProperty, ViewModel, nameof(ViewModel.HasVariants), converter: new VisibilityConverter());
+        body.Children.Add(variantPicker);
+
+        body.Children.Add(RequiredLabel("Số lượng nhập kho"));
+        var quantity = new NumberBox
+        {
+            Minimum = 1,
+            Maximum = 1_000_000,
+            Height = 42,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Hidden,
+            HorizontalContentAlignment = HorizontalAlignment.Left
+        };
+        Bind(quantity, NumberBox.ValueProperty, ViewModel, nameof(ViewModel.Quantity), BindingMode.TwoWay);
+        body.Children.Add(quantity);
+
+        var serialHeader = new Grid();
+        serialHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        serialHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        serialHeader.Children.Add(Text("Danh sách Serial / IMEI", 13, Slate900, 600));
+        var serialCount = Text("", 12, Slate500);
+        Bind(serialCount, TextBlock.TextProperty, ViewModel, nameof(ViewModel.SerialCountText));
+        Grid.SetColumn(serialCount, 1);
+        serialHeader.Children.Add(serialCount);
+        body.Children.Add(serialHeader);
+
+        var serials = new TextBox
+        {
+            MinHeight = 96,
+            MaxLength = 20_000,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            PlaceholderText = "Mỗi mã một dòng (không bắt buộc)..."
+        };
+        Bind(serials, TextBox.TextProperty, ViewModel, nameof(ViewModel.SerialLines), BindingMode.TwoWay);
+        body.Children.Add(serials);
+        body.Children.Add(Text("Nếu nhập Serial/IMEI, số mã phải khớp với số lượng tồn ban đầu.", 11, Slate500));
+
+        body.Children.Add(Text("Ghi chú nhập kho", 13, Slate900, 600));
+        var reason = new TextBox
+        {
+            Height = 42,
+            PlaceholderText = "Ví dụ: Nhập lô hàng đầu kỳ từ kho tổng..."
+        };
+        Bind(reason, TextBox.TextProperty, ViewModel, nameof(ViewModel.Reason), BindingMode.TwoWay);
+        body.Children.Add(reason);
+
+        var validation = Text("", 12, "#DC2626");
+        validation.TextWrapping = TextWrapping.Wrap;
+        Bind(validation, TextBlock.TextProperty, ViewModel, nameof(ViewModel.ValidationMessage));
+        Bind(validation, VisibilityProperty, ViewModel, nameof(ViewModel.HasValidationError), converter: new VisibilityConverter());
+        body.Children.Add(validation);
+
+        var error = Text("", 12, "#DC2626");
+        error.TextWrapping = TextWrapping.Wrap;
+        Bind(error, TextBlock.TextProperty, ViewModel, nameof(ViewModel.ErrorMessage));
+        Bind(error, VisibilityProperty, ViewModel, nameof(ViewModel.HasError), converter: new VisibilityConverter());
+        body.Children.Add(error);
+        return body;
+    }
+
+    private Grid BuildFooter()
+    {
+        var footer = new Grid
+        {
+            Padding = new Thickness(20, 10, 20, 10),
+            Background = Brush("#F2F4F6"),
+            BorderBrush = Brush(Slate200),
+            BorderThickness = new Thickness(0, 1, 0, 0)
+        };
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var cancel = Button(Text("Hủy", 14, Slate500, 500));
+        cancel.Height = 36;
+        cancel.Padding = new Thickness(16, 0, 16, 0);
+        cancel.Command = ViewModel.CloseCommand;
+        var busy = new ProgressRing { Width = 16, Height = 16, IsActive = true };
+        Bind(busy, VisibilityProperty, ViewModel, nameof(ViewModel.IsBusy), converter: new VisibilityConverter());
+        var saveContent = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Children = { busy, Text("Nhập kho", 14, "#FFFFFF", 500) }
+        };
+        var save = Button(saveContent, primary: true);
+        save.Height = 36;
+        save.Padding = new Thickness(20, 0, 20, 0);
+        save.Background = Brush(Primary);
+        save.Foreground = Brush("#FFFFFF");
+        save.Command = ViewModel.ConfirmCommand;
+        Bind(save, Control.IsEnabledProperty, ViewModel, nameof(ViewModel.CanSubmit));
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { cancel, save } };
+        Grid.SetColumn(buttons, 1);
+        footer.Children.Add(buttons);
+        return footer;
+    }
+
+    private static StackPanel RequiredLabel(string label)
+    {
+        var required = Text("*", 13, "#DC2626", 700);
+        required.Margin = new Thickness(3, 0, 0, 0);
+        return new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Children = { Text(label, 13, Slate900, 600), required }
+        };
+    }
+}

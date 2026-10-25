@@ -21,6 +21,8 @@ public static partial class AppColors
     public const string InfoText = "TechStoreInfoTextBrush";
     public const string InfoFill = "TechStoreInfoFillBrush";
     public const string InfoStroke = "TechStoreInfoStrokeBrush";
+    public const string EditContextFill = "TechStoreEditContextFillBrush";
+    public const string EditContextStroke = "TechStoreEditContextStrokeBrush";
     public const string SuccessText = "TechStoreSuccessTextBrush";
     public const string SuccessFill = "TechStoreSuccessFillBrush";
     public const string SuccessStroke = "TechStoreSuccessStrokeBrush";
@@ -54,6 +56,8 @@ public static partial class AppColors
         InfoText,
         InfoFill,
         InfoStroke,
+        EditContextFill,
+        EditContextStroke,
         SuccessText,
         SuccessFill,
         SuccessStroke,
@@ -89,13 +93,17 @@ public static partial class AppColors
         [InfoText] = "#1D4ED8",
         [InfoFill] = "#EFF6FF",
         [InfoStroke] = "#BFDBFE",
+        [EditContextFill] = "#F0F7FF",
+        [EditContextStroke] = "#BAE0FF",
         [SuccessText] = "#047857",
         [SuccessFill] = "#ECFDF5",
         [SuccessStroke] = "#A7F3D0",
         [WarningText] = "#B45309",
         [WarningFill] = "#FFFBEB",
         [WarningStroke] = "#FDE68A",
-        [DangerText] = "#B91C1C",
+        // Bright red action/text token used by destructive dialogs and inline
+        // warnings (matches the inventory delete design's red-500 treatment).
+        [DangerText] = "#EF4444",
         [DangerFill] = "#FEF2F2",
         [DangerStroke] = "#FECACA",
         [AccentText] = "#6D28D9",
@@ -124,6 +132,8 @@ public static partial class AppColors
         [InfoText] = "#BFDBFE",
         [InfoFill] = "#172554",
         [InfoStroke] = "#3B82F6",
+        [EditContextFill] = "#172554",
+        [EditContextStroke] = "#3B82F6",
         [SuccessText] = "#6EE7B7",
         [SuccessFill] = "#064E3B",
         [SuccessStroke] = "#10B981",
@@ -159,6 +169,8 @@ public static partial class AppColors
         [InfoText] = "SystemColorWindowTextColorBrush",
         [InfoFill] = "SystemColorWindowColorBrush",
         [InfoStroke] = "SystemColorWindowTextColorBrush",
+        [EditContextFill] = "SystemColorWindowColorBrush",
+        [EditContextStroke] = "SystemColorWindowTextColorBrush",
         [SuccessText] = "SystemColorWindowTextColorBrush",
         [SuccessFill] = "SystemColorWindowColorBrush",
         [SuccessStroke] = "SystemColorWindowTextColorBrush",

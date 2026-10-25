@@ -1,0 +1,147 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using TechStore.Client.Features.Categories.Models;
+using TechStore.Client.Features.Categories.ViewModels;
+using static TechStore.Client.Features.Categories.Pages.CategoryWorkspaceStyles;
+
+namespace TechStore.Client.Features.Categories.Pages;
+
+internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) : ItemsControl
+{
+    internal static Grid Columns()
+    {
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 320 });
+        foreach (var width in new[] { 160, 130, 120, 150 })
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width), MinWidth = width });
+        return grid;
+    }
+
+    protected override DependencyObject GetContainerForItemOverride() => new ContentControl
+    {
+        HorizontalContentAlignment = HorizontalAlignment.Stretch, IsTabStop = false, Padding = new Thickness(0)
+    };
+
+    protected override void PrepareContainerForItemOverride(DependencyObject element, object item)
+    {
+        base.PrepareContainerForItemOverride(element, item);
+        if (element is ContentControl container && item is CategoryRow row) container.Content = BuildRow(row);
+    }
+
+    protected override void ClearContainerForItemOverride(DependencyObject element, object item)
+    {
+        if (element is ContentControl container) container.Content = null;
+        base.ClearContainerForItemOverride(element, item);
+    }
+
+    private UIElement BuildRow(CategoryRow row)
+    {
+        var grid = Columns();
+        var normal = row.IsRoot ? "#FFFFFF" : "#80F8FAFC";
+        grid.Background = Brush(normal);
+        grid.Opacity = row.IsActive ? 1 : 0.75;
+        grid.PointerEntered += (_, _) => grid.Background = Brush(Slate50);
+        grid.PointerExited += (_, _) => grid.Background = Brush(normal);
+        var name = new Grid { ColumnSpacing = 8 };
+        void AddNamePart(FrameworkElement part, bool fill = false)
+        {
+            var column = name.ColumnDefinitions.Count;
+            name.ColumnDefinitions.Add(new ColumnDefinition { Width = fill ? new GridLength(1, GridUnitType.Star) : GridLength.Auto });
+            Grid.SetColumn(part, column);
+            name.Children.Add(part);
+        }
+        if (!row.IsRoot) AddNamePart(Text("↳", 14, "#94A3B8"));
+        var chevron = Icon("right", "#94A3B8", 18);
+        var rotation = new RotateTransform { CenterX = 9, CenterY = 9 };
+        chevron.RenderTransform = rotation;
+        Bind(rotation, RotateTransform.AngleProperty, row, nameof(row.IsExpanded), converter: new ExpansionAngleConverter());
+        var expand = Button(chevron, tooltip: $"Mở hoặc thu gọn {row.Name}");
+        expand.Width = expand.Height = 24;
+        expand.Padding = new Thickness(3);
+        expand.Command = viewModel.ToggleExpansionCommand;
+        expand.CommandParameter = row;
+        Bind(expand, IsEnabledProperty, row, nameof(row.CanToggle));
+        expand.Visibility = row.HasChildren ? Visibility.Visible : Visibility.Collapsed;
+        // Roots without children keep the name aligned with expandable root rows.
+        if (row.IsRoot || row.HasChildren)
+        {
+            var slot = new Border { Width = 24, Child = expand };
+            AddNamePart(slot);
+        }
+        if (row.IsRoot)
+            AddNamePart(new Border
+            {
+                Width = 36, Height = 36, CornerRadius = new CornerRadius(8), Background = Brush(row.Icon.Background),
+                BorderBrush = Brush(row.Icon.Border), BorderThickness = new Thickness(1), Child = Icon(row.Icon.Symbol, row.Icon.Foreground)
+            });
+        var nameText = Text(size: 14, color: row.IsRoot ? Slate900 : "#1E293B", weight: row.IsRoot ? (ushort)600 : (ushort)500);
+        Bind(nameText, TextBlock.TextProperty, row, nameof(row.Name));
+        ToolTipService.SetToolTip(nameText, row.Name);
+        AddNamePart(nameText, fill: true);
+        AddCell(grid, name, 0, row, row.IsRoot ? 16 : 48 + (row.Depth - 1) * 24);
+        var parent = Text(size: 12, color: row.IsRoot ? "#475569" : Slate500, weight: row.IsRoot ? (ushort)500 : (ushort)400);
+        Bind(parent, TextBlock.TextProperty, row, nameof(row.ParentName));
+        AddCell(grid, row.IsRoot ? Badge(parent, "#F1F5F9") : parent, 1, row);
+        var count = Text(size: 14, color: row.IsRoot ? Slate900 : "#475569", weight: row.IsRoot ? (ushort)500 : (ushort)400);
+        count.HorizontalAlignment = HorizontalAlignment.Center;
+        Bind(count, TextBlock.TextProperty, row, nameof(row.CountText));
+        AddCell(grid, count, 2, row);
+        var status = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center };
+        var trackWidth = row.IsRoot ? 36 : 28;
+        var trackHeight = row.IsRoot ? 20 : 16;
+        status.Children.Add(new Border
+        {
+            Width = trackWidth, Height = trackHeight, CornerRadius = new CornerRadius(trackHeight / 2d),
+            Background = Brush(row.IsActive ? Primary : Slate200), Padding = new Thickness(2), VerticalAlignment = VerticalAlignment.Center,
+            Child = new Border
+            {
+                Width = trackHeight - 4, Height = trackHeight - 4, Background = Brush("#FFFFFF"),
+                CornerRadius = new CornerRadius((trackHeight - 4) / 2d), HorizontalAlignment = row.IsActive ? HorizontalAlignment.Right : HorizontalAlignment.Left
+            }
+        });
+        status.Children.Add(Text(row.StatusText, 12, row.IsActive ? "#334155" : "#94A3B8", 500));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(status, $"Trạng thái: {row.StatusText}");
+        var statusButton = new Button
+        {
+            Content = status,
+            Padding = new Thickness(0),
+            Background = Brush("#00000000"),
+            BorderThickness = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            MinWidth = 0,
+            MinHeight = 0,
+            IsTabStop = true,
+            Command = viewModel.ToggleStatusCommand,
+            CommandParameter = row
+        };
+        ToolTipService.SetToolTip(statusButton, $"Đổi trạng thái {row.Name}");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(statusButton, $"Đổi trạng thái {row.Name}");
+        statusButton.Resources["ButtonBackgroundPointerOver"] = Brush("#00000000");
+        statusButton.Resources["ButtonBackgroundPressed"] = Brush("#00000000");
+        AddCell(grid, statusButton, 3, row);
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Right };
+        var edit = Button(Icon("edit", "#475569", row.IsRoot ? 18 : 16), tooltip: $"Sửa {row.Name}");
+        edit.Command = viewModel.EditCategoryCommand;
+        edit.CommandParameter = row;
+        var delete = Button(Icon("delete", "#94A3B8", row.IsRoot ? 18 : 16), tooltip: $"Xóa {row.Name}");
+        delete.Command = viewModel.DeleteCategoryCommand;
+        delete.CommandParameter = row;
+        delete.Resources["ButtonBackgroundPointerOver"] = Brush("#FEF2F2");
+        delete.PointerEntered += (_, _) => delete.Content = Icon("delete", "#DC2626", row.IsRoot ? 18 : 16);
+        delete.PointerExited += (_, _) => delete.Content = Icon("delete", "#94A3B8", row.IsRoot ? 18 : 16);
+        if (!row.IsRoot) { edit.Padding = new Thickness(4); delete.Padding = new Thickness(4); }
+        actions.Children.Add(edit);
+        actions.Children.Add(delete);
+        AddCell(grid, actions, 4, row);
+        return new Border { Child = grid, BorderBrush = Brush("#F1F5F9"), BorderThickness = new Thickness(0, 0, 0, 1) };
+    }
+
+    private static void AddCell(Grid grid, UIElement content, int column, CategoryRow row, double left = 16)
+    {
+        var cell = new Border { Child = content, Padding = new Thickness(left, row.IsRoot ? 14 : 12, 16, row.IsRoot ? 14 : 12) };
+        Grid.SetColumn(cell, column);
+        grid.Children.Add(cell);
+    }
+}

@@ -188,7 +188,7 @@ public sealed class DashboardPage : Page, IRoutePage
     private UIElement BuildDailyRevenueList()
     {
         var list = new ItemsControl().ItemsSource(x => x.Binding(() => _viewModel.DailyRevenueRows));
-        list.ItemTemplate = new DataTemplate(() =>
+        list.ItemTemplate<DashboardDailyRevenueRow>(_ =>
             new Grid().ColumnDefinitions(new ColumnDefinition().Width(new GridLength(1, GridUnitType.Star)), new ColumnDefinition().Width(GridLength.Auto))
                 .Children(BindText<DashboardDailyRevenueRow>(nameof(DashboardDailyRevenueRow.DateText)).Grid(column: 0),
                     BindText<DashboardDailyRevenueRow>(nameof(DashboardDailyRevenueRow.RevenueText)).Grid(column: 1)));
@@ -199,7 +199,7 @@ public sealed class DashboardPage : Page, IRoutePage
     private UIElement BuildLowStockList()
     {
         var list = new ItemsControl().ItemsSource(x => x.Binding(() => _viewModel.LowStockRows));
-        list.ItemTemplate = new DataTemplate(BuildLowStockRow);
+        list.ItemTemplate<DashboardLowStockRow>(_ => BuildLowStockRow());
         return new StackPanel().Children(list,
             new TextBlock().Style(AppTypography.Styles.CaptionText).Text(_viewModel.LowStockEmptyText)
                 .Visibility(x => x.Binding(() => _viewModel.LowStockIsEmpty).Convert(ShowIf)));
@@ -238,7 +238,7 @@ public sealed class DashboardPage : Page, IRoutePage
     {
         var list = new ItemsControl().HorizontalAlignment(HorizontalAlignment.Stretch)
             .ItemsSource(x => x.Binding(() => _viewModel.RecentOrderRows));
-        list.ItemTemplate = new DataTemplate(BuildRecentOrderRow);
+        list.ItemTemplate<DashboardRecentOrderRow>(_ => BuildRecentOrderRow());
         AutomationProperties.SetName(list, "Năm đơn hàng gần nhất");
         var table = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch }.RowSpacing(0);
         table.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -476,8 +476,7 @@ public sealed class DashboardPage : Page, IRoutePage
         for (var i = 0; i < 4; i++)
         {
             var card = _metricsGrid.Children[i];
-            Grid.SetColumn(card, i % columns);
-            Grid.SetRow(card, i / columns);
+            SetGridCell(card, i / columns, i % columns);
         }
         _metricsGrid.ColumnDefinitions.Clear();
         for (var i = 0; i < columns; i++)
@@ -495,8 +494,7 @@ public sealed class DashboardPage : Page, IRoutePage
             _analyticsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
             Grid.SetRow(_chartPanel, 0); Grid.SetColumn(_chartPanel, 0);
             Grid.SetRow(_stockPanel, 0); Grid.SetColumn(_stockPanel, 1);
-            Grid.SetRow(_analyticsGrid.Children[2], 1); Grid.SetColumn(_analyticsGrid.Children[2], 0);
-            Grid.SetColumnSpan(_analyticsGrid.Children[2], 2);
+            SetGridCell(_analyticsGrid.Children[2], 1, 0, 2);
             _analyticsGrid.RowDefinitions.Clear();
             _analyticsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             _analyticsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -506,8 +504,7 @@ public sealed class DashboardPage : Page, IRoutePage
             _analyticsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             Grid.SetRow(_chartPanel, 0); Grid.SetColumn(_chartPanel, 0);
             Grid.SetRow(_stockPanel, 1); Grid.SetColumn(_stockPanel, 0);
-            Grid.SetRow(_analyticsGrid.Children[2], 2); Grid.SetColumn(_analyticsGrid.Children[2], 0);
-            Grid.SetColumnSpan(_analyticsGrid.Children[2], 1);
+            SetGridCell(_analyticsGrid.Children[2], 2, 0, 1);
             _analyticsGrid.RowDefinitions.Clear();
             for (var i = 0; i < 3; i++) _analyticsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         }
@@ -524,23 +521,34 @@ public sealed class DashboardPage : Page, IRoutePage
             _headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             _headerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             _headerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            Grid.SetRow(_headerGrid.Children[0], 0); Grid.SetColumn(_headerGrid.Children[0], 0);
-            Grid.SetRow(_headerGrid.Children[1], 1); Grid.SetColumn(_headerGrid.Children[1], 0);
-            ((FrameworkElement)_headerGrid.Children[1]).HorizontalAlignment = HorizontalAlignment.Left;
+            SetGridCell(_headerGrid.Children[0], 0, 0);
+            SetGridCell(_headerGrid.Children[1], 1, 0);
+            if (_headerGrid.Children[1] is FrameworkElement headerElement)
+                headerElement.HorizontalAlignment = HorizontalAlignment.Left;
         }
         else
         {
             _headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             _headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             _headerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            Grid.SetRow(_headerGrid.Children[0], 0); Grid.SetColumn(_headerGrid.Children[0], 0);
-            Grid.SetRow(_headerGrid.Children[1], 0); Grid.SetColumn(_headerGrid.Children[1], 1);
-            ((FrameworkElement)_headerGrid.Children[1]).HorizontalAlignment = HorizontalAlignment.Right;
+            SetGridCell(_headerGrid.Children[0], 0, 0);
+            SetGridCell(_headerGrid.Children[1], 0, 1);
+            if (_headerGrid.Children[1] is FrameworkElement headerElement)
+                headerElement.HorizontalAlignment = HorizontalAlignment.Right;
         }
     }
 
     private static Visibility ShowIf(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
     private static IconSource? GetIcon(string key) => Application.Current.Resources.TryGetValue(key, out var value) ? value as IconSource : null;
+
+    private static void SetGridCell(UIElement element, int row, int column, int columnSpan = 1)
+    {
+        if (element is not FrameworkElement frameworkElement) return;
+
+        Grid.SetRow(frameworkElement, row);
+        Grid.SetColumn(frameworkElement, column);
+        Grid.SetColumnSpan(frameworkElement, columnSpan);
+    }
 
     private static TextBlock BindText<T>(string path, string? style = null)
     {

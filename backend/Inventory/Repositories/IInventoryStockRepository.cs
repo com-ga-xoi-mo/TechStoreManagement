@@ -18,7 +18,28 @@ public interface IInventoryStockRepository
         Guid? variantId,
         CancellationToken cancellationToken = default);
 
+    Task<InventoryStock?> GetByIdForUpdateAsync(
+        Guid stockId,
+        CancellationToken cancellationToken = default);
+
+    Task<InventoryStock?> GetDetailAsync(
+        Guid stockId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SerialImei>> GetSerialsForUpdateAsync(
+        Guid productId,
+        Guid? variantId,
+        CancellationToken cancellationToken = default);
+
+    Task<int> CountMovementsAsync(
+        Guid stockId,
+        CancellationToken cancellationToken = default);
+
     void Add(InventoryStock stock);
 
     void AddMovement(InventoryMovement movement);
+
+    void Delete(InventoryStock stock);
+
+    void DeleteSerials(IEnumerable<SerialImei> serials);
 }

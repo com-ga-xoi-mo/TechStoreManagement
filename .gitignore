@@ -1,6 +1,9 @@
 ## .NET / C# standard ignore
 [Bb]in/
 [Oo]bj/
+[Aa]rtifacts/
+.buildtmp/
+[Tt]est[Rr]esults/
 [Ll]og/
 [Ll]ogs/
 .vs/

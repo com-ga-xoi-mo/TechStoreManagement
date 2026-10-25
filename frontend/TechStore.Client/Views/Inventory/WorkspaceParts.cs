@@ -128,24 +128,30 @@ internal static class WorkspaceParts
             "folder_add" => [[3, 6, 10, 6, 12, 9, 21, 9, 21, 21, 3, 21, 3, 6], [12, 12, 12, 18], [9, 15, 15, 15]],
             _ => [[3, 6, 10, 6, 12, 9, 21, 9, 21, 21, 3, 21, 3, 6]]
         };
-        var canvas = new Canvas { Width = 24, Height = 24 };
+        var scale = size / 24.0;
+        var geometry = new PathGeometry();
         foreach (var points in lines)
         {
-            var figure = new PathFigure { StartPoint = new Point(points[0], points[1]), IsFilled = false };
-            for (var i = 2; i < points.Length; i += 2)
-                figure.Segments.Add(new LineSegment { Point = new Point(points[i], points[i + 1]) });
-            var geometry = new PathGeometry();
-            geometry.Figures.Add(figure);
-            canvas.Children.Add(new Path
+            var figure = new PathFigure
             {
-                Data = geometry,
-                StrokeThickness = 1.75,
-                StrokeStartLineCap = PenLineCap.Round,
-                StrokeEndLineCap = PenLineCap.Round,
-                StrokeLineJoin = PenLineJoin.Round
-            }.Stroke(Theme(color)));
+                StartPoint = new Point(points[0] * scale, points[1] * scale),
+                IsFilled = false
+            };
+            for (var i = 2; i < points.Length; i += 2)
+                figure.Segments.Add(new LineSegment { Point = new Point(points[i] * scale, points[i + 1] * scale) });
+            geometry.Figures.Add(figure);
         }
-        return new Viewbox { Width = size, Height = size, Child = canvas, VerticalAlignment = VerticalAlignment.Center };
+        return new Path
+        {
+            Width = size,
+            Height = size,
+            Data = geometry,
+            StrokeThickness = 1.75 * scale,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            StrokeLineJoin = PenLineJoin.Round,
+            VerticalAlignment = VerticalAlignment.Center
+        }.Stroke(Theme(color));
     }
 }
 

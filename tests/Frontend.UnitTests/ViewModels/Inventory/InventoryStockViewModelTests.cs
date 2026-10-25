@@ -51,22 +51,94 @@ public sealed class InventoryStockViewModelTests
     }
 
     [Fact]
-    public async Task SearchAndStatusFilter_AreImmediateAndDoNotCallApi()
+    public async Task SearchAndStatusFilter_RequestPageOneFromServer()
     {
         var api = new FakeApi(Page(Stock("Phone", "P-1", 12, 0), Stock("Mouse", "M-1", 2, 0)));
         var vm = new InventoryStockViewModel(api);
         await vm.LoadCommand.ExecuteAsync(null);
-        var calls = api.Calls;
+        Assert.Equal(1, api.Calls);
 
         vm.SearchText = "m-1";
+        Assert.Equal(2, api.Calls);
+        Assert.Equal("m-1", api.LastRequest?.Search);
+        Assert.Equal(1, api.LastRequest?.Page);
         Assert.Single(vm.VisibleItems);
         Assert.Equal("Mouse", vm.VisibleItems[0].ProductName);
-        vm.SearchText = string.Empty;
-        vm.StockStatusFilter = InventoryStockStatusFilter.LowStock;
 
+        vm.SearchText = string.Empty;
+        Assert.Equal(3, api.Calls);
+        Assert.Null(api.LastRequest?.Search);
+        Assert.Equal(1, api.LastRequest?.Page);
+
+        vm.StockStatusFilter = InventoryStockStatusFilter.LowStock;
+        Assert.Equal(4, api.Calls);
+        Assert.True(api.LastRequest?.LowStock);
+        Assert.Equal(1, api.LastRequest?.Page);
         Assert.Single(vm.VisibleItems);
         Assert.Equal("Mouse", vm.VisibleItems[0].ProductName);
-        Assert.Equal(calls, api.Calls);
+    }
+
+    [Fact]
+    public async Task ClearingStatusFilter_AfterSinglePageResult_ReloadsUnfiltered()
+    {
+        var api = new FakeApi(Page(Stock("Phone", "P-1", 12, 0), Stock("Mouse", "M-1", 2, 0)));
+        var vm = new InventoryStockViewModel(api);
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Equal(2, vm.VisibleItems.Count);
+
+        vm.StockStatusFilter = InventoryStockStatusFilter.LowStock;
+        Assert.Single(vm.VisibleItems);
+        Assert.Equal(1, vm.TotalPages);
+
+        vm.StockStatusFilter = InventoryStockStatusFilter.All;
+        Assert.Null(api.LastRequest?.LowStock);
+        Assert.Equal(1, api.LastRequest?.Page);
+        Assert.Equal(2, vm.VisibleItems.Count);
+        Assert.Equal(2, vm.TotalCount);
+    }
+
+    [Fact]
+    public async Task FilterChange_OnLaterPage_RequestsPageOne()
+    {
+        var api = new FakeApi(Page([Stock("Phone", "P-1", 12, 0), Stock("Mouse", "M-1", 2, 0)], page: 1, pageSize: 1, totalCount: 3, totalPages: 3));
+        var vm = new InventoryStockViewModel(api);
+        await vm.LoadCommand.ExecuteAsync(null);
+        await vm.GoToPageCommand.ExecuteAsync(3);
+        Assert.Equal(3, vm.Page);
+
+        vm.SearchText = "phone";
+
+        Assert.Equal(1, vm.Page);
+        Assert.Equal(1, api.LastRequest?.Page);
+        Assert.Equal("phone", api.LastRequest?.Search);
+    }
+
+    [Fact]
+    public async Task Paging_DoesNotReloadCategoryTree_AndKeepsSelection()
+    {
+        var cat1Id = Guid.NewGuid();
+        var cat2Id = Guid.NewGuid();
+        var categories = new CountingCategoryReader(
+        [
+            new(cat1Id, null, "Điện thoại", "Điện thoại"),
+            new(cat2Id, null, "Laptop", "Laptop")
+        ]);
+        var item1 = new InventoryStockDto { Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), ProductName = "iPhone 15", ProductSku = "IP15", CategoryId = cat1Id, CategoryName = "Điện thoại", Quantity = 10, MinStockAlert = 5 };
+        var api = new FakeApi(Page([item1], page: 1, pageSize: 1, totalCount: 2, totalPages: 2));
+        var vm = new InventoryStockViewModel(api, categoryRepository: categories);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.Equal(1, categories.Calls);
+
+        vm.SelectedCategoryId = cat1Id;
+        Assert.Equal(1, categories.Calls);
+        Assert.Equal(cat1Id, vm.SelectedCategoryId);
+
+        await vm.NextPageCommand.ExecuteAsync(null);
+        Assert.Equal(2, vm.Page);
+        Assert.Equal(1, categories.Calls);
+        Assert.Equal(cat1Id, vm.SelectedCategoryId);
+        Assert.Equal(cat1Id, api.LastRequest?.CategoryId);
     }
 
     [Fact]
@@ -147,7 +219,7 @@ public sealed class InventoryStockViewModelTests
         var rowOut = new InventoryStockRow(new InventoryStockDto { Quantity = 0, MinStockAlert = 10 });
 
         Assert.Equal(InventoryStockStatus.LowStock, rowMin10.Status);
-        Assert.Equal(InventoryStockStatus.LowStock, rowMin0.Status);
+        Assert.Equal(InventoryStockStatus.InStock, rowMin0.Status);
         Assert.Equal(InventoryStockStatus.OutOfStock, rowOut.Status);
     }
 
@@ -233,7 +305,7 @@ public sealed class InventoryStockViewModelTests
     [InlineData(-1, InventoryStockStatus.OutOfStock, true)]
     public void PresentationRules_HandleBoundaryAndInvalidAvailability(int available, InventoryStockStatus expected, bool dimmed)
     {
-        var presentation = InventoryStockPresentationRules.StatusFor(available);
+        var presentation = InventoryStockPresentationRules.StatusFor(available, 5);
 
         Assert.Equal(expected, presentation.Status);
         Assert.Equal(dimmed, presentation.IsDimmed);
@@ -296,6 +368,33 @@ public sealed class InventoryStockViewModelTests
     }
 
     [Fact]
+    public async Task FilterChange_DuringInitialLoad_CancelsAndReloadsWithFilter()
+    {
+        var first = new TaskCompletionSource<PagedResultDto<InventoryStockDto>>();
+        var second = new TaskCompletionSource<PagedResultDto<InventoryStockDto>>();
+        var api = new FakeApi(Page(Stock("Mouse", "M-1", 2, 0)))
+        {
+            Handler = call => call == 1 ? first.Task : second.Task
+        };
+        var vm = new InventoryStockViewModel(api);
+
+        var initialLoad = vm.LoadCommand.ExecuteAsync(null);
+        Assert.False(vm.HasLoaded);
+        Assert.True(vm.IsLoading);
+
+        vm.SearchText = "mouse";
+        Assert.Equal(2, api.Calls);
+        Assert.Equal("mouse", api.LastRequest?.Search);
+
+        second.SetResult(Page(Stock("Mouse", "M-1", 2, 0)));
+        first.SetResult(Page(Stock("Phone", "P-1", 12, 0), Stock("Mouse", "M-1", 2, 0)));
+        await initialLoad;
+
+        Assert.Equal("Mouse", Assert.Single(vm.VisibleItems).ProductName);
+        Assert.True(vm.HasLoaded);
+    }
+
+    [Fact]
     public async Task PageButtons_MarkCurrentPage()
     {
         var api = new FakeApi(Page(Stock("Phone", "P-1", 8, 0), page: 2, pageSize: 1, totalCount: 3, totalPages: 3));
@@ -320,24 +419,75 @@ public sealed class InventoryStockViewModelTests
         IReadOnlyList<InventoryStockDto> items, int page, int pageSize, int totalCount, int totalPages) =>
         new() { Items = items, Page = page, PageSize = pageSize, TotalCount = totalCount, TotalPages = totalPages };
 
-    private static InventoryStockDto Stock(string name, string sku, int quantity, int reserved) => new()
+    private static InventoryStockDto Stock(string name, string sku, int quantity, int reserved, int minStockAlert = 5) => new()
     {
         Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), ProductName = name, ProductSku = sku,
-        Quantity = quantity, ReservedQuantity = reserved
+        Quantity = quantity, ReservedQuantity = reserved, MinStockAlert = minStockAlert
     };
+
+    private sealed class CountingCategoryReader(IReadOnlyList<CategoryOption> options) : TechStore.Client.Repositories.Catalog.ICategoryRepository
+    {
+        public int Calls { get; private set; }
+        public Task<IReadOnlyList<CategoryOption>> GetTreeAsync(CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            return Task.FromResult(options);
+        }
+    }
 
     private sealed class FakeApi(PagedResultDto<InventoryStockDto> page) : IInventoryRepository
     {
         public int Calls { get; private set; }
+        public InventoryStockFilterRequest? LastRequest { get; private set; }
         public Func<int, Task<PagedResultDto<InventoryStockDto>>>? Handler { get; set; }
         public Task<PagedResultDto<InventoryStockDto>> GetStocksAsync(InventoryStockFilterRequest request, CancellationToken cancellationToken = default)
         {
             Calls++;
+            LastRequest = request;
             if (Handler is not null) return Handler(Calls);
+
+            IEnumerable<InventoryStockDto> items = page.Items;
+            var filtered = false;
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                filtered = true;
+                items = items.Where(i =>
+                    i.ProductName.Contains(request.Search, StringComparison.OrdinalIgnoreCase)
+                    || i.ProductSku.Contains(request.Search, StringComparison.OrdinalIgnoreCase)
+                    || (i.VariantName?.Contains(request.Search, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (i.VariantSku?.Contains(request.Search, StringComparison.OrdinalIgnoreCase) ?? false));
+            }
+            if (request.CategoryId is Guid catId)
+            {
+                filtered = true;
+                items = items.Where(i => i.CategoryId == catId);
+            }
+            if (request.LowStock == true)
+            {
+                filtered = true;
+                items = items.Where(i => i.AvailableQuantity > 0 && i.AvailableQuantity <= i.MinStockAlert);
+            }
+            if (request.OutOfStock == true)
+            {
+                filtered = true;
+                items = items.Where(i => i.AvailableQuantity <= 0);
+            }
+            if (request.InStock == true)
+            {
+                filtered = true;
+                items = items.Where(i => i.AvailableQuantity > i.MinStockAlert);
+            }
+            var list = items.ToList();
+            var hasMultiPageMetadata = page.TotalCount > page.Items.Count || page.TotalPages > 1;
+            var totalCount = filtered && !hasMultiPageMetadata ? list.Count : page.TotalCount;
+            var totalPages = filtered && !hasMultiPageMetadata ? (list.Count == 0 ? 0 : 1) : page.TotalPages;
             return Task.FromResult(new PagedResultDto<InventoryStockDto>
             {
-                Items = page.Items, Page = request.Page ?? page.Page, PageSize = page.PageSize,
-                TotalCount = page.TotalCount, TotalPages = page.TotalPages
+                Items = list,
+                Page = request.Page ?? page.Page,
+                PageSize = page.PageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages
             });
         }
     }

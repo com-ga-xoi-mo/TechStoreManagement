@@ -10,7 +10,7 @@ using TechStore.Client.ViewModels.Pages;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
-namespace TechStore.Frontend.UnitTests.Features.Categories;
+namespace TechStore.Client.UnitTests.ViewModels.Inventory;
 
 public class CategoryWorkspaceTests
 {
@@ -507,5 +507,84 @@ public class CategoryWorkspaceTests
         vm.PageButtons.Should().HaveCount(2);
         vm.PageButtons[0].IsCurrent.Should().BeFalse();
         vm.PageButtons[1].IsCurrent.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ToggleStatus_Failure_KeepsContentStateAndSetsStatusUpdateError()
+    {
+        // Arrange
+        var api = new FakeApi([Node("Accessories")])
+        {
+            UpdateHandler = (_, _, _) => throw new CategoryApiException(CategoryApiFailure.Forbidden)
+        };
+        var vm = CreateVm(api);
+        await vm.ActivateAsync();
+
+        // Act
+        await vm.ToggleStatusCommand.ExecuteAsync(vm.VisibleRows[0]);
+
+        // Assert
+        vm.ContentState.Should().Be(PageContentState.Content);
+        vm.VisibleRows.Should().ContainSingle();
+        vm.HasStatusUpdateError.Should().BeTrue();
+        vm.StatusUpdateError.Should().Be("Bạn không có quyền đổi trạng thái danh mục.");
+    }
+
+    [Fact]
+    public async Task ToggleStatus_CancelledOnDeactivate_DoesNotThrowOrSetError()
+    {
+        // Arrange
+        var api = new FakeApi([Node("Accessories")])
+        {
+            UpdateHandler = async (_, _, ct) =>
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+                return new CategoryDto();
+            }
+        };
+        var vm = CreateVm(api);
+        await vm.ActivateAsync();
+
+        // Act
+        var toggleTask = vm.ToggleStatusCommand.ExecuteAsync(vm.VisibleRows[0]);
+        vm.Deactivate();
+        await toggleTask;
+
+        // Assert
+        vm.HasStatusUpdateError.Should().BeFalse();
+        vm.StatusUpdateError.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ShowSerialsFor_SwitchesToSerialTabAndFiltersByProductAndVariant()
+    {
+        // Arrange
+        var stockApi = new StockApi();
+        var serialsVm = new SerialImeiViewModel(stockApi);
+        var vm = CreateVm(new FakeApi([Node("Monitors")]), serials: serialsVm);
+        await vm.ActivateAsync();
+        var productId = Guid.NewGuid();
+        var variantId = Guid.NewGuid();
+        var row = new InventoryStockRow(new InventoryStockDto
+        {
+            Id = Guid.NewGuid(),
+            ProductId = productId,
+            VariantId = variantId,
+            VariantName = "27 inch",
+            ProductName = "ASUS ProArt PA278CV",
+            ProductSku = "DEMO-MON-ASUS-PROART",
+            Quantity = 4
+        });
+
+        // Act
+        vm.ShowSerialsFor(row);
+
+        // Assert
+        vm.SelectedTab.Should().Be(CategoryWorkspaceTab.SerialImei);
+        vm.IsSerialTab.Should().BeTrue();
+        serialsVm.HasProductFilter.Should().BeTrue();
+        serialsVm.ProductFilterId.Should().Be(productId);
+        serialsVm.VariantFilterId.Should().Be(variantId);
+        serialsVm.ProductFilterLabel.Should().Be("ASUS ProArt PA278CV - 27 inch (DEMO-MON-ASUS-PROART)");
     }
 }

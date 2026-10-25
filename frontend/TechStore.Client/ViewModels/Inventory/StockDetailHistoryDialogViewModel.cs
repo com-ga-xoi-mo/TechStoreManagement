@@ -9,9 +9,9 @@ namespace TechStore.Client.ViewModels.Inventory;
 
 public sealed partial class StockDetailHistoryDialogViewModel(
     InventoryStockRow row,
-    IInventoryRepository apiClient) : ObservableObject
+    IInventoryRepository inventoryRepository) : ObservableObject
 {
-    private readonly IInventoryRepository _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+    private readonly IInventoryRepository _inventoryRepository = inventoryRepository ?? throw new ArgumentNullException(nameof(inventoryRepository));
 
     public InventoryStockRow Row { get; } = row ?? throw new ArgumentNullException(nameof(row));
     public string ProductName => Row.ProductName;
@@ -87,7 +87,7 @@ public sealed partial class StockDetailHistoryDialogViewModel(
         ErrorMessage = null;
         try
         {
-            var result = await _apiClient.GetStockDetailAsync(Row.Id, cancellationToken);
+            var result = await _inventoryRepository.GetStockDetailAsync(Row.Id, cancellationToken);
             if (result.Succeeded && result.Data is not null)
             {
                 Detail = result.Data;

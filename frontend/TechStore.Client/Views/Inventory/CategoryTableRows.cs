@@ -17,9 +17,8 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
     internal static Grid Columns()
     {
         var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 320 });
-        foreach (var width in new[] { 160, 130, 120, 150 })
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width), MinWidth = width });
+        foreach (var star in new[] { 2.6, 1.3, 1.0, 1.0, 1.1 })
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(star, GridUnitType.Star) });
         return grid;
     }
 
@@ -45,7 +44,7 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
         var grid = Columns();
         var normalKey = row.IsRoot ? AppColors.Surface : AppColors.Canvas;
         grid.Background(Theme(normalKey));
-        grid.Opacity = row.IsActive ? 1 : 0.75;
+        var primaryTextColor = row.IsActive ? AppColors.Text : AppColors.SecondaryText;
         grid.PointerEntered += (_, _) => grid.Background(Theme(AppColors.Subtle));
         grid.PointerExited += (_, _) => grid.Background(Theme(normalKey));
         var name = new Grid { ColumnSpacing = 8 };
@@ -87,7 +86,7 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
                 BorderThickness = new Thickness(1), Child = Icon(row.Icon.Symbol, iconKeys.Text)
             }.Background(Theme(iconKeys.Fill)).BorderBrush(Theme(iconKeys.Stroke)));
         }
-        var nameText = Text(size: 14, color: AppColors.Text, weight: row.IsRoot ? (ushort)600 : (ushort)500);
+        var nameText = Text(size: 14, color: primaryTextColor, weight: row.IsRoot ? (ushort)600 : (ushort)500);
         nameText.DataContext = row;
         nameText.Text(x => x.Binding(() => row.Name));
         ToolTipService.SetToolTip(nameText, row.Name);

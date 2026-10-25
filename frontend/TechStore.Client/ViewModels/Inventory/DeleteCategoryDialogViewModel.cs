@@ -9,7 +9,7 @@ namespace TechStore.Client.ViewModels.Inventory;
 /// <summary>Headless state and commands for the destructive category confirmation dialog.</summary>
 public sealed partial class DeleteCategoryDialogViewModel : ObservableObject
 {
-    private readonly ICategoryWorkspaceRepository _apiClient;
+    private readonly ICategoryWorkspaceRepository _categoryRepository;
 
     public Guid CategoryId { get; }
     public Guid TargetId => CategoryId;
@@ -43,11 +43,11 @@ public sealed partial class DeleteCategoryDialogViewModel : ObservableObject
     public event EventHandler? RequestClose;
 
     public DeleteCategoryDialogViewModel(
-        ICategoryWorkspaceRepository apiClient,
+        ICategoryWorkspaceRepository categoryRepository,
         CategoryNode category,
         string? parentName = null)
     {
-        _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+        _categoryRepository = categoryRepository ?? throw new ArgumentNullException(nameof(categoryRepository));
         ArgumentNullException.ThrowIfNull(category);
 
         CategoryId = category.Id;
@@ -69,7 +69,7 @@ public sealed partial class DeleteCategoryDialogViewModel : ObservableObject
         ErrorMessage = null;
         try
         {
-            await _apiClient.DeleteAsync(CategoryId, cancellationToken);
+            await _categoryRepository.DeleteAsync(CategoryId, cancellationToken);
             CategoryDeleted?.Invoke(this, CategoryId);
             RequestClose?.Invoke(this, EventArgs.Empty);
         }

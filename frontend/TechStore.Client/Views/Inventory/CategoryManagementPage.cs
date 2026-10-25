@@ -9,7 +9,6 @@ using TechStore.Client.Views.Inventory.Dialogs;
 using TechStore.Client.Models.Inventory;
 using TechStore.Client.Services.Inventory;
 using TechStore.Client.ViewModels.Inventory;
-using TechStore.Client.Views.Inventory;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Services.Api;
@@ -26,7 +25,7 @@ namespace TechStore.Client.Views.Inventory;
 public sealed class CategoryManagementPage : Page, IRoutePage
 {
     private readonly CategoryDialogRequests _dialogRequests;
-    private readonly IInventoryRepository _inventoryApiClient;
+    private readonly IInventoryRepository _inventoryRepository;
     private readonly IProductRepository _productRepository;
     private readonly ContentDialogPresenter _dialogPresenter;
     private readonly InventoryStockPage _inventoryStockPage;
@@ -39,13 +38,13 @@ public sealed class CategoryManagementPage : Page, IRoutePage
     public CategoryManagementPage(
         CategoryManagementViewModel viewModel,
         CategoryDialogRequests dialogRequests,
-        IInventoryRepository inventoryApiClient,
+        IInventoryRepository inventoryRepository,
         IProductRepository productRepository,
         ContentDialogPresenter dialogPresenter)
     {
         ViewModel = viewModel;
         _dialogRequests = dialogRequests;
-        _inventoryApiClient = inventoryApiClient;
+        _inventoryRepository = inventoryRepository;
         _productRepository = productRepository;
         _dialogPresenter = dialogPresenter;
         _inventoryStockPage = new InventoryStockPage(viewModel.Inventory);
@@ -59,31 +58,45 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         ViewModel.Inventory.ActionRequested += OnInventoryActionRequested;
         DataContext = viewModel;
         this.Background(Theme(AppColors.Canvas));
-        var workspace = new StackPanel { Spacing = 24, Padding = new Thickness(24) };
+        var workspace = new Grid { RowSpacing = 24, Padding = new Thickness(24) };
+        workspace.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        workspace.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        workspace.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         var header = BuildHeader();
+        Grid.SetRow(header, 0);
         var tabs = BuildTabs();
+        Grid.SetRow(tabs, 1);
         workspace.Children.Add(header);
         workspace.Children.Add(tabs);
-        var categoryContent = new StackPanel { Spacing = 24 };
-        categoryContent.Children.Add(BuildFilters());
-        categoryContent.Children.Add(BuildCard());
+        var categoryContent = new Grid { RowSpacing = 20 };
+        categoryContent.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        categoryContent.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        categoryContent.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        var categoryFilters = BuildFilters();
+        Grid.SetRow(categoryFilters, 0);
+        categoryContent.Children.Add(categoryFilters);
+        var statusError = Text(color: AppColors.DangerText);
+        statusError.TextWrapping = TextWrapping.Wrap;
+        statusError.Text(x => x.Binding(() => ViewModel.StatusUpdateError));
+        statusError.Visibility(x => x.Binding(() => ViewModel.HasStatusUpdateError).Convert(ShowIf));
+        Grid.SetRow(statusError, 1);
+        categoryContent.Children.Add(statusError);
+        var categoryCard = BuildCard();
+        Grid.SetRow(categoryCard, 2);
+        categoryContent.Children.Add(categoryCard);
         categoryContent.Visibility(x => x.Binding(() => ViewModel.IsCategoryTab).Convert(ShowIf));
+        Grid.SetRow(categoryContent, 2);
         workspace.Children.Add(categoryContent);
         var inventoryHost = new Border { Child = _inventoryStockPage };
         inventoryHost.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
+        Grid.SetRow(inventoryHost, 2);
         workspace.Children.Add(inventoryHost);
         var serialHost = new Border { Child = _serialImeiPage };
         serialHost.Visibility(x => x.Binding(() => ViewModel.IsSerialTab).Convert(ShowIf));
+        Grid.SetRow(serialHost, 2);
         workspace.Children.Add(serialHost);
-        var workspaceScroll = new ScrollViewer
-        {
-            Content = workspace, HorizontalScrollMode = ScrollMode.Disabled,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalContentAlignment = HorizontalAlignment.Stretch
-        };
         var root = new Grid();
-        root.Children.Add(workspaceScroll);
+        root.Children.Add(workspace);
         var successToast = BuildInventorySuccessToast();
         root.Children.Add(successToast);
         Content = root;
@@ -246,8 +259,12 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 
     private UIElement BuildCard()
     {
-        var body = new StackPanel();
-        var table = new StackPanel { MinWidth = 880 };
+        var body = new Grid();
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        body.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
         var header = CategoryTableRows.Columns();
         header.Background(Theme(AppColors.Canvas));
         var labels = new[] { "TÊN DANH MỤC", "DANH MỤC CHA", "SỐ SẢN PHẨM", "TRẠNG THÁI", "THAO TÁC" };
@@ -260,18 +277,25 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             Grid.SetColumn(cell, i);
             header.Children.Add(cell);
         }
-        table.Children.Add(new Border { Child = header, BorderThickness = new Thickness(0, 0, 0, 1) }.BorderBrush(Theme(AppColors.Stroke)));
+        var headerBorder = new Border { Child = header, BorderThickness = new Thickness(0, 0, 0, 1) }.BorderBrush(Theme(AppColors.Stroke));
+        Grid.SetRow(headerBorder, 0);
+        body.Children.Add(headerBorder);
+
         var rows = new CategoryTableRows(ViewModel);
         rows.ItemsSource(x => x.Binding(() => ViewModel.VisibleRows));
-        table.Children.Add(rows);
-        body.Children.Add(new ScrollViewer
+        var rowsScroll = new ScrollViewer
         {
-            Content = table, HorizontalScrollMode = ScrollMode.Enabled, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            VerticalScrollMode = ScrollMode.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            HorizontalContentAlignment = HorizontalAlignment.Stretch
-        });
+            Content = rows,
+            HorizontalScrollMode = ScrollMode.Disabled,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollMode = ScrollMode.Enabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+        Grid.SetRow(rowsScroll, 1);
+        body.Children.Add(rowsScroll);
+
         var states = new StackPanel { Spacing = 12, Padding = new Thickness(24) };
-        var busy = new ProgressRing { IsActive = true, Width = 24, Height = 24 }.Foreground(Theme(AppColors.Primary));
+        var busy = new ProgressRing { IsActive = false, Width = 24, Height = 24 }.Foreground(Theme(AppColors.Primary));
         busy.Visibility(x => x.Binding(() => ViewModel.IsLoading).Convert(ShowIf));
         busy.IsActive(x => x.Binding(() => ViewModel.IsLoading));
         states.Children.Add(busy);
@@ -293,24 +317,26 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         // A collapsed state wrapper removes the whitespace in the successful table view.
         var stateWrapper = new Border { Child = states }
             .Visibility(x => x.Binding(() => ViewModel.ShowStatePanel).Convert(ShowIf));
+        Grid.SetRow(stateWrapper, 2);
         body.Children.Add(stateWrapper);
+
         var footerText = Text(color: AppColors.SecondaryText);
         footerText.TextWrapping = TextWrapping.Wrap;
         footerText.Text(x => x.Binding(() => ViewModel.FooterText));
         var paging = new CategoryPageButtons(ViewModel);
-        body.Children.Add(new Border
+        var footer = new Border
         {
             BorderThickness = new Thickness(0, 1, 0, 0),
             Padding = new Thickness(16),
             Child = new ResponsivePair(footerText, paging)
-        }.Background(Theme(AppColors.Canvas)).BorderBrush(Theme(AppColors.Stroke)));
+        }.Background(Theme(AppColors.Canvas)).BorderBrush(Theme(AppColors.Stroke));
+        Grid.SetRow(footer, 3);
+        body.Children.Add(footer);
         return new Border
         {
             Child = body,
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(12),
-            Shadow = new ThemeShadow(),
-            Translation = new System.Numerics.Vector3(0, 0, 2)
+            CornerRadius = new CornerRadius(12)
         }.Background(Theme(AppColors.Surface)).BorderBrush(Theme(AppColors.Stroke));
     }
 
@@ -358,7 +384,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 
     private async Task ShowImportStockAsync()
     {
-        var vm = new ImportStockDialogViewModel(_productRepository, _inventoryApiClient);
+        var vm = new ImportStockDialogViewModel(_productRepository, _inventoryRepository);
         var imported = false;
         vm.ImportSucceeded += _ => imported = true;
         var root = XamlRoot ?? _inventoryStockPage.XamlRoot;
@@ -389,9 +415,11 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 
     private async Task ShowStockDetailAsync(InventoryStockRow row)
     {
-        var vm = new StockDetailHistoryDialogViewModel(row, _inventoryApiClient);
+        var vm = new StockDetailHistoryDialogViewModel(row, _inventoryRepository);
         var adjustmentRequested = false;
+        var serialsRequested = false;
         vm.AdjustmentRequested += (_, _) => adjustmentRequested = true;
+        vm.SerialsRequested += (_, _) => serialsRequested = true;
         var root = XamlRoot ?? _inventoryStockPage.XamlRoot;
         var shown = false;
         try
@@ -412,11 +440,13 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 
         if (shown && adjustmentRequested)
             await ShowStockAdjustmentAsync(row);
+        else if (shown && serialsRequested)
+            ViewModel.ShowSerialsFor(row);
     }
 
     private async Task ShowStockAdjustmentAsync(InventoryStockRow row)
     {
-        var vm = new StockAdjustmentDialogViewModel(row, _inventoryApiClient);
+        var vm = new StockAdjustmentDialogViewModel(row, _inventoryRepository);
         InventoryStockDetailDto? updated = null;
         vm.AdjustmentSucceeded += result => updated = result;
         var root = XamlRoot ?? _inventoryStockPage.XamlRoot;
@@ -454,7 +484,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         // stale null here used to make the trash button appear unresponsive.
         var dialogRoot = XamlRoot ?? _inventoryStockPage.XamlRoot;
 
-        var dialogVm = new DeleteStockItemDialogViewModel(_inventoryApiClient, request);
+        var dialogVm = new DeleteStockItemDialogViewModel(_inventoryRepository, request);
         InventoryStockDeleteCompleted? completed = null;
         dialogVm.DeleteSucceeded += (_, outcome) => completed = outcome;
 
@@ -587,7 +617,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             }
 
             if (created)
-                await ViewModel.ActivateAsync();
+                await ViewModel.RefreshAsync();
             return;
         }
 
@@ -608,7 +638,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
                 CancellationToken.None);
 
             if (updated)
-                await ViewModel.ActivateAsync();
+                await ViewModel.RefreshAsync();
             return;
         }
 
@@ -622,7 +652,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             () => _dialogPresenter.TryShowAsync(
                 () => new DeleteCategoryDialog(deleteVm),
                 CancellationToken.None),
-            () => ViewModel.ActivateAsync());
+            () => ViewModel.RefreshAsync());
     }
 
     private static CategoryNode? FindCategory(IEnumerable<CategoryNode> roots, Guid? id)

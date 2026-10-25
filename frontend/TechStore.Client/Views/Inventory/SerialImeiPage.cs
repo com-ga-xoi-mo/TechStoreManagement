@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using TechStore.Client.Controls;
 using TechStore.Client.Models.Inventory;
-using TechStore.Client.Views.Inventory;
 using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Styles;
 using TechStore.Shared.DTOs;
@@ -21,12 +20,61 @@ public sealed class SerialImeiPage : Page
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         DataContext = viewModel;
-        var root = new StackPanel { Spacing = 20 };
-        root.Children.Add(BuildFilters());
-        root.Children.Add(BuildCard());
+        var root = new Grid { RowSpacing = 16 };
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        var filters = BuildFilters();
+        Grid.SetRow(filters, 0);
+        root.Children.Add(filters);
+        var banner = BuildProductFilterBanner();
+        Grid.SetRow(banner, 1);
+        root.Children.Add(banner);
+        var card = BuildCard();
+        Grid.SetRow(card, 2);
+        root.Children.Add(card);
         Content = root;
-        Loaded += (_, _) => ViewModel.LoadCommand.Execute(null);
+        Loaded += (_, _) =>
+        {
+            if (!ViewModel.HasLoaded && !ViewModel.IsLoading)
+                ViewModel.LoadCommand.Execute(null);
+        };
         Unloaded += (_, _) => ViewModel.CancelLoading();
+    }
+
+    private UIElement BuildProductFilterBanner()
+    {
+        var label = Text("Đang xem serial của:", 13, AppColors.InfoText, 500);
+        var product = Text("", 13, AppColors.InfoText, 600);
+        product.Text(x => x.Binding(() => ViewModel.ProductFilterLabel));
+        var left = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children = { Icon("qr_code", AppColors.InfoText, 16), label, product }
+        };
+
+        var clearContent = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 4,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children = { Icon("close", AppColors.InfoText, 14), Text("Bỏ lọc", 12, AppColors.InfoText, 600) }
+        };
+        var clear = Button(clearContent, tooltip: "Bỏ lọc theo sản phẩm");
+        clear.Command(x => x.Binding(() => ViewModel.ClearProductFilterCommand));
+
+        return new Border
+        {
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(12, 8, 12, 8),
+            Child = new ResponsivePair(left, clear)
+        }
+        .Background(Theme(AppColors.InfoFill))
+        .BorderBrush(Theme(AppColors.InfoStroke))
+        .Visibility(x => x.Binding(() => ViewModel.HasProductFilter).Convert(ShowIf));
     }
 
     private UIElement BuildFilters()
@@ -76,16 +124,31 @@ public sealed class SerialImeiPage : Page
     {
         var table = new SerialRows();
         table.ItemsSource(x => x.Binding(() => ViewModel.Items));
-        var body = new StackPanel();
-        body.Children.Add(new ScrollViewer
+        var body = new Grid();
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        body.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var header = BuildHeader();
+        Grid.SetRow(header, 0);
+        body.Children.Add(header);
+
+        var rowsScroll = new ScrollViewer
         {
-            Content = new StackPanel { Children = { BuildHeader(), table } },
-            HorizontalScrollMode = ScrollMode.Enabled,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
-        });
+            Content = table,
+            HorizontalScrollMode = ScrollMode.Disabled,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollMode = ScrollMode.Enabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+        Grid.SetRow(rowsScroll, 1);
+        body.Children.Add(rowsScroll);
+
         var states = new Grid();
-        var busy = new ProgressRing { Width = 24, Height = 24, Margin = new Thickness(0, 24, 0, 24), IsActive = true, HorizontalAlignment = HorizontalAlignment.Center }
+        var busy = new ProgressRing { Width = 24, Height = 24, Margin = new Thickness(0, 24, 0, 24), IsActive = false, HorizontalAlignment = HorizontalAlignment.Center }
             .Foreground(Theme(AppColors.Primary));
+        busy.IsActive(x => x.Binding(() => ViewModel.IsLoading));
         busy.Visibility(x => x.Binding(() => ViewModel.IsLoading).Convert(ShowIf));
         states.Children.Add(busy);
         var empty = Text("Chưa có Serial / IMEI phù hợp.", color: AppColors.SecondaryText);
@@ -99,21 +162,24 @@ public sealed class SerialImeiPage : Page
         error.Text(x => x.Binding(() => ViewModel.ErrorMessage));
         error.Visibility(x => x.Binding(() => ViewModel.HasError).Convert(ShowIf));
         states.Children.Add(error);
+        Grid.SetRow(states, 2);
         body.Children.Add(states);
-        var footer = Text(color: AppColors.SecondaryText);
-        footer.Text(x => x.Binding(() => ViewModel.FooterText));
-        body.Children.Add(new Border
+        var footerText = Text(color: AppColors.SecondaryText);
+        footerText.Text(x => x.Binding(() => ViewModel.FooterText));
+        var footer = new Border
         {
             BorderThickness = new Thickness(0, 1, 0, 0),
-            Padding = new Thickness(16), Child = new ResponsivePair(footer, new SerialPageButtons(ViewModel))
-        }.Background(Theme(AppColors.Canvas)).BorderBrush(Theme(AppColors.Stroke)));
+            Padding = new Thickness(16), Child = new ResponsivePair(footerText, new SerialPageButtons(ViewModel))
+        }.Background(Theme(AppColors.Canvas)).BorderBrush(Theme(AppColors.Stroke));
+        Grid.SetRow(footer, 3);
+        body.Children.Add(footer);
         return new Border
         {
-            Child = body, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Shadow = new ThemeShadow()
+            Child = body, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12)
         }.Background(Theme(AppColors.Surface)).BorderBrush(Theme(AppColors.Stroke));
     }
 
-    private static Grid BuildHeader()
+    private static Border BuildHeader()
     {
         var grid = SerialRows.Columns();
         foreach (var (label, index) in new[] { ("SERIAL / IMEI", 0), ("SẢN PHẨM", 1), ("SKU", 2), ("TRẠNG THÁI", 3), ("NGÀY NHẬP", 4) })
@@ -124,8 +190,11 @@ public sealed class SerialImeiPage : Page
             Grid.SetColumn(cell, index);
             grid.Children.Add(cell);
         }
-        grid.Background(Theme(AppColors.Canvas));
-        return grid;
+        return new Border
+        {
+            Child = grid,
+            BorderThickness = new Thickness(0, 0, 0, 1)
+        }.Background(Theme(AppColors.Canvas)).BorderBrush(Theme(AppColors.Stroke));
     }
 }
 
@@ -134,11 +203,8 @@ internal sealed class SerialRows : ItemsControl
     internal static Grid Columns()
     {
         var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.4, GridUnitType.Star), MinWidth = 210 });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.4, GridUnitType.Star), MinWidth = 210 });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 160 });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 150 });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 150 });
+        foreach (var star in new[] { 1.4, 1.4, 1.0, 1.0, 1.0 })
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(star, GridUnitType.Star) });
         return grid;
     }
 

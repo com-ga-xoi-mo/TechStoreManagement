@@ -98,10 +98,10 @@ Executed with `XDG_DATA_HOME=/tmp/opencode/xdg_data TECHSTORE_API_BASE_URL=http:
 ## 10.4 Final Summary & Hand-off Notes (Task 10.4)
 
 ### Test Counts (Before vs. After)
-| Suite | Baseline (Task 0.1) | Final (Task 10.4) |
+| Suite | Baseline (Task 0.1) | Final (Task 11.7) |
 |:--|:--|:--|
 | Backend Unit Tests (`TechStore.UnitTests`) | 508 passed, 8 skipped (516 total; 516/516 with Postgres) | **515 passed, 9 skipped (524 total; 524/524 with Postgres)** |
-| Frontend Unit Tests (`TechStore.Client.UnitTests`) | 882 passed, 0 skipped | **881 passed, 0 skipped** (net -1 after replacing 4 `CategoryApiClient` HTTP transport tests with `CategoryRepository` workspace tests and adding viewmodel/theme/cancellation tests) |
+| Frontend Unit Tests (`TechStore.Client.UnitTests`) | 882 passed, 0 skipped | **890 passed, 0 skipped** |
 
 ### Commit Log (`594320d..HEAD`)
 - `56bcf2b` `docs(openspec): record catalog-inventory-alignment change artifacts`
@@ -114,6 +114,8 @@ Executed with `XDG_DATA_HOME=/tmp/opencode/xdg_data TECHSTORE_API_BASE_URL=http:
 - `225238e` `refactor(inventory): page view model and bindings for category workspace`
 - `53c79d2` `fix(inventory): follow app theme tokens in category and stock UI`
 - `49df92e` `refactor(client): move category and inventory UI into team folders`
+- `61aac9e` `docs(openspec): record integration verification evidence for catalog-inventory-alignment`
+- `HEAD` `fix(inventory): filter stocks on the server and tidy category workspace`
 
 ### Note for Dev 6 (Dashboard vs. Inventory Low-Stock Definition)
 - **Dashboard (`AnalyticsRepository.cs:40`)** still counts "sắp hết" using `Quantity <= MinStockAlert` (which includes out-of-stock rows and does not subtract `ReservedQuantity`), representing "items that need replenishment".

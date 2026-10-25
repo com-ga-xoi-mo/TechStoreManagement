@@ -1,7 +1,6 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TechStore.Client.Controls;
-using TechStore.Client.Models.Inventory;
 using TechStore.Shared.DTOs;
 
 namespace TechStore.Client.Models.Inventory;
@@ -46,7 +45,7 @@ public sealed record InventoryStockDeleteRequest(
 
 public static class InventoryStockPresentationRules
 {
-    public static InventoryStockPresentation StatusFor(int availableQuantity, int minStockAlert = 5)
+    public static InventoryStockPresentation StatusFor(int availableQuantity, int minStockAlert)
     {
         var threshold = Math.Max(0, minStockAlert);
         if (availableQuantity > threshold)
@@ -70,6 +69,7 @@ public sealed partial class InventoryStockRow(InventoryStockDto dto) : Observabl
     public InventoryStockDto Dto { get; } = dto ?? throw new ArgumentNullException(nameof(dto));
     public Guid Id => Dto.Id;
     public Guid ProductId => Dto.ProductId;
+    public Guid? VariantId => Dto.VariantId;
     public Guid? CategoryId => Dto.CategoryId;
     public string ProductName => InventoryStockPresentationRules.Unavailable(Dto.ProductName);
     public string Sku => InventoryStockPresentationRules.Unavailable(Dto.VariantSku ?? Dto.ProductSku);
@@ -87,7 +87,7 @@ public sealed partial class InventoryStockRow(InventoryStockDto dto) : Observabl
     public string ReservedText => ReservedQuantity.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"));
     public InventoryStockPresentation StockStatus => InventoryStockPresentationRules.StatusFor(
         AvailableQuantity,
-        Dto.MinStockAlert > 0 ? Dto.MinStockAlert : 5);
+        Dto.MinStockAlert);
     public InventoryStockStatus Status => StockStatus.Status;
     public string StatusText => StockStatus.StatusText;
     public StatusTone StatusTone => StockStatus.Tone;

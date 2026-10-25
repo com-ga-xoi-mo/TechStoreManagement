@@ -16,9 +16,9 @@ public enum StockAdjustmentKind
 
 public sealed partial class StockAdjustmentDialogViewModel(
     InventoryStockRow row,
-    IInventoryRepository apiClient) : ObservableObject
+    IInventoryRepository inventoryRepository) : ObservableObject
 {
-    private readonly IInventoryRepository _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+    private readonly IInventoryRepository _inventoryRepository = inventoryRepository ?? throw new ArgumentNullException(nameof(inventoryRepository));
 
     public InventoryStockRow Row { get; } = row ?? throw new ArgumentNullException(nameof(row));
     public string ProductName => Row.ProductName;
@@ -79,7 +79,7 @@ public sealed partial class StockAdjustmentDialogViewModel(
         IsBusy = true;
         try
         {
-            var result = await _apiClient.AdjustStockAsync(
+            var result = await _inventoryRepository.AdjustStockAsync(
                 Row.Id,
                 new AdjustStockRequest
                 {

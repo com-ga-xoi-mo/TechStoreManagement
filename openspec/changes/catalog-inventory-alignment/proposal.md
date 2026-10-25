@@ -51,6 +51,8 @@ Phải sửa bây giờ vì cả hai nhánh vừa vào `dev`. Nếu để lâu, 
   - bỏ màu hex cứng, `new SolidColorBrush`, `ColorHelper.FromArgb` và `RequestedTheme = Light`;
   - dùng `AppColors`, `AppTypography`, `AppControlStyles` để giao diện đổi theo Sáng/Tối;
   - bỏ font Plus Jakarta riêng, dùng font chung Inter.
+- Tab Tồn kho lọc hoàn toàn ở server: đổi bộ lọc thì về trang 1 và tải lại, bỏ bộ lọc thì thấy lại toàn bộ danh sách; cây danh mục chỉ tải một lần; ngưỡng `MinStockAlert = 0` hiển thị giống server. Nút "Xem Serial" trong dialog chi tiết tồn kho chuyển sang tab Serial/IMEI (bổ sung sau review, design D12).
+- "Xuất báo cáo" tồn kho xuất **mọi dòng theo bộ lọc** (trước đây chỉ trang đang xem), mở hộp thoại **Lưu file** để người dùng chọn chỗ lưu và tên file (trước đây tự ghi vào Tải xuống mà không báo đường dẫn); không mở được hộp thoại thì lưu vào Tải xuống và báo đường dẫn đầy đủ; xuất lỗi không còn che bảng tồn kho; thông báo ghi rõ thành công hay không (design D13).
 - Khôi phục `DangerText` (Light) về `#B91C1C`. Thêm test contrast cho các token chữ.
 - Chuyển thư mục `Features/Categories`, `Features/Inventory` về cấu trúc nhóm (`Views/`, `ViewModels/`, `Models/`, `Services/`).
 - Cập nhật `AGENTS.md`: bảng trạng thái view (`InventoryPage` đã bị xóa) và mô tả module.

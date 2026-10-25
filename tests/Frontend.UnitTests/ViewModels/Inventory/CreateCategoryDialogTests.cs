@@ -6,7 +6,7 @@ using TechStore.Client.Repositories.Catalog;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
-namespace TechStore.Frontend.UnitTests.Features.Categories;
+namespace TechStore.Client.UnitTests.ViewModels.Inventory;
 
 public class CreateCategoryDialogTests
 {

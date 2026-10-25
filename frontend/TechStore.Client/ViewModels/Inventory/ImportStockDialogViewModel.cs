@@ -41,10 +41,10 @@ public sealed record ImportStockVariantOption(Guid Id, string Name, string Sku)
 
 public sealed partial class ImportStockDialogViewModel(
     IProductRepository productRepository,
-    IInventoryRepository inventoryApiClient) : ObservableObject
+    IInventoryRepository inventoryRepository) : ObservableObject
 {
     private readonly IProductRepository _productRepository = productRepository ?? throw new ArgumentNullException(nameof(productRepository));
-    private readonly IInventoryRepository _inventoryApiClient = inventoryApiClient ?? throw new ArgumentNullException(nameof(inventoryApiClient));
+    private readonly IInventoryRepository _inventoryRepository = inventoryRepository ?? throw new ArgumentNullException(nameof(inventoryRepository));
 
     public ObservableCollection<ImportStockProductOption> ProductOptions { get; } = [];
     public ObservableCollection<ImportStockVariantOption> VariantOptions { get; } = [];
@@ -206,7 +206,7 @@ public sealed partial class ImportStockDialogViewModel(
             var serials = ParseSerialLines();
             if (serials.Count > 0)
             {
-                var existing = await _inventoryApiClient.GetStocksAsync(new InventoryStockFilterRequest
+                var existing = await _inventoryRepository.GetStocksAsync(new InventoryStockFilterRequest
                 {
                     ProductId = SelectedProduct.Id,
                     VariantId = SelectedVariant?.Id,
@@ -220,7 +220,7 @@ public sealed partial class ImportStockDialogViewModel(
                     return;
                 }
 
-                var result = await _inventoryApiClient.BatchImportSerialsAsync(
+                var result = await _inventoryRepository.BatchImportSerialsAsync(
                     new BatchImportSerialImeiRequest
                     {
                         ProductId = SelectedProduct.Id,
@@ -240,7 +240,7 @@ public sealed partial class ImportStockDialogViewModel(
                 return;
             }
 
-            var initialize = await _inventoryApiClient.InitializeStockAsync(
+            var initialize = await _inventoryRepository.InitializeStockAsync(
                 new InitializeStockRequest
                 {
                     ProductId = SelectedProduct.Id,

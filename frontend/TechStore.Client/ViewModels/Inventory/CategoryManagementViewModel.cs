@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Models.Inventory;
 using TechStore.Client.Services.Inventory;
-using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.ViewModels.Pages;
@@ -45,11 +44,13 @@ public sealed partial class CategoryManagementViewModel(
     [ObservableProperty] private int _eligibleCount;
     [ObservableProperty] private int _pageCount;
     [ObservableProperty] private CategoryWorkspaceTab _selectedTab = CategoryWorkspaceTab.Categories;
+    [ObservableProperty] private string _statusUpdateError = string.Empty;
 
     public int CurrentPage => _currentPage;
     public bool CanGoPrevious => CurrentPage > 1;
     public bool CanGoNext => CurrentPage < PageCount;
     public bool ShowStatePanel => IsLoading || IsEmpty || IsError;
+    public bool HasStatusUpdateError => !string.IsNullOrWhiteSpace(StatusUpdateError);
     public string TotalLabel => $"{TotalCount} danh mục";
     public string FooterText => $"Hiển thị {(EligibleCount == 0 ? 0 : (CurrentPage - 1) * PageSize + 1)} - {Math.Min(CurrentPage * PageSize, EligibleCount)} trên tổng số {EligibleCount} danh mục";
     public string EmptyText => TotalCount == 0 ? "Chưa có danh mục để hiển thị." : "Không tìm thấy danh mục phù hợp.";
@@ -57,8 +58,18 @@ public sealed partial class CategoryManagementViewModel(
     public bool IsInventoryTab => SelectedTab == CategoryWorkspaceTab.Inventory;
     public bool IsSerialTab => SelectedTab == CategoryWorkspaceTab.SerialImei;
 
+    public Task RefreshAsync() => ReloadAsync();
+
+    public void ShowSerialsFor(InventoryStockRow? row)
+    {
+        if (row is null) return;
+        SelectedTab = CategoryWorkspaceTab.SerialImei;
+        Serials.FilterByStock(row);
+    }
+
     partial void OnSearchTextChanged(string value) => ResetProjection();
     partial void OnStatusFilterChanged(CategoryStatusFilter value) => ResetProjection();
+    partial void OnStatusUpdateErrorChanged(string value) => OnPropertyChanged(nameof(HasStatusUpdateError));
     partial void OnSelectedTabChanged(CategoryWorkspaceTab value)
     {
         OnPropertyChanged(nameof(IsCategoryTab));
@@ -71,6 +82,7 @@ public sealed partial class CategoryManagementViewModel(
     {
         try
         {
+            StatusUpdateError = string.Empty;
             var roots = await categories.GetNodesAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             _allRows.Clear();
@@ -237,7 +249,7 @@ public sealed partial class CategoryManagementViewModel(
 
         try
         {
-            ErrorMessage = string.Empty;
+            StatusUpdateError = string.Empty;
             await categories.UpdateAsync(row.Id, new UpdateCategoryRequest
             {
                 Name = row.Node.Name,
@@ -245,13 +257,13 @@ public sealed partial class CategoryManagementViewModel(
                 ParentId = row.Node.ParentId,
                 Description = row.Node.Description,
                 IsActive = !row.Node.IsActive
-            });
+            }, ActivationToken);
 
             await ReloadAsync();
         }
         catch (CategoryApiException exception)
         {
-            ErrorMessage = exception.Failure switch
+            StatusUpdateError = exception.Failure switch
             {
                 CategoryApiFailure.Unauthorized => "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
                 CategoryApiFailure.Forbidden => "Bạn không có quyền đổi trạng thái danh mục.",
@@ -259,16 +271,14 @@ public sealed partial class CategoryManagementViewModel(
                 CategoryApiFailure.Conflict => exception.Message,
                 _ => "Không thể cập nhật trạng thái danh mục. Vui lòng thử lại."
             };
-            ContentState = PageContentState.Error;
         }
         catch (OperationCanceledException)
         {
-            throw;
+            // Ignore cancellation when leaving the page
         }
         catch
         {
-            ErrorMessage = "Không thể cập nhật trạng thái danh mục. Vui lòng thử lại.";
-            ContentState = PageContentState.Error;
+            StatusUpdateError = "Không thể cập nhật trạng thái danh mục. Vui lòng thử lại.";
         }
         finally
         {

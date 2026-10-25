@@ -23,7 +23,7 @@ public enum SerialImeiStatusFilter
 
 public sealed record SerialImeiStatusOption(SerialImeiStatusFilter Value, string Label);
 
-public sealed partial class SerialImeiViewModel(IInventoryRepository apiClient) : ObservableObject
+public sealed partial class SerialImeiViewModel(IInventoryRepository inventoryRepository) : ObservableObject
 {
     public const int DefaultPageSize = 20;
     private CancellationTokenSource? _loadCancellation;
@@ -45,6 +45,9 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository apiClient) 
 
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private SerialImeiStatusFilter _statusFilter;
+    [ObservableProperty] private Guid? _productFilterId;
+    [ObservableProperty] private Guid? _variantFilterId;
+    [ObservableProperty] private string _productFilterLabel = string.Empty;
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _hasLoaded;
     [ObservableProperty] private string? _errorMessage;
@@ -53,6 +56,7 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository apiClient) 
     [ObservableProperty] private int _pageSize = DefaultPageSize;
     [ObservableProperty] private int _totalPages;
 
+    public bool HasProductFilter => ProductFilterId.HasValue;
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public bool IsEmpty => HasLoaded && !IsLoading && !HasError && Items.Count == 0;
     public bool CanGoPrevious => Page > 1;
@@ -62,6 +66,7 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository apiClient) 
 
     partial void OnSearchTextChanged(string value) => ReloadAfterFilterChanged();
     partial void OnStatusFilterChanged(SerialImeiStatusFilter value) => ReloadAfterFilterChanged();
+    partial void OnProductFilterIdChanged(Guid? value) => OnPropertyChanged(nameof(HasProductFilter));
     partial void OnErrorMessageChanged(string? value) => NotifyState();
     partial void OnIsLoadingChanged(bool value) => NotifyState();
     partial void OnHasLoadedChanged(bool value) => NotifyState();
@@ -70,9 +75,31 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository apiClient) 
     partial void OnPageSizeChanged(int value) => OnPropertyChanged(nameof(FooterText));
     partial void OnTotalPagesChanged(int value) { OnPropertyChanged(nameof(CanGoNext)); RefreshPageNumbers(); NextPageCommand.NotifyCanExecuteChanged(); }
 
+    public void FilterByStock(InventoryStockRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        ProductFilterId = row.ProductId;
+        VariantFilterId = row.VariantId;
+        ProductFilterLabel = string.IsNullOrWhiteSpace(row.VariantName)
+            ? $"{row.ProductName} ({row.Sku})"
+            : $"{row.ProductName} - {row.VariantName} ({row.Sku})";
+        Page = 1;
+        _ = LoadCommand.ExecuteAsync(null);
+    }
+
+    [RelayCommand]
+    private void ClearProductFilter()
+    {
+        if (!HasProductFilter) return;
+        ProductFilterId = null;
+        VariantFilterId = null;
+        ProductFilterLabel = string.Empty;
+        ReloadAfterFilterChanged();
+    }
+
     private void ReloadAfterFilterChanged()
     {
-        if (!HasLoaded) return;
+        if (!HasLoaded && !IsLoading) return;
         Page = 1;
         _ = LoadCommand.ExecuteAsync(null);
     }
@@ -94,9 +121,11 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository apiClient) 
         ErrorMessage = null;
         try
         {
-            var result = await apiClient.GetSerialsAsync(new SerialImeiFilterRequest
+            var result = await inventoryRepository.GetSerialsAsync(new SerialImeiFilterRequest
             {
                 Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
+                ProductId = ProductFilterId,
+                VariantId = VariantFilterId,
                 Status = ToStatus(StatusFilter),
                 Page = Math.Max(1, Page),
                 PageSize = Math.Clamp(PageSize, 1, 100)

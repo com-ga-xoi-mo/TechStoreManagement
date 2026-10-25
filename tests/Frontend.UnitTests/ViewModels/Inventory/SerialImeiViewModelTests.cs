@@ -185,6 +185,67 @@ public sealed class SerialImeiViewModelTests
     }
 
     [Fact]
+    public async Task FilterChange_DuringInitialLoad_CancelsAndReloadsWithFilter()
+    {
+        var first = new TaskCompletionSource<PagedResultDto<SerialImeiDto>>();
+        var second = new TaskCompletionSource<PagedResultDto<SerialImeiDto>>();
+        var api = new FakeApi(Page(page: 1, pageSize: 20, totalCount: 1, Serial("FILTERED")))
+        {
+            Handler = (_, call) => (call == 1 ? first : second).Task
+        };
+        var vm = new SerialImeiViewModel(api);
+
+        var initialLoad = vm.LoadCommand.ExecuteAsync(null);
+        Assert.False(vm.HasLoaded);
+        Assert.True(vm.IsLoading);
+
+        vm.SearchText = "FILTERED";
+        Assert.Equal(2, api.Calls);
+        Assert.Equal("FILTERED", api.LastRequest?.Search);
+
+        second.SetResult(Page(page: 1, pageSize: 20, totalCount: 1, Serial("FILTERED")));
+        first.SetResult(Page(page: 1, pageSize: 20, totalCount: 2, Serial("UNFILTERED-1"), Serial("UNFILTERED-2")));
+        await initialLoad;
+
+        Assert.Equal("FILTERED", Assert.Single(vm.Items).SerialNumber);
+        Assert.True(vm.HasLoaded);
+    }
+
+    [Fact]
+    public void FilterByStock_SendsProductAndVariantId_AndClearReloadsAll()
+    {
+        var api = new FakeApi(Page(page: 1, pageSize: 20, totalCount: 1, Serial("S-1")));
+        var vm = new SerialImeiViewModel(api) { Page = 3 };
+        var productId = Guid.NewGuid();
+        var variantId = Guid.NewGuid();
+        var row = new TechStore.Client.Models.Inventory.InventoryStockRow(new InventoryStockDto
+        {
+            Id = Guid.NewGuid(),
+            ProductId = productId,
+            VariantId = variantId,
+            ProductName = "iPhone 15",
+            VariantName = "256GB",
+            VariantSku = "IP15-256",
+            Quantity = 5
+        });
+
+        vm.FilterByStock(row);
+
+        Assert.True(vm.HasProductFilter);
+        Assert.Equal(productId, api.LastRequest?.ProductId);
+        Assert.Equal(variantId, api.LastRequest?.VariantId);
+        Assert.Equal(1, api.LastRequest?.Page);
+        Assert.Equal("iPhone 15 - 256GB (IP15-256)", vm.ProductFilterLabel);
+
+        vm.ClearProductFilterCommand.Execute(null);
+
+        Assert.False(vm.HasProductFilter);
+        Assert.Null(api.LastRequest?.ProductId);
+        Assert.Null(api.LastRequest?.VariantId);
+        Assert.Equal(string.Empty, vm.ProductFilterLabel);
+    }
+
+    [Fact]
     public async Task PageButtons_MarkCurrentPage()
     {
         var api = new FakeApi(Page(page: 2, pageSize: 20, totalCount: 45, Serial("A")));

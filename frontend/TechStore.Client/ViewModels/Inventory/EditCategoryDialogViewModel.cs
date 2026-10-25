@@ -15,7 +15,7 @@ public sealed partial class EditCategoryDialogViewModel : ObservableObject
     public const string RootParentLabel = "-- Danh mục gốc (Không có danh mục cha) --";
     public const int MaxNameLength = 200;
 
-    private readonly ICategoryWorkspaceRepository _apiClient;
+    private readonly ICategoryWorkspaceRepository _categoryRepository;
     private readonly CategoryNode _category;
     private readonly HashSet<Guid> _excludedParentIds = [];
     private readonly HashSet<Guid> _availableParentIds = [];
@@ -73,11 +73,11 @@ public sealed partial class EditCategoryDialogViewModel : ObservableObject
     public event EventHandler? RequestClose;
 
     public EditCategoryDialogViewModel(
-        ICategoryWorkspaceRepository apiClient,
+        ICategoryWorkspaceRepository categoryRepository,
         CategoryNode category,
         IReadOnlyList<CategoryNode>? hierarchy = null)
     {
-        _apiClient = apiClient;
+        _categoryRepository = categoryRepository;
         _category = category;
         _name = category.Name;
         _description = category.Description ?? string.Empty;
@@ -171,7 +171,7 @@ public sealed partial class EditCategoryDialogViewModel : ObservableObject
                 IsActive = IsActive
             };
 
-            var updated = await _apiClient.UpdateAsync(CategoryId, request, cancellationToken);
+            var updated = await _categoryRepository.UpdateAsync(CategoryId, request, cancellationToken);
             CategoryUpdated?.Invoke(this, updated);
             RequestClose?.Invoke(this, EventArgs.Empty);
         }

@@ -5,7 +5,6 @@ using Microsoft.UI.Xaml.Data;
 using TechStore.Client.Controls;
 using TechStore.Client.Controls.Presentation;
 using TechStore.Client.Models.Inventory;
-using TechStore.Client.Views.Inventory;
 using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Styles;
@@ -23,11 +22,21 @@ public sealed class InventoryStockPage : Page
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         DataContext = viewModel;
-        var workspace = new StackPanel { Spacing = 20 };
-        workspace.Children.Add(BuildFilters());
-        workspace.Children.Add(BuildCard());
+        var workspace = new Grid { RowSpacing = 20 };
+        workspace.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        workspace.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        var filters = BuildFilters();
+        Grid.SetRow(filters, 0);
+        workspace.Children.Add(filters);
+        var card = BuildCard();
+        Grid.SetRow(card, 1);
+        workspace.Children.Add(card);
         Content = workspace;
-        Loaded += (_, _) => ViewModel.LoadCommand.Execute(null);
+        Loaded += (_, _) =>
+        {
+            if (!ViewModel.HasLoaded && !ViewModel.IsLoading)
+                ViewModel.LoadCommand.Execute(null);
+        };
         Unloaded += (_, _) => ViewModel.CancelLoading();
     }
 
@@ -104,20 +113,31 @@ public sealed class InventoryStockPage : Page
     {
         var table = new InventoryStockTableRows(ViewModel);
         table.ItemsSource(x => x.Binding(() => ViewModel.VisibleItems));
-        var body = new StackPanel();
-        var tableScroll = new ScrollViewer
+        var body = new Grid();
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        body.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var header = BuildTableHeader();
+        Grid.SetRow(header, 0);
+        body.Children.Add(header);
+
+        var rowsScroll = new ScrollViewer
         {
-            Content = new StackPanel { Children = { BuildTableHeader(), table } },
-            HorizontalScrollMode = ScrollMode.Enabled,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            VerticalScrollMode = ScrollMode.Disabled,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled
+            Content = table,
+            HorizontalScrollMode = ScrollMode.Disabled,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollMode = ScrollMode.Enabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
         };
-        body.Children.Add(tableScroll);
+        Grid.SetRow(rowsScroll, 1);
+        body.Children.Add(rowsScroll);
 
         var states = new Grid();
-        var busy = new ProgressRing { Width = 24, Height = 24, Margin = new Thickness(0, 24, 0, 24), IsActive = true, HorizontalAlignment = HorizontalAlignment.Center }
+        var busy = new ProgressRing { Width = 24, Height = 24, Margin = new Thickness(0, 24, 0, 24), IsActive = false, HorizontalAlignment = HorizontalAlignment.Center }
             .Foreground(Theme(AppColors.Primary));
+        busy.IsActive(x => x.Binding(() => ViewModel.IsLoading));
         busy.Visibility(x => x.Binding(() => ViewModel.IsLoading).Convert(ShowIf));
         states.Children.Add(busy);
         var empty = Text(color: AppColors.SecondaryText);
@@ -136,24 +156,28 @@ public sealed class InventoryStockPage : Page
         errorPanel.Children.Add(retry);
         errorPanel.Visibility(x => x.Binding(() => ViewModel.HasError).Convert(ShowIf));
         states.Children.Add(errorPanel);
+        Grid.SetRow(states, 2);
         body.Children.Add(states);
 
         var footerText = Text(color: AppColors.SecondaryText);
         footerText.Text(x => x.Binding(() => ViewModel.FooterText));
         var pager = new InventoryStockPageButtons(ViewModel);
-        body.Children.Add(new Border
+        var footer = new Border
         {
             BorderThickness = new Thickness(0, 1, 0, 0),
             Padding = new Thickness(16), Child = new ResponsivePair(footerText, pager)
-        }.Background(Theme(AppColors.Canvas)).BorderBrush(Theme(AppColors.Stroke)));
+        }.Background(Theme(AppColors.Canvas)).BorderBrush(Theme(AppColors.Stroke));
+        Grid.SetRow(footer, 3);
+        body.Children.Add(footer);
+
         return new Border
         {
             Child = body, BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(12), Shadow = new ThemeShadow(), Translation = new System.Numerics.Vector3(0, 0, 2)
+            CornerRadius = new CornerRadius(12)
         }.Background(Theme(AppColors.Surface)).BorderBrush(Theme(AppColors.Stroke));
     }
 
-    private static Grid BuildTableHeader()
+    private static Border BuildTableHeader()
     {
         var grid = InventoryStockTableRows.Columns();
         var labels = new[] { "SẢN PHẨM / SKU", "DANH MỤC", "GIÁ BÁN", "CÓ SẴN (TỒN)", "ĐANG GIỮ", "TRẠNG THÁI", "THAO TÁC" };
@@ -161,13 +185,15 @@ public sealed class InventoryStockPage : Page
         {
             var text = Text(labels[i], 11, AppColors.SecondaryText, 600);
             text.CharacterSpacing = 45;
-            text.HorizontalAlignment = i is >= 2 and <= 5 ? HorizontalAlignment.Center : i == 6 ? HorizontalAlignment.Right : HorizontalAlignment.Left;
-            var cell = new Border { Child = text, Padding = new Thickness(16, 14, 16, 14) };
-            Grid.SetColumn(cell, i);
-            grid.Children.Add(cell);
+            text.HorizontalAlignment = i == 2 ? HorizontalAlignment.Right : i is >= 3 and <= 5 ? HorizontalAlignment.Center : i == 6 ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+            Grid.SetColumn(text, i);
+            grid.Children.Add(text);
         }
-        grid.Background(Theme(AppColors.Canvas));
-        return grid;
+        return new Border
+        {
+            Child = grid,
+            BorderThickness = new Thickness(0, 0, 0, 1)
+        }.Background(Theme(AppColors.Canvas)).BorderBrush(Theme(AppColors.Stroke));
     }
 }
 
@@ -175,10 +201,13 @@ internal sealed class InventoryStockTableRows(InventoryStockViewModel viewModel)
 {
     internal static Grid Columns()
     {
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star), MinWidth = 280 });
-        foreach (var width in new[] { 160, 120, 130, 110, 130, 130 })
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width), MinWidth = width });
+        var grid = new Grid
+        {
+            Padding = new Thickness(16, 12, 16, 12),
+            ColumnSpacing = 12
+        };
+        foreach (var star in new[] { 2.4, 1.2, 1.1, 1.0, 0.8, 1.1, 1.0 })
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(star, GridUnitType.Star) });
         return grid;
     }
 
@@ -202,36 +231,47 @@ internal sealed class InventoryStockTableRows(InventoryStockViewModel viewModel)
     private UIElement BuildRow(InventoryStockRow row)
     {
         var grid = Columns();
-        grid.Opacity = row.IsDimmed ? 0.75 : 1;
-        var identity = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var primaryTextColor = row.IsDimmed ? AppColors.SecondaryText : AppColors.Text;
+        var identity = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
         var iconKeys = StatusBadgePresentation.GetKeys(row.Icon.Tone);
         identity.Children.Add(new Border
         {
             Width = 36, Height = 36, CornerRadius = new CornerRadius(8),
             BorderThickness = new Thickness(1), Child = Icon(row.Icon.Symbol, iconKeys.Text)
         }.Background(Theme(iconKeys.Fill)).BorderBrush(Theme(iconKeys.Stroke)));
-        var name = new StackPanel { Spacing = 2 };
-        name.Children.Add(Text(row.ProductName, 14, AppColors.Text, 600));
+        var name = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+        name.Children.Add(Text(row.ProductName, 14, primaryTextColor, 600));
         name.Children.Add(Text(row.Sku, 11, AppColors.SecondaryText, 400));
         identity.Children.Add(name);
-        AddCell(grid, identity, 0);
+        Grid.SetColumn(identity, 0);
+        grid.Children.Add(identity);
 
-        AddCell(grid, Badge(Text(row.CategoryName, 12, AppColors.SecondaryText), StatusTone.Neutral), 1);
-        var price = Text(row.PriceText, 13, AppColors.Text, 500);
+        var categoryBadge = Badge(Text(row.CategoryName, 12, AppColors.SecondaryText), StatusTone.Neutral);
+        Grid.SetColumn(categoryBadge, 1);
+        grid.Children.Add(categoryBadge);
+
+        var price = Text(row.PriceText, 13, primaryTextColor, 500);
         price.HorizontalAlignment = HorizontalAlignment.Right;
-        AddCell(grid, price, 2);
-        var available = Text(row.AvailableText, 13, AppColors.Text, 600);
+        Grid.SetColumn(price, 2);
+        grid.Children.Add(price);
+
+        var available = Text(row.AvailableText, 13, primaryTextColor, 600);
         available.HorizontalAlignment = HorizontalAlignment.Center;
-        AddCell(grid, available, 3);
+        Grid.SetColumn(available, 3);
+        grid.Children.Add(available);
+
         var reserved = Text(row.ReservedText, 13, AppColors.SecondaryText, 400);
         reserved.HorizontalAlignment = HorizontalAlignment.Center;
-        AddCell(grid, reserved, 4);
+        Grid.SetColumn(reserved, 4);
+        grid.Children.Add(reserved);
+
         var statusKeys = StatusBadgePresentation.GetKeys(row.StatusTone);
         var status = Badge(Text(row.StatusText, 12, statusKeys.Text, 600), row.StatusTone);
         status.HorizontalAlignment = HorizontalAlignment.Center;
-        AddCell(grid, status, 5);
+        Grid.SetColumn(status, 5);
+        grid.Children.Add(status);
 
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Right };
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
         var serial = Button(Icon("visibility", AppColors.SecondaryText, 17), tooltip: $"Xem Serial/IMEI {row.ProductName}");
         serial.DataContext = viewModel;
         serial.Command(x => x.Binding(() => viewModel.ViewSerialsCommand));
@@ -247,15 +287,10 @@ internal sealed class InventoryStockTableRows(InventoryStockViewModel viewModel)
         actions.Children.Add(serial);
         actions.Children.Add(adjust);
         actions.Children.Add(delete);
-        AddCell(grid, actions, 6);
-        return new Border { Child = grid, BorderThickness = new Thickness(0, 0, 0, 1) }.BorderBrush(Theme(AppColors.Stroke));
-    }
+        Grid.SetColumn(actions, 6);
+        grid.Children.Add(actions);
 
-    private static void AddCell(Grid grid, UIElement content, int column)
-    {
-        var cell = new Border { Child = content, Padding = new Thickness(16, 13, 16, 13) };
-        Grid.SetColumn(cell, column);
-        grid.Children.Add(cell);
+        return new Border { Child = grid, BorderThickness = new Thickness(0, 0, 0, 1) }.BorderBrush(Theme(AppColors.Stroke));
     }
 }
 

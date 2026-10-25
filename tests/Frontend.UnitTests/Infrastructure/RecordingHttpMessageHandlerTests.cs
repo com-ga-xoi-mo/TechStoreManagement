@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using TechStore.Client.UnitTests.Infrastructure;
 
 namespace TechStore.Client.UnitTests.Infrastructure;
 

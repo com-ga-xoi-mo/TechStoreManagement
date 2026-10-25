@@ -22,7 +22,7 @@ public sealed partial class CreateCategoryDialogViewModel : ObservableObject
         "memory", "cable", "monitor", "keyboard", "mouse", "gamepad", "camera", "router", "battery"
     ];
 
-    private readonly ICategoryWorkspaceRepository _apiClient;
+    private readonly ICategoryWorkspaceRepository _categoryRepository;
     private int _iconIndex;
 
     public ObservableCollection<ParentCategoryOption> ParentOptions { get; } = [];
@@ -95,9 +95,9 @@ public sealed partial class CreateCategoryDialogViewModel : ObservableObject
     public event EventHandler<CategoryDto>? CategoryCreated;
     public event EventHandler? RequestClose;
 
-    public CreateCategoryDialogViewModel(ICategoryWorkspaceRepository apiClient, IReadOnlyList<CategoryNode>? existingHierarchy = null)
+    public CreateCategoryDialogViewModel(ICategoryWorkspaceRepository categoryRepository, IReadOnlyList<CategoryNode>? existingHierarchy = null)
     {
-        _apiClient = apiClient;
+        _categoryRepository = categoryRepository;
         LoadParentHierarchy(existingHierarchy);
     }
 
@@ -192,7 +192,7 @@ public sealed partial class CreateCategoryDialogViewModel : ObservableObject
                 IsActive = IsActive
             };
 
-            var created = await _apiClient.CreateAsync(request, cancellationToken);
+            var created = await _categoryRepository.CreateAsync(request, cancellationToken);
             CategoryCreated?.Invoke(this, created);
 
             if (KeepCreating)

@@ -327,6 +327,164 @@
 - [x] 10.3 `openspec validate catalog-inventory-alignment` và `openspec validate --specs`. Kiểm tra: cả hai báo hợp lệ
 - [x] 10.4 Tổng kết vào `evidence.md`: số test backend/client trước và sau, danh sách commit (`git log --oneline <base>..HEAD`), ghi chú cho Dev 6: Dashboard vẫn đếm "sắp hết" theo `Quantity <= MinStockAlert` (gồm cả hết hàng, không trừ số giữ chỗ), khác định nghĩa D11. Kiểm tra: file có đủ các mục trên
 
+## 11. Sửa sau review (D12)
+
+Đường dẫn ở nhóm này là đường dẫn **sau khi chuyển thư mục**.
+
+- [x] 11.1 `ViewModels/Inventory/InventoryStockViewModel.cs` và `SerialImeiViewModel.cs` lọc hoàn toàn ở server (D12):
+  - thêm `ReloadAfterFilterChanged()` theo mẫu `SerialImeiViewModel` (nếu `HasLoaded || IsLoading` thì `Page = 1` rồi `_ = LoadCommand.ExecuteAsync(null)`), gọi từ `OnSearchTextChanged`, `OnStockStatusFilterChanged`, `OnSelectedCategoryIdChanged`; `OnSelectedWarehouseChanged` bỏ;
+  - xóa `ProjectVisibleItems`, `ReloadServerFilterIfPaged`, `ToStatus`, `_serverFilterApplied`, `_serverStatusFilterApplied`; sau khi tải thì `Reconcile(VisibleItems, _loadedRows)` và `FilteredCount = _loadedRows.Count`;
+  - `FooterText` = `Hiển thị {first} – {last} trên tổng số {TotalCount:N0} sản phẩm` với `first = TotalCount == 0 ? 0 : (Page - 1) * PageSize + 1`, `last = Math.Min(Page * PageSize, TotalCount)`;
+  - cây danh mục: thêm `bool _categoriesLoaded`; chỉ gọi `GetTreeAsync` khi `!_categoriesLoaded`, thành công thì đặt `true`; bỏ `CategoryOptions.Clear()` trong `LoadAsync`;
+  - đổi tham số `apiClient` thành `inventoryRepository`.
+  
+  Kiểm tra: `B` xanh
+- [x] 11.2 `Models/Inventory/InventoryStockModels.cs`: `StatusFor(int availableQuantity, int minStockAlert)` bỏ mặc định 5; `InventoryStockRow.StockStatus` truyền `Dto.MinStockAlert`. Kiểm tra: `B` xanh
+- [x] 11.3 Test `tests/Frontend.UnitTests/ViewModels/Inventory/InventoryStockViewModelTests.cs` và `SerialImeiViewModelTests.cs`:
+  - sửa `SearchAndStatusFilter_AreImmediateAndDoNotCallApi` thành `SearchAndStatusFilter_RequestPageOneFromServer` (mỗi lần đổi gửi request mới với filter tương ứng và `Page = 1`);
+  - thêm `ClearingStatusFilter_AfterSinglePageResult_ReloadsUnfiltered`;
+  - thêm `FilterChange_OnLaterPage_RequestsPageOne`;
+  - thêm `FilterChange_DuringInitialLoad_CancelsAndReloadsWithFilter` (cho cả stock và serial);
+  - thêm `Paging_DoesNotReloadCategoryTree_AndKeepsSelection` (fake `ICategoryRepository` đếm số lần gọi = 1);
+  - `StatusFor_UsesRowMinStockAlert`: min 0, avail 5 → `InStock`; sửa các test gọi `StatusFor(available)` truyền ngưỡng 5.
+  
+  Kiểm tra: `TF` xanh
+- [x] 11.4 `CategoryManagementViewModel` + `CategoryManagementPage` + `SerialImeiViewModel`/`SerialImeiPage` (D12):
+  - thêm `public Task RefreshAsync() => ReloadAsync();`, thay 3 chỗ `ViewModel.ActivateAsync()` trong page;
+  - `ToggleStatusAsync` truyền `ActivationToken`, bỏ qua mọi `OperationCanceledException` (không dùng `when (ActivationToken.IsCancellationRequested)`, xem D12), lỗi API thì đặt `StatusUpdateError` thay vì `ErrorMessage` + `ContentState = Error`; thành công thì xóa; `LoadContentAsync` cũng xóa; page hiện `StatusUpdateError` bằng `TextBlock` màu `DangerText` phía trên bảng, ẩn khi rỗng;
+  - thêm `ShowSerialsFor(InventoryStockRow row)` gọi `Serials.FilterByStock(row)` (lọc theo `ProductId`/`VariantId`, kèm thanh `"Đang xem serial của: ..."` và nút `"Bỏ lọc"` trên `SerialImeiPage`); trong `ShowStockDetailAsync` subscribe `SerialsRequested`, sau khi dialog đóng thì gọi `ShowSerialsFor(row)`; `StockDetailHistoryDialog` `Hide()` khi `SerialsRequested`.
+  - Test trong `CategoryWorkspaceTests.cs` và `SerialImeiViewModelTests.cs`: hủy khi rời trang không ném lỗi; lỗi đổi trạng thái giữ `ContentState.Content` và đặt `StatusUpdateError`; `ShowSerialsFor`/`FilterByStock` đổi tab, lọc theo `ProductId`/`VariantId` và `ClearProductFilterCommand` bỏ lọc.
+  
+  Kiểm tra: `B`/`TF` xanh
+- [x] 11.5 Dọn tên: đổi `apiClient`/`_apiClient`/`inventoryApiClient`/`_inventoryApiClient` (kiểu `IInventoryRepository`, `ICategoryWorkspaceRepository`) trong `ViewModels/Inventory` và `Views/Inventory`; `git mv Repositories/Catalog/CategoryWorkspaceFailure.cs Repositories/Catalog/CategoryApiException.cs`; namespace 4 file test `TechStore.Frontend.UnitTests.Features.Categories` → `TechStore.Client.UnitTests.ViewModels.Inventory`; bỏ `using` trùng namespace file. Kiểm tra: `git grep -n "ApiClient\b\|apiClient\|Features.Categories" frontend/TechStore.Client/ViewModels/Inventory frontend/TechStore.Client/Views/Inventory tests/Frontend.UnitTests/ViewModels/Inventory` không còn kết quả, `B`/`TF` xanh
+- [x] 11.6 AGENTS.md: mục Unit of Work thêm 23514 → `CheckConstraintViolationException`; danh sách ngoại lệ thêm `CategoryCreated`, `ImportSucceeded`, `AdjustmentSucceeded`, `DeleteSucceeded`, `SerialsRequested` và `SizeChanged` cho bố cục co giãn. Kiểm tra: `grep -n "23514\|SizeChanged" AGENTS.md` có kết quả
+- [x] 11.7 Commit `fix(inventory): filter stocks on the server and tidy category workspace`, cập nhật `evidence.md` (số test mới, commit). Kiểm tra: `B`/`TB`/`TF`/`BD` xanh, `openspec validate catalog-inventory-alignment --strict` hợp lệ
+
+## 12. Xuất báo cáo: toàn bộ dòng theo bộ lọc, hộp thoại Lưu file (D13)
+
+> **Đọc D13 trong `design.md` trước.** Đường dẫn dưới đây là tương đối với `frontend/TechStore.Client/` nếu không ghi khác. Không chạy backend ở cổng 5176; chạy client thử thì đặt `XDG_DATA_HOME` sang thư mục tạm.
+
+- [ ] 12.1 Cổng lưu file (thuần C#), tạo 2 file mới trong `Services/Files/`:
+  - `ICsvFileSaver.cs`: interface `ICsvFileSaver` và record `CsvSaveResult(string Path, bool UsedFallbackFolder)`, đúng như code mẫu ở D13 mục 1 (kèm comment `<summary>` tiếng Anh như `IImageFilePicker`);
+  - `CsvFileWriter.cs`: `public static class CsvFileWriter` gồm `Utf8WithBom`, `DefaultFolder`, `WriteToFolderAsync(string directory, string fileName, string content, CancellationToken cancellationToken = default)`. Cách tránh ghi đè: `var stem = Path.GetFileNameWithoutExtension(fileName); var ext = Path.GetExtension(fileName); var path = Path.Combine(directory, fileName); for (var i = 2; File.Exists(path); i++) path = Path.Combine(directory, $"{stem}-{i}{ext}");`.
+  
+  Kiểm tra: `B` xanh (project test đã glob `Services\Files\**`, không sửa csproj)
+- [ ] 12.2 Bỏ exporter cũ, thêm tên file gợi ý trong `Services/Inventory/InventoryReportExporter.cs`:
+  - xóa `IInventoryReportExporter`, `InventoryReportExportResult`, `CsvInventoryReportExporter`;
+  - giữ nguyên `InventoryReportBuilder.BuildCsv` và `Escape`; thêm `public static string SuggestedFileName(DateTime localNow) => $"bao-cao-ton-kho-{localNow:yyyyMMdd-HHmmss}.csv";`;
+  - `git mv Services/Inventory/InventoryReportExporter.cs Services/Inventory/InventoryReportBuilder.cs` (file chỉ còn lớp builder);
+  - `UiServiceCollectionExtensions.cs:78`: xóa dòng `services.AddSingleton<IInventoryReportExporter, CsvInventoryReportExporter>();`.
+  
+  Kiểm tra: build sẽ đỏ ở `InventoryStockViewModel` cho tới 12.4, chạy `B` sau 12.4
+- [ ] 12.3 Phần WinUI: tạo `Views/Shell/CsvFileSaver.cs` (`public sealed class CsvFileSaver : ICsvFileSaver`, có `public Window? Host { get; set; }`) theo đúng D13 mục 1:
+  - `using TechStore.Client.Services.Files; using Windows.Storage; using Windows.Storage.Pickers;`;
+  - picker gợi ý thư mục Tải xuống, tên không đuôi, `DefaultFileExtension = ".csv"`, `FileTypeChoices.Add("CSV (UTF-8)", new List<string> { ".csv" })`, khối `#if WINDOWS` khởi tạo với `Host` (copy từ `ImageFilePicker.cs:15-18`);
+  - `cancellationToken.ThrowIfCancellationRequested()` ở đầu;
+  - bọc `PickSaveFileAsync()` trong `try { ... } catch (Exception ex) when (ex is not OperationCanceledException)` → dự phòng `CsvFileWriter.WriteToFolderAsync(CsvFileWriter.DefaultFolder, suggestedFileName, content, cancellationToken)` và trả `UsedFallbackFolder: true`. Chỉ bọc lời gọi picker, **không** bọc phần ghi file;
+  - `file == null` → `return null`;
+  - ghi: bytes = preamble UTF-8 + nội dung; `try { await FileIO.WriteBytesAsync(file, bytes); } catch (NotImplementedException) { await File.WriteAllBytesAsync(file.Path, bytes, cancellationToken); }`;
+  - trả `new CsvSaveResult(string.IsNullOrEmpty(file.Path) ? file.Name : file.Path, false)`.
+  - DI: trong `UiServiceCollectionExtensions.cs` ngay dưới 2 dòng `ImageFilePicker` (dòng 102-103) thêm `services.AddSingleton<CsvFileSaver>();` và `services.AddSingleton<ICsvFileSaver>(provider => provider.GetRequiredService<CsvFileSaver>());`.
+  - `App.xaml.cs:62`: thêm ngay dưới `_applicationServices.Services.GetRequiredService<CsvFileSaver>().Host = MainWindow;`.
+  
+  Kiểm tra: không build riêng được trước 12.4; ghi nhớ để chạy `B`/`BD` sau 12.4
+- [ ] 12.4 `ViewModels/Inventory/InventoryStockViewModel.cs` (D13 mục 2, 3):
+  - constructor đổi thành `(IInventoryRepository inventoryRepository, ICsvFileSaver? fileSaver = null, ICategoryRepository? categoryRepository = null)`; xóa trường `_reportExporter`; thêm `using TechStore.Client.Services.Files;`;
+  - tách `private InventoryStockFilterRequest BuildFilterRequest(int page, int pageSize)` từ object initializer trong `LoadAsync` (giữ nguyên các điều kiện `Search`, `CategoryId`, `LowStock`, `OutOfStock`, `InStock`; `Page = Math.Max(1, page)`, `PageSize = Math.Clamp(pageSize, 1, 100)`); `LoadAsync` gọi `BuildFilterRequest(Page, PageSize)`;
+  - thêm `ToastKind` (enum trong `Models/Inventory/InventoryStockModels.cs`: `Success`, `Error`), `[ObservableProperty] ToastKind _toastKind`, `public string ToastTitle => ToastKind == ToastKind.Error ? "Không thành công" : "Thành công";`, `public bool IsErrorToast => ToastKind == ToastKind.Error;`, `public bool IsSuccessToastKind => ToastKind == ToastKind.Success;`, `partial void OnToastKindChanged(ToastKind value)` báo đổi 3 thuộc tính trên;
+  - đổi tên thân `ShowSuccessToastAsync` thành `private async Task ShowToastAsync(ToastKind kind, string message, CancellationToken cancellationToken)` (đặt `ToastKind = kind` trước `SuccessToastMessage = message`); `public Task ShowSuccessToastAsync(string message, CancellationToken cancellationToken = default) => ShowToastAsync(ToastKind.Success, message, cancellationToken);` và `public Task ShowErrorToastAsync(...)` tương tự với `ToastKind.Error`;
+  - `public string ExportButtonText => IsExporting ? "Đang xuất..." : "Xuất báo cáo";`, `OnIsExportingChanged` báo thêm `ExportButtonText`; `CanExportReport() => !IsExporting && fileSaver is not null;`;
+  - thêm `public void CancelExport() => ExportReportCommand.Cancel();`;
+  - viết lại `ExportReportAsync(CancellationToken cancellationToken)`:
+    ```csharp
+    IsExporting = true;
+    string? success = null;
+    string? failure = null;
+    try
+    {
+        var rows = new List<InventoryStockRow>();
+        for (var page = 1; page <= MaxExportPages; page++)
+        {
+            var result = await inventoryRepository.GetStocksAsync(BuildFilterRequest(page, ExportPageSize), cancellationToken);
+            var items = result.Items ?? [];
+            rows.AddRange(items.Select(item => new InventoryStockRow(item)));
+            if (items.Count == 0 || page >= result.TotalPages) break;
+        }
+
+        if (rows.Count == 0)
+        {
+            failure = "Không có dữ liệu tồn kho phù hợp để xuất.";
+        }
+        else
+        {
+            var saved = await fileSaver!.SaveAsync(
+                InventoryReportBuilder.SuggestedFileName(DateTime.Now),
+                InventoryReportBuilder.BuildCsv(rows),
+                cancellationToken);
+            if (saved is not null)
+                success = saved.UsedFallbackFolder
+                    ? $"Không mở được hộp lưu file nên đã lưu {rows.Count:N0} dòng vào {saved.Path}"
+                    : $"Đã xuất {rows.Count:N0} dòng tồn kho vào {saved.Path}";
+        }
+    }
+    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+    catch
+    {
+        failure = "Không thể xuất báo cáo tồn kho. Vui lòng thử lại.";
+    }
+    finally
+    {
+        IsExporting = false;
+    }
+
+    if (success is not null) _ = ShowSuccessToastAsync(success);
+    else if (failure is not null) _ = ShowErrorToastAsync(failure);
+    ```
+    với `private const int ExportPageSize = 100;` và `private const int MaxExportPages = 200;`. **Không** gán `ErrorMessage` ở đây. `ExportReportCommand.NotifyCanExecuteChanged()` đã có trong `OnIsExportingChanged`, xóa dòng gọi trùng trong `finally` cũ.
+  - `CategoryManagementViewModel.OnDeactivated()`: thêm `Inventory.CancelExport();` cạnh `Inventory.CancelLoading();`.
+  
+  Kiểm tra: `B`/`BD` xanh, `git grep -n "IInventoryReportExporter\|CsvInventoryReportExporter\|InventoryReportExportResult" frontend tests` không còn kết quả (trừ test sẽ sửa ở 12.6)
+- [ ] 12.5 `Views/Inventory/CategoryManagementPage.cs`:
+  - nút xuất (dòng ~123): thay `Text("Xuất báo cáo", ...)` bằng một `Text(color: AppColors.SecondaryText)` rồi `.Text(x => x.Binding(() => ViewModel.Inventory.ExportButtonText))`; giữ `Command` binding;
+  - `BuildInventorySuccessToast` (dòng ~505-560):
+    - tiêu đề: thay `Text("Thành công", 13, AppColors.Text, 600)` bằng TextBlock cùng kiểu, `.Text(x => x.Binding(() => ViewModel.Inventory.ToastTitle))`;
+    - icon: giữ `successIcon` nhưng thêm `.Visibility(x => x.Binding(() => ViewModel.Inventory.IsSuccessToastKind).Convert(ShowIf))`; thêm `errorIcon` cùng kích thước với `Child = Icon("warning", AppColors.DangerText, 18)`, `.Background(AppColors.Brushes.DangerFill)`, `.Visibility(... IsErrorToast ...)`; đặt cả hai vào một `Grid` ở cột 0;
+    - viền toast: `toast.BorderBrush(AppColors.Brushes.Stroke)` thay cho `SuccessStroke`.
+  
+  Không dùng `PropertyChanged +=` hay gán `Visibility` trong event (AGENTS.md §6). Kiểm tra: `BD` xanh
+- [ ] 12.6 Test (`tests/Frontend.UnitTests/`), AAA, không thư viện mock:
+  - `ViewModels/Inventory/InventoryReportBuilderTests.cs`: xóa `CsvExporter_WritesFilteredRowsToConfiguredDirectory`; thêm
+    - `SuggestedFileName_UsesVietnameseNameAndTimestamp` (`new DateTime(2026, 10, 26, 9, 5, 7)` → `"bao-cao-ton-kho-20261026-090507.csv"`);
+    - `CsvFileWriter_WritesUtf8BomWithoutOverwriting` (thư mục tạm; ghi 2 lần cùng tên → file thứ hai có hậu tố `-2`; 3 byte đầu là `EF BB BF`; nội dung đọc lại có "Phone"; dọn thư mục trong `finally`);
+  - `ViewModels/Inventory/InventoryStockViewModelTests.cs`: thêm fake `FakeCsvFileSaver : ICsvFileSaver` (ghi lại `SuggestedFileName`, `Content`, `Calls`; có `Result` kiểu `CsvSaveResult?` và `Exception? Throw`), rồi thêm:
+    - `ExportReport_FetchesEveryPageWithCurrentFilters`: `FakeApi.Handler` trả 3 trang (100, 100, 50 dòng; `TotalPages = 3`); chọn `StockStatusFilter = LowStock` trước khi xuất; khẳng định 3 request xuất có `PageSize == 100`, `Page` 1..3, `LowStock == true`; `Content` có 251 dòng (header + 250); `SuggestedFileName` bắt đầu bằng `bao-cao-ton-kho-`;
+    - `ExportReport_Saved_ShowsSuccessToastWithFullPath` (`Result = new("/tmp/x/bao-cao.csv", false)` → `ToastKind.Success`, message chứa `/tmp/x/bao-cao.csv`, `IsExporting == false`);
+    - `ExportReport_FallbackFolder_SaysDialogUnavailable` (`UsedFallbackFolder = true` → message bắt đầu bằng "Không mở được hộp lưu file");
+    - `ExportReport_UserCancels_ShowsNoToast` (`Result = null` → `IsSuccessToastVisible == false`);
+    - `ExportReport_NoRows_DoesNotOpenDialog` (`saver.Calls == 0`, `ToastKind.Error`, `ToastTitle == "Không thành công"`);
+    - `ExportReport_ApiFailure_KeepsTableVisible` (load trước cho có dòng, rồi `Handler` ném `ApiException` cho request xuất → `ErrorMessage` vẫn null, `HasError == false`, `VisibleItems` giữ nguyên, `ToastKind.Error`);
+    - `ExportReport_WithoutFileSaver_CannotExecute` (`new InventoryStockViewModel(api)` → `ExportReportCommand.CanExecute(null) == false`);
+    - `ExportButtonText_ReflectsExporting` (saver chờ một `TaskCompletionSource` → trong lúc chờ `ExportButtonText == "Đang xuất..."` và `CanExecute == false`; xong thì về "Xuất báo cáo").
+  - `ViewModels/Inventory/CategoryWorkspaceTests.cs`: `Deactivate_CancelsRunningExport` (saver chờ vô hạn theo token; `vm.Deactivate()` → task xuất kết thúc, không toast).
+  
+  Kiểm tra: `TF` xanh
+- [ ] 12.7 AGENTS.md:
+  - "Key Modules" phần `frontend/TechStore.Client/`: `Services/` thêm `Files/ICsvFileSaver` (cạnh `Files/IImageFilePicker`), WinUI implementation `Views/Shell/CsvFileSaver.cs`;
+  - "Key Directories" dòng `Services/`: thêm `Files/ICsvFileSaver` và `Views/Shell/CsvFileSaver.cs`;
+  - mục 9 Frontend DI: `CsvFileSaver` / `ICsvFileSaver` là Singleton, cạnh `ImageFilePicker`.
+  
+  Kiểm tra: `grep -n "ICsvFileSaver" AGENTS.md` có kết quả
+- [ ] 12.8 Chạy thử thật (bắt buộc, vì hộp thoại không test headless được):
+  - backend: `dotnet run --project backend/TechStore.Api.csproj -- --urls http://localhost:5179`;
+  - client: `XDG_DATA_HOME=<thư mục tạm> TECHSTORE_API_BASE_URL=http://localhost:5179/ dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop`, đăng nhập `admin`/`Admin@123`, mở "Danh mục và Kho" → tab Tồn kho;
+  - (a) bấm "Xuất báo cáo": hộp thoại Lưu file hiện ra với tên gợi ý `bao-cao-ton-kho-....csv`; lưu vào một thư mục tạm; toast "Thành công" có đường dẫn đầy đủ; mở file thấy 15 dòng dữ liệu + header, tiếng Việt đúng;
+  - (b) chọn "Hết hàng" rồi xuất: file chỉ có 5 dòng (theo số liệu evidence 10.1 f);
+  - (c) mở hộp thoại rồi bấm Hủy: không có toast, không có file mới;
+  - (d) tắt backend rồi bấm xuất: toast "Không thành công", bảng vẫn hiện.
+  
+  Nếu hộp thoại không hiện trên Linux, ghi lỗi trong log, xác nhận nhánh dự phòng ghi vào `~/Downloads` (không ghi đè file cũ) và toast báo đúng, rồi ghi vào `evidence.md`. Kiểm tra: kết quả (a)–(d) ghi trong `evidence.md` mục "12.8"
+- [ ] 12.9 Commit `feat(inventory): export filtered stock report through save dialog`, cập nhật bảng số test trong `evidence.md`. Kiểm tra: `B`/`TB`/`TF`/`BD` xanh, `openspec validate catalog-inventory-alignment --strict` hợp lệ
+
 ## Workflow follow-up
 
 - Gửi Dev 3 bản tóm tắt thay đổi (kể cả bỏ quyền xóa của Manager và định nghĩa `lowStock` mới) cùng ảnh Sáng/Tối để duyệt trước khi mở PR.

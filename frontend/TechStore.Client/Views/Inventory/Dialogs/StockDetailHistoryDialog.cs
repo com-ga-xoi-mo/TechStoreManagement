@@ -35,16 +35,19 @@ public sealed class StockDetailHistoryDialog : ContentDialog
         Content = BuildLayout();
         ViewModel.RequestClose += OnRequestClose;
         ViewModel.AdjustmentRequested += OnAdjustmentRequested;
+        ViewModel.SerialsRequested += OnSerialsRequested;
         Loaded += (_, _) => _ = ViewModel.LoadCommand.ExecuteAsync(null);
         Closed += (_, _) =>
         {
             ViewModel.RequestClose -= OnRequestClose;
             ViewModel.AdjustmentRequested -= OnAdjustmentRequested;
+            ViewModel.SerialsRequested -= OnSerialsRequested;
         };
     }
 
     private void OnRequestClose(object? sender, EventArgs e) => Hide();
     private void OnAdjustmentRequested(object? sender, EventArgs e) => Hide();
+    private void OnSerialsRequested(object? sender, EventArgs e) => Hide();
 
     private Grid BuildLayout()
     {

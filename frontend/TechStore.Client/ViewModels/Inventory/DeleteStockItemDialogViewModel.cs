@@ -16,7 +16,7 @@ public sealed partial class DeleteStockItemDialogViewModel : ObservableObject
 {
     public const string SuccessMessage = "Đã xóa sản phẩm thành công khỏi danh mục tồn kho.";
 
-    private readonly IInventoryRepository _apiClient;
+    private readonly IInventoryRepository _inventoryRepository;
 
     public Guid StockId { get; }
     public Guid ProductId { get; }
@@ -46,10 +46,10 @@ public sealed partial class DeleteStockItemDialogViewModel : ObservableObject
     public event EventHandler<InventoryStockDeleteCompleted>? DeleteSucceeded;
 
     public DeleteStockItemDialogViewModel(
-        IInventoryRepository apiClient,
+        IInventoryRepository inventoryRepository,
         InventoryStockDeleteRequest target)
     {
-        _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+        _inventoryRepository = inventoryRepository ?? throw new ArgumentNullException(nameof(inventoryRepository));
         ArgumentNullException.ThrowIfNull(target);
 
         StockId = target.StockId;
@@ -70,7 +70,7 @@ public sealed partial class DeleteStockItemDialogViewModel : ObservableObject
         ErrorMessage = null;
         try
         {
-            var result = await _apiClient.DeleteStockAsync(StockId, cancellationToken);
+            var result = await _inventoryRepository.DeleteStockAsync(StockId, cancellationToken);
             if (!result.Succeeded)
             {
                 ErrorMessage = MapFailure(result.Failure, result.Message);

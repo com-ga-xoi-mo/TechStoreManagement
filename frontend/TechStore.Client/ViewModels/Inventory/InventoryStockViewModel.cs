@@ -1,18 +1,18 @@
-using TechStore.Client.Repositories.Inventory;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using TechStore.Client.Models.Inventory;
-using TechStore.Client.Services.Inventory;
 using TechStore.Client.Models.Catalog;
+using TechStore.Client.Models.Inventory;
 using TechStore.Client.Repositories.Catalog;
+using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Services.Api;
+using TechStore.Client.Services.Inventory;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Client.ViewModels.Inventory;
 
 public sealed partial class InventoryStockViewModel(
-    IInventoryRepository apiClient,
+    IInventoryRepository inventoryRepository,
     IInventoryReportExporter? reportExporter = null,
     ICategoryRepository? categoryRepository = null) : ObservableObject
 {
@@ -24,8 +24,7 @@ public sealed partial class InventoryStockViewModel(
     private readonly ICategoryRepository? _categoryRepository = categoryRepository;
     private CancellationTokenSource? _loadCancellation;
     private int _loadGeneration;
-    private bool _serverFilterApplied;
-    private bool _serverStatusFilterApplied;
+    private bool _categoriesLoaded;
 
     public ObservableCollection<InventoryStockRow> StockItems { get; } = [];
     public ObservableCollection<InventoryStockRow> VisibleItems { get; } = [];
@@ -74,11 +73,9 @@ public sealed partial class InventoryStockViewModel(
     {
         get
         {
-            var total = _serverFilterApplied ? TotalCount : (FilteredCount == 0 ? TotalCount : FilteredCount);
-            var hasRows = _serverFilterApplied ? TotalCount > 0 : FilteredCount > 0;
-            var first = hasRows ? (Page - 1) * PageSize + 1 : 0;
-            var last = _serverFilterApplied ? Math.Min(Page * PageSize, TotalCount) : (Page - 1) * PageSize + FilteredCount;
-            return $"Hiển thị {first} – {last} trên tổng số {total:N0} sản phẩm";
+            var first = TotalCount == 0 ? 0 : (Page - 1) * PageSize + 1;
+            var last = Math.Min(Page * PageSize, TotalCount);
+            return $"Hiển thị {first} – {last} trên tổng số {TotalCount:N0} sản phẩm";
         }
     }
     public string EmptyText => TotalCount == 0 ? "Chưa có tồn kho để hiển thị." : "Không tìm thấy tồn kho phù hợp.";
@@ -123,10 +120,9 @@ public sealed partial class InventoryStockViewModel(
     public event Action<InventoryStockRow>? StockDetailRequested;
     public event Action<InventoryStockRow>? StockAdjustmentRequested;
 
-    partial void OnSearchTextChanged(string value) { ProjectVisibleItems(); ReloadServerFilterIfPaged(); }
-    partial void OnStockStatusFilterChanged(InventoryStockStatusFilter value) { _serverStatusFilterApplied = false; ProjectVisibleItems(); ReloadServerFilterIfPaged(); }
-    partial void OnSelectedCategoryIdChanged(Guid value) { ProjectVisibleItems(); ReloadServerFilterIfPaged(); }
-    partial void OnSelectedWarehouseChanged(string value) => ProjectVisibleItems();
+    partial void OnSearchTextChanged(string value) => ReloadAfterFilterChanged();
+    partial void OnStockStatusFilterChanged(InventoryStockStatusFilter value) => ReloadAfterFilterChanged();
+    partial void OnSelectedCategoryIdChanged(Guid value) => ReloadAfterFilterChanged();
     partial void OnErrorMessageChanged(string? value) => NotifyState();
     partial void OnIsLoadingChanged(bool value) => NotifyState();
     partial void OnHasLoadedChanged(bool value) => NotifyState();
@@ -145,6 +141,7 @@ public sealed partial class InventoryStockViewModel(
         NextPageCommand.NotifyCanExecuteChanged();
         RefreshPageNumbers();
     }
+    partial void OnPageSizeChanged(int value) => OnPropertyChanged(nameof(FooterText));
     partial void OnTotalPagesChanged(int value)
     {
         OnPropertyChanged(nameof(CanGoNext));
@@ -153,6 +150,13 @@ public sealed partial class InventoryStockViewModel(
     }
     partial void OnFilteredCountChanged(int value) => OnPropertyChanged(nameof(FooterText));
     partial void OnIsExportingChanged(bool value) => ExportReportCommand.NotifyCanExecuteChanged();
+
+    private void ReloadAfterFilterChanged()
+    {
+        if (!HasLoaded && !IsLoading) return;
+        Page = 1;
+        _ = LoadCommand.ExecuteAsync(null);
+    }
 
     private void NotifyState()
     {
@@ -164,7 +168,7 @@ public sealed partial class InventoryStockViewModel(
     [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task LoadAsync(CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(apiClient);
+        ArgumentNullException.ThrowIfNull(inventoryRepository);
         CancelLoading();
         var generation = ++_loadGeneration;
         using var load = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -173,7 +177,7 @@ public sealed partial class InventoryStockViewModel(
         ErrorMessage = null;
         try
         {
-            var result = await apiClient.GetStocksAsync(new InventoryStockFilterRequest
+            var result = await inventoryRepository.GetStocksAsync(new InventoryStockFilterRequest
             {
                 Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
                 CategoryId = IsCategoryFilterAvailable && SelectedCategoryId != Guid.Empty ? SelectedCategoryId : null,
@@ -185,34 +189,31 @@ public sealed partial class InventoryStockViewModel(
             }, load.Token);
             if (load.IsCancellationRequested || generation != _loadGeneration) return;
 
-            _serverFilterApplied = !string.IsNullOrWhiteSpace(SearchText)
-                || (IsCategoryFilterAvailable && SelectedCategoryId != Guid.Empty)
-                || StockStatusFilter != InventoryStockStatusFilter.All;
-            _serverStatusFilterApplied = StockStatusFilter != InventoryStockStatusFilter.All;
-
             _loadedRows.Clear();
             foreach (var item in result.Items ?? []) _loadedRows.Add(new InventoryStockRow(item));
-            CategoryOptions.Clear();
-            CategoryOptions.Add(AllCategories);
-            if (_categoryRepository is not null)
+            if (!_categoriesLoaded && _categoryRepository is not null)
             {
                 try
                 {
                     var categories = await _categoryRepository.GetTreeAsync(load.Token);
                     foreach (var category in categories)
                         if (CategoryOptions.All(o => o.Id != category.Id)) CategoryOptions.Add(category);
+                    _categoriesLoaded = true;
                 }
                 catch (OperationCanceledException) when (load.IsCancellationRequested) { throw; }
                 catch { /* inventory data remains usable when the category facet is unavailable */ }
             }
             OnPropertyChanged(nameof(IsCategoryFilterAvailable));
             Reconcile(StockItems, _loadedRows);
+            Reconcile(VisibleItems, _loadedRows);
+            FilteredCount = _loadedRows.Count;
             Page = Math.Max(1, result.Page);
             PageSize = Math.Clamp(result.PageSize, 1, 100);
             TotalCount = Math.Max(0, result.TotalCount);
             TotalPages = Math.Max(0, result.TotalPages);
             HasLoaded = true;
-            ProjectVisibleItems();
+            NotifyState();
+            OnPropertyChanged(nameof(FooterText));
         }
         catch (OperationCanceledException) when (load.IsCancellationRequested) { }
         catch (Exception exception)
@@ -229,8 +230,7 @@ public sealed partial class InventoryStockViewModel(
                 }
                 : "Không thể tải tồn kho. Vui lòng thử lại.";
             _loadedRows.Clear();
-            _serverFilterApplied = false;
-            _serverStatusFilterApplied = false;
+            FilteredCount = 0;
             Reconcile(StockItems, []);
             Reconcile(VisibleItems, []);
             NotifyState();
@@ -329,26 +329,6 @@ public sealed partial class InventoryStockViewModel(
         ActionRequested?.Invoke(InventoryStockAction.Delete);
     }
 
-    private void ProjectVisibleItems()
-    {
-        var query = SearchText.Trim();
-        var filtered = _loadedRows.Where(row =>
-            (query.Length == 0 || row.SearchText.Contains(query, StringComparison.OrdinalIgnoreCase))
-            && (!IsCategoryFilterAvailable || SelectedCategoryId == Guid.Empty || row.CategoryId == SelectedCategoryId)
-            && (_serverStatusFilterApplied || StockStatusFilter == InventoryStockStatusFilter.All || row.Status == ToStatus(StockStatusFilter)))
-            .ToList();
-        FilteredCount = filtered.Count;
-        Reconcile(VisibleItems, filtered);
-        OnPropertyChanged(nameof(IsEmpty));
-        OnPropertyChanged(nameof(FooterText));
-    }
-
-    private void ReloadServerFilterIfPaged()
-    {
-        if (HasLoaded && TotalPages > 1)
-            _ = LoadCommand.ExecuteAsync(null);
-    }
-
     private void RefreshPageNumbers()
     {
         PageNumbers.Clear();
@@ -359,14 +339,6 @@ public sealed partial class InventoryStockViewModel(
             PageButtons.Add(new PageButtonItem(page, page == Page));
         }
     }
-
-    private static InventoryStockStatus ToStatus(InventoryStockStatusFilter value) => value switch
-    {
-        InventoryStockStatusFilter.InStock => InventoryStockStatus.InStock,
-        InventoryStockStatusFilter.LowStock => InventoryStockStatus.LowStock,
-        InventoryStockStatusFilter.OutOfStock => InventoryStockStatus.OutOfStock,
-        _ => throw new ArgumentOutOfRangeException(nameof(value))
-    };
 
     private static void Reconcile<T>(ObservableCollection<T> target, IReadOnlyList<T> desired)
     {

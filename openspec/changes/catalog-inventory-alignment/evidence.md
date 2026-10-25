@@ -46,3 +46,79 @@ Target mapping verified against D8 with zero filename collisions:
 - `Models/Inventory/`: `CategoryIconResolver.cs`, `CategoryRow.cs`, `PageButtonItem.cs`, `InventoryStockModels.cs`
 - `Services/Inventory/`: `CategoryDeleteCoordinator.cs`, `ICategoryDialogRequests.cs`, `InventoryReportExporter.cs`
 - `tests/Frontend.UnitTests/ViewModels/Inventory/`: `CategoryWorkspaceTests.cs`, `CreateCategoryDialogTests.cs`, `DeleteCategoryDialogTests.cs`, `EditCategoryDialogTests.cs`, `DeleteStockItemDialogViewModelTests.cs`, `ImportStockDialogViewModelTests.cs`, `InventoryReportBuilderTests.cs`, `InventoryStockViewModelTests.cs`, `SerialImeiViewModelTests.cs`, `StockAdjustmentDialogViewModelTests.cs`
+
+## 10.1 Live API Verification on Port 5179 (Task 10.1)
+
+Executed against `dotnet run --project backend/TechStore.Api.csproj -- --urls http://localhost:5179`:
+
+- **(a) Hidden category rules on `POST` / `PUT /api/products`:**
+  - `POST /api/products` with hidden `categoryId` (`e25927a0-eae0-6f64-2566-fe4bf4c69833`) -> `400 Bad Request` `{"categoryId": ["Category 'e25927a0-eae0-6f64-2566-fe4bf4c69833' does not exist or is inactive."]}`
+  - `PUT /api/products/{id}` for product already in hidden category `e25927a0-eae0-6f64-2566-fe4bf4c69833`, keeping `categoryId` and updating `basePrice` -> `200 OK` (`basePrice: 10991000.0`, then restored)
+  - `PUT /api/products/{id}` moving a product from `Tablets` into hidden category `e25927a0-eae0-6f64-2566-fe4bf4c69833` -> `400 Bad Request` `{"categoryId": ["Category 'e25927a0-eae0-6f64-2566-fe4bf4c69833' does not exist or is inactive."]}`
+- **(b) Category ID filter on inventory stocks:**
+  - `GET /api/inventory/stocks?categoryId=e25927a0-eae0-6f64-2566-fe4bf4c69833` -> `200 OK`, `totalCount=3`, all 3 returned items have `categoryId="e25927a0-eae0-6f64-2566-fe4bf4c69833"`.
+- **(c) Escaped `%` in inventory stock search:**
+  - `GET /api/inventory/stocks?search=%25` -> `200 OK`, `totalCount=0` (does not match all rows).
+- **(d) Category tree product & SKU counts:**
+  - `GET /api/categories/tree` -> `200 OK`:
+    - `Accessories`: `productCount=9`, `skuCount=9`
+    - `Laptops`: `productCount=2`, `skuCount=2`
+    - `Monitors`: `productCount=3`, `skuCount=3`
+    - `Smartphones`: `productCount=3`, `skuCount=3`
+    - `Tablets`: `productCount=3`, `skuCount=3`
+- **(e) Stock deletion RBAC (`DELETE /api/inventory/stocks/{id}`):**
+  - No `Manager` user is seeded in `DemoSeedRepository` and there is no user creation API; skipped live Manager login per Task 10.1(e) instructions and verified via `InventoryControllerTests.DeleteStock_AuthorizeAttribute_ExcludesManager` (Task 3.6). Additionally verified non-privileged login (`cashier1`) receives `403 Forbidden` on `DELETE /api/inventory/stocks/8eb44299-0654-59aa-c31e-1f271245fff7`.
+- **(f) Disjoint stock status filter counts:**
+  - `GET /api/inventory/stocks?page=1&pageSize=1` -> `totalCount=15`
+  - `GET /api/inventory/stocks?inStock=true&page=1&pageSize=1` -> `totalCount=8`
+  - `GET /api/inventory/stocks?lowStock=true&page=1&pageSize=1` -> `totalCount=2`
+  - `GET /api/inventory/stocks?outOfStock=true&page=1&pageSize=1` -> `totalCount=5`
+  - Sum: `8 + 2 + 5 = 15 == totalCount`.
+
+## 10.2 Live Desktop Client Verification (Task 10.2)
+
+Executed with `XDG_DATA_HOME=/tmp/opencode/xdg_data TECHSTORE_API_BASE_URL=http://localhost:5179/ dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop` while `Monitors` and `Tablets` were temporarily set to `isActive=false` (then restored):
+
+1. **Create Product (`AppRoute.ProductCreate()`):**
+   - `ProductEditorViewModel.Categories` -> `[Accessories, Laptops, Smartphones]` (neither hidden category `Monitors` nor `Tablets` is shown).
+2. **Edit Product in Hidden Category (`AppRoute.ProductEdit(monitorProdId)`):**
+   - `ProductEditorViewModel.Categories` -> `[Accessories, Laptops, Monitors (đang ẩn), Smartphones]` (includes the product's current hidden category with `(đang ẩn)`, and excludes the other hidden category `Tablets`).
+   - `CategoryHint` -> `"Danh mục này đang bị ẩn. Sản phẩm vẫn lưu được, nhưng không thể chuyển sản phẩm khác vào danh mục này."`
+   - Updated `BasePriceText` to `10992000` and executed `SaveCommand`: saved `200 OK`, navigated to `ProductDetailPage` with `Price=10992000.00`, `CategoryId=e25927a0-eae0-6f64-2566-fe4bf4c69833` (`Monitors`), then restored original price.
+3. **Product List Filter (`ShellDestination.Products`):**
+   - `ProductListViewModel.Categories` -> `[Accessories, Laptops, Monitors (đang ẩn), Smartphones, Tablets (đang ẩn)]` (hidden categories carry `(đang ẩn)` suffix).
+4. **Inventory Stock Tab Category Filter (`ShellDestination.Inventory` -> `Tồn kho`):**
+   - Selecting `SelectedCategoryId = e25927a0-eae0-6f64-2566-fe4bf4c69833` (`Monitors`) filtered `VisibleItems` to `3` items, all in category `Monitors`.
+
+## 10.3 OpenSpec Validation (Task 10.3)
+
+- `openspec validate catalog-inventory-alignment` -> `Change 'catalog-inventory-alignment' is valid`
+- `openspec validate --specs` -> `Totals: 30 passed, 0 failed (30 items)`
+
+## 10.4 Final Summary & Hand-off Notes (Task 10.4)
+
+### Test Counts (Before vs. After)
+| Suite | Baseline (Task 0.1) | Final (Task 10.4) |
+|:--|:--|:--|
+| Backend Unit Tests (`TechStore.UnitTests`) | 508 passed, 8 skipped (516 total; 516/516 with Postgres) | **515 passed, 9 skipped (524 total; 524/524 with Postgres)** |
+| Frontend Unit Tests (`TechStore.Client.UnitTests`) | 882 passed, 0 skipped | **881 passed, 0 skipped** (net -1 after replacing 4 `CategoryApiClient` HTTP transport tests with `CategoryRepository` workspace tests and adding viewmodel/theme/cancellation tests) |
+
+### Commit Log (`594320d..HEAD`)
+- `56bcf2b` `docs(openspec): record catalog-inventory-alignment change artifacts`
+- `a37ce32` `fix(catalog): keep hidden categories out of new products`
+- `763119a` `refactor(catalog): project category counts and use TimeProvider`
+- `761e0c2` `refactor(inventory): translate check violations, move serial locks, tighten stock rules`
+- `aa2fbed` `feat(inventory): filter stocks by category id`
+- `218d6ec` `refactor(client): route category workspace through IApiClient`
+- `4ad7e16` `refactor(client): rename inventory api client to repository`
+- `225238e` `refactor(inventory): page view model and bindings for category workspace`
+- `53c79d2` `fix(inventory): follow app theme tokens in category and stock UI`
+- `49df92e` `refactor(client): move category and inventory UI into team folders`
+
+### Note for Dev 6 (Dashboard vs. Inventory Low-Stock Definition)
+- **Dashboard (`AnalyticsRepository.cs:40`)** still counts "sắp hết" using `Quantity <= MinStockAlert` (which includes out-of-stock rows and does not subtract `ReservedQuantity`), representing "items that need replenishment".
+- **Inventory (`InventoryStockRepository` & `InventoryStockDto.IsLowStock`, per D11)** defines the 3 stock states as mutually exclusive based on `AvailableQuantity = Quantity - ReservedQuantity`:
+  - `OutOfStock`: `AvailableQuantity <= 0`
+  - `LowStock`: `0 < AvailableQuantity <= MinStockAlert`
+  - `InStock`: `AvailableQuantity > MinStockAlert`
+- Please coordinate with Dev 6 if Dashboard should keep its replenishment definition or align with D11.

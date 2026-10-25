@@ -308,7 +308,7 @@
 
 ## 10. Kiểm tra tích hợp
 
-- [ ] 10.1 Gọi API thật ở cổng 5179 với token `admin`:
+- [x] 10.1 Gọi API thật ở cổng 5179 với token `admin`:
   - (a) `POST /api/products` với danh mục ẩn → 400 `categoryId`; `PUT /api/products/{id}` của một sản phẩm thuộc danh mục ẩn, giữ nguyên `categoryId` và đổi giá → 200; `PUT` chuyển một sản phẩm khác sang danh mục ẩn đó → 400 `categoryId`;
   - (b) `GET /api/inventory/stocks?categoryId=<id>` chỉ trả dòng của danh mục đó, mỗi dòng có `categoryId`;
   - (c) `GET /api/inventory/stocks?search=%25` không trả mọi dòng;
@@ -317,15 +317,15 @@
   - (f) tổng `totalCount` của `inStock=true`, `lowStock=true`, `outOfStock=true` bằng `totalCount` khi không lọc.
   
   Kiểm tra: lệnh và kết quả rút gọn (không có token) ghi trong `evidence.md`
-- [ ] 10.2 Chạy client (như 8.7):
+- [x] 10.2 Chạy client (như 8.7):
   - tạo sản phẩm: picker không có danh mục ẩn;
   - sửa một sản phẩm trong danh mục ẩn: thấy nhãn "(đang ẩn)" và dòng thông tin; đổi giá rồi lưu thành công, sản phẩm vẫn ở danh mục đó; picker không có danh mục ẩn nào khác;
   - danh sách sản phẩm: bộ lọc có hậu tố "(đang ẩn)";
   - tab Tồn kho: chọn danh mục lọc đúng.
   
   Kiểm tra: ghi kết quả từng bước vào `evidence.md`
-- [ ] 10.3 `openspec validate catalog-inventory-alignment` và `openspec validate --specs`. Kiểm tra: cả hai báo hợp lệ
-- [ ] 10.4 Tổng kết vào `evidence.md`: số test backend/client trước và sau, danh sách commit (`git log --oneline <base>..HEAD`), ghi chú cho Dev 6: Dashboard vẫn đếm "sắp hết" theo `Quantity <= MinStockAlert` (gồm cả hết hàng, không trừ số giữ chỗ), khác định nghĩa D11. Kiểm tra: file có đủ các mục trên
+- [x] 10.3 `openspec validate catalog-inventory-alignment` và `openspec validate --specs`. Kiểm tra: cả hai báo hợp lệ
+- [x] 10.4 Tổng kết vào `evidence.md`: số test backend/client trước và sau, danh sách commit (`git log --oneline <base>..HEAD`), ghi chú cho Dev 6: Dashboard vẫn đếm "sắp hết" theo `Quantity <= MinStockAlert` (gồm cả hết hàng, không trừ số giữ chỗ), khác định nghĩa D11. Kiểm tra: file có đủ các mục trên
 
 ## Workflow follow-up
 

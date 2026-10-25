@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Controls;
 using TechStore.Client.Services.Navigation;
 using TechStore.Client.Services.Window;
-using TechStore.Client.Features.Categories.Pages;
+using TechStore.Client.Views.Inventory;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.Views.Catalog;
 using TechStore.Client.Views.Customers;

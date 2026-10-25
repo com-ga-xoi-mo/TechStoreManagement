@@ -1,11 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using TechStore.Client.Features.Categories.Pages;
-using TechStore.Client.Features.Categories.Services;
-using TechStore.Client.Features.Categories.ViewModels;
-using TechStore.Client.Features.Inventory.Pages;
-using TechStore.Client.Features.Inventory.Services;
-using TechStore.Client.Features.Inventory.ViewModels;
+using TechStore.Client.Views.Inventory;
+using TechStore.Client.Services.Inventory;
+using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Repositories.Customers;
 using TechStore.Client.Repositories.Identity;

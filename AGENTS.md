@@ -86,9 +86,9 @@ SalesManagement/
 │   ├── Directory.Packages.props   # Central Package Management package definitions
 │   └── TechStore.Client/          # Uno Platform multi-targeted client project
 │       ├── App.xaml / App.xaml.cs # DI bootstrap (AddFrontendFoundation, AddFrontendUi) and window lifecycle
-│       ├── Views/                 # UI pages: C# Markup (Catalog, Identity, Settings, Shell, Development/MarkupReferencePage) and legacy XAML (Customers, Dashboard, Inventory, Orders, Development/ComponentGalleryPage, MainPage)
+│       ├── Views/                 # UI pages: C# Markup (Catalog, Inventory, Orders, Identity, Settings, Shell, Development/MarkupReferencePage) and legacy XAML (Customers, Dashboard, Development/ComponentGalleryPage, MainPage)
 │       ├── ViewModels/            # MVVM ViewModels extending PageViewModel (Catalog, Customers, Dashboard, Inventory, Orders)
-│       ├── Repositories/          # Client data repositories mapping DTOs to client Models (Catalog, Analytics)
+│       ├── Repositories/          # Client data repositories mapping DTOs to client Models (Catalog, Inventory, Orders, Customers, Analytics; backlog: IInventoryRepository still returns DTOs)
 │       ├── Models/                # Client-side presentation models (ProductSummary, ProductDetail, DashboardSnapshot)
 │       ├── Services/              # Client services (Api, Files/IImageFilePicker, Navigation, Session, Theme, Dialog, Window); picker in Views/Shell/ImageFilePicker.cs
 │       ├── Controls/              # Shared controls in C# Markup (StatCard, StatusBadge, SearchBoxControl, EmptyStateControl), Presentation/ (pure display rules), Charts/
@@ -330,9 +330,9 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 
   |State|Views|
   |:---|:---|
-  |C# Markup with theme-aware tokens|`MarkupReferencePage`, `OrderListPage`, `OrderCreatePage`, `OrderDetailDialog`, `ProductListPage`, `ProductDetailPage`, `ProductEditorPage`, `ProductImageGalleryView`, `ProductImageViewerView`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
+  |C# Markup with theme-aware tokens|`MarkupReferencePage`, `OrderListPage`, `OrderCreatePage`, `OrderDetailDialog`, `ProductListPage`, `ProductDetailPage`, `ProductEditorPage`, `ProductImageGalleryView`, `ProductImageViewerView`, `CategoryManagementPage`, `InventoryStockPage`, `SerialImeiPage`, `CreateCategoryDialog`, `EditCategoryDialog`, `DeleteCategoryDialog`, `ImportStockDialog`, `StockAdjustmentDialog`, `StockDetailHistoryDialog`, `DeleteStockItemDialog`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
   |C# Markup, colors still static (`StitchTokens` / `Color.FromArgb`), light only|`LoginPage`, `ShellPage`, `SettingsPage` (backlog: move to the theme accessors, then delete `StitchTokens`)|
-  |Still XAML|`DashboardPage`, `InventoryPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
+  |Still XAML|`DashboardPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
 
 ### 7. Asynchronous Programming Pattern
 - Pure non-blocking `async`/`await` end-to-end.
@@ -357,7 +357,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - **Singleton:** Stateless utility services (`TimeProvider.System`), token generators, `IObjectStorage` (`R2ObjectStorage` or `LocalObjectStorage`).
 - **Frontend (`frontend/TechStore.Client/App.xaml.cs`):**
   - `AddFrontendFoundation`: Registers `ApiClientOptions`, `ISessionStore` (Singleton), `BearerTokenHandler` (Transient), and configured `IApiClient` / `ApiClient` via `AddHttpClient`.
-  - `AddFrontendUi`: Registers core client services (`INavigationService`, `IDialogService`, `IThemePreferenceService`, `IWindowLifetime`) as Singleton; `ImageFilePicker` / `IImageFilePicker` as Singleton; ViewModels, Views, and Client Repositories (`IProductRepository`, `ICategoryRepository`, `IProductImageRepository`) as Transient.
+  - `AddFrontendUi`: Registers core client services (`INavigationService`, `IDialogService`, `IThemePreferenceService`, `IWindowLifetime`) as Singleton; `ImageFilePicker` / `IImageFilePicker` as Singleton; ViewModels, Views, and Client Repositories (`IProductRepository`, `ICategoryRepository`, `ICategoryWorkspaceRepository`, `IProductImageRepository`, `IInventoryRepository`) as Transient (note: `IInventoryRepository` still returns shared DTOs; mapping to client models is a follow-up item).
 
 ---
 

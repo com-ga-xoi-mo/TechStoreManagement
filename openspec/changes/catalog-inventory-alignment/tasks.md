@@ -288,15 +288,15 @@
 
 ## 9. Chuyển thư mục về cấu trúc nhóm (D8)
 
-- [ ] 9.1 Chạy `git ls-files frontend/TechStore.Client/Features tests/Frontend.UnitTests/Features`, đối chiếu bảng D8, xác nhận không có hai file trùng tên trong cùng thư mục đích (đặc biệt `Views/Inventory/` và `ViewModels/Inventory/`). Kiểm tra: liệt kê kết quả vào `evidence.md`
-- [ ] 9.2 `git mv` từng nhóm file theo bảng D8. Đổi `CategoryWorkspaceStyles.cs` thành `Views/Inventory/WorkspaceParts.cs` (lớp `WorkspaceParts`, sửa các `using static`). Sửa namespace bằng sed theo bảng, ví dụ `sed -i 's/namespace TechStore.Client.Features.Categories.Pages;/namespace TechStore.Client.Views.Inventory;/'`, và sửa mọi `using TechStore.Client.Features...` tương ứng trong `frontend` và `tests`. Kiểm tra: `git grep -n "TechStore.Client.Features" frontend tests` không còn kết quả, thư mục `frontend/TechStore.Client/Features` không còn, `B`/`BD` xanh
-- [ ] 9.3 Test:
+- [x] 9.1 Chạy `git ls-files frontend/TechStore.Client/Features tests/Frontend.UnitTests/Features`, đối chiếu bảng D8, xác nhận không có hai file trùng tên trong cùng thư mục đích (đặc biệt `Views/Inventory/` và `ViewModels/Inventory/`). Kiểm tra: liệt kê kết quả vào `evidence.md`
+- [x] 9.2 `git mv` từng nhóm file theo bảng D8. Đổi `CategoryWorkspaceStyles.cs` thành `Views/Inventory/WorkspaceParts.cs` (lớp `WorkspaceParts`, sửa các `using static`). Sửa namespace bằng sed theo bảng, ví dụ `sed -i 's/namespace TechStore.Client.Features.Categories.Pages;/namespace TechStore.Client.Views.Inventory;/'`, và sửa mọi `using TechStore.Client.Features...` tương ứng trong `frontend` và `tests`. Kiểm tra: `git grep -n "TechStore.Client.Features" frontend tests` không còn kết quả, thư mục `frontend/TechStore.Client/Features` không còn, `B`/`BD` xanh
+- [x] 9.3 Test:
   - `git mv tests/Frontend.UnitTests/Features/Categories/*` và `Features/Inventory/*` sang `tests/Frontend.UnitTests/ViewModels/Inventory/`, sửa namespace;
   - trong `TechStore.Client.UnitTests.csproj`, **xóa** cả 6 khối `<Compile Include="..\..\frontend\TechStore.Client\Features\...">` (dòng 52-63). Project đã glob sẵn `Models/**`, `Repositories/**`, `ViewModels/**` (dòng 31-34), nên **không thêm** link cho ba thư mục đó (thêm sẽ biên dịch trùng). Chỉ thêm một khối mới cho `Services\Inventory\**\*.cs` theo mẫu khối `Services\Session` (dòng 48).
   
   Kiểm tra: `TF` xanh, tổng số test client bằng số cuối nhóm 8
-- [ ] 9.4 `Views/Shell/ShellRoutePageFactory.cs` và `UiServiceCollectionExtensions.cs` chỉ đổi `using`. Chạy `VerifyAllRoutesResolve` qua test composition hiện có. Kiểm tra: `TF` xanh
-- [ ] 9.5 AGENTS.md:
+- [x] 9.4 `Views/Shell/ShellRoutePageFactory.cs` và `UiServiceCollectionExtensions.cs` chỉ đổi `using`. Chạy `VerifyAllRoutesResolve` qua test composition hiện có. Kiểm tra: `TF` xanh
+- [x] 9.5 AGENTS.md:
   - mục "Key Modules" phần `frontend/TechStore.Client/` bỏ ý nói về `Features`;
   - "Key Directories": `Views/` thêm Inventory, `Repositories/` thêm Inventory;
   - bảng "Conversion status of views" bỏ `InventoryPage` khỏi "Still XAML", thêm `CategoryManagementPage`, `InventoryStockPage`, `SerialImeiPage` cùng các dialog Inventory/Category vào dòng "C# Markup with theme-aware tokens";
@@ -304,7 +304,7 @@
   - ghi chú repository Inventory còn trả DTO là việc về sau.
   
   Kiểm tra: `grep -n "InventoryPage\b\|Features/" AGENTS.md` không còn kết quả sai
-- [ ] 9.6 Commit `refactor(client): move category and inventory UI into team folders`. Kiểm tra: `B`/`TB`/`TF`/`BD` xanh
+- [x] 9.6 Commit `refactor(client): move category and inventory UI into team folders`. Kiểm tra: `B`/`TB`/`TF`/`BD` xanh
 
 ## 10. Kiểm tra tích hợp
 

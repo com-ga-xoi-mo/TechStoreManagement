@@ -34,3 +34,15 @@ Verified live against `http://localhost:5179/` with `XDG_DATA_HOME=/tmp/opencode
 - `evidence/11-dialog-adjust-stock-dark.png`: Stock Adjustment dialog (Dark theme)
 - `evidence/12-dialog-stock-detail-dark.png`: Stock Detail & History dialog (Dark theme)
 - `evidence/13-dialog-delete-stock-dark.png`: Delete Stock Item dialog (Dark theme)
+
+## 9. Folder Structure & Collision Check (Task 9.1)
+
+Command: `git ls-files frontend/TechStore.Client/Features tests/Frontend.UnitTests/Features`
+
+Target mapping verified against D8 with zero filename collisions:
+- `Views/Inventory/`: `CategoryManagementPage.cs`, `CategoryTableRows.cs`, `WorkspaceParts.cs` (renamed from `CategoryWorkspaceStyles.cs`), `InventoryStockPage.cs`, `SerialImeiPage.cs`
+- `Views/Inventory/Dialogs/`: `CreateCategoryDialog.cs`, `DeleteCategoryDialog.cs`, `EditCategoryDialog.cs`, `DeleteStockItemDialog.cs`, `ImportStockDialog.cs`, `StockAdjustmentDialog.cs`, `StockDetailHistoryDialog.cs`
+- `ViewModels/Inventory/`: `CategoryManagementViewModel.cs`, `CreateCategoryDialogViewModel.cs`, `DeleteCategoryDialogViewModel.cs`, `EditCategoryDialogViewModel.cs`, `DeleteStockItemDialogViewModel.cs`, `ImportStockDialogViewModel.cs`, `InventoryStockViewModel.cs`, `SerialImeiViewModel.cs`, `StockAdjustmentDialogViewModel.cs`, `StockDetailHistoryDialogViewModel.cs`
+- `Models/Inventory/`: `CategoryIconResolver.cs`, `CategoryRow.cs`, `PageButtonItem.cs`, `InventoryStockModels.cs`
+- `Services/Inventory/`: `CategoryDeleteCoordinator.cs`, `ICategoryDialogRequests.cs`, `InventoryReportExporter.cs`
+- `tests/Frontend.UnitTests/ViewModels/Inventory/`: `CategoryWorkspaceTests.cs`, `CreateCategoryDialogTests.cs`, `DeleteCategoryDialogTests.cs`, `EditCategoryDialogTests.cs`, `DeleteStockItemDialogViewModelTests.cs`, `ImportStockDialogViewModelTests.cs`, `InventoryReportBuilderTests.cs`, `InventoryStockViewModelTests.cs`, `SerialImeiViewModelTests.cs`, `StockAdjustmentDialogViewModelTests.cs`

@@ -22,7 +22,7 @@ The system SHALL provide paginated inventory stock balances via direct route `/a
 - **THEN** system returns matching inventory stock balances for the specified product and variant
 
 ### Requirement: Initial Stock Balance Initialization
-The system SHALL allow authorized staff (Admin, Manager, WarehouseStaff) to initialize stock balances via direct route `/api/inventory/stocks/initialize` within an ACID transaction and record an audit movement ledger, validating product existence, variant ownership, and strictly positive opening quantities.
+The system SHALL allow staff with the Admin or WarehouseStaff role to initialize stock balances via direct route `/api/inventory/stocks/initialize` within an ACID transaction and record an audit movement ledger, validating product existence, variant ownership, and strictly positive opening quantities.
 #### Scenario: Successful stock initialization
 - **WHEN** an authorized user posts valid initial stock quantities (`quantity > 0`) for an existing product and matching variant to `/api/inventory/stocks/initialize`
 - **THEN** system creates the inventory stock record, creates an `InventoryMovement` record of type `OpeningBalance` with the user ID, and returns HTTP 201 Created with Location header `/api/inventory/stocks?productId={productId}`
@@ -48,8 +48,8 @@ The system SHALL allow authorized staff (Admin, Manager, WarehouseStaff) to init
 - **THEN** system rejects the request and returns HTTP 400 Bad Request indicating the variant does not belong to the product
 
 #### Scenario: Stock initialization unauthorized access
-- **WHEN** an unauthenticated request or a user lacking Admin, Manager, or WarehouseStaff roles calls the initialization endpoint
-- **THEN** system rejects the request with HTTP 401 Unauthorized or HTTP 403 Forbidden
+- **WHEN** an unauthenticated request, or an authenticated user without the Admin or WarehouseStaff role (including Manager and SalesStaff), calls the initialization endpoint
+- **THEN** system rejects the request with HTTP 401 Unauthorized or HTTP 403 Forbidden and writes no stock row or movement
 
 ### Requirement: Serial and IMEI Hardware Listing
 The system SHALL provide paginated query capabilities for physical Serial/IMEI items via direct route `/api/inventory/serials` filtered by Product ID, Variant ID, and lifecycle Status.
@@ -62,7 +62,7 @@ The system SHALL provide paginated query capabilities for physical Serial/IMEI i
 - **THEN** system filters matching physical items with their warranty information and purchase order linkage
 
 ### Requirement: Batch Import Serial and IMEI Records
-The system SHALL allow authorized staff (Admin, Manager, WarehouseStaff) to import batches of up to 500 Serial/IMEI records via direct route `/api/inventory/serials/batch-import`, validating product existence, variant ownership, duplicates, payload size limits, syncing stock balance quantities, and recording an audit movement ledger.
+The system SHALL allow staff with the Admin or WarehouseStaff role to import batches of up to 500 Serial/IMEI records via direct route `/api/inventory/serials/batch-import`, validating product existence, variant ownership, duplicates, payload size limits, syncing stock balance quantities, and recording an audit movement ledger.
 #### Scenario: Successful batch import of serials and IMEIs
 - **WHEN** an authorized user posts a batch of unique serial numbers or IMEIs (up to 500 items) for an existing product to `/api/inventory/serials/batch-import`
 - **THEN** system inserts serial records in `InStock` status, updates inventory stock balance (initializing to 0 if absent, then accumulating imported count), stages an `InventoryMovement` audit record with `QuantityAfter` strictly set to the newly accumulated stock quantity after addition, and returns HTTP 201 Created with Location header `/api/inventory/serials?productId={productId}`
@@ -88,8 +88,8 @@ The system SHALL allow authorized staff (Admin, Manager, WarehouseStaff) to impo
 - **THEN** system rejects the request and returns HTTP 400 Bad Request with validation details
 
 #### Scenario: Batch import unauthorized access
-- **WHEN** an unauthenticated caller or a user without Admin, Manager, or WarehouseStaff roles attempts batch import
-- **THEN** system rejects the request with HTTP 401 Unauthorized or HTTP 403 Forbidden
+- **WHEN** an unauthenticated caller, or an authenticated user without the Admin or WarehouseStaff role (including Manager and SalesStaff), attempts batch import
+- **THEN** system rejects the request with HTTP 401 Unauthorized or HTTP 403 Forbidden and imports nothing
 
 ### Requirement: Stock detail API
 The inventory API SHALL expose `GET /api/inventory/stocks/{stockId}/detail` for authenticated staff and return `InventoryStockDetailDto` or HTTP 404 when the balance is absent.

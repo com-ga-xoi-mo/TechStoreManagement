@@ -118,6 +118,12 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         var inventoryTotalHost = new Border { Child = inventoryTotal };
         inventoryTotalHost.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
         title.Children.Add(inventoryTotalHost);
+        var serialTotal = Text(size: 14, color: Slate500);
+        serialTotal.DataContext = _serialImeiViewModel;
+        serialTotal.Text(x => x.Binding(() => _serialImeiViewModel.TotalLabel));
+        var serialTotalHost = new Border { Child = serialTotal };
+        serialTotalHost.Visibility(x => x.Binding(() => ViewModel.IsSerialTab).Convert(ShowIf));
+        title.Children.Add(serialTotalHost);
 
         var actions = new Grid();
         var categoryAction = BuildPrimaryAction("add", "Thêm danh mục", "Thêm danh mục");
@@ -135,6 +141,10 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         inventoryActions.Children.Add(importAction);
         inventoryActions.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
         actions.Children.Add(inventoryActions);
+        var serialActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        serialActions.Children.Add(BuildPrimaryAction("add", "Nhập kho mới", "Nhập kho mới"));
+        serialActions.Visibility(x => x.Binding(() => ViewModel.IsSerialTab).Convert(ShowIf));
+        actions.Children.Add(serialActions);
         return new ResponsivePair(title, actions);
     }
 

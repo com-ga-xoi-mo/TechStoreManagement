@@ -47,8 +47,6 @@
              Link="Production\Services\Api\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\..\frontend\TechStore.Client\Services\Session\**\*.cs"
              Link="Production\Services\Session\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\..\frontend\TechStore.Client\Services\Authentication\**\*.cs"
-             Link="Production\Services\Authentication\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\..\frontend\TechStore.Client\Features\Categories\Models\**\*.cs"
              Link="Production\Features\Categories\Models\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\..\frontend\TechStore.Client\Features\Categories\ViewModels\**\*.cs"

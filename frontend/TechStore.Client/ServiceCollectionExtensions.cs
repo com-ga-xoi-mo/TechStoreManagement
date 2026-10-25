@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using TechStore.Client.Services.Api;
-using TechStore.Client.Services.Authentication;
 using TechStore.Client.Services.Session;
 
 namespace TechStore.Client;
@@ -22,8 +21,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(_ => ApiClientOptions.FromConfiguration(configuration));
         services.AddSingleton<ISessionStorage, FileSessionStorage>();
         services.AddSingleton<ISessionStore, InMemorySessionStore>();
-        services.AddSingleton<SessionAccessTokenProvider>();
-        services.AddSingleton<IAccessTokenProvider>(provider => provider.GetRequiredService<SessionAccessTokenProvider>());
         services.AddTransient<BearerTokenHandler>();
         services.AddLogging(builder =>
             builder.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning));
@@ -42,15 +39,6 @@ public static class ServiceCollectionExtensions
             })
             .ConfigurePrimaryHttpMessageHandler(CreatePrimaryHttpMessageHandler)
             .AddHttpMessageHandler<BearerTokenHandler>();
-
-        services
-            .AddHttpClient<ICategoryApiClient, CategoryApiClient>((provider, client) =>
-            {
-                var options = provider.GetRequiredService<ApiClientOptions>();
-                client.BaseAddress = options.Validate();
-                client.Timeout = Timeout.InfiniteTimeSpan;
-            })
-            .ConfigurePrimaryHttpMessageHandler(CreatePrimaryHttpMessageHandler);
 
         services.AddTransient<IInventoryApiClient, InventoryApiClient>();
 

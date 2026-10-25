@@ -1,7 +1,8 @@
 using FluentAssertions;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.ViewModels;
-using TechStore.Client.Services.Api;
+using TechStore.Client.Models.Catalog;
+using TechStore.Client.Repositories.Catalog;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -9,14 +10,14 @@ namespace TechStore.Frontend.UnitTests.Features.Categories;
 
 public class CreateCategoryDialogTests
 {
-    private sealed class MockCategoryApiClient : ICategoryApiClient
+    private sealed class MockCategoryWorkspaceRepository : ICategoryWorkspaceRepository
     {
         public CreateCategoryRequest? LastCreateRequest { get; private set; }
         public Func<CreateCategoryRequest, CancellationToken, Task<CategoryDto>>? CreateHandler { get; set; }
         public Func<Guid, UpdateCategoryRequest, CancellationToken, Task<CategoryDto>>? UpdateHandler { get; set; }
         public Func<Guid, CancellationToken, Task>? DeleteHandler { get; set; }
 
-        public Task<IReadOnlyList<CategoryNode>> GetTreeAsync(CancellationToken cancellationToken = default) =>
+        public Task<IReadOnlyList<CategoryNode>> GetNodesAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<CategoryNode>>([]);
 
         public Task<CategoryDto> CreateAsync(CreateCategoryRequest request, CancellationToken cancellationToken = default)
@@ -69,7 +70,7 @@ public class CreateCategoryDialogTests
     public void InitialState_And_ParentOptions_CorrectlyConfigured()
     {
         // Arrange
-        var api = new MockCategoryApiClient();
+        var api = new MockCategoryWorkspaceRepository();
         var rootId = Guid.NewGuid();
         var childId = Guid.NewGuid();
         var hierarchy = new List<CategoryNode>
@@ -100,7 +101,7 @@ public class CreateCategoryDialogTests
     public void NameChange_UpdatesAutoSlug_And_CanSave()
     {
         // Arrange
-        var api = new MockCategoryApiClient();
+        var api = new MockCategoryWorkspaceRepository();
         var vm = new CreateCategoryDialogViewModel(api);
 
         // Act
@@ -115,7 +116,7 @@ public class CreateCategoryDialogTests
     public async Task SaveAsync_WithoutKeepCreating_CallsApi_FiresEvents_And_RequestsClose()
     {
         // Arrange
-        var api = new MockCategoryApiClient();
+        var api = new MockCategoryWorkspaceRepository();
         var vm = new CreateCategoryDialogViewModel(api)
         {
             Name = "Tai nghe Bluetooth",
@@ -149,7 +150,7 @@ public class CreateCategoryDialogTests
     public async Task SaveAsync_WithKeepCreating_ResetsDraft_And_KeepsDialogOpen()
     {
         // Arrange
-        var api = new MockCategoryApiClient();
+        var api = new MockCategoryWorkspaceRepository();
         var vm = new CreateCategoryDialogViewModel(api)
         {
             Name = "Tai nghe Bluetooth",
@@ -178,7 +179,7 @@ public class CreateCategoryDialogTests
     public async Task SaveAsync_OnConflict409_PreservesDraft_And_ShowsErrorMessage()
     {
         // Arrange
-        var api = new MockCategoryApiClient
+        var api = new MockCategoryWorkspaceRepository
         {
             CreateHandler = (_, _) => throw new CategoryApiException(CategoryApiFailure.Conflict, "Slug 'tai-nghe' đã tồn tại.")
         };
@@ -209,7 +210,7 @@ public class CreateCategoryDialogTests
     public void CycleIcon_ChangesSelectedIcon()
     {
         // Arrange
-        var api = new MockCategoryApiClient();
+        var api = new MockCategoryWorkspaceRepository();
         var vm = new CreateCategoryDialogViewModel(api);
         var initial = vm.SelectedIcon;
 
@@ -224,7 +225,7 @@ public class CreateCategoryDialogTests
     public void IconOptions_ExposeDistinctLocalIconsAndLabels()
     {
         // Arrange
-        var vm = new CreateCategoryDialogViewModel(new MockCategoryApiClient());
+        var vm = new CreateCategoryDialogViewModel(new MockCategoryWorkspaceRepository());
 
         // Act
         vm.SelectIconCommand.Execute("videocam");
@@ -241,7 +242,7 @@ public class CreateCategoryDialogTests
     public void ResetDraft_RestoresDefaultIcon()
     {
         // Arrange
-        var vm = new CreateCategoryDialogViewModel(new MockCategoryApiClient())
+        var vm = new CreateCategoryDialogViewModel(new MockCategoryWorkspaceRepository())
         {
             SelectedIcon = "camera"
         };

@@ -3,13 +3,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.Services;
-using TechStore.Client.Services.Api;
+using TechStore.Client.Models.Catalog;
+using TechStore.Client.Repositories.Catalog;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Client.Features.Categories.ViewModels;
 
 public sealed partial class CategoryManagementViewModel(
-    ICategoryApiClient apiClient, ICategoryDialogRequests dialogs) : ObservableObject
+    ICategoryWorkspaceRepository apiClient, ICategoryDialogRequests dialogs) : ObservableObject
 {
     private readonly List<CategoryRow> _allRows = [];
     private readonly Dictionary<Guid, CategoryRow> _byId = [];
@@ -84,7 +85,7 @@ public sealed partial class CategoryManagementViewModel(
         ErrorMessage = null;
         try
         {
-            var roots = await apiClient.GetTreeAsync(load.Token);
+            var roots = await apiClient.GetNodesAsync(load.Token);
             if (load.IsCancellationRequested || generation != _loadGeneration) return;
             _allRows.Clear();
             _byId.Clear();
@@ -105,7 +106,6 @@ public sealed partial class CategoryManagementViewModel(
             if (load.IsCancellationRequested || generation != _loadGeneration) return;
             ErrorMessage = exception is CategoryApiException api ? api.Failure switch
             {
-                CategoryApiFailure.SessionRequired => "Vui lòng đăng nhập để xem danh mục.",
                 CategoryApiFailure.Unauthorized => "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
                 CategoryApiFailure.Forbidden => "Bạn không có quyền xem danh mục.",
                 _ => "Không thể tải danh mục. Vui lòng thử lại."
@@ -261,7 +261,6 @@ public sealed partial class CategoryManagementViewModel(
         {
             ErrorMessage = exception.Failure switch
             {
-                CategoryApiFailure.SessionRequired => "Vui lòng đăng nhập để đổi trạng thái danh mục.",
                 CategoryApiFailure.Unauthorized => "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
                 CategoryApiFailure.Forbidden => "Bạn không có quyền đổi trạng thái danh mục.",
                 CategoryApiFailure.BadRequest => exception.Message,

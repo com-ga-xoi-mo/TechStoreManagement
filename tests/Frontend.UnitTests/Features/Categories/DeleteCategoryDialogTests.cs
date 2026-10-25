@@ -2,7 +2,8 @@ using FluentAssertions;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.Services;
 using TechStore.Client.Features.Categories.ViewModels;
-using TechStore.Client.Services.Api;
+using TechStore.Client.Models.Catalog;
+using TechStore.Client.Repositories.Catalog;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -10,13 +11,13 @@ namespace TechStore.Frontend.UnitTests.Features.Categories;
 
 public sealed class DeleteCategoryDialogTests
 {
-    private sealed class FakeApi : ICategoryApiClient
+    private sealed class FakeApi : ICategoryWorkspaceRepository
     {
         public int DeleteCalls { get; private set; }
         public Guid? DeletedId { get; private set; }
         public Func<Guid, CancellationToken, Task>? DeleteHandler { get; set; }
 
-        public Task<IReadOnlyList<CategoryNode>> GetTreeAsync(CancellationToken cancellationToken = default) =>
+        public Task<IReadOnlyList<CategoryNode>> GetNodesAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<CategoryNode>>([]);
 
         public Task<CategoryDto> CreateAsync(CreateCategoryRequest request, CancellationToken cancellationToken = default) =>
@@ -211,7 +212,6 @@ public sealed class DeleteCategoryDialogTests
     }
 
     [Theory]
-    [InlineData(CategoryApiFailure.SessionRequired, "đăng nhập")]
     [InlineData(CategoryApiFailure.Unauthorized, "hết hạn")]
     [InlineData(CategoryApiFailure.Forbidden, "không có quyền")]
     [InlineData(CategoryApiFailure.NotFound, "không còn tồn tại")]

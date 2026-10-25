@@ -1,7 +1,8 @@
 using FluentAssertions;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.ViewModels;
-using TechStore.Client.Services.Api;
+using TechStore.Client.Models.Catalog;
+using TechStore.Client.Repositories.Catalog;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -9,14 +10,14 @@ namespace TechStore.Frontend.UnitTests.Features.Categories;
 
 public sealed class EditCategoryDialogTests
 {
-    private sealed class FakeApi : ICategoryApiClient
+    private sealed class FakeApi : ICategoryWorkspaceRepository
     {
         public UpdateCategoryRequest? LastRequest { get; private set; }
         public Guid? LastId { get; private set; }
         public Func<Guid, UpdateCategoryRequest, CancellationToken, Task<CategoryDto>>? UpdateHandler { get; set; }
         public Func<Guid, CancellationToken, Task>? DeleteHandler { get; set; }
 
-        public Task<IReadOnlyList<CategoryNode>> GetTreeAsync(CancellationToken cancellationToken = default) =>
+        public Task<IReadOnlyList<CategoryNode>> GetNodesAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<CategoryNode>>([]);
 
         public Task<CategoryDto> CreateAsync(CreateCategoryRequest request, CancellationToken cancellationToken = default) =>

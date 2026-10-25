@@ -2,7 +2,8 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Features.Categories.Models;
-using TechStore.Client.Services.Api;
+using TechStore.Client.Models.Catalog;
+using TechStore.Client.Repositories.Catalog;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -14,7 +15,7 @@ public sealed partial class EditCategoryDialogViewModel : ObservableObject
     public const string RootParentLabel = "-- Danh mục gốc (Không có danh mục cha) --";
     public const int MaxNameLength = 200;
 
-    private readonly ICategoryApiClient _apiClient;
+    private readonly ICategoryWorkspaceRepository _apiClient;
     private readonly CategoryNode _category;
     private readonly HashSet<Guid> _excludedParentIds = [];
     private readonly HashSet<Guid> _availableParentIds = [];
@@ -72,7 +73,7 @@ public sealed partial class EditCategoryDialogViewModel : ObservableObject
     public event EventHandler? RequestClose;
 
     public EditCategoryDialogViewModel(
-        ICategoryApiClient apiClient,
+        ICategoryWorkspaceRepository apiClient,
         CategoryNode category,
         IReadOnlyList<CategoryNode>? hierarchy = null)
     {
@@ -182,7 +183,6 @@ public sealed partial class EditCategoryDialogViewModel : ObservableObject
         {
             ErrorMessage = exception.Failure switch
             {
-                CategoryApiFailure.SessionRequired => "Vui lòng đăng nhập để sửa danh mục.",
                 CategoryApiFailure.Unauthorized => "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.",
                 CategoryApiFailure.Forbidden => "Bạn không có quyền sửa danh mục.",
                 CategoryApiFailure.NotFound => exception.Message,

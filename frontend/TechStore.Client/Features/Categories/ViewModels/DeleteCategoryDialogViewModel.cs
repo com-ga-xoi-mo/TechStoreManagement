@@ -1,14 +1,15 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Features.Categories.Models;
-using TechStore.Client.Services.Api;
+using TechStore.Client.Models.Catalog;
+using TechStore.Client.Repositories.Catalog;
 
 namespace TechStore.Client.Features.Categories.ViewModels;
 
 /// <summary>Headless state and commands for the destructive category confirmation dialog.</summary>
 public sealed partial class DeleteCategoryDialogViewModel : ObservableObject
 {
-    private readonly ICategoryApiClient _apiClient;
+    private readonly ICategoryWorkspaceRepository _apiClient;
 
     public Guid CategoryId { get; }
     public Guid TargetId => CategoryId;
@@ -42,7 +43,7 @@ public sealed partial class DeleteCategoryDialogViewModel : ObservableObject
     public event EventHandler? RequestClose;
 
     public DeleteCategoryDialogViewModel(
-        ICategoryApiClient apiClient,
+        ICategoryWorkspaceRepository apiClient,
         CategoryNode category,
         string? parentName = null)
     {
@@ -80,7 +81,6 @@ public sealed partial class DeleteCategoryDialogViewModel : ObservableObject
         {
             ErrorMessage = exception.Failure switch
             {
-                CategoryApiFailure.SessionRequired => "Vui lòng đăng nhập để xóa danh mục.",
                 CategoryApiFailure.Unauthorized => "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.",
                 CategoryApiFailure.Forbidden => "Bạn không có quyền xóa danh mục.",
                 CategoryApiFailure.BadRequest => "Không thể xóa danh mục vì vẫn còn danh mục con. Vui lòng di chuyển hoặc xóa các danh mục con trước.",

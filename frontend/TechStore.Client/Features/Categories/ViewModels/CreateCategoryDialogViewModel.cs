@@ -5,7 +5,8 @@ using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Features.Categories.Models;
-using TechStore.Client.Services.Api;
+using TechStore.Client.Models.Catalog;
+using TechStore.Client.Repositories.Catalog;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -21,7 +22,7 @@ public sealed partial class CreateCategoryDialogViewModel : ObservableObject
         "memory", "cable", "monitor", "keyboard", "mouse", "gamepad", "camera", "router", "battery"
     ];
 
-    private readonly ICategoryApiClient _apiClient;
+    private readonly ICategoryWorkspaceRepository _apiClient;
     private int _iconIndex;
 
     public ObservableCollection<ParentCategoryOption> ParentOptions { get; } = [];
@@ -94,7 +95,7 @@ public sealed partial class CreateCategoryDialogViewModel : ObservableObject
     public event EventHandler<CategoryDto>? CategoryCreated;
     public event EventHandler? RequestClose;
 
-    public CreateCategoryDialogViewModel(ICategoryApiClient apiClient, IReadOnlyList<CategoryNode>? existingHierarchy = null)
+    public CreateCategoryDialogViewModel(ICategoryWorkspaceRepository apiClient, IReadOnlyList<CategoryNode>? existingHierarchy = null)
     {
         _apiClient = apiClient;
         LoadParentHierarchy(existingHierarchy);
@@ -207,7 +208,6 @@ public sealed partial class CreateCategoryDialogViewModel : ObservableObject
         {
             ErrorMessage = apiException.Failure switch
             {
-                CategoryApiFailure.SessionRequired => "Vui lòng đăng nhập để thực hiện thao tác.",
                 CategoryApiFailure.Unauthorized => "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.",
                 CategoryApiFailure.Forbidden => "Bạn không có quyền thêm danh mục.",
                 CategoryApiFailure.Conflict => apiException.Message,

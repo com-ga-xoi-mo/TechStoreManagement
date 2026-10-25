@@ -3,6 +3,8 @@ using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.Services;
 using TechStore.Client.Features.Categories.ViewModels;
 using TechStore.Client.Features.Inventory.ViewModels;
+using TechStore.Client.Models.Catalog;
+using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Services.Api;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
@@ -11,7 +13,7 @@ namespace TechStore.Frontend.UnitTests.Features.Categories;
 
 public class CategoryWorkspaceTests
 {
-    private sealed class FakeApi(IReadOnlyList<CategoryNode> roots) : ICategoryApiClient
+    private sealed class FakeApi(IReadOnlyList<CategoryNode> roots) : ICategoryWorkspaceRepository
     {
         public int Calls { get; private set; }
         public int UpdateCalls { get; private set; }
@@ -21,7 +23,7 @@ public class CategoryWorkspaceTests
         public Func<TechStore.Shared.Requests.CreateCategoryRequest, CancellationToken, Task<TechStore.Shared.DTOs.CategoryDto>>? CreateHandler { get; set; }
         public Func<Guid, TechStore.Shared.Requests.UpdateCategoryRequest, CancellationToken, Task<TechStore.Shared.DTOs.CategoryDto>>? UpdateHandler { get; set; }
         public Func<Guid, CancellationToken, Task>? DeleteHandler { get; set; }
-        public Task<IReadOnlyList<CategoryNode>> GetTreeAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<CategoryNode>> GetNodesAsync(CancellationToken cancellationToken = default)
         {
             Calls++;
             return Handler?.Invoke(cancellationToken) ?? Task.FromResult(roots);

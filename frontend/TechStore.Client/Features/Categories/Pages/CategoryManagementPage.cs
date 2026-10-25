@@ -11,6 +11,7 @@ using TechStore.Client.Features.Inventory.Dialogs;
 using TechStore.Client.Features.Inventory.Models;
 using TechStore.Client.Features.Inventory.Pages;
 using TechStore.Client.Features.Inventory.ViewModels;
+using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Services.Api;
 using TechStore.Client.Styles;
@@ -26,7 +27,7 @@ namespace TechStore.Client.Features.Categories.Pages;
 public sealed class CategoryManagementPage : Page, IRoutePage
 {
     private readonly CategoryDialogRequests _dialogRequests;
-    private readonly ICategoryApiClient _categoryApiClient;
+    private readonly ICategoryWorkspaceRepository _categoryApiClient;
     private readonly IInventoryApiClient _inventoryApiClient;
     private readonly IProductRepository _productRepository;
     private readonly ContentDialogPresenter _dialogPresenter;
@@ -43,7 +44,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
     public CategoryManagementPage(
         CategoryManagementViewModel viewModel,
         CategoryDialogRequests dialogRequests,
-        ICategoryApiClient categoryApiClient,
+        ICategoryWorkspaceRepository categoryApiClient,
         IInventoryApiClient inventoryApiClient,
         IProductRepository productRepository,
         ContentDialogPresenter dialogPresenter,

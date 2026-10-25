@@ -10,7 +10,7 @@ public sealed class CategoryRepositoryTests
     public async Task GetTreeAsync_FlattensNestedCategoriesWithoutCounts()
     {
         const string json = """
-            [{"id":"11111111-1111-1111-1111-111111111111","name":"Thiết bị","slug":"thiet-bi","description":null,"parentId":null,"isActive":true,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null,"subCategories":[{"id":"22222222-2222-2222-2222-222222222222","name":"Điện thoại","slug":"dien-thoai","description":null,"parentId":"11111111-1111-1111-1111-111111111111","isActive":true,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null,"subCategories":[]}]}]
+            [{"id":"11111111-1111-1111-1111-111111111111","name":"Thiết bị","slug":"thiet-bi","description":null,"parentId":null,"isActive":true,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null,"subCategories":[{"id":"22222222-2222-2222-2222-222222222222","name":"Điện thoại","slug":"dien-thoai","description":null,"parentId":"11111111-1111-1111-1111-111111111111","isActive":false,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null,"subCategories":[]}]}]
             """;
         var repository = new CategoryRepository(new JsonApiClient(json));
 
@@ -18,8 +18,24 @@ public sealed class CategoryRepositoryTests
 
         Assert.Equal(2, options.Count);
         Assert.Equal("Thiết bị", options[0].DisplayPath);
+        Assert.True(options[0].IsActive);
+        Assert.Equal("Thiết bị", options[0].Label);
         Assert.Equal("Thiết bị / Điện thoại", options[1].DisplayPath);
+        Assert.False(options[1].IsActive);
+        Assert.Equal("Thiết bị / Điện thoại (đang ẩn)", options[1].Label);
         Assert.Equal(options[0].Id, options[1].ParentId);
+    }
+
+    [Fact]
+    public void CategoryOption_Label_AddsHiddenSuffix()
+    {
+        // Arrange
+        var active = new TechStore.Client.Models.Catalog.CategoryOption(Guid.NewGuid(), null, "Laptop", "Thiết bị / Laptop", true);
+        var hidden = new TechStore.Client.Models.Catalog.CategoryOption(Guid.NewGuid(), null, "Cũ", "Thiết bị / Cũ", false);
+
+        // Act & Assert
+        Assert.Equal("Thiết bị / Laptop", active.Label);
+        Assert.Equal("Thiết bị / Cũ (đang ẩn)", hidden.Label);
     }
 
     [Fact]

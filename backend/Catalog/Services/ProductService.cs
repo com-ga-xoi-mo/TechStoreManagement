@@ -265,11 +265,11 @@ public class ProductService(
 
         // 2. Check Category existence via ICategoryRepository
         var category = await categoryRepository.GetByIdAsync(request.CategoryId!.Value, cancellationToken);
-        if (category == null)
+        if (category == null || !category.IsActive)
         {
             return CreateProductResult.ValidationFailed(new Dictionary<string, string[]>
             {
-                ["categoryId"] = [$"Category with ID '{request.CategoryId!.Value}' does not exist."]
+                ["categoryId"] = [$"Category '{request.CategoryId!.Value}' does not exist or is inactive."]
             });
         }
 
@@ -405,7 +405,7 @@ public class ProductService(
             }
 
             var category = await categoryRepository.GetByIdAsync(request.CategoryId!.Value, cancellationToken);
-            if (category == null || !category.IsActive)
+            if (category == null || (!category.IsActive && request.CategoryId!.Value != product.CategoryId))
             {
                 AddError("categoryId", $"Category '{request.CategoryId!.Value}' does not exist or is inactive.");
             }

@@ -497,6 +497,32 @@ public class ProductServiceUpdateTests
     {
         // Arrange
         var (productRepo, categoryRepo, unitOfWork, service) = CreateContext();
+        var activeCategory = ProductCommandTestData.NewActiveCategory();
+        var inactiveCategory = ProductCommandTestData.NewActiveCategory("Hidden");
+        inactiveCategory.IsActive = false;
+        categoryRepo.Categories[activeCategory.Id] = activeCategory;
+        categoryRepo.Categories[inactiveCategory.Id] = inactiveCategory;
+        var product = ProductCommandTestData.NewProduct(activeCategory.Id);
+        productRepo.Products[product.Id] = product;
+
+        var request = ProductCommandTestData.NewRequestFrom(product);
+        request.CategoryId = inactiveCategory.Id;
+
+        // Act
+        var result = await service.UpdateAsync(product.Id, request);
+
+        // Assert
+        result.Status.Should().Be(ProductCommandStatus.ValidationFailed);
+        result.ValidationErrors.Should().ContainKey("categoryId");
+        unitOfWork.SaveChangesCount.Should().Be(0);
+        unitOfWork.RollbackCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_KeepsCurrentHiddenCategory_Succeeds()
+    {
+        // Arrange
+        var (productRepo, categoryRepo, unitOfWork, service) = CreateContext();
         var category = ProductCommandTestData.NewActiveCategory();
         category.IsActive = false;
         categoryRepo.Categories[category.Id] = category;
@@ -504,6 +530,33 @@ public class ProductServiceUpdateTests
         productRepo.Products[product.Id] = product;
 
         var request = ProductCommandTestData.NewRequestFrom(product);
+        request.BasePrice = 29990000m;
+
+        // Act
+        var result = await service.UpdateAsync(product.Id, request);
+
+        // Assert
+        result.Status.Should().Be(ProductCommandStatus.Success);
+        product.BasePrice.Should().Be(29990000m);
+        product.CategoryId.Should().Be(category.Id);
+        unitOfWork.SaveChangesCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_MovesToOtherHiddenCategory_ReturnsCategoryIdError()
+    {
+        // Arrange
+        var (productRepo, categoryRepo, unitOfWork, service) = CreateContext();
+        var activeCategory = ProductCommandTestData.NewActiveCategory();
+        var hiddenCategory = ProductCommandTestData.NewActiveCategory("Legacy");
+        hiddenCategory.IsActive = false;
+        categoryRepo.Categories[activeCategory.Id] = activeCategory;
+        categoryRepo.Categories[hiddenCategory.Id] = hiddenCategory;
+        var product = ProductCommandTestData.NewProduct(activeCategory.Id);
+        productRepo.Products[product.Id] = product;
+
+        var request = ProductCommandTestData.NewRequestFrom(product);
+        request.CategoryId = hiddenCategory.Id;
 
         // Act
         var result = await service.UpdateAsync(product.Id, request);
@@ -791,14 +844,17 @@ public class ProductServiceUpdateTests
     {
         // Arrange
         var (productRepo, categoryRepo, unitOfWork, service) = CreateContext();
-        var category = ProductCommandTestData.NewActiveCategory();
-        category.IsActive = false;
-        categoryRepo.Categories[category.Id] = category;
-        var product = ProductCommandTestData.NewProduct(category.Id);
+        var activeCategory = ProductCommandTestData.NewActiveCategory();
+        var inactiveCategory = ProductCommandTestData.NewActiveCategory("Hidden");
+        inactiveCategory.IsActive = false;
+        categoryRepo.Categories[activeCategory.Id] = activeCategory;
+        categoryRepo.Categories[inactiveCategory.Id] = inactiveCategory;
+        var product = ProductCommandTestData.NewProduct(activeCategory.Id);
         var v1 = ProductCommandTestData.NewVariant(product, "OLD-SKU");
         productRepo.Products[product.Id] = product;
 
         var request = ProductCommandTestData.NewRequestFrom(product);
+        request.CategoryId = inactiveCategory.Id;
         request.Variants =
         [
             new UpdateProductVariantRequest

@@ -41,7 +41,7 @@ public sealed class CategoryRepository(IApiClient apiClient) : ICategoryReposito
             throw InvalidResponse("The category tree contains invalid identity or hierarchy data.");
 
         var segments = ancestors.Append(node.Name.Trim()).ToArray();
-        result.Add(new CategoryOption(node.Id, node.ParentId, node.Name, string.Join(" / ", segments)));
+        result.Add(new CategoryOption(node.Id, node.ParentId, node.Name, string.Join(" / ", segments), node.IsActive));
         foreach (var child in node.SubCategories) Flatten(child, segments, result, ids);
     }
 

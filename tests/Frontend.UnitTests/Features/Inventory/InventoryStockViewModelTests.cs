@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Features.Inventory.Models;
 using TechStore.Client.Features.Inventory.ViewModels;
 using TechStore.Client.Models.Catalog;
@@ -295,7 +296,7 @@ public sealed class InventoryStockViewModelTests
         Quantity = quantity, ReservedQuantity = reserved
     };
 
-    private sealed class FakeApi(PagedResultDto<InventoryStockDto> page) : IInventoryApiClient
+    private sealed class FakeApi(PagedResultDto<InventoryStockDto> page) : IInventoryRepository
     {
         public int Calls { get; private set; }
         public Func<int, Task<PagedResultDto<InventoryStockDto>>>? Handler { get; set; }

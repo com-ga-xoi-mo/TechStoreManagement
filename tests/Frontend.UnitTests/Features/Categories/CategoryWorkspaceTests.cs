@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using FluentAssertions;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.Services;
@@ -65,7 +66,7 @@ public class CategoryWorkspaceTests
         public void Request(CategoryDialogRequest request) => Requests.Add(request);
     }
 
-    private sealed class StockApi : IInventoryApiClient
+    private sealed class StockApi : IInventoryRepository
     {
         public int Calls { get; private set; }
 

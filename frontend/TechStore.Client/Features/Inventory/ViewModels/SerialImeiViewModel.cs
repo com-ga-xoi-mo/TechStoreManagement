@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -21,7 +22,7 @@ public enum SerialImeiStatusFilter
 
 public sealed record SerialImeiStatusOption(SerialImeiStatusFilter Value, string Label);
 
-public sealed partial class SerialImeiViewModel(IInventoryApiClient apiClient) : ObservableObject
+public sealed partial class SerialImeiViewModel(IInventoryRepository apiClient) : ObservableObject
 {
     public const int DefaultPageSize = 20;
     private CancellationTokenSource? _loadCancellation;

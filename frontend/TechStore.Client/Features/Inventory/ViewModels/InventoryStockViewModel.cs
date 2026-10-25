@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,7 +12,7 @@ using TechStore.Shared.Requests;
 namespace TechStore.Client.Features.Inventory.ViewModels;
 
 public sealed partial class InventoryStockViewModel(
-    IInventoryApiClient apiClient,
+    IInventoryRepository apiClient,
     IInventoryReportExporter? reportExporter = null,
     ICategoryRepository? categoryRepository = null) : ObservableObject
 {

@@ -1,10 +1,11 @@
 using System.Globalization;
+using TechStore.Client.Services.Api;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
-namespace TechStore.Client.Services.Api;
+namespace TechStore.Client.Repositories.Inventory;
 
-public sealed class InventoryApiClient(IApiClient apiClient) : IInventoryApiClient
+public sealed class InventoryRepository(IApiClient apiClient) : IInventoryRepository
 {
     public Task<PagedResultDto<SerialImeiDto>> GetSerialsAsync(
         SerialImeiFilterRequest request,

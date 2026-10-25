@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Features.Inventory.ViewModels;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
@@ -116,7 +117,7 @@ public sealed class ImportStockDialogViewModelTests
             Task.FromResult<ProductDetail?>(null);
     }
 
-    private sealed class FakeApi : IInventoryApiClient
+    private sealed class FakeApi : IInventoryRepository
     {
         public InitializeStockRequest? InitializeRequest { get; private set; }
         public BatchImportSerialImeiRequest? SerialImportRequest { get; private set; }

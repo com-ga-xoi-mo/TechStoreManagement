@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Features.Inventory.Models;
 using TechStore.Client.Features.Inventory.ViewModels;
 using TechStore.Client.Services.Api;
@@ -65,7 +66,7 @@ public sealed class StockAdjustmentDialogViewModelTests
         Quantity = quantity, ReservedQuantity = reserved
     };
 
-    private sealed class FakeApi : IInventoryApiClient
+    private sealed class FakeApi : IInventoryRepository
     {
         public int Calls { get; private set; }
         public AdjustStockRequest? LastRequest { get; private set; }

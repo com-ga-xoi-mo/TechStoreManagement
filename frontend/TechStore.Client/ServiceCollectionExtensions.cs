@@ -40,8 +40,6 @@ public static class ServiceCollectionExtensions
             .ConfigurePrimaryHttpMessageHandler(CreatePrimaryHttpMessageHandler)
             .AddHttpMessageHandler<BearerTokenHandler>();
 
-        services.AddTransient<IInventoryApiClient, InventoryApiClient>();
-
         configureApiClient?.Invoke(clientBuilder);
         return services;
     }

@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Features.Inventory.Models;
@@ -8,9 +9,9 @@ namespace TechStore.Client.Features.Inventory.ViewModels;
 
 public sealed partial class StockDetailHistoryDialogViewModel(
     InventoryStockRow row,
-    IInventoryApiClient apiClient) : ObservableObject
+    IInventoryRepository apiClient) : ObservableObject
 {
-    private readonly IInventoryApiClient _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+    private readonly IInventoryRepository _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
 
     public InventoryStockRow Row { get; } = row ?? throw new ArgumentNullException(nameof(row));
     public string ProductName => Row.ProductName;

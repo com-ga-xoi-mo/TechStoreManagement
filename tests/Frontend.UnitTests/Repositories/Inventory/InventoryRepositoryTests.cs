@@ -1,10 +1,11 @@
+using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Services.Api;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
-namespace TechStore.Client.UnitTests.Services;
+namespace TechStore.Client.UnitTests.Repositories.Inventory;
 
-public sealed class InventoryApiClientTests
+public sealed class InventoryRepositoryTests
 {
     [Fact]
     public async Task GetStocksAsync_ForwardsQueryAndPreservesPageMetadata()
@@ -15,7 +16,7 @@ public sealed class InventoryApiClientTests
             Page = 2, PageSize = 20, TotalCount = 21, TotalPages = 2
         };
         var api = new RecordingApiClient(expected);
-        var client = new InventoryApiClient(api);
+        var client = new InventoryRepository(api);
 
         var result = await client.GetStocksAsync(new InventoryStockFilterRequest
         {
@@ -39,7 +40,7 @@ public sealed class InventoryApiClientTests
             Items = [], Page = 1, PageSize = 20, TotalCount = 0, TotalPages = 0
         });
 
-        var result = await new InventoryApiClient(api).GetStocksAsync(new() { Page = 1, PageSize = 20 });
+        var result = await new InventoryRepository(api).GetStocksAsync(new() { Page = 1, PageSize = 20 });
 
         Assert.Empty(result.Items);
         Assert.Equal(0, result.TotalCount);
@@ -52,7 +53,7 @@ public sealed class InventoryApiClientTests
         var api = new RecordingApiClient(expected);
 
         var error = await Assert.ThrowsAsync<ApiException>(() =>
-            new InventoryApiClient(api).GetStocksAsync(new() { Page = 1, PageSize = 20 }));
+            new InventoryRepository(api).GetStocksAsync(new() { Page = 1, PageSize = 20 }));
 
         Assert.Same(expected, error);
         Assert.Equal(403, error.StatusCode);
@@ -66,14 +67,14 @@ public sealed class InventoryApiClientTests
         var api = new RecordingApiClient(new OperationCanceledException(cancellation.Token));
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            new InventoryApiClient(api).GetStocksAsync(new() { Page = 1, PageSize = 20 }, cancellation.Token));
+            new InventoryRepository(api).GetStocksAsync(new() { Page = 1, PageSize = 20 }, cancellation.Token));
     }
 
     [Fact]
     public async Task GetStocksAsync_RejectsInvalidPageSize()
     {
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            new InventoryApiClient(new RecordingApiClient(new PagedResultDto<InventoryStockDto>()))
+            new InventoryRepository(new RecordingApiClient(new PagedResultDto<InventoryStockDto>()))
                 .GetStocksAsync(new() { Page = 1, PageSize = 101 }));
     }
 
@@ -82,7 +83,7 @@ public sealed class InventoryApiClientTests
     {
         var api = new RecordingApiClient(new PagedResultDto<InventoryStockDto>());
         var stockId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-        var result = await new InventoryApiClient(api).DeleteStockAsync(stockId);
+        var result = await new InventoryRepository(api).DeleteStockAsync(stockId);
 
         Assert.True(result.Succeeded);
         Assert.Equal($"api/inventory/stocks/{stockId:D}", api.Path);
@@ -100,7 +101,7 @@ public sealed class InventoryApiClientTests
             null,
             new Dictionary<string, IReadOnlyList<string>>())));
 
-        var result = await new InventoryApiClient(api).DeleteStockAsync(Guid.NewGuid());
+        var result = await new InventoryRepository(api).DeleteStockAsync(Guid.NewGuid());
 
         Assert.False(result.Succeeded);
         Assert.Equal(InventoryStockDeleteFailure.Conflict, result.Failure);

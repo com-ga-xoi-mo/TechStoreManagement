@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Features.Inventory.ViewModels;
 using TechStore.Client.Services.Api;
 using TechStore.Shared.DTOs;
@@ -174,7 +175,7 @@ public sealed class SerialImeiViewModelTests
     private static PagedResultDto<SerialImeiDto> Page(int page, int pageSize, int totalCount, params SerialImeiDto[] items) =>
         new(items, page, pageSize, totalCount, (int)Math.Ceiling(totalCount / (double)pageSize));
 
-    private sealed class FakeApi(PagedResultDto<SerialImeiDto> page) : IInventoryApiClient
+    private sealed class FakeApi(PagedResultDto<SerialImeiDto> page) : IInventoryRepository
     {
         private int _calls;
 

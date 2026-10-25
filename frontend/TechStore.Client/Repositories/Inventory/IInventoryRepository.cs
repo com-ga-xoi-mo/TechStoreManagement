@@ -1,7 +1,7 @@
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
-namespace TechStore.Client.Services.Api;
+namespace TechStore.Client.Repositories.Inventory;
 
 public enum InventoryStockDeleteFailure
 {
@@ -72,7 +72,7 @@ public sealed record InventoryStockDeleteResult(
         new(false, InventoryStockDeleteFailure.Unsupported, message);
 }
 
-public interface IInventoryApiClient
+public interface IInventoryRepository
 {
     Task<PagedResultDto<SerialImeiDto>> GetSerialsAsync(
         SerialImeiFilterRequest request,

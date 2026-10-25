@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -40,10 +41,10 @@ public sealed record ImportStockVariantOption(Guid Id, string Name, string Sku)
 
 public sealed partial class ImportStockDialogViewModel(
     IProductRepository productRepository,
-    IInventoryApiClient inventoryApiClient) : ObservableObject
+    IInventoryRepository inventoryApiClient) : ObservableObject
 {
     private readonly IProductRepository _productRepository = productRepository ?? throw new ArgumentNullException(nameof(productRepository));
-    private readonly IInventoryApiClient _inventoryApiClient = inventoryApiClient ?? throw new ArgumentNullException(nameof(inventoryApiClient));
+    private readonly IInventoryRepository _inventoryApiClient = inventoryApiClient ?? throw new ArgumentNullException(nameof(inventoryApiClient));
 
     public ObservableCollection<ImportStockProductOption> ProductOptions { get; } = [];
     public ObservableCollection<ImportStockVariantOption> VariantOptions { get; } = [];

@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -15,7 +16,7 @@ public sealed partial class DeleteStockItemDialogViewModel : ObservableObject
 {
     public const string SuccessMessage = "Đã xóa sản phẩm thành công khỏi danh mục tồn kho.";
 
-    private readonly IInventoryApiClient _apiClient;
+    private readonly IInventoryRepository _apiClient;
 
     public Guid StockId { get; }
     public Guid ProductId { get; }
@@ -45,7 +46,7 @@ public sealed partial class DeleteStockItemDialogViewModel : ObservableObject
     public event EventHandler<InventoryStockDeleteCompleted>? DeleteSucceeded;
 
     public DeleteStockItemDialogViewModel(
-        IInventoryApiClient apiClient,
+        IInventoryRepository apiClient,
         InventoryStockDeleteRequest target)
     {
         _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));

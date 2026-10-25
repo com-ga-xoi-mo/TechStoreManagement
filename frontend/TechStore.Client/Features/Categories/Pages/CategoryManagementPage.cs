@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -28,7 +29,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 {
     private readonly CategoryDialogRequests _dialogRequests;
     private readonly ICategoryWorkspaceRepository _categoryApiClient;
-    private readonly IInventoryApiClient _inventoryApiClient;
+    private readonly IInventoryRepository _inventoryApiClient;
     private readonly IProductRepository _productRepository;
     private readonly ContentDialogPresenter _dialogPresenter;
     private readonly InventoryStockPage _inventoryStockPage;
@@ -45,7 +46,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         CategoryManagementViewModel viewModel,
         CategoryDialogRequests dialogRequests,
         ICategoryWorkspaceRepository categoryApiClient,
-        IInventoryApiClient inventoryApiClient,
+        IInventoryRepository inventoryApiClient,
         IProductRepository productRepository,
         ContentDialogPresenter dialogPresenter,
         InventoryStockViewModel inventoryStockViewModel,

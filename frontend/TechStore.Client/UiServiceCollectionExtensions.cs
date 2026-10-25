@@ -9,6 +9,7 @@ using TechStore.Client.Features.Inventory.ViewModels;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Repositories.Customers;
 using TechStore.Client.Repositories.Identity;
+using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Repositories.Orders;
 using TechStore.Client.Services.Development;
 using TechStore.Client.Services.Dialog;
@@ -110,6 +111,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<IProductBrandRepository, ProductRepository>();
         services.AddTransient<ICategoryRepository, CategoryRepository>();
         services.AddTransient<ICategoryWorkspaceRepository, CategoryRepository>();
+        services.AddTransient<IInventoryRepository, InventoryRepository>();
         services.AddTransient<ICustomerRepository, CustomerRepository>();
         services.AddTransient<IOrderRepository, OrderRepository>();
         services.AddTransient<IOrderDeviceRepository, OrderDeviceRepository>();

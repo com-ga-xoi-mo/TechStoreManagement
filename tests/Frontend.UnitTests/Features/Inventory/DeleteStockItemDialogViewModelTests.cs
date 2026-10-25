@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Features.Inventory.Models;
 using TechStore.Client.Features.Inventory.ViewModels;
 using TechStore.Client.Services.Api;
@@ -115,7 +116,7 @@ public sealed class DeleteStockItemDialogViewModelTests
         Assert.False(vm.IsBusy);
     }
 
-    private sealed class FakeApi : IInventoryApiClient
+    private sealed class FakeApi : IInventoryRepository
     {
         public int DeleteCalls { get; private set; }
         public InventoryStockDeleteResult DeleteResult { get; init; } = InventoryStockDeleteResult.Unsupported();

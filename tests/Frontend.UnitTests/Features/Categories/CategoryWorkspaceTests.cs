@@ -1,4 +1,3 @@
-using TechStore.Client.Repositories.Inventory;
 using FluentAssertions;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.Services;
@@ -6,7 +5,8 @@ using TechStore.Client.Features.Categories.ViewModels;
 using TechStore.Client.Features.Inventory.ViewModels;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
-using TechStore.Client.Services.Api;
+using TechStore.Client.Repositories.Inventory;
+using TechStore.Client.ViewModels.Pages;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -19,10 +19,10 @@ public class CategoryWorkspaceTests
         public int Calls { get; private set; }
         public int UpdateCalls { get; private set; }
         public Guid LastUpdatedId { get; private set; }
-        public TechStore.Shared.Requests.UpdateCategoryRequest? LastUpdateRequest { get; private set; }
+        public UpdateCategoryRequest? LastUpdateRequest { get; private set; }
         public Func<CancellationToken, Task<IReadOnlyList<CategoryNode>>>? Handler { get; set; }
-        public Func<TechStore.Shared.Requests.CreateCategoryRequest, CancellationToken, Task<TechStore.Shared.DTOs.CategoryDto>>? CreateHandler { get; set; }
-        public Func<Guid, TechStore.Shared.Requests.UpdateCategoryRequest, CancellationToken, Task<TechStore.Shared.DTOs.CategoryDto>>? UpdateHandler { get; set; }
+        public Func<CreateCategoryRequest, CancellationToken, Task<CategoryDto>>? CreateHandler { get; set; }
+        public Func<Guid, UpdateCategoryRequest, CancellationToken, Task<CategoryDto>>? UpdateHandler { get; set; }
         public Func<Guid, CancellationToken, Task>? DeleteHandler { get; set; }
         public Task<IReadOnlyList<CategoryNode>> GetNodesAsync(CancellationToken cancellationToken = default)
         {
@@ -30,9 +30,9 @@ public class CategoryWorkspaceTests
             return Handler?.Invoke(cancellationToken) ?? Task.FromResult(roots);
         }
 
-        public Task<TechStore.Shared.DTOs.CategoryDto> CreateAsync(TechStore.Shared.Requests.CreateCategoryRequest request, CancellationToken cancellationToken = default)
+        public Task<CategoryDto> CreateAsync(CreateCategoryRequest request, CancellationToken cancellationToken = default)
         {
-            return CreateHandler?.Invoke(request, cancellationToken) ?? Task.FromResult(new TechStore.Shared.DTOs.CategoryDto
+            return CreateHandler?.Invoke(request, cancellationToken) ?? Task.FromResult(new CategoryDto
             {
                 Id = Guid.NewGuid(),
                 Name = request.Name ?? "",
@@ -41,12 +41,12 @@ public class CategoryWorkspaceTests
             });
         }
 
-        public Task<TechStore.Shared.DTOs.CategoryDto> UpdateAsync(Guid id, TechStore.Shared.Requests.UpdateCategoryRequest request, CancellationToken cancellationToken = default)
+        public Task<CategoryDto> UpdateAsync(Guid id, UpdateCategoryRequest request, CancellationToken cancellationToken = default)
         {
             UpdateCalls++;
             LastUpdatedId = id;
             LastUpdateRequest = request;
-            return UpdateHandler?.Invoke(id, request, cancellationToken) ?? Task.FromResult(new TechStore.Shared.DTOs.CategoryDto
+            return UpdateHandler?.Invoke(id, request, cancellationToken) ?? Task.FromResult(new CategoryDto
             {
                 Id = id,
                 Name = request.Name ?? string.Empty,
@@ -69,16 +69,42 @@ public class CategoryWorkspaceTests
     private sealed class StockApi : IInventoryRepository
     {
         public int Calls { get; private set; }
+        public Func<Task<PagedResultDto<InventoryStockDto>>>? StockHandler { get; set; }
+        public Func<Task<PagedResultDto<SerialImeiDto>>>? SerialHandler { get; set; }
 
         public Task<PagedResultDto<InventoryStockDto>> GetStocksAsync(InventoryStockFilterRequest request, CancellationToken cancellationToken = default)
         {
             Calls++;
+            if (StockHandler is not null) return StockHandler();
             return Task.FromResult(new PagedResultDto<InventoryStockDto>
             {
                 Items = [new InventoryStockDto { Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), ProductName = "Phone", ProductSku = "P-1", Quantity = 8 }],
                 Page = request.Page ?? 1, PageSize = request.PageSize ?? 20, TotalCount = 1, TotalPages = 1
             });
         }
+
+        public Task<PagedResultDto<SerialImeiDto>> GetSerialsAsync(SerialImeiFilterRequest request, CancellationToken cancellationToken = default)
+        {
+            if (SerialHandler is not null) return SerialHandler();
+            return Task.FromResult(new PagedResultDto<SerialImeiDto>
+            {
+                Items = [], Page = 1, PageSize = 20, TotalCount = 0, TotalPages = 0
+            });
+        }
+    }
+
+    private static CategoryManagementViewModel CreateVm(
+        ICategoryWorkspaceRepository api,
+        ICategoryDialogRequests? dialogs = null,
+        InventoryStockViewModel? inventory = null,
+        SerialImeiViewModel? serials = null)
+    {
+        var stockApi = new StockApi();
+        return new CategoryManagementViewModel(
+            api,
+            dialogs ?? new FakeDialogs(),
+            inventory ?? new InventoryStockViewModel(stockApi),
+            serials ?? new SerialImeiViewModel(stockApi));
     }
 
     private static CategoryNode Node(string name, bool active = true, params CategoryNode[] children) =>
@@ -86,8 +112,8 @@ public class CategoryWorkspaceTests
 
     private static async Task<CategoryManagementViewModel> Load(params CategoryNode[] roots)
     {
-        var vm = new CategoryManagementViewModel(new FakeApi(roots), new FakeDialogs());
-        await vm.LoadCommand.ExecuteAsync(null);
+        var vm = CreateVm(new FakeApi(roots));
+        await vm.ActivateAsync();
         return vm;
     }
 
@@ -108,7 +134,7 @@ public class CategoryWorkspaceTests
         rows[0].ParentName.Should().Be("Danh mục gốc");
         rows[0].IsExpanded.Should().BeTrue();
         vm.TotalCount.Should().Be(4);
-        await vm.LoadCommand.ExecuteAsync(null);
+        await vm.ActivateAsync();
         vm.VisibleRows.Should().HaveCount(4);
     }
 
@@ -117,8 +143,8 @@ public class CategoryWorkspaceTests
     {
         // Arrange
         var api = new FakeApi([Node("Root", true, Node("Branch", true, Node("Needle")), Node("Unrelated"))]);
-        var vm = new CategoryManagementViewModel(api, new FakeDialogs());
-        await vm.LoadCommand.ExecuteAsync(null);
+        var vm = CreateVm(api);
+        await vm.ActivateAsync();
         var root = vm.VisibleRows[0];
         vm.ToggleExpansionCommand.Execute(root);
         // Act
@@ -283,8 +309,8 @@ public class CategoryWorkspaceTests
         // Arrange
         var api = new FakeApi([Node("Parent", true, Node("Selected"))]);
         var dialogs = new FakeDialogs();
-        var vm = new CategoryManagementViewModel(api, dialogs);
-        await vm.LoadCommand.ExecuteAsync(null);
+        var vm = CreateVm(api, dialogs);
+        await vm.ActivateAsync();
         var selected = vm.VisibleRows[1];
         // Act
         vm.AddCategoryCommand.Execute(null);
@@ -301,8 +327,8 @@ public class CategoryWorkspaceTests
     public async Task WorkspaceTabs_SelectInventoryAndReturnToCategoriesWithoutReloadingTree()
     {
         var api = new FakeApi([Node("Root")]);
-        var vm = new CategoryManagementViewModel(api, new FakeDialogs());
-        await vm.LoadCommand.ExecuteAsync(null);
+        var vm = CreateVm(api);
+        await vm.ActivateAsync();
         var calls = api.Calls;
 
         vm.SelectTabCommand.Execute(CategoryWorkspaceTab.Inventory);
@@ -320,12 +346,12 @@ public class CategoryWorkspaceTests
     {
         var categoryApi = new FakeApi([Node("Category")]);
         var inventoryApi = new StockApi();
-        var categoryVm = new CategoryManagementViewModel(categoryApi, new FakeDialogs());
         var inventoryVm = new InventoryStockViewModel(inventoryApi);
-        await categoryVm.LoadCommand.ExecuteAsync(null);
+        var categoryVm = CreateVm(categoryApi, inventory: inventoryVm);
+        await categoryVm.ActivateAsync();
 
         categoryVm.SelectTabCommand.Execute(CategoryWorkspaceTab.Inventory);
-        await inventoryVm.LoadCommand.ExecuteAsync(null);
+        await categoryVm.Inventory.LoadCommand.ExecuteAsync(null);
         categoryVm.SelectTabCommand.Execute(CategoryWorkspaceTab.Categories);
 
         Assert.True(categoryVm.IsCategoryTab);
@@ -343,8 +369,8 @@ public class CategoryWorkspaceTests
         var api = new FakeApi([active]);
         api.Handler = _ => Task.FromResult<IReadOnlyList<CategoryNode>>(
             api.Calls == 1 ? [active] : [active with { IsActive = false }]);
-        var vm = new CategoryManagementViewModel(api, new FakeDialogs());
-        await vm.LoadCommand.ExecuteAsync(null);
+        var vm = CreateVm(api);
+        await vm.ActivateAsync();
 
         await vm.ToggleStatusCommand.ExecuteAsync(vm.VisibleRows[0]);
 
@@ -362,56 +388,124 @@ public class CategoryWorkspaceTests
     {
         // Arrange
         var api = new FakeApi([Node("Success")]) { Handler = _ => throw new CategoryApiException(CategoryApiFailure.Forbidden) };
-        var vm = new CategoryManagementViewModel(api, new FakeDialogs());
+        var vm = CreateVm(api);
         // Act
-        await vm.LoadCommand.ExecuteAsync(null);
+        await vm.ActivateAsync();
         // Assert
         vm.ErrorMessage.Should().Be("Bạn không có quyền xem danh mục.");
         vm.IsLoading.Should().BeFalse();
         vm.IsEmpty.Should().BeFalse();
         api.Handler = null;
-        await vm.LoadCommand.ExecuteAsync(null);
-        vm.HasError.Should().BeFalse();
+        await vm.RetryCommand.ExecuteAsync(null);
+        vm.IsError.Should().BeFalse();
         vm.VisibleRows.Should().ContainSingle();
     }
 
     [Fact]
-    public async Task Loading_OlderResponseAndCancellation_CannotReplaceNewData()
+    public async Task ActivateAsync_TreeLoads_ContentState()
     {
         // Arrange
-        var first = new TaskCompletionSource<IReadOnlyList<CategoryNode>>();
-        var second = new TaskCompletionSource<IReadOnlyList<CategoryNode>>();
-        var api = new FakeApi([]);
-        api.Handler = _ => api.Calls == 1 ? first.Task : second.Task;
-        var vm = new CategoryManagementViewModel(api, new FakeDialogs());
+        var vm = CreateVm(new FakeApi([Node("Laptops")]));
+
         // Act
-        var oldLoad = vm.LoadCommand.ExecuteAsync(null);
-        var newLoad = vm.LoadCommand.ExecuteAsync(null);
-        second.SetResult([Node("New")]);
-        await newLoad;
-        first.SetResult([Node("Old")]);
-        await oldLoad;
+        await vm.ActivateAsync();
+
         // Assert
-        vm.VisibleRows.Should().ContainSingle().Which.Name.Should().Be("New");
-        vm.IsLoading.Should().BeFalse();
-        vm.HasError.Should().BeFalse();
+        vm.ContentState.Should().Be(PageContentState.Content);
+        vm.ShowStatePanel.Should().BeFalse();
     }
 
     [Fact]
-    public async Task Loading_CancelNavigation_DoesNotReportFailureOrApplyResponse()
+    public async Task ActivateAsync_Unauthorized_ErrorWithSessionMessage()
     {
         // Arrange
-        var completion = new TaskCompletionSource<IReadOnlyList<CategoryNode>>();
-        var api = new FakeApi([]) { Handler = _ => completion.Task };
-        var vm = new CategoryManagementViewModel(api, new FakeDialogs());
-        var loading = vm.LoadCommand.ExecuteAsync(null);
+        var api = new FakeApi([]) { Handler = _ => throw new CategoryApiException(CategoryApiFailure.Unauthorized) };
+        var vm = CreateVm(api);
+
         // Act
-        vm.CancelLoading();
-        completion.SetResult([Node("Cancelled")]);
-        await loading;
+        await vm.ActivateAsync();
+
         // Assert
-        vm.IsLoading.Should().BeFalse();
-        vm.HasError.Should().BeFalse();
-        vm.VisibleRows.Should().BeEmpty();
+        vm.ContentState.Should().Be(PageContentState.Error);
+        vm.IsError.Should().BeTrue();
+        vm.ShowStatePanel.Should().BeTrue();
+        vm.ErrorMessage.Should().Be("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    }
+
+    [Fact]
+    public async Task Filter_NoMatch_EmptyThenBackToContent()
+    {
+        // Arrange
+        var vm = await Load(Node("Laptops"));
+        vm.ContentState.Should().Be(PageContentState.Content);
+
+        // Act 1: Filter to no match
+        vm.SearchText = "NoMatch";
+
+        // Assert 1
+        vm.ContentState.Should().Be(PageContentState.Empty);
+        vm.IsEmpty.Should().BeTrue();
+        vm.ShowStatePanel.Should().BeTrue();
+
+        // Act 2: Clear filter
+        vm.SearchText = "";
+
+        // Assert 2
+        vm.ContentState.Should().Be(PageContentState.Content);
+        vm.IsEmpty.Should().BeFalse();
+        vm.ShowStatePanel.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Deactivate_CancelsTabViewModels()
+    {
+        // Arrange
+        var pendingStocks = new TaskCompletionSource<PagedResultDto<InventoryStockDto>>();
+        var pendingSerials = new TaskCompletionSource<PagedResultDto<SerialImeiDto>>();
+        var stockApi = new StockApi
+        {
+            StockHandler = () => pendingStocks.Task,
+            SerialHandler = () => pendingSerials.Task
+        };
+        var inventoryVm = new InventoryStockViewModel(stockApi);
+        var serialsVm = new SerialImeiViewModel(stockApi);
+        var vm = CreateVm(new FakeApi([Node("Root")]), inventory: inventoryVm, serials: serialsVm);
+        await vm.ActivateAsync();
+
+        var stockLoad = inventoryVm.LoadCommand.ExecuteAsync(null);
+        var serialLoad = serialsVm.LoadCommand.ExecuteAsync(null);
+
+        // Act
+        vm.Deactivate();
+        pendingStocks.SetResult(new PagedResultDto<InventoryStockDto>
+        {
+            Items = [new InventoryStockDto { Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), ProductName = "Ignored", ProductSku = "IG" }],
+            Page = 1, PageSize = 20, TotalCount = 1, TotalPages = 1
+        });
+        pendingSerials.SetResult(new PagedResultDto<SerialImeiDto>
+        {
+            Items = [new SerialImeiDto { Id = Guid.NewGuid(), SerialNumber = "IG" }],
+            Page = 1, PageSize = 20, TotalCount = 1, TotalPages = 1
+        });
+        await Task.WhenAll(stockLoad, serialLoad);
+
+        // Assert
+        inventoryVm.VisibleItems.Should().BeEmpty();
+        serialsVm.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task PageButtons_MarkCurrentPage()
+    {
+        // Arrange
+        var vm = await Load(Enumerable.Range(1, 20).Select(i => Node($"Cat {i}")).ToArray());
+
+        // Act
+        vm.GoToPageCommand.Execute(2);
+
+        // Assert
+        vm.PageButtons.Should().HaveCount(2);
+        vm.PageButtons[0].IsCurrent.Should().BeFalse();
+        vm.PageButtons[1].IsCurrent.Should().BeTrue();
     }
 }

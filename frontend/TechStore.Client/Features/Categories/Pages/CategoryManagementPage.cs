@@ -28,48 +28,37 @@ namespace TechStore.Client.Features.Categories.Pages;
 public sealed class CategoryManagementPage : Page, IRoutePage
 {
     private readonly CategoryDialogRequests _dialogRequests;
-    private readonly ICategoryWorkspaceRepository _categoryApiClient;
     private readonly IInventoryRepository _inventoryApiClient;
     private readonly IProductRepository _productRepository;
     private readonly ContentDialogPresenter _dialogPresenter;
     private readonly InventoryStockPage _inventoryStockPage;
     private readonly SerialImeiPage _serialImeiPage;
-    private readonly InventoryStockViewModel _inventoryStockViewModel;
-    private readonly SerialImeiViewModel _serialImeiViewModel;
     private readonly CategoryDeleteCoordinator _deleteCoordinator = new();
     private readonly AsyncRelayCommand<CategoryDialogRequest> _showDialog;
-    private readonly CategoryRouteViewModel _routeViewModel;
     public CategoryManagementViewModel ViewModel { get; }
-    PageViewModel IRoutePage.ViewModel => _routeViewModel;
+    PageViewModel IRoutePage.ViewModel => ViewModel;
 
     public CategoryManagementPage(
         CategoryManagementViewModel viewModel,
         CategoryDialogRequests dialogRequests,
-        ICategoryWorkspaceRepository categoryApiClient,
         IInventoryRepository inventoryApiClient,
         IProductRepository productRepository,
-        ContentDialogPresenter dialogPresenter,
-        InventoryStockViewModel inventoryStockViewModel,
-        SerialImeiViewModel serialImeiViewModel)
+        ContentDialogPresenter dialogPresenter)
     {
         ViewModel = viewModel;
         _dialogRequests = dialogRequests;
-        _categoryApiClient = categoryApiClient;
         _inventoryApiClient = inventoryApiClient;
         _productRepository = productRepository;
         _dialogPresenter = dialogPresenter;
-        _inventoryStockViewModel = inventoryStockViewModel;
-        _serialImeiViewModel = serialImeiViewModel;
-        _inventoryStockPage = new InventoryStockPage(inventoryStockViewModel);
-        _serialImeiPage = new SerialImeiPage(serialImeiViewModel);
-        _routeViewModel = new CategoryRouteViewModel(viewModel);
+        _inventoryStockPage = new InventoryStockPage(viewModel.Inventory);
+        _serialImeiPage = new SerialImeiPage(viewModel.Serials);
         _showDialog = new AsyncRelayCommand<CategoryDialogRequest>(ShowDialogAsync);
         // Subscribe immediately as well as on Loaded. ItemsControl rows can be
         // realized before the parent Loaded callback on Uno/Skia.
-        _inventoryStockViewModel.DeleteRequested += OnInventoryDeleteRequested;
-        _inventoryStockViewModel.StockDetailRequested += OnInventoryStockDetailRequested;
-        _inventoryStockViewModel.StockAdjustmentRequested += OnInventoryStockAdjustmentRequested;
-        _inventoryStockViewModel.ActionRequested += OnInventoryActionRequested;
+        ViewModel.Inventory.DeleteRequested += OnInventoryDeleteRequested;
+        ViewModel.Inventory.StockDetailRequested += OnInventoryStockDetailRequested;
+        ViewModel.Inventory.StockAdjustmentRequested += OnInventoryStockAdjustmentRequested;
+        ViewModel.Inventory.ActionRequested += OnInventoryActionRequested;
         DataContext = viewModel;
         RequestedTheme = ElementTheme.Light;
         Background = Brush(Slate50);
@@ -115,14 +104,14 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         categoryTotal.Visibility(x => x.Binding(() => ViewModel.IsCategoryTab).Convert(ShowIf));
         title.Children.Add(categoryTotal);
         var inventoryTotal = Text(size: 14, color: Slate500);
-        inventoryTotal.DataContext = _inventoryStockViewModel;
-        inventoryTotal.Text(x => x.Binding(() => _inventoryStockViewModel.TotalLabel));
+        inventoryTotal.DataContext = ViewModel.Inventory;
+        inventoryTotal.Text(x => x.Binding(() => ViewModel.Inventory.TotalLabel));
         var inventoryTotalHost = new Border { Child = inventoryTotal };
         inventoryTotalHost.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
         title.Children.Add(inventoryTotalHost);
         var serialTotal = Text(size: 14, color: Slate500);
-        serialTotal.DataContext = _serialImeiViewModel;
-        serialTotal.Text(x => x.Binding(() => _serialImeiViewModel.TotalLabel));
+        serialTotal.DataContext = ViewModel.Serials;
+        serialTotal.Text(x => x.Binding(() => ViewModel.Serials.TotalLabel));
         var serialTotalHost = new Border { Child = serialTotal };
         serialTotalHost.Visibility(x => x.Binding(() => ViewModel.IsSerialTab).Convert(ShowIf));
         title.Children.Add(serialTotalHost);
@@ -134,12 +123,12 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         actions.Children.Add(categoryAction);
         var inventoryActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         var exportReport = Button(Text("Xuất báo cáo", color: Slate500), tooltip: "Xuất báo cáo tồn kho");
-        exportReport.DataContext = _inventoryStockViewModel;
-        exportReport.Command(x => x.Binding(() => _inventoryStockViewModel.ExportReportCommand));
+        exportReport.DataContext = ViewModel.Inventory;
+        exportReport.Command(x => x.Binding(() => ViewModel.Inventory.ExportReportCommand));
         inventoryActions.Children.Add(exportReport);
         var importAction = BuildPrimaryAction("add", "Nhập kho mới", "Nhập kho mới");
-        importAction.DataContext = _inventoryStockViewModel;
-        importAction.Command(x => x.Binding(() => _inventoryStockViewModel.ImportStockCommand));
+        importAction.DataContext = ViewModel.Inventory;
+        importAction.Command(x => x.Binding(() => ViewModel.Inventory.ImportStockCommand));
         inventoryActions.Children.Add(importAction);
         inventoryActions.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
         actions.Children.Add(inventoryActions);
@@ -165,12 +154,12 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         categoryCount.Text(x => x.Binding(() => ViewModel.TotalCount));
         tabs.Children.Add(CreateTabButton("Danh mục", categoryCount, CategoryWorkspaceTab.Categories));
         var inventoryCount = Text("0", 12, Primary, 600);
-        inventoryCount.DataContext = _inventoryStockViewModel;
-        inventoryCount.Text(x => x.Binding(() => _inventoryStockViewModel.TotalCount));
+        inventoryCount.DataContext = ViewModel.Inventory;
+        inventoryCount.Text(x => x.Binding(() => ViewModel.Inventory.TotalCount));
         tabs.Children.Add(CreateTabButton("Tồn kho", inventoryCount, CategoryWorkspaceTab.Inventory));
         var serialCount = Text("0", 12, Slate500, 600);
-        serialCount.DataContext = _serialImeiViewModel;
-        serialCount.Text(x => x.Binding(() => _serialImeiViewModel.TotalCount));
+        serialCount.DataContext = ViewModel.Serials;
+        serialCount.Text(x => x.Binding(() => ViewModel.Serials.TotalCount));
         tabs.Children.Add(CreateTabButton("Serial / IMEI", serialCount, CategoryWorkspaceTab.SerialImei));
         return new Border
         {
@@ -283,19 +272,13 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         error.Text(x => x.Binding(() => ViewModel.ErrorMessage));
         errorPanel.Children.Add(error);
         var retry = Button(Text("Thử lại", color: Primary), tooltip: "Tải lại danh mục");
-        retry.Command(x => x.Binding(() => ViewModel.LoadCommand));
+        retry.Command(x => x.Binding(() => ViewModel.RetryCommand));
         errorPanel.Children.Add(retry);
-        errorPanel.Visibility(x => x.Binding(() => ViewModel.HasError).Convert(ShowIf));
+        errorPanel.Visibility(x => x.Binding(() => ViewModel.IsError).Convert(ShowIf));
         states.Children.Add(errorPanel);
         // A collapsed state wrapper removes the whitespace in the successful table view.
-        var stateWrapper = new Border { Child = states };
-        void UpdateStateVisibility(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
-        {
-            if (args.PropertyName is nameof(ViewModel.IsLoading) or nameof(ViewModel.IsEmpty) or nameof(ViewModel.HasError))
-                stateWrapper.Visibility = ViewModel.IsLoading || ViewModel.IsEmpty || ViewModel.HasError ? Visibility.Visible : Visibility.Collapsed;
-        }
-        stateWrapper.Loaded += (_, _) => { ViewModel.PropertyChanged += UpdateStateVisibility; UpdateStateVisibility(null, new(nameof(ViewModel.IsLoading))); };
-        stateWrapper.Unloaded += (_, _) => ViewModel.PropertyChanged -= UpdateStateVisibility;
+        var stateWrapper = new Border { Child = states }
+            .Visibility(x => x.Binding(() => ViewModel.ShowStatePanel).Convert(ShowIf));
         body.Children.Add(stateWrapper);
         var footerText = Text(color: Slate500);
         footerText.TextWrapping = TextWrapping.Wrap;
@@ -317,26 +300,24 @@ public sealed class CategoryManagementPage : Page, IRoutePage
     {
         _dialogRequests.Requested -= OnDialogRequested;
         _dialogRequests.Requested += OnDialogRequested;
-        _inventoryStockViewModel.DeleteRequested -= OnInventoryDeleteRequested;
-        _inventoryStockViewModel.DeleteRequested += OnInventoryDeleteRequested;
-        _inventoryStockViewModel.StockDetailRequested -= OnInventoryStockDetailRequested;
-        _inventoryStockViewModel.StockDetailRequested += OnInventoryStockDetailRequested;
-        _inventoryStockViewModel.StockAdjustmentRequested -= OnInventoryStockAdjustmentRequested;
-        _inventoryStockViewModel.StockAdjustmentRequested += OnInventoryStockAdjustmentRequested;
-        _inventoryStockViewModel.ActionRequested -= OnInventoryActionRequested;
-        _inventoryStockViewModel.ActionRequested += OnInventoryActionRequested;
+        ViewModel.Inventory.DeleteRequested -= OnInventoryDeleteRequested;
+        ViewModel.Inventory.DeleteRequested += OnInventoryDeleteRequested;
+        ViewModel.Inventory.StockDetailRequested -= OnInventoryStockDetailRequested;
+        ViewModel.Inventory.StockDetailRequested += OnInventoryStockDetailRequested;
+        ViewModel.Inventory.StockAdjustmentRequested -= OnInventoryStockAdjustmentRequested;
+        ViewModel.Inventory.StockAdjustmentRequested += OnInventoryStockAdjustmentRequested;
+        ViewModel.Inventory.ActionRequested -= OnInventoryActionRequested;
+        ViewModel.Inventory.ActionRequested += OnInventoryActionRequested;
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs args)
     {
         _dialogRequests.Requested -= OnDialogRequested;
-        _inventoryStockViewModel.DeleteRequested -= OnInventoryDeleteRequested;
-        _inventoryStockViewModel.StockDetailRequested -= OnInventoryStockDetailRequested;
-        _inventoryStockViewModel.StockAdjustmentRequested -= OnInventoryStockAdjustmentRequested;
-        _inventoryStockViewModel.ActionRequested -= OnInventoryActionRequested;
-        _inventoryStockViewModel.DismissSuccessToast();
-        _serialImeiViewModel.CancelLoading();
-        ViewModel.CancelLoading();
+        ViewModel.Inventory.DeleteRequested -= OnInventoryDeleteRequested;
+        ViewModel.Inventory.StockDetailRequested -= OnInventoryStockDetailRequested;
+        ViewModel.Inventory.StockAdjustmentRequested -= OnInventoryStockAdjustmentRequested;
+        ViewModel.Inventory.ActionRequested -= OnInventoryActionRequested;
+        ViewModel.Inventory.DismissSuccessToast();
     }
 
     private void OnInventoryDeleteRequested(InventoryStockDeleteRequest request)
@@ -382,9 +363,9 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 
         if (shown && imported)
         {
-            await _inventoryStockViewModel.LoadCommand.ExecuteAsync(null);
-            if (!_inventoryStockViewModel.HasError)
-                await _inventoryStockViewModel.ShowSuccessToastAsync("Đã nhập kho thành công.");
+            await ViewModel.Inventory.LoadCommand.ExecuteAsync(null);
+            if (!ViewModel.Inventory.HasError)
+                await ViewModel.Inventory.ShowSuccessToastAsync("Đã nhập kho thành công.");
         }
     }
 
@@ -440,9 +421,9 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 
         if (updated is not null)
         {
-            await _inventoryStockViewModel.LoadCommand.ExecuteAsync(null);
-            if (!_inventoryStockViewModel.HasError)
-                await _inventoryStockViewModel.ShowSuccessToastAsync("Đã điều chỉnh tồn kho thành công.");
+            await ViewModel.Inventory.LoadCommand.ExecuteAsync(null);
+            if (!ViewModel.Inventory.HasError)
+                await ViewModel.Inventory.ShowSuccessToastAsync("Đã điều chỉnh tồn kho thành công.");
         }
     }
 
@@ -500,19 +481,19 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         if (!shown || completed is null) return;
 
         // The row is never removed optimistically: only the authoritative GET can reconcile it.
-        await _inventoryStockViewModel.LoadCommand.ExecuteAsync(null);
-        if (!_inventoryStockViewModel.HasError)
-            await _inventoryStockViewModel.ShowSuccessToastAsync(completed.Message);
+        await ViewModel.Inventory.LoadCommand.ExecuteAsync(null);
+        if (!ViewModel.Inventory.HasError)
+            await ViewModel.Inventory.ShowSuccessToastAsync(completed.Message);
     }
 
     private UIElement BuildInventorySuccessToast()
     {
         var message = Text(size: 12, color: Slate500);
         message.TextWrapping = TextWrapping.Wrap;
-        message.Text(x => x.Binding(() => _inventoryStockViewModel.SuccessToastMessage));
+        message.Text(x => x.Binding(() => ViewModel.Inventory.SuccessToastMessage));
 
         var close = Button(Icon("close", Slate500, 16), tooltip: "Đóng thông báo");
-        close.Command(x => x.Binding(() => _inventoryStockViewModel.DismissToastCommand));
+        close.Command(x => x.Binding(() => ViewModel.Inventory.DismissToastCommand));
         close.Width = 28;
         close.Height = 28;
         close.Padding = new Thickness(0);
@@ -555,8 +536,8 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         };
         toast.Background(AppColors.Brushes.Surface);
         toast.BorderBrush(AppColors.Brushes.SuccessStroke);
-        toast.DataContext = _inventoryStockViewModel;
-        toast.Visibility(x => x.Binding(() => _inventoryStockViewModel.IsSuccessToastVisible).Convert(ShowIf));
+        toast.DataContext = ViewModel.Inventory;
+        toast.Visibility(x => x.Binding(() => ViewModel.Inventory.IsSuccessToastVisible).Convert(ShowIf));
         return toast;
     }
 
@@ -570,10 +551,10 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         if (request is null || XamlRoot is null) return;
         if (request.Action == CategoryDialogAction.Add)
         {
-            var dialogVm = new CreateCategoryDialogViewModel(_categoryApiClient, ViewModel.RootCategories);
+            var dialogVm = new CreateCategoryDialogViewModel(ViewModel.Categories, ViewModel.RootCategories);
             dialogVm.CategoryCreated += async (_, _) =>
             {
-                await ViewModel.LoadCommand.ExecuteAsync(null);
+                await ViewModel.ActivateAsync();
             };
 
             var dialog = new CreateCategoryDialog(dialogVm)
@@ -592,7 +573,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             if (category is null) return;
 
             var dialogVm = new EditCategoryDialogViewModel(
-                _categoryApiClient,
+                ViewModel.Categories,
                 category,
                 ViewModel.RootCategories.ToArray());
             var updated = false;
@@ -603,7 +584,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
                 CancellationToken.None);
 
             if (updated)
-                await ViewModel.LoadCommand.ExecuteAsync(null);
+                await ViewModel.ActivateAsync();
             return;
         }
 
@@ -611,13 +592,13 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         if (target is null) return;
 
         var parentName = FindParentName(ViewModel.RootCategories, target.Id);
-        var deleteVm = new DeleteCategoryDialogViewModel(_categoryApiClient, target, parentName);
+        var deleteVm = new DeleteCategoryDialogViewModel(ViewModel.Categories, target, parentName);
         await _deleteCoordinator.PresentAsync(
             deleteVm,
             () => _dialogPresenter.TryShowAsync(
                 () => new DeleteCategoryDialog(deleteVm),
                 CancellationToken.None),
-            () => ViewModel.LoadCommand.ExecuteAsync(null));
+            () => ViewModel.ActivateAsync());
     }
 
     private static CategoryNode? FindCategory(IEnumerable<CategoryNode> roots, Guid? id)
@@ -659,58 +640,37 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 
         return Search(roots);
     }
-
-    private sealed class CategoryRouteViewModel(CategoryManagementViewModel categoryViewModel) : PageViewModel
-    {
-        protected override async Task<bool> LoadContentAsync(CancellationToken cancellationToken)
-        {
-            await categoryViewModel.LoadCommand.ExecuteAsync(null);
-            cancellationToken.ThrowIfCancellationRequested();
-            return categoryViewModel.HasLoaded && !categoryViewModel.HasError;
-        }
-
-        protected override void OnDeactivated() => categoryViewModel.CancelLoading();
-    }
 }
 
 internal sealed class CategoryPageButtons : StackPanel
 {
-    private readonly CategoryManagementViewModel _viewModel;
+    public CategoryManagementViewModel ViewModel { get; }
     internal CategoryPageButtons(CategoryManagementViewModel viewModel)
     {
-        _viewModel = viewModel;
+        ViewModel = viewModel;
+        DataContext = viewModel;
         Orientation = Orientation.Horizontal;
         Spacing = 6;
-        Loaded += (_, _) => { _viewModel.PropertyChanged += OnChanged; Render(); };
-        Unloaded += (_, _) => _viewModel.PropertyChanged -= OnChanged;
-    }
-
-    private void OnChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
-    {
-        if (args.PropertyName == nameof(_viewModel.CurrentPage)) Render();
-    }
-
-    private void Render()
-    {
-        Children.Clear();
         var previous = Button(Icon("left", size: 18), tooltip: "Trang trước");
-        previous.Command(x => x.Binding(() => _viewModel.PreviousPageCommand));
+        previous.Command(x => x.Binding(() => ViewModel.PreviousPageCommand));
         previous.Height = 32;
         Children.Add(previous);
-        foreach (var page in _viewModel.PageNumbers)
-        {
-            var active = page == _viewModel.CurrentPage;
-            var button = Button(Text(page.ToString(), 12, active ? "#FFFFFF" : "#334155", 600), active, $"Trang {page}");
-            button.Width = 32;
-            button.Height = 32;
-            button.Padding = new Thickness(0);
-            button.Command(x => x.Binding(() => _viewModel.GoToPageCommand));
-            button.CommandParameter = page;
-            if (!active) { button.Background = Brush("#FFFFFF"); button.BorderBrush = Brush(Slate200); button.BorderThickness = new Thickness(1); }
-            Children.Add(button);
-        }
+        var items = new ItemsControl()
+            .ItemsSource(x => x.Binding(() => ViewModel.PageButtons))
+            .ItemsPanel(x => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 })
+            .ItemTemplate<PageButtonItem>(item =>
+                new Grid().Children(
+                    new Button().Style(AppControlStyles.Styles.PrimaryButton)
+                        .Content(x => x.Binding(() => item.Number))
+                        .Visibility(x => x.Binding(() => item.IsCurrent).Convert(ShowIf)),
+                    new Button().Style(AppControlStyles.Styles.Button)
+                        .Content(x => x.Binding(() => item.Number))
+                        .Command(x => x.Binding(() => ViewModel.GoToPageCommand))
+                        .CommandParameter(x => x.Binding(() => item.Number))
+                        .Visibility(x => x.Binding(() => item.IsCurrent).Convert((bool current) => ShowIf(!current)))));
+        Children.Add(items);
         var next = Button(Icon("right", size: 18), tooltip: "Trang sau");
-        next.Command(x => x.Binding(() => _viewModel.NextPageCommand));
+        next.Command(x => x.Binding(() => ViewModel.NextPageCommand));
         next.Height = 32;
         Children.Add(next);
     }

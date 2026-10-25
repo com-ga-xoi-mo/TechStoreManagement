@@ -3,27 +3,34 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.Services;
+using TechStore.Client.Features.Inventory.ViewModels;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
+using TechStore.Client.ViewModels.Pages;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Client.Features.Categories.ViewModels;
 
 public sealed partial class CategoryManagementViewModel(
-    ICategoryWorkspaceRepository apiClient, ICategoryDialogRequests dialogs) : ObservableObject
+    ICategoryWorkspaceRepository categories,
+    ICategoryDialogRequests dialogs,
+    InventoryStockViewModel inventory,
+    SerialImeiViewModel serials) : PageViewModel
 {
     private readonly List<CategoryRow> _allRows = [];
     private readonly Dictionary<Guid, CategoryRow> _byId = [];
     private readonly HashSet<Guid> _collapsed = [];
     private readonly HashSet<Guid> _statusUpdates = [];
-    private CancellationTokenSource? _loadCancellation;
-    private int _loadGeneration;
     private int _currentPage = 1;
 
     public const int PageSize = 15;
+    public ICategoryWorkspaceRepository Categories => categories;
+    public InventoryStockViewModel Inventory { get; } = inventory;
+    public SerialImeiViewModel Serials { get; } = serials;
     public ObservableCollection<CategoryNode> RootCategories { get; } = [];
     public ObservableCollection<CategoryRow> VisibleRows { get; } = [];
     public ObservableCollection<int> PageNumbers { get; } = [];
+    public ObservableCollection<PageButtonItem> PageButtons { get; } = [];
     public IReadOnlyList<CategoryStatusOption> StatusOptions { get; } =
     [
         new(CategoryStatusFilter.All, "Trạng thái: Tất cả"),
@@ -33,9 +40,6 @@ public sealed partial class CategoryManagementViewModel(
 
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private CategoryStatusFilter _statusFilter;
-    [ObservableProperty] private bool _isLoading;
-    [ObservableProperty] private bool _hasLoaded;
-    [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private int _totalCount;
     [ObservableProperty] private int _filteredCount;
     [ObservableProperty] private int _eligibleCount;
@@ -45,8 +49,7 @@ public sealed partial class CategoryManagementViewModel(
     public int CurrentPage => _currentPage;
     public bool CanGoPrevious => CurrentPage > 1;
     public bool CanGoNext => CurrentPage < PageCount;
-    public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
-    public bool IsEmpty => HasLoaded && !IsLoading && !HasError && EligibleCount == 0;
+    public bool ShowStatePanel => IsLoading || IsEmpty || IsError;
     public string TotalLabel => $"{TotalCount} danh mục";
     public string FooterText => $"Hiển thị {(EligibleCount == 0 ? 0 : (CurrentPage - 1) * PageSize + 1)} - {Math.Min(CurrentPage * PageSize, EligibleCount)} trên tổng số {EligibleCount} danh mục";
     public string EmptyText => TotalCount == 0 ? "Chưa có danh mục để hiển thị." : "Không tìm thấy danh mục phù hợp.";
@@ -63,30 +66,13 @@ public sealed partial class CategoryManagementViewModel(
         OnPropertyChanged(nameof(IsSerialTab));
     }
     partial void OnTotalCountChanged(int value) => OnPropertyChanged(nameof(TotalLabel));
-    partial void OnErrorMessageChanged(string? value) => NotifyState();
-    partial void OnIsLoadingChanged(bool value) => NotifyState();
-    partial void OnHasLoadedChanged(bool value) => NotifyState();
 
-    private void NotifyState()
+    protected override async Task<bool> LoadContentAsync(CancellationToken cancellationToken)
     {
-        OnPropertyChanged(nameof(HasError));
-        OnPropertyChanged(nameof(IsEmpty));
-        OnPropertyChanged(nameof(EmptyText));
-    }
-
-    [RelayCommand(AllowConcurrentExecutions = true)]
-    private async Task LoadAsync(CancellationToken cancellationToken)
-    {
-        CancelLoading();
-        var generation = ++_loadGeneration;
-        using var load = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _loadCancellation = load;
-        IsLoading = true;
-        ErrorMessage = null;
         try
         {
-            var roots = await apiClient.GetNodesAsync(load.Token);
-            if (load.IsCancellationRequested || generation != _loadGeneration) return;
+            var roots = await categories.GetNodesAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             _allRows.Clear();
             _byId.Clear();
             _collapsed.Clear();
@@ -97,43 +83,46 @@ public sealed partial class CategoryManagementViewModel(
                 AddRows(root, null);
             }
             TotalCount = _allRows.Count;
-            HasLoaded = true;
             ResetProjection();
+            return _allRows.Count > 0;
         }
-        catch (OperationCanceledException) when (load.IsCancellationRequested) { }
-        catch (Exception exception)
+        catch
         {
-            if (load.IsCancellationRequested || generation != _loadGeneration) return;
-            ErrorMessage = exception is CategoryApiException api ? api.Failure switch
-            {
-                CategoryApiFailure.Unauthorized => "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
-                CategoryApiFailure.Forbidden => "Bạn không có quyền xem danh mục.",
-                _ => "Không thể tải danh mục. Vui lòng thử lại."
-            } : "Không thể tải danh mục. Vui lòng thử lại.";
-            // A failed session must not expose a previous user's rows.
-            RootCategories.Clear();
-            _allRows.Clear();
-            _byId.Clear();
-            VisibleRows.Clear();
-            TotalCount = 0;
-            ResetProjection();
-        }
-        finally
-        {
-            if (generation == _loadGeneration)
-            {
-                _loadCancellation = null;
-                IsLoading = false;
-            }
+            ClearRows();
+            throw;
         }
     }
 
-    public void CancelLoading()
+    protected override string GetSafeErrorMessage(Exception exception) => exception is CategoryApiException api
+        ? api.Failure switch
+        {
+            CategoryApiFailure.Unauthorized => "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+            CategoryApiFailure.Forbidden => "Bạn không có quyền xem danh mục.",
+            _ => "Không thể tải danh mục. Vui lòng thử lại."
+        }
+        : "Không thể tải danh mục. Vui lòng thử lại.";
+
+    protected override void OnDeactivated()
     {
-        ++_loadGeneration;
-        _loadCancellation?.Cancel();
-        _loadCancellation = null;
-        IsLoading = false;
+        Inventory.CancelLoading();
+        Serials.CancelLoading();
+    }
+
+    protected override void OnContentStateChanged()
+    {
+        base.OnContentStateChanged();
+        OnPropertyChanged(nameof(ShowStatePanel));
+        OnPropertyChanged(nameof(EmptyText));
+    }
+
+    private void ClearRows()
+    {
+        RootCategories.Clear();
+        _allRows.Clear();
+        _byId.Clear();
+        VisibleRows.Clear();
+        TotalCount = 0;
+        ResetProjection();
     }
 
     private void AddRows(CategoryNode node, CategoryRow? parent)
@@ -181,13 +170,18 @@ public sealed partial class CategoryManagementViewModel(
         foreach (var row in output) row.IsContextOnly = !pageIds.Contains(row.Id);
         Reconcile(VisibleRows, output);
         Reconcile(PageNumbers, Enumerable.Range(1, PageCount).ToList());
+        Reconcile(PageButtons, Enumerable.Range(1, PageCount).Select(p => new PageButtonItem(p, p == CurrentPage)).ToList());
+        if (ContentState == PageContentState.Content && EligibleCount == 0)
+            ContentState = PageContentState.Empty;
+        else if (ContentState == PageContentState.Empty && EligibleCount > 0)
+            ContentState = PageContentState.Content;
         OnPropertyChanged(nameof(CurrentPage));
         OnPropertyChanged(nameof(CanGoPrevious));
         OnPropertyChanged(nameof(CanGoNext));
         OnPropertyChanged(nameof(FooterText));
+        OnPropertyChanged(nameof(EmptyText));
         PreviousPageCommand.NotifyCanExecuteChanged();
         NextPageCommand.NotifyCanExecuteChanged();
-        NotifyState();
     }
 
     private bool AncestorsExpanded(CategoryRow row)
@@ -218,8 +212,9 @@ public sealed partial class CategoryManagementViewModel(
     }
 
     [RelayCommand]
-    private void GoToPage(int page)
+    private void GoToPage(object? parameter)
     {
+        if (parameter is not int page) return;
         _currentPage = Math.Clamp(page, 1, Math.Max(1, PageCount));
         ProjectRows();
     }
@@ -242,8 +237,8 @@ public sealed partial class CategoryManagementViewModel(
 
         try
         {
-            ErrorMessage = null;
-            await apiClient.UpdateAsync(row.Id, new UpdateCategoryRequest
+            ErrorMessage = string.Empty;
+            await categories.UpdateAsync(row.Id, new UpdateCategoryRequest
             {
                 Name = row.Node.Name,
                 Slug = row.Node.Slug,
@@ -252,10 +247,7 @@ public sealed partial class CategoryManagementViewModel(
                 IsActive = !row.Node.IsActive
             });
 
-            // Reload from the API so the status, filters, counts and hierarchy
-            // all reflect the persisted server state instead of an optimistic
-            // client-only mutation.
-            await LoadCommand.ExecuteAsync(null);
+            await ReloadAsync();
         }
         catch (CategoryApiException exception)
         {
@@ -267,7 +259,7 @@ public sealed partial class CategoryManagementViewModel(
                 CategoryApiFailure.Conflict => exception.Message,
                 _ => "Không thể cập nhật trạng thái danh mục. Vui lòng thử lại."
             };
-            NotifyState();
+            ContentState = PageContentState.Error;
         }
         catch (OperationCanceledException)
         {
@@ -276,7 +268,7 @@ public sealed partial class CategoryManagementViewModel(
         catch
         {
             ErrorMessage = "Không thể cập nhật trạng thái danh mục. Vui lòng thử lại.";
-            NotifyState();
+            ContentState = PageContentState.Error;
         }
         finally
         {

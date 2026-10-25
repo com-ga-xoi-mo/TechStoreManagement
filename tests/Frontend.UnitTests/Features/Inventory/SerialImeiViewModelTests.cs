@@ -165,6 +165,39 @@ public sealed class SerialImeiViewModelTests
         Assert.False(vm.IsLoading);
     }
 
+    [Fact]
+    public async Task CancelLoading_DuringLoad_DoesNotApplyResult()
+    {
+        var pending = new TaskCompletionSource<PagedResultDto<SerialImeiDto>>();
+        var api = new FakeApi(Page(page: 1, pageSize: 20, totalCount: 0))
+        {
+            Handler = (_, _) => pending.Task
+        };
+        var vm = new SerialImeiViewModel(api);
+
+        var loading = vm.LoadCommand.ExecuteAsync(null);
+        vm.CancelLoading();
+        pending.SetResult(Page(page: 1, pageSize: 20, totalCount: 1, Serial("IGNORED")));
+        await loading;
+
+        Assert.Empty(vm.Items);
+        Assert.False(vm.IsLoading);
+    }
+
+    [Fact]
+    public async Task PageButtons_MarkCurrentPage()
+    {
+        var api = new FakeApi(Page(page: 2, pageSize: 20, totalCount: 45, Serial("A")));
+        var vm = new SerialImeiViewModel(api) { Page = 2 };
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal(3, vm.PageButtons.Count);
+        Assert.False(vm.PageButtons[0].IsCurrent);
+        Assert.True(vm.PageButtons[1].IsCurrent);
+        Assert.False(vm.PageButtons[2].IsCurrent);
+    }
+
     private static SerialImeiDto Serial(string serialNumber) => new()
     {
         Id = Guid.NewGuid(),

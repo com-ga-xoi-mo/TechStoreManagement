@@ -67,7 +67,7 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
         // the workspace ViewModel, so its enabled state keeps the platform binding.
         BindingOperations.SetBinding(expand, IsEnabledProperty,
             new Binding { Source = row, Path = new PropertyPath(nameof(row.CanToggle)) });
-        expand.Visibility = row.HasChildren ? Visibility.Visible : Visibility.Collapsed;
+        expand.Visibility(ShowIf(row.HasChildren));
         // Roots without children keep the name aligned with expandable root rows.
         if (row.IsRoot || row.HasChildren)
         {

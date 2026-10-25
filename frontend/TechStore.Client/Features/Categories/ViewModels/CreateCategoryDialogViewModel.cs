@@ -239,6 +239,9 @@ public sealed partial class CreateCategoryDialogViewModel : ObservableObject
         ErrorMessage = null;
     }
 
+    [RelayCommand]
+    private void Cancel() => RequestClose?.Invoke(this, EventArgs.Empty);
+
     public static string GenerateSlug(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;

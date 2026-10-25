@@ -2,6 +2,7 @@ using TechStore.Client.Repositories.Inventory;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Services.Api;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Enums;
@@ -30,6 +31,7 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository apiClient) 
 
     public ObservableCollection<SerialImeiDto> Items { get; } = [];
     public ObservableCollection<int> PageNumbers { get; } = [];
+    public ObservableCollection<PageButtonItem> PageButtons { get; } = [];
     public IReadOnlyList<SerialImeiStatusOption> StatusOptions { get; } =
     [
         new(SerialImeiStatusFilter.All, "Trạng thái: Tất cả"),
@@ -139,9 +141,9 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository apiClient) 
     }
 
     [RelayCommand]
-    private async Task GoToPageAsync(int page)
+    private async Task GoToPageAsync(object? parameter)
     {
-        if (TotalPages == 0) return;
+        if (parameter is not int page || TotalPages == 0) return;
         Page = Math.Clamp(page, 1, TotalPages);
         await LoadAsync(CancellationToken.None);
     }
@@ -173,5 +175,11 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository apiClient) 
         foreach (var value in desired) target.Add(value);
     }
 
-    private void RefreshPageNumbers() => Reconcile(PageNumbers, Enumerable.Range(1, TotalPages));
+    private void RefreshPageNumbers()
+    {
+        Reconcile(PageNumbers, Enumerable.Range(1, TotalPages));
+        PageButtons.Clear();
+        for (var page = 1; page <= TotalPages; page++)
+            PageButtons.Add(new PageButtonItem(page, page == Page));
+    }
 }

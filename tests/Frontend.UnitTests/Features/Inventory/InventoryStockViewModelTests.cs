@@ -279,6 +279,36 @@ public sealed class InventoryStockViewModelTests
         Assert.Empty(vm.VisibleItems);
     }
 
+    [Fact]
+    public async Task CancelLoading_DuringLoad_DoesNotApplyResult()
+    {
+        var pending = new TaskCompletionSource<PagedResultDto<InventoryStockDto>>();
+        var api = new FakeApi(Page(Stock("Initial", "I-1", 8, 0))) { Handler = _ => pending.Task };
+        var vm = new InventoryStockViewModel(api);
+        var loading = vm.LoadCommand.ExecuteAsync(null);
+
+        vm.CancelLoading();
+        pending.SetResult(Page(Stock("Ignored", "IG-1", 8, 0)));
+        await loading;
+
+        Assert.Empty(vm.VisibleItems);
+        Assert.False(vm.IsLoading);
+    }
+
+    [Fact]
+    public async Task PageButtons_MarkCurrentPage()
+    {
+        var api = new FakeApi(Page(Stock("Phone", "P-1", 8, 0), page: 2, pageSize: 1, totalCount: 3, totalPages: 3));
+        var vm = new InventoryStockViewModel(api) { Page = 2 };
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.Equal(3, vm.PageButtons.Count);
+        Assert.False(vm.PageButtons[0].IsCurrent);
+        Assert.True(vm.PageButtons[1].IsCurrent);
+        Assert.False(vm.PageButtons[2].IsCurrent);
+    }
+
     private static PagedResultDto<InventoryStockDto> Page(params InventoryStockDto[] items) =>
         Page(items, 1, 20, items.Length, items.Length == 0 ? 0 : 1);
 

@@ -156,7 +156,7 @@ public sealed class CreateCategoryDialog : ContentDialog
         };
         closeBtn.Resources["ButtonBackgroundPointerOver"] = Brush("#F1F5F9");
         closeBtn.Resources["ButtonBackgroundPressed"] = Brush(Slate200);
-        closeBtn.Click += (_, _) => Hide();
+        closeBtn.Command(x => x.Binding(() => ViewModel.CancelCommand));
         ToolTipService.SetToolTip(closeBtn, "Đóng cửa sổ");
 
         Grid.SetColumn(closeBtn, 1);
@@ -626,7 +626,7 @@ public sealed class CreateCategoryDialog : ContentDialog
             Height = 40
         };
         cancelBtn.Resources["ButtonBackgroundPointerOver"] = Brush(Slate200);
-        cancelBtn.Click += (_, _) => Hide();
+        cancelBtn.Command(x => x.Binding(() => ViewModel.CancelCommand));
         btnStack.Children.Add(cancelBtn);
 
         var saveBtn = new Button

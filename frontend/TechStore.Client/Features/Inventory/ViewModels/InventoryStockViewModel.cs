@@ -2,6 +2,7 @@ using TechStore.Client.Repositories.Inventory;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Inventory.Models;
 using TechStore.Client.Features.Inventory.Services;
 using TechStore.Client.Models.Catalog;
@@ -30,6 +31,7 @@ public sealed partial class InventoryStockViewModel(
     public ObservableCollection<InventoryStockRow> StockItems { get; } = [];
     public ObservableCollection<InventoryStockRow> VisibleItems { get; } = [];
     public ObservableCollection<int> PageNumbers { get; } = [];
+    public ObservableCollection<PageButtonItem> PageButtons { get; } = [];
 
     public IReadOnlyList<InventoryStockStatusOption> StatusOptions { get; } =
     [
@@ -253,9 +255,9 @@ public sealed partial class InventoryStockViewModel(
     }
 
     [RelayCommand]
-    private async Task GoToPageAsync(int page)
+    private async Task GoToPageAsync(object? parameter)
     {
-        if (TotalPages == 0) return;
+        if (parameter is not int page || TotalPages == 0) return;
         var next = Math.Clamp(page, 1, TotalPages);
         if (next == Page && HasLoaded) return;
         Page = next;
@@ -351,7 +353,12 @@ public sealed partial class InventoryStockViewModel(
     private void RefreshPageNumbers()
     {
         PageNumbers.Clear();
-        for (var page = 1; page <= TotalPages; page++) PageNumbers.Add(page);
+        PageButtons.Clear();
+        for (var page = 1; page <= TotalPages; page++)
+        {
+            PageNumbers.Add(page);
+            PageButtons.Add(new PageButtonItem(page, page == Page));
+        }
     }
 
     private static InventoryStockStatus ToStatus(InventoryStockStatusFilter value) => value switch

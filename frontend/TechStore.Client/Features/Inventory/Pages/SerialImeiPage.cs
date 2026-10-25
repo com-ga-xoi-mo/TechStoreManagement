@@ -2,8 +2,10 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
+using TechStore.Client.Features.Categories.Models;
 using TechStore.Client.Features.Categories.Pages;
 using TechStore.Client.Features.Inventory.ViewModels;
+using TechStore.Client.Styles;
 using TechStore.Shared.DTOs;
 using Uno.Extensions.Markup;
 using static TechStore.Client.Features.Categories.Pages.CategoryWorkspaceStyles;
@@ -156,36 +158,34 @@ internal sealed class SerialRows : ItemsControl
 
 internal sealed class SerialPageButtons : StackPanel
 {
-    private readonly SerialImeiViewModel _viewModel;
+    public SerialImeiViewModel ViewModel { get; }
     public SerialPageButtons(SerialImeiViewModel viewModel)
     {
-        _viewModel = viewModel;
+        ViewModel = viewModel;
+        DataContext = viewModel;
         Orientation = Orientation.Horizontal;
         Spacing = 6;
-        _viewModel.PageNumbers.CollectionChanged += OnPageNumbersChanged;
-        Unloaded += (_, _) => _viewModel.PageNumbers.CollectionChanged -= OnPageNumbersChanged;
-        Render();
-    }
-
-    private void OnPageNumbersChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs args) => Render();
-
-    private void Render()
-    {
-        Children.Clear();
         var previous = Button(Icon("left", size: 18), tooltip: "Trang trước");
-        previous.Command(x => x.Binding(() => _viewModel.PreviousPageCommand));
-        previous.IsEnabled(x => x.Binding(() => _viewModel.CanGoPrevious));
+        previous.Command(x => x.Binding(() => ViewModel.PreviousPageCommand));
+        previous.IsEnabled(x => x.Binding(() => ViewModel.CanGoPrevious));
         Children.Add(previous);
-        foreach (var page in _viewModel.PageNumbers)
-        {
-            var button = Button(Text(page.ToString(), 12, Slate500, 600), tooltip: $"Trang {page}");
-            button.Command(x => x.Binding(() => _viewModel.GoToPageCommand));
-            button.CommandParameter = page;
-            Children.Add(button);
-        }
+        var items = new ItemsControl()
+            .ItemsSource(x => x.Binding(() => ViewModel.PageButtons))
+            .ItemsPanel(x => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 })
+            .ItemTemplate<PageButtonItem>(item =>
+                new Grid().Children(
+                    new Button().Style(AppControlStyles.Styles.PrimaryButton)
+                        .Content(x => x.Binding(() => item.Number))
+                        .Visibility(x => x.Binding(() => item.IsCurrent).Convert(ShowIf)),
+                    new Button().Style(AppControlStyles.Styles.Button)
+                        .Content(x => x.Binding(() => item.Number))
+                        .Command(x => x.Binding(() => ViewModel.GoToPageCommand))
+                        .CommandParameter(x => x.Binding(() => item.Number))
+                        .Visibility(x => x.Binding(() => item.IsCurrent).Convert((bool current) => ShowIf(!current)))));
+        Children.Add(items);
         var next = Button(Icon("right", size: 18), tooltip: "Trang sau");
-        next.Command(x => x.Binding(() => _viewModel.NextPageCommand));
-        next.IsEnabled(x => x.Binding(() => _viewModel.CanGoNext));
+        next.Command(x => x.Binding(() => ViewModel.NextPageCommand));
+        next.IsEnabled(x => x.Binding(() => ViewModel.CanGoNext));
         Children.Add(next);
     }
 }

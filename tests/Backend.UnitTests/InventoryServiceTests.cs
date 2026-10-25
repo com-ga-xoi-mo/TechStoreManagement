@@ -12,13 +12,14 @@ public class InventoryServiceTests
 {
     private readonly FakeInventoryStockRepository _stockRepository = new();
     private readonly FakeProductRepository _productRepository = new();
+    private readonly FakeSerialImeiRepository _serialRepository = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly InventoryService _service;
     private readonly Guid _userId = Guid.NewGuid();
 
     public InventoryServiceTests()
     {
-        _service = new InventoryService(_stockRepository, _productRepository, _unitOfWork);
+        _service = new InventoryService(_stockRepository, _productRepository, _serialRepository, _unitOfWork);
     }
 
     [Fact]
@@ -88,9 +89,14 @@ public class InventoryServiceTests
             VariantId = variant.Id,
             Product = product,
             Variant = variant,
-            Quantity = 8,
-            RelatedSerialCount = 3
+            Quantity = 8
         });
+        _stockRepository.Serials.AddRange(
+        [
+            new SerialImei { Id = Guid.NewGuid(), ProductId = product.Id, VariantId = variant.Id },
+            new SerialImei { Id = Guid.NewGuid(), ProductId = product.Id, VariantId = variant.Id },
+            new SerialImei { Id = Guid.NewGuid(), ProductId = product.Id, VariantId = variant.Id }
+        ]);
 
         var result = await _service.GetStocksAsync(new InventoryStockFilterRequest { Page = 1, PageSize = 20 });
 
@@ -357,7 +363,7 @@ public class InventoryServiceTests
             Quantity = 1
         };
         _stockRepository.Stocks.Add(stock);
-        _stockRepository.Serials.Add(new SerialImei
+        _serialRepository.Items.Add(new SerialImei
         {
             Id = Guid.NewGuid(),
             ProductId = productId,
@@ -368,7 +374,7 @@ public class InventoryServiceTests
 
         result.IsSuccess.Should().BeFalse();
         result.IsConflict.Should().BeTrue();
-        _stockRepository.Serials.Should().ContainSingle();
+        _serialRepository.Items.Should().ContainSingle();
     }
 
     [Fact]
@@ -410,6 +416,26 @@ public class InventoryServiceTests
     }
 
     [Fact]
+    public async Task AdjustStockAsync_CheckConstraintViolation_ReturnsConflict()
+    {
+        // Arrange
+        var stock = new InventoryStock { Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), Quantity = 10, ReservedQuantity = 0 };
+        _stockRepository.Stocks.Add(stock);
+        _unitOfWork.ExceptionToThrowOnSave = new TechStore.Api.Common.Data.CheckConstraintViolationException("chk_inventory_stocks_quantity");
+
+        // Act
+        var result = await _service.AdjustStockAsync(stock.Id, new AdjustStockRequest
+        {
+            QuantityChange = -1, Reason = "Kiểm kê"
+        }, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.IsConflict.Should().BeTrue();
+        _unitOfWork.RollbackCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task GetStockDetailAsync_MapsRecentMovementAndAvailableQuantity()
     {
         var product = new Product { Id = Guid.NewGuid(), Name = "Phone", Sku = "P-1" };
@@ -427,5 +453,38 @@ public class InventoryServiceTests
         result.Data!.AvailableQuantity.Should().Be(9);
         result.Data.RecentMovements.Should().ContainSingle();
         result.Data.RecentMovements[0].QuantityBefore.Should().Be(10);
+    }
+
+    [Fact]
+    public async Task GetStocksAsync_StatusFilters_AreDisjoint()
+    {
+        // Arrange
+        var pOut = new Product { Id = Guid.NewGuid(), Name = "Out", Sku = "OUT" };
+        var pLow = new Product { Id = Guid.NewGuid(), Name = "Low", Sku = "LOW" };
+        var pIn = new Product { Id = Guid.NewGuid(), Name = "In", Sku = "IN" };
+
+        _stockRepository.Stocks.AddRange(
+        [
+            new InventoryStock { Id = Guid.NewGuid(), ProductId = pOut.Id, Product = pOut, Quantity = 2, ReservedQuantity = 2, MinStockAlert = 5 },
+            new InventoryStock { Id = Guid.NewGuid(), ProductId = pLow.Id, Product = pLow, Quantity = 5, ReservedQuantity = 2, MinStockAlert = 5 },
+            new InventoryStock { Id = Guid.NewGuid(), ProductId = pIn.Id, Product = pIn, Quantity = 10, ReservedQuantity = 1, MinStockAlert = 5 }
+        ]);
+
+        // Act
+        var outRes = await _service.GetStocksAsync(new InventoryStockFilterRequest { OutOfStock = true });
+        var lowRes = await _service.GetStocksAsync(new InventoryStockFilterRequest { LowStock = true });
+        var inRes = await _service.GetStocksAsync(new InventoryStockFilterRequest { InStock = true });
+
+        // Assert
+        outRes.Data!.Items.Should().ContainSingle().Which.ProductId.Should().Be(pOut.Id);
+        outRes.Data.Items[0].IsLowStock.Should().BeFalse();
+
+        lowRes.Data!.Items.Should().ContainSingle().Which.ProductId.Should().Be(pLow.Id);
+        lowRes.Data.Items[0].IsLowStock.Should().BeTrue();
+
+        inRes.Data!.Items.Should().ContainSingle().Which.ProductId.Should().Be(pIn.Id);
+        inRes.Data.Items[0].IsLowStock.Should().BeFalse();
+
+        (outRes.Data.TotalCount + lowRes.Data.TotalCount + inRes.Data.TotalCount).Should().Be(3);
     }
 }

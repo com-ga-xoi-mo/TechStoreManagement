@@ -24,11 +24,12 @@ public class SerialImeiRepository(AppDbContext dbContext) : ISerialImeiRepositor
         if (!string.IsNullOrWhiteSpace(criteria.Search))
         {
             var search = criteria.Search.Trim();
+            var pattern = $"%{EscapeLikePattern(search)}%";
             query = query.Where(s =>
-                (s.SerialNumber != null && EF.Functions.ILike(s.SerialNumber, $"%{search}%")) ||
-                (s.Imei != null && EF.Functions.ILike(s.Imei, $"%{search}%")) ||
-                EF.Functions.ILike(s.Product.Name, $"%{search}%") ||
-                (s.Variant != null && EF.Functions.ILike(s.Variant.VariantName, $"%{search}%")));
+                (s.SerialNumber != null && EF.Functions.ILike(s.SerialNumber, pattern, "!")) ||
+                (s.Imei != null && EF.Functions.ILike(s.Imei, pattern, "!")) ||
+                EF.Functions.ILike(s.Product.Name, pattern, "!") ||
+                (s.Variant != null && EF.Functions.ILike(s.Variant.VariantName, pattern, "!")));
         }
 
         if (criteria.VariantId.HasValue)
@@ -130,4 +131,26 @@ public class SerialImeiRepository(AppDbContext dbContext) : ISerialImeiRepositor
     {
         dbContext.SerialImeis.AddRange(items);
     }
+
+    public async Task<IReadOnlyList<SerialImei>> GetByStockKeyForUpdateAsync(
+        Guid productId,
+        Guid? variantId,
+        CancellationToken cancellationToken = default)
+    {
+        if (variantId.HasValue)
+        {
+            return await dbContext.SerialImeis
+                .FromSqlInterpolated($"SELECT * FROM serial_imeis WHERE product_id = {productId} AND variant_id = {variantId.Value} FOR UPDATE")
+                .ToListAsync(cancellationToken);
+        }
+
+        return await dbContext.SerialImeis
+            .FromSqlInterpolated($"SELECT * FROM serial_imeis WHERE product_id = {productId} AND variant_id IS NULL FOR UPDATE")
+            .ToListAsync(cancellationToken);
+    }
+
+    public void RemoveRange(IEnumerable<SerialImei> items) => dbContext.SerialImeis.RemoveRange(items);
+
+    // ESCAPE '!' makes backslash literal instead of relying on PostgreSQL's default LIKE escape.
+    private static string EscapeLikePattern(string value) => value.Replace("!", "!!").Replace("%", "!%").Replace("_", "!_");
 }

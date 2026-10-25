@@ -19,7 +19,7 @@ public class InventoryStockDto
     public int ReservedQuantity { get; set; }
     public int AvailableQuantity => Quantity - ReservedQuantity;
     public int MinStockAlert { get; set; }
-    public bool IsLowStock => AvailableQuantity <= MinStockAlert;
+    public bool IsLowStock => AvailableQuantity > 0 && AvailableQuantity <= MinStockAlert;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

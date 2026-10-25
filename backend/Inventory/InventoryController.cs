@@ -70,7 +70,7 @@ public class InventoryController : ControllerBase
     }
 
     [HttpDelete("stocks/{stockId:guid}")]
-    [Authorize(Roles = "Admin,Manager,WarehouseStaff")]
+    [Authorize(Roles = "Admin,WarehouseStaff")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]

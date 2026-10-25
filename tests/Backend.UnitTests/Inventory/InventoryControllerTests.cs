@@ -91,7 +91,7 @@ public sealed class InventoryControllerTests
     }
 
     [Fact]
-    public async Task Inventory_DeleteStock_Should_AllowWarehouseManagersAndRejectSalesStaff()
+    public async Task Inventory_DeleteStock_Should_AllowAdminAndWarehouseStaffOnly()
     {
         var inventory = new FakeInventoryService();
         await using var host = new InventoryApiHost(services =>
@@ -103,15 +103,20 @@ public sealed class InventoryControllerTests
         var stockId = Guid.NewGuid();
 
         (await host.Client.DeleteAsync($"/api/inventory/stocks/{stockId}")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        foreach (var role in new[] { "Admin", "Manager", "WarehouseStaff" })
+        foreach (var role in new[] { "Manager", "SalesStaff" })
+        {
+            host.Authenticate(host.Token(role));
+            (await host.Client.DeleteAsync($"/api/inventory/stocks/{stockId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        }
+        inventory.DeleteCount.Should().Be(0);
+
+        foreach (var role in new[] { "Admin", "WarehouseStaff" })
         {
             host.Authenticate(host.Token(role));
             (await host.Client.DeleteAsync($"/api/inventory/stocks/{stockId}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
         }
 
-        host.Authenticate(host.Token("SalesStaff"));
-        (await host.Client.DeleteAsync($"/api/inventory/stocks/{stockId}")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        inventory.DeleteCount.Should().Be(3);
+        inventory.DeleteCount.Should().Be(2);
     }
 }
 

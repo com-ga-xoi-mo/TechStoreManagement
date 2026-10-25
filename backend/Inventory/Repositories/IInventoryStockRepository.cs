@@ -4,7 +4,7 @@ namespace TechStore.Api.Inventory.Repositories;
 
 public interface IInventoryStockRepository
 {
-    Task<(IReadOnlyList<InventoryStock> Items, int TotalCount)> SearchStocksAsync(
+    Task<(IReadOnlyList<InventoryStockView> Items, int TotalCount)> SearchStocksAsync(
         InventoryStockSearchCriteria criteria,
         CancellationToken cancellationToken = default);
 
@@ -22,13 +22,8 @@ public interface IInventoryStockRepository
         Guid stockId,
         CancellationToken cancellationToken = default);
 
-    Task<InventoryStock?> GetDetailAsync(
+    Task<InventoryStockView?> GetDetailAsync(
         Guid stockId,
-        CancellationToken cancellationToken = default);
-
-    Task<IReadOnlyList<SerialImei>> GetSerialsForUpdateAsync(
-        Guid productId,
-        Guid? variantId,
         CancellationToken cancellationToken = default);
 
     Task<int> CountMovementsAsync(
@@ -40,6 +35,4 @@ public interface IInventoryStockRepository
     void AddMovement(InventoryMovement movement);
 
     void Delete(InventoryStock stock);
-
-    void DeleteSerials(IEnumerable<SerialImei> serials);
 }

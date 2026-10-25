@@ -12,7 +12,7 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
     // Stock rows locked through GetForUpdateAsync, in call order (used to assert the lock order).
     public List<(Guid ProductId, Guid? VariantId)> LockedKeys { get; } = [];
 
-    public Task<(IReadOnlyList<InventoryStock> Items, int TotalCount)> SearchStocksAsync(
+    public Task<(IReadOnlyList<InventoryStockView> Items, int TotalCount)> SearchStocksAsync(
         InventoryStockSearchCriteria criteria,
         CancellationToken cancellationToken = default)
     {
@@ -30,16 +30,29 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
 
         if (criteria.LowStock.HasValue && criteria.LowStock.Value)
         {
-            query = query.Where(s => s.Quantity <= s.MinStockAlert);
+            query = query.Where(s => s.Quantity - s.ReservedQuantity > 0 && s.Quantity - s.ReservedQuantity <= s.MinStockAlert);
+        }
+
+        if (criteria.OutOfStock == true)
+        {
+            query = query.Where(s => s.Quantity - s.ReservedQuantity <= 0);
+        }
+
+        if (criteria.InStock == true)
+        {
+            query = query.Where(s => s.Quantity - s.ReservedQuantity > s.MinStockAlert);
         }
 
         var total = query.Count();
         var items = query
             .Skip((criteria.Page - 1) * criteria.PageSize)
             .Take(criteria.PageSize)
+            .Select(s => new InventoryStockView(
+                s,
+                Serials.Count(serial => serial.ProductId == s.ProductId && serial.VariantId == s.VariantId)))
             .ToList();
 
-        return Task.FromResult(((IReadOnlyList<InventoryStock>)items, total));
+        return Task.FromResult(((IReadOnlyList<InventoryStockView>)items, total));
     }
 
     public Task<InventoryStock?> GetByProductAndVariantAsync(
@@ -66,27 +79,20 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
         CancellationToken cancellationToken = default) =>
         Task.FromResult(Stocks.FirstOrDefault(stock => stock.Id == stockId));
 
-    public Task<InventoryStock?> GetDetailAsync(
+    public Task<InventoryStockView?> GetDetailAsync(
         Guid stockId,
         CancellationToken cancellationToken = default)
     {
         var stock = Stocks.FirstOrDefault(candidate => candidate.Id == stockId);
-        if (stock is not null)
+        if (stock is null)
         {
-            stock.Movements = Movements.Where(movement => movement.InventoryStockId == stockId).ToList();
-            stock.RelatedSerialCount = Serials.Count(serial => serial.ProductId == stock.ProductId && serial.VariantId == stock.VariantId);
+            return Task.FromResult<InventoryStockView?>(null);
         }
-        return Task.FromResult(stock);
-    }
 
-    public Task<IReadOnlyList<SerialImei>> GetSerialsForUpdateAsync(
-        Guid productId,
-        Guid? variantId,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult((IReadOnlyList<SerialImei>)Serials
-            .Where(serial => serial.ProductId == productId && serial.VariantId == variantId)
-            .OrderBy(serial => serial.Id)
-            .ToList());
+        stock.Movements = Movements.Where(movement => movement.InventoryStockId == stockId).ToList();
+        var count = Serials.Count(serial => serial.ProductId == stock.ProductId && serial.VariantId == stock.VariantId);
+        return Task.FromResult<InventoryStockView?>(new InventoryStockView(stock, count));
+    }
 
     public Task<int> CountMovementsAsync(
         Guid stockId,
@@ -106,9 +112,4 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
     }
 
     public void Delete(InventoryStock stock) => Stocks.Remove(stock);
-
-    public void DeleteSerials(IEnumerable<SerialImei> serials)
-    {
-        foreach (var serial in serials.ToList()) Serials.Remove(serial);
-    }
 }

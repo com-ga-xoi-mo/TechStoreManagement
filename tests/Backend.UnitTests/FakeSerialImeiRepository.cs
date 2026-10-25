@@ -92,4 +92,18 @@ public class FakeSerialImeiRepository : ISerialImeiRepository
         Items.AddRange(items);
     }
 
+    public Task<IReadOnlyList<SerialImei>> GetByStockKeyForUpdateAsync(
+        Guid productId,
+        Guid? variantId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult((IReadOnlyList<SerialImei>)Items
+            .Where(serial => serial.ProductId == productId && serial.VariantId == variantId)
+            .OrderBy(serial => serial.Id)
+            .ToList());
+
+    public void RemoveRange(IEnumerable<SerialImei> items)
+    {
+        foreach (var serial in items.ToList()) Items.Remove(serial);
+    }
+
 }

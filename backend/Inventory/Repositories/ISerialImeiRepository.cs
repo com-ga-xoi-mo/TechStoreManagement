@@ -24,5 +24,12 @@ public interface ISerialImeiRepository
         IEnumerable<Guid> ids,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<SerialImei>> GetByStockKeyForUpdateAsync(
+        Guid productId,
+        Guid? variantId,
+        CancellationToken cancellationToken = default);
+
     void AddRange(IEnumerable<SerialImei> items);
+
+    void RemoveRange(IEnumerable<SerialImei> items);
 }

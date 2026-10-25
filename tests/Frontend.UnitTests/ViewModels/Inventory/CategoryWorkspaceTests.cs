@@ -1,6 +1,7 @@
 using FluentAssertions;
 using TechStore.Client.Controls;
 using TechStore.Client.Models.Inventory;
+using TechStore.Client.Services.Files;
 using TechStore.Client.Services.Inventory;
 using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Models.Catalog;
@@ -586,5 +587,34 @@ public class CategoryWorkspaceTests
         serialsVm.ProductFilterId.Should().Be(productId);
         serialsVm.VariantFilterId.Should().Be(variantId);
         serialsVm.ProductFilterLabel.Should().Be("ASUS ProArt PA278CV - 27 inch (DEMO-MON-ASUS-PROART)");
+    }
+
+    [Fact]
+    public async Task Deactivate_CancelsRunningExport()
+    {
+        // Arrange
+        var stockApi = new StockApi();
+        var saver = new BlockingCsvFileSaver();
+        var inventoryVm = new InventoryStockViewModel(stockApi, fileSaver: saver);
+        var vm = CreateVm(new FakeApi([Node("Root")]), inventory: inventoryVm);
+        await vm.ActivateAsync();
+
+        // Act
+        var exportTask = inventoryVm.ExportReportCommand.ExecuteAsync(null);
+        vm.Deactivate();
+        await exportTask;
+
+        // Assert
+        inventoryVm.IsExporting.Should().BeFalse();
+        inventoryVm.IsSuccessToastVisible.Should().BeFalse();
+    }
+
+    private sealed class BlockingCsvFileSaver : ICsvFileSaver
+    {
+        public async Task<CsvSaveResult?> SaveAsync(string suggestedFileName, string content, CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return new CsvSaveResult("/tmp/ignored.csv", false);
+        }
     }
 }

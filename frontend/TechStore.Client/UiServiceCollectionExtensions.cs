@@ -75,7 +75,6 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<InventoryStockPage>();
         services.AddTransient<SerialImeiViewModel>();
         services.AddTransient<SerialImeiPage>();
-        services.AddSingleton<IInventoryReportExporter, CsvInventoryReportExporter>();
 
         services.AddTransient<DashboardPage>();
         services.AddTransient<ProductListPage>();
@@ -101,6 +100,8 @@ public static class UiServiceCollectionExtensions
         }
         services.AddSingleton<ImageFilePicker>();
         services.AddSingleton<IImageFilePicker>(provider => provider.GetRequiredService<ImageFilePicker>());
+        services.AddSingleton<CsvFileSaver>();
+        services.AddSingleton<ICsvFileSaver>(provider => provider.GetRequiredService<CsvFileSaver>());
         services.AddTransient<IProductImageRepository, ProductImageRepository>();
         services.AddTransient<IProductRepository, ProductRepository>();
         services.AddTransient<IProductCommandRepository, ProductRepository>();

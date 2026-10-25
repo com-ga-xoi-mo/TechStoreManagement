@@ -21,6 +21,12 @@ public enum InventoryStockAction
     Delete
 }
 
+public enum ToastKind
+{
+    Success,
+    Error
+}
+
 public sealed record InventoryStockStatusOption(InventoryStockStatusFilter Value, string Label);
 
 public enum InventoryStockStatus

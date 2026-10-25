@@ -6,6 +6,7 @@ using TechStore.Client.Models.Inventory;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Services.Api;
+using TechStore.Client.Services.Files;
 using TechStore.Client.Services.Inventory;
 using TechStore.Shared.Requests;
 
@@ -13,14 +14,15 @@ namespace TechStore.Client.ViewModels.Inventory;
 
 public sealed partial class InventoryStockViewModel(
     IInventoryRepository inventoryRepository,
-    IInventoryReportExporter? reportExporter = null,
+    ICsvFileSaver? fileSaver = null,
     ICategoryRepository? categoryRepository = null) : ObservableObject
 {
     public const int DefaultPageSize = 20;
+    private const int ExportPageSize = 100;
+    private const int MaxExportPages = 200;
     public static readonly CategoryOption AllCategories = new(Guid.Empty, null, "Danh mục: Tất cả", "Danh mục: Tất cả");
 
     private readonly List<InventoryStockRow> _loadedRows = [];
-    private readonly IInventoryReportExporter _reportExporter = reportExporter ?? new CsvInventoryReportExporter();
     private readonly ICategoryRepository? _categoryRepository = categoryRepository;
     private CancellationTokenSource? _loadCancellation;
     private int _loadGeneration;
@@ -56,6 +58,7 @@ public sealed partial class InventoryStockViewModel(
     [ObservableProperty] private int _pageSize = DefaultPageSize;
     [ObservableProperty] private int _totalPages;
     [ObservableProperty] private int _filteredCount;
+    [ObservableProperty] private ToastKind _toastKind;
     [ObservableProperty] private bool _isSuccessToastVisible;
     [ObservableProperty] private string _successToastMessage = string.Empty;
     [ObservableProperty] private bool _isExporting;
@@ -68,6 +71,10 @@ public sealed partial class InventoryStockViewModel(
     public bool IsEmpty => HasLoaded && !IsLoading && !HasError && VisibleItems.Count == 0;
     public bool CanGoPrevious => Page > 1;
     public bool CanGoNext => Page < TotalPages;
+    public string ToastTitle => ToastKind == ToastKind.Error ? "Không thành công" : "Thành công";
+    public bool IsErrorToast => ToastKind == ToastKind.Error;
+    public bool IsSuccessToastKind => ToastKind == ToastKind.Success;
+    public string ExportButtonText => IsExporting ? "Đang xuất..." : "Xuất báo cáo";
     public string TotalLabel => $"{TotalCount:N0} sản phẩm tồn kho";
     public string FooterText
     {
@@ -80,13 +87,20 @@ public sealed partial class InventoryStockViewModel(
     }
     public string EmptyText => TotalCount == 0 ? "Chưa có tồn kho để hiển thị." : "Không tìm thấy tồn kho phù hợp.";
 
-    public async Task ShowSuccessToastAsync(string message, CancellationToken cancellationToken = default)
+    public Task ShowSuccessToastAsync(string message, CancellationToken cancellationToken = default) =>
+        ShowToastAsync(ToastKind.Success, message, cancellationToken);
+
+    public Task ShowErrorToastAsync(string message, CancellationToken cancellationToken = default) =>
+        ShowToastAsync(ToastKind.Error, message, cancellationToken);
+
+    private async Task ShowToastAsync(ToastKind kind, string message, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         _toastDismissCancellation?.Cancel();
         _toastDismissCancellation?.Dispose();
         var dismiss = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _toastDismissCancellation = dismiss;
+        ToastKind = kind;
         SuccessToastMessage = message;
         IsSuccessToastVisible = true;
         try
@@ -149,7 +163,17 @@ public sealed partial class InventoryStockViewModel(
         RefreshPageNumbers();
     }
     partial void OnFilteredCountChanged(int value) => OnPropertyChanged(nameof(FooterText));
-    partial void OnIsExportingChanged(bool value) => ExportReportCommand.NotifyCanExecuteChanged();
+    partial void OnToastKindChanged(ToastKind value)
+    {
+        OnPropertyChanged(nameof(ToastTitle));
+        OnPropertyChanged(nameof(IsErrorToast));
+        OnPropertyChanged(nameof(IsSuccessToastKind));
+    }
+    partial void OnIsExportingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ExportButtonText));
+        ExportReportCommand.NotifyCanExecuteChanged();
+    }
 
     private void ReloadAfterFilterChanged()
     {
@@ -165,6 +189,17 @@ public sealed partial class InventoryStockViewModel(
         OnPropertyChanged(nameof(EmptyText));
     }
 
+    private InventoryStockFilterRequest BuildFilterRequest(int page, int pageSize) => new()
+    {
+        Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
+        CategoryId = IsCategoryFilterAvailable && SelectedCategoryId != Guid.Empty ? SelectedCategoryId : null,
+        Page = Math.Max(1, page),
+        PageSize = Math.Clamp(pageSize, 1, 100),
+        LowStock = StockStatusFilter == InventoryStockStatusFilter.LowStock ? true : null,
+        OutOfStock = StockStatusFilter == InventoryStockStatusFilter.OutOfStock ? true : null,
+        InStock = StockStatusFilter == InventoryStockStatusFilter.InStock ? true : null
+    };
+
     [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task LoadAsync(CancellationToken cancellationToken)
     {
@@ -177,16 +212,7 @@ public sealed partial class InventoryStockViewModel(
         ErrorMessage = null;
         try
         {
-            var result = await inventoryRepository.GetStocksAsync(new InventoryStockFilterRequest
-            {
-                Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
-                CategoryId = IsCategoryFilterAvailable && SelectedCategoryId != Guid.Empty ? SelectedCategoryId : null,
-                Page = Math.Max(1, Page),
-                PageSize = Math.Clamp(PageSize, 1, 100),
-                LowStock = StockStatusFilter == InventoryStockStatusFilter.LowStock ? true : null,
-                OutOfStock = StockStatusFilter == InventoryStockStatusFilter.OutOfStock ? true : null,
-                InStock = StockStatusFilter == InventoryStockStatusFilter.InStock ? true : null
-            }, load.Token);
+            var result = await inventoryRepository.GetStocksAsync(BuildFilterRequest(Page, PageSize), load.Token);
             if (load.IsCancellationRequested || generation != _loadGeneration) return;
 
             _loadedRows.Clear();
@@ -253,6 +279,8 @@ public sealed partial class InventoryStockViewModel(
         IsLoading = false;
     }
 
+    public void CancelExport() => ExportReportCommand.Cancel();
+
     [RelayCommand]
     private async Task GoToPageAsync(object? parameter)
     {
@@ -274,37 +302,51 @@ public sealed partial class InventoryStockViewModel(
     [RelayCommand(CanExecute = nameof(CanExportReport))]
     private async Task ExportReportAsync(CancellationToken cancellationToken)
     {
-        var snapshot = VisibleItems.ToArray();
-        if (snapshot.Length == 0)
-        {
-            await ShowSuccessToastAsync("Không có dữ liệu tồn kho phù hợp để xuất.", cancellationToken);
-            return;
-        }
-
         IsExporting = true;
-        SuccessToastMessage = "Đang tạo báo cáo tồn kho...";
-        IsSuccessToastVisible = true;
+        string? success = null;
+        string? failure = null;
         try
         {
-            var result = await _reportExporter.ExportAsync(snapshot, cancellationToken);
-            await ShowSuccessToastAsync(
-                $"Đã xuất {result.RowCount:N0} dòng tồn kho vào {System.IO.Path.GetFileName(result.FilePath)}.",
-                cancellationToken);
+            var rows = new List<InventoryStockRow>();
+            for (var page = 1; page <= MaxExportPages; page++)
+            {
+                var result = await inventoryRepository.GetStocksAsync(BuildFilterRequest(page, ExportPageSize), cancellationToken);
+                var items = result.Items ?? [];
+                rows.AddRange(items.Select(item => new InventoryStockRow(item)));
+                if (items.Count == 0 || page >= result.TotalPages) break;
+            }
+
+            if (rows.Count == 0)
+            {
+                failure = "Không có dữ liệu tồn kho phù hợp để xuất.";
+            }
+            else
+            {
+                var saved = await fileSaver!.SaveAsync(
+                    InventoryReportBuilder.SuggestedFileName(DateTime.Now),
+                    InventoryReportBuilder.BuildCsv(rows),
+                    cancellationToken);
+                if (saved is not null)
+                    success = saved.UsedFallbackFolder
+                        ? $"Không mở được hộp lưu file nên đã lưu {rows.Count:N0} dòng vào {saved.Path}"
+                        : $"Đã xuất {rows.Count:N0} dòng tồn kho vào {saved.Path}";
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
-        catch (Exception exception)
+        catch
         {
-            ErrorMessage = exception.Message;
-            await ShowSuccessToastAsync("Không thể xuất báo cáo tồn kho. Vui lòng thử lại.", cancellationToken);
+            failure = "Không thể xuất báo cáo tồn kho. Vui lòng thử lại.";
         }
         finally
         {
             IsExporting = false;
-            ExportReportCommand.NotifyCanExecuteChanged();
         }
+
+        if (success is not null) _ = ShowSuccessToastAsync(success);
+        else if (failure is not null) _ = ShowErrorToastAsync(failure);
     }
 
-    private bool CanExportReport() => !IsExporting;
+    private bool CanExportReport() => !IsExporting && fileSaver is not null;
 
     [RelayCommand]
     private void ViewSerials(InventoryStockRow? row)

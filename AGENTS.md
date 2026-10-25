@@ -49,7 +49,7 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 - **`backend/Sales/`**: POS counter register sessions, cashier cart calculation, and dynamic VietQR generation (`PosSession`, `VietQrTransaction`).
 - **`backend/Identity/`**: User credentials, refresh tokens, store configuration settings, RBAC authorization, initial database seeding (`IAuthService`, `IStoreSettingsService`, `AuthController`, `StoreController`, `DataSeeder`, `IDataSeeder`).
 - **`backend/Common/`**: Core infrastructure including `AppDbContext`, `IUnitOfWork` / `UnitOfWork` (saves and transactions), `DuplicateKeyException`, `BaseEntity`, HTTP exception handling, and `Storage/` (`IObjectStorage`, `ObjectStorageOptions`, R2 or a local folder).
-- **`frontend/TechStore.Client/`**: Cross-platform desktop application organized into `Views/`, `ViewModels/`, `Models/`, `Repositories/`, `Services/` (including `Files/IImageFilePicker`; WinUI implementation `Views/Shell/ImageFilePicker.cs`), `Controls/`, and `Styles/`.
+- **`frontend/TechStore.Client/`**: Cross-platform desktop application organized into `Views/`, `ViewModels/`, `Models/`, `Repositories/`, `Services/` (including `Files/IImageFilePicker` and `Files/ICsvFileSaver`; WinUI implementations `Views/Shell/ImageFilePicker.cs` and `Views/Shell/CsvFileSaver.cs`), `Controls/`, and `Styles/`.
 - **`shared/`**: Common domain contracts consumed across backend, client, and test projects (`DTOs/`, `Requests/`, `Enums/`).
 
 ### 3. Data Flow
@@ -90,7 +90,7 @@ SalesManagement/
 │       ├── ViewModels/            # MVVM ViewModels extending PageViewModel (Catalog, Customers, Dashboard, Inventory, Orders)
 │       ├── Repositories/          # Client data repositories mapping DTOs to client Models (Catalog, Inventory, Orders, Customers, Analytics; backlog: IInventoryRepository still returns DTOs)
 │       ├── Models/                # Client-side presentation models (ProductSummary, ProductDetail, DashboardSnapshot)
-│       ├── Services/              # Client services (Api, Files/IImageFilePicker, Navigation, Session, Theme, Dialog, Window); picker in Views/Shell/ImageFilePicker.cs
+│       ├── Services/              # Client services (Api, Files/IImageFilePicker, Files/ICsvFileSaver, Navigation, Session, Theme, Dialog, Window); WinUI implementations in Views/Shell/ImageFilePicker.cs and Views/Shell/CsvFileSaver.cs
 │       ├── Controls/              # Shared controls in C# Markup (StatCard, StatusBadge, SearchBoxControl, EmptyStateControl), Presentation/ (pure display rules), Charts/
 │       ├── Styles/                # C# design tokens: AppColors, AppTypography, AppMetrics, AppIcons, AppControlStyles (+ *.Resources.cs accessors), AppResources (registration); StitchTokens (legacy static colors)
 │       └── Platforms/             # Desktop (Skia macOS/Linux) and Windows entry points
@@ -357,7 +357,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - **Singleton:** Stateless utility services (`TimeProvider.System`), token generators, `IObjectStorage` (`R2ObjectStorage` or `LocalObjectStorage`).
 - **Frontend (`frontend/TechStore.Client/App.xaml.cs`):**
   - `AddFrontendFoundation`: Registers `ApiClientOptions`, `ISessionStore` (Singleton), `BearerTokenHandler` (Transient), and configured `IApiClient` / `ApiClient` via `AddHttpClient`.
-  - `AddFrontendUi`: Registers core client services (`INavigationService`, `IDialogService`, `IThemePreferenceService`, `IWindowLifetime`) as Singleton; `ImageFilePicker` / `IImageFilePicker` as Singleton; ViewModels, Views, and Client Repositories (`IProductRepository`, `ICategoryRepository`, `ICategoryWorkspaceRepository`, `IProductImageRepository`, `IInventoryRepository`) as Transient (note: `IInventoryRepository` still returns shared DTOs; mapping to client models is a follow-up item).
+  - `AddFrontendUi`: Registers core client services (`INavigationService`, `IDialogService`, `IThemePreferenceService`, `IWindowLifetime`) as Singleton; `ImageFilePicker` / `IImageFilePicker` and `CsvFileSaver` / `ICsvFileSaver` as Singleton; ViewModels, Views, and Client Repositories (`IProductRepository`, `ICategoryRepository`, `ICategoryWorkspaceRepository`, `IProductImageRepository`, `IInventoryRepository`) as Transient (note: `IInventoryRepository` still returns shared DTOs; mapping to client models is a follow-up item).
 
 ---
 

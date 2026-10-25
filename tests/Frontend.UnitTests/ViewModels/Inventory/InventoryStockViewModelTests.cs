@@ -3,6 +3,7 @@ using TechStore.Client.Models.Inventory;
 using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Services.Api;
+using TechStore.Client.Services.Files;
 using TechStore.Client.UnitTests.ViewModels.Catalog;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
@@ -408,6 +409,177 @@ public sealed class InventoryStockViewModelTests
         Assert.False(vm.PageButtons[2].IsCurrent);
     }
 
+    [Fact]
+    public async Task ExportReport_FetchesEveryPageWithCurrentFilters()
+    {
+        // Arrange
+        var page1 = Enumerable.Range(1, 100).Select(i => Stock($"P-{i}", $"SKU-{i}", 3, 0)).ToArray();
+        var page2 = Enumerable.Range(101, 100).Select(i => Stock($"P-{i}", $"SKU-{i}", 3, 0)).ToArray();
+        var page3 = Enumerable.Range(201, 50).Select(i => Stock($"P-{i}", $"SKU-{i}", 3, 0)).ToArray();
+        var api = new FakeApi(Page())
+        {
+            Handler = call => Task.FromResult(call switch
+            {
+                1 => Page(page1, page: 1, pageSize: 100, totalCount: 250, totalPages: 3),
+                2 => Page(page2, page: 2, pageSize: 100, totalCount: 250, totalPages: 3),
+                _ => Page(page3, page: 3, pageSize: 100, totalCount: 250, totalPages: 3)
+            })
+        };
+        var saver = new FakeCsvFileSaver { Result = new CsvSaveResult("/tmp/x/bao-cao.csv", false) };
+        var vm = new InventoryStockViewModel(api, fileSaver: saver)
+        {
+            StockStatusFilter = InventoryStockStatusFilter.LowStock
+        };
+
+        // Act
+        await vm.ExportReportCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal(3, api.Requests.Count);
+        Assert.All(api.Requests, r =>
+        {
+            Assert.Equal(100, r.PageSize);
+            Assert.True(r.LowStock);
+        });
+        Assert.Equal([1, 2, 3], api.Requests.Select(r => r.Page ?? 0));
+        Assert.Equal(1, saver.Calls);
+        Assert.StartsWith("bao-cao-ton-kho-", saver.SuggestedFileName);
+        var lines = saver.Content!.TrimEnd('\r', '\n').Split('\n');
+        Assert.Equal(251, lines.Length);
+        vm.DismissSuccessToast();
+    }
+
+    [Fact]
+    public async Task ExportReport_Saved_ShowsSuccessToastWithFullPath()
+    {
+        // Arrange
+        var api = new FakeApi(Page(Stock("Phone", "P-1", 8, 0)));
+        var saver = new FakeCsvFileSaver { Result = new CsvSaveResult("/tmp/x/bao-cao.csv", false) };
+        var vm = new InventoryStockViewModel(api, fileSaver: saver);
+
+        // Act
+        await vm.ExportReportCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal(ToastKind.Success, vm.ToastKind);
+        Assert.Equal("Thành công", vm.ToastTitle);
+        Assert.True(vm.IsSuccessToastKind);
+        Assert.False(vm.IsErrorToast);
+        Assert.Contains("/tmp/x/bao-cao.csv", vm.SuccessToastMessage);
+        Assert.False(vm.IsExporting);
+        vm.DismissSuccessToast();
+    }
+
+    [Fact]
+    public async Task ExportReport_FallbackFolder_SaysDialogUnavailable()
+    {
+        // Arrange
+        var api = new FakeApi(Page(Stock("Phone", "P-1", 8, 0)));
+        var saver = new FakeCsvFileSaver { Result = new CsvSaveResult("/tmp/x/bao-cao.csv", true) };
+        var vm = new InventoryStockViewModel(api, fileSaver: saver);
+
+        // Act
+        await vm.ExportReportCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal(ToastKind.Success, vm.ToastKind);
+        Assert.StartsWith("Không mở được hộp lưu file", vm.SuccessToastMessage);
+        Assert.Contains("/tmp/x/bao-cao.csv", vm.SuccessToastMessage);
+        vm.DismissSuccessToast();
+    }
+
+    [Fact]
+    public async Task ExportReport_UserCancels_ShowsNoToast()
+    {
+        // Arrange
+        var api = new FakeApi(Page(Stock("Phone", "P-1", 8, 0)));
+        var saver = new FakeCsvFileSaver { Result = null };
+        var vm = new InventoryStockViewModel(api, fileSaver: saver);
+
+        // Act
+        await vm.ExportReportCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal(1, saver.Calls);
+        Assert.False(vm.IsSuccessToastVisible);
+    }
+
+    [Fact]
+    public async Task ExportReport_NoRows_DoesNotOpenDialog()
+    {
+        // Arrange
+        var api = new FakeApi(Page());
+        var saver = new FakeCsvFileSaver();
+        var vm = new InventoryStockViewModel(api, fileSaver: saver);
+
+        // Act
+        await vm.ExportReportCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal(0, saver.Calls);
+        Assert.Equal(ToastKind.Error, vm.ToastKind);
+        Assert.Equal("Không thành công", vm.ToastTitle);
+        Assert.True(vm.IsErrorToast);
+        Assert.True(vm.IsSuccessToastVisible);
+        vm.DismissSuccessToast();
+    }
+
+    [Fact]
+    public async Task ExportReport_ApiFailure_KeepsTableVisible()
+    {
+        // Arrange
+        var api = new FakeApi(Page(Stock("Phone", "P-1", 8, 0)));
+        var saver = new FakeCsvFileSaver();
+        var vm = new InventoryStockViewModel(api, fileSaver: saver);
+        await vm.LoadCommand.ExecuteAsync(null);
+        api.Handler = _ => Task.FromException<PagedResultDto<InventoryStockDto>>(
+            new ApiException(ApiErrorKind.Network, "Network error"));
+
+        // Act
+        await vm.ExportReportCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Null(vm.ErrorMessage);
+        Assert.False(vm.HasError);
+        Assert.Single(vm.VisibleItems);
+        Assert.Equal(ToastKind.Error, vm.ToastKind);
+        Assert.Equal("Không thành công", vm.ToastTitle);
+        vm.DismissSuccessToast();
+    }
+
+    [Fact]
+    public void ExportReport_WithoutFileSaver_CannotExecute()
+    {
+        // Arrange & Act
+        var vm = new InventoryStockViewModel(new FakeApi(Page()));
+
+        // Assert
+        Assert.False(vm.ExportReportCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task ExportButtonText_ReflectsExporting()
+    {
+        // Arrange
+        var tcs = new TaskCompletionSource<CsvSaveResult?>();
+        var api = new FakeApi(Page(Stock("Phone", "P-1", 8, 0)));
+        var saver = new FakeCsvFileSaver { Handler = _ => tcs.Task };
+        var vm = new InventoryStockViewModel(api, fileSaver: saver);
+
+        // Act
+        var exportTask = vm.ExportReportCommand.ExecuteAsync(null);
+
+        // Assert while exporting
+        Assert.Equal("Đang xuất...", vm.ExportButtonText);
+        Assert.False(vm.ExportReportCommand.CanExecute(null));
+
+        tcs.SetResult(null);
+        await exportTask;
+
+        Assert.Equal("Xuất báo cáo", vm.ExportButtonText);
+        Assert.True(vm.ExportReportCommand.CanExecute(null));
+    }
+
     private static PagedResultDto<InventoryStockDto> Page(params InventoryStockDto[] items) =>
         Page(items, 1, 20, items.Length, items.Length == 0 ? 0 : 1);
 
@@ -435,14 +607,36 @@ public sealed class InventoryStockViewModelTests
         }
     }
 
+    private sealed class FakeCsvFileSaver : ICsvFileSaver
+    {
+        public int Calls { get; private set; }
+        public string? SuggestedFileName { get; private set; }
+        public string? Content { get; private set; }
+        public CsvSaveResult? Result { get; set; }
+        public Exception? Throw { get; set; }
+        public Func<CancellationToken, Task<CsvSaveResult?>>? Handler { get; set; }
+
+        public Task<CsvSaveResult?> SaveAsync(string suggestedFileName, string content, CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            SuggestedFileName = suggestedFileName;
+            Content = content;
+            if (Throw is not null) return Task.FromException<CsvSaveResult?>(Throw);
+            if (Handler is not null) return Handler(cancellationToken);
+            return Task.FromResult(Result);
+        }
+    }
+
     private sealed class FakeApi(PagedResultDto<InventoryStockDto> page) : IInventoryRepository
     {
         public int Calls { get; private set; }
+        public List<InventoryStockFilterRequest> Requests { get; } = [];
         public InventoryStockFilterRequest? LastRequest { get; private set; }
         public Func<int, Task<PagedResultDto<InventoryStockDto>>>? Handler { get; set; }
         public Task<PagedResultDto<InventoryStockDto>> GetStocksAsync(InventoryStockFilterRequest request, CancellationToken cancellationToken = default)
         {
             Calls++;
+            Requests.Add(request);
             LastRequest = request;
             if (Handler is not null) return Handler(Calls);
 

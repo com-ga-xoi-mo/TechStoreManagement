@@ -117,6 +117,7 @@ public sealed partial class CategoryManagementViewModel(
     protected override void OnDeactivated()
     {
         Inventory.CancelLoading();
+        Inventory.CancelExport();
         Serials.CancelLoading();
     }
 

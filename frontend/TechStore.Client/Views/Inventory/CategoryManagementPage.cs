@@ -129,7 +129,9 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         categoryAction.Visibility(x => x.Binding(() => ViewModel.IsCategoryTab).Convert(ShowIf));
         actions.Children.Add(categoryAction);
         var inventoryActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        var exportReport = Button(Text("Xuất báo cáo", color: AppColors.SecondaryText), tooltip: "Xuất báo cáo tồn kho");
+        var exportReportText = Text(color: AppColors.SecondaryText);
+        exportReportText.Text(x => x.Binding(() => ViewModel.Inventory.ExportButtonText));
+        var exportReport = Button(exportReportText, tooltip: "Xuất báo cáo tồn kho");
         exportReport.Command(x => x.Binding(() => ViewModel.Inventory.ExportReportCommand));
         inventoryActions.Children.Add(exportReport);
         var importAction = BuildPrimaryAction("add", "Nhập kho mới", "Nhập kho mới");
@@ -555,10 +557,23 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             Child = Icon("check_circle", AppColors.SuccessText, 18)
         };
         successIcon.Background(AppColors.Brushes.SuccessFill);
-        content.Children.Add(successIcon);
-        Grid.SetColumn(successIcon, 0);
+        successIcon.Visibility(x => x.Binding(() => ViewModel.Inventory.IsSuccessToastKind).Convert(ShowIf));
+        var errorIcon = new Border
+        {
+            Width = 32,
+            Height = 32,
+            CornerRadius = new CornerRadius(16),
+            Child = Icon("warning", AppColors.DangerText, 18)
+        };
+        errorIcon.Background(AppColors.Brushes.DangerFill);
+        errorIcon.Visibility(x => x.Binding(() => ViewModel.Inventory.IsErrorToast).Convert(ShowIf));
+        var iconHost = new Grid().Children(successIcon, errorIcon);
+        content.Children.Add(iconHost);
+        Grid.SetColumn(iconHost, 0);
         var copy = new StackPanel { Spacing = 2 };
-        copy.Children.Add(Text("Thành công", 13, AppColors.Text, 600));
+        var title = Text("", 13, AppColors.Text, 600);
+        title.Text(x => x.Binding(() => ViewModel.Inventory.ToastTitle));
+        copy.Children.Add(title);
         copy.Children.Add(message);
         Grid.SetColumn(copy, 1);
         content.Children.Add(copy);
@@ -579,7 +594,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             Child = content
         };
         toast.Background(AppColors.Brushes.Surface);
-        toast.BorderBrush(AppColors.Brushes.SuccessStroke);
+        toast.BorderBrush(AppColors.Brushes.Stroke);
         toast.Visibility(x => x.Binding(() => ViewModel.Inventory.IsSuccessToastVisible).Convert(ShowIf));
         return toast;
     }

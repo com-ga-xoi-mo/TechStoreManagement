@@ -95,13 +95,30 @@ Executed with `XDG_DATA_HOME=/tmp/opencode/xdg_data TECHSTORE_API_BASE_URL=http:
 - `openspec validate catalog-inventory-alignment` -> `Change 'catalog-inventory-alignment' is valid`
 - `openspec validate --specs` -> `Totals: 30 passed, 0 failed (30 items)`
 
-## 10.4 Final Summary & Hand-off Notes (Task 10.4)
+## 12.8 Live Save Dialog & Report Export Verification (Task 12.8)
+
+Executed against `dotnet run --project backend/TechStore.Api.csproj -- --urls http://localhost:5179` and `TechStore.Client` (`net10.0-desktop`) with `XDG_DATA_HOME=/tmp/opencode/xdg_12_8` and `org.freedesktop.portal.FileChooser` (version 3):
+
+- **(a) Export all unfiltered stocks:**
+  - Portal `SaveFile` opened with suggested name `bao-cao-ton-kho-20261026-....csv`; saved to `/tmp/opencode/home_12_8/export-all.csv`.
+  - Toast: `ToastKind=Success`, `ToastTitle="Thành công"`, `Message="Đã xuất 15 dòng tồn kho vào /tmp/opencode/home_12_8/export-all.csv"`.
+  - File verified: UTF-8 BOM (`EF BB BF`), 16 lines (`1` header `"Sản phẩm","SKU","Danh mục","Giá bán","Có sẵn","Đang giữ","Trạng thái"` + `15` data rows, Vietnamese diacritics intact).
+- **(b) Filter by "Hết hàng" (`OutOfStock`) and export:**
+  - Saved to `/tmp/opencode/home_12_8/export-out.csv`.
+  - Toast: `ToastKind=Success`, `ToastTitle="Thành công"`, `Message="Đã xuất 5 dòng tồn kho vào /tmp/opencode/home_12_8/export-out.csv"`.
+  - File verified: UTF-8 BOM (`EF BB BF`), 6 lines (`1` header + `5` out-of-stock rows).
+- **(c) Cancel the save dialog (`Response = 1`):**
+  - `IsSuccessToastVisible=False` (no toast shown, no new file created).
+- **(d) Stop backend on 5179 and click "Xuất báo cáo":**
+  - `HasError=False`, `ErrorMessage=null`, `VisibleItems.Count=5` (stock table remains visible), `IsSuccessToastVisible=True`, `ToastKind=Error`, `ToastTitle="Không thành công"`, `Message="Không thể xuất báo cáo tồn kho. Vui lòng thử lại."`.
+
+## 10.4 Final Summary & Hand-off Notes (Task 10.4 & 12.9)
 
 ### Test Counts (Before vs. After)
-| Suite | Baseline (Task 0.1) | Final (Task 11.7) |
+| Suite | Baseline (Task 0.1) | Final (Task 12.9) |
 |:--|:--|:--|
 | Backend Unit Tests (`TechStore.UnitTests`) | 508 passed, 8 skipped (516 total; 516/516 with Postgres) | **515 passed, 9 skipped (524 total; 524/524 with Postgres)** |
-| Frontend Unit Tests (`TechStore.Client.UnitTests`) | 882 passed, 0 skipped | **890 passed, 0 skipped** |
+| Frontend Unit Tests (`TechStore.Client.UnitTests`) | 882 passed, 0 skipped | **900 passed, 0 skipped** |
 
 ### Commit Log (`594320d..HEAD`)
 - `56bcf2b` `docs(openspec): record catalog-inventory-alignment change artifacts`
@@ -115,7 +132,8 @@ Executed with `XDG_DATA_HOME=/tmp/opencode/xdg_data TECHSTORE_API_BASE_URL=http:
 - `53c79d2` `fix(inventory): follow app theme tokens in category and stock UI`
 - `49df92e` `refactor(client): move category and inventory UI into team folders`
 - `61aac9e` `docs(openspec): record integration verification evidence for catalog-inventory-alignment`
-- `HEAD` `fix(inventory): filter stocks on the server and tidy category workspace`
+- `61f3fb0` `fix(inventory): filter stocks on the server and tidy category workspace`
+- `HEAD` `feat(inventory): export filtered stock report through save dialog`
 
 ### Note for Dev 6 (Dashboard vs. Inventory Low-Stock Definition)
 - **Dashboard (`AnalyticsRepository.cs:40`)** still counts "sắp hết" using `Quantity <= MinStockAlert` (which includes out-of-stock rows and does not subtract `ReservedQuantity`), representing "items that need replenishment".

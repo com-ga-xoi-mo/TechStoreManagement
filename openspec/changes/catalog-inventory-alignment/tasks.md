@@ -485,6 +485,70 @@
   Nếu hộp thoại không hiện trên Linux, ghi lỗi trong log, xác nhận nhánh dự phòng ghi vào `~/Downloads` (không ghi đè file cũ) và toast báo đúng, rồi ghi vào `evidence.md`. Kiểm tra: kết quả (a)–(d) ghi trong `evidence.md` mục "12.8"
 - [x] 12.9 Commit `feat(inventory): export filtered stock report through save dialog`, cập nhật bảng số test trong `evidence.md`. Kiểm tra: `B`/`TB`/`TF`/`BD` xanh, `openspec validate catalog-inventory-alignment --strict` hợp lệ
 
+## 13. Bảng tồn kho cuộn mượt: gom thao tác dòng vào nút "•••" (D14)
+
+> **Đọc D14 trong `design.md` trước**, nhất là đoạn code helper ở mục 1. Đường dẫn dưới đây là tương đối với `frontend/TechStore.Client/`. Nhóm này chỉ sửa 3 file view và AGENTS.md: **không** sửa ViewModel, model, test hay file `.csproj`. Không chạy backend ở cổng 5176; khi chạy client thử thì đặt `XDG_DATA_HOME` sang thư mục tạm.
+
+- [x] 13.1 Helper trong `Views/Inventory/WorkspaceParts.cs`:
+  - thêm `using Microsoft.UI.Xaml.Controls.Primitives;` sau dòng `using Microsoft.UI.Xaml.Controls;`;
+  - chép **nguyên văn** 2 hàm `RowActionsButton` và `RowAction` (kèm 2 comment) từ D14 mục 1 vào lớp `WorkspaceParts`, đặt ngay trên dòng `// Locally authored 24-unit line icons; no web fonts or platform-specific glyphs.`;
+  - chữ của nút là `"•••"` (3 ký tự U+2022), **không** dùng `"⋯"`, vì font Inter không có glyph này.
+  
+  Kiểm tra: `BD` xanh (hai hàm chưa được gọi cũng không sao)
+- [x] 13.2 Bảng tồn kho, `Views/Inventory/InventoryStockPage.cs`, lớp `InventoryStockTableRows`, hàm `BuildRow`:
+  - **Cột 0:** xóa khối `var identity = new StackPanel { ... }`, dòng `var iconKeys = ...` và lời gọi `identity.Children.Add(new Border { Width = 36, ... })` (khung icon). Giữ khối `var name = new StackPanel { ... }` cùng 2 `Text` tên và SKU. Thay 3 dòng `identity.Children.Add(name); Grid.SetColumn(identity, 0); grid.Children.Add(identity);` bằng:
+    ```csharp
+    Grid.SetColumn(name, 0);
+    grid.Children.Add(name);
+    ```
+  - **Cột 1:** thay `var categoryBadge = Badge(Text(row.CategoryName, 12, AppColors.SecondaryText), StatusTone.Neutral);` bằng `var categoryBadge = Text(row.CategoryName, 13, AppColors.SecondaryText);`. Giữ 2 dòng `Grid.SetColumn`/`Children.Add` phía sau.
+  - **Cột 5 (badge trạng thái) và đường kẻ dòng (`return new Border { ..., BorderThickness = new Thickness(0, 0, 0, 1) }...`): giữ nguyên.**
+  - **Cột 6:** xóa từ dòng `var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, ... };` tới hết `actions.Children.Add(delete);` (3 nút `serial`, `adjust`, `delete`), thay bằng:
+    ```csharp
+    var detail = RowAction("Xem chi tiết", row, viewModel);
+    detail.Command(x => x.Binding(() => viewModel.ViewSerialsCommand));
+    var adjust = RowAction("Điều chỉnh tồn", row, viewModel);
+    adjust.Command(x => x.Binding(() => viewModel.AdjustStockCommand));
+    var delete = RowAction("Xóa tồn", row, viewModel, danger: true);
+    delete.Command(x => x.Binding(() => viewModel.DeleteStockCommand));
+    var actions = RowActionsButton($"Thao tác cho {row.ProductName}", detail, adjust, delete);
+    actions.HorizontalAlignment = HorizontalAlignment.Right;
+    ```
+    Giữ 2 dòng `Grid.SetColumn(actions, 6); grid.Children.Add(actions);`.
+  - **Không** sửa `Columns()`, `BuildTableHeader()` (vẫn 7 cột, header "THAO TÁC"), `InventoryStockRow.Icon` hay các `using`. Nếu build báo `using` thừa thì cũng giữ nguyên, vì repo không bật cảnh báo đó thành lỗi.
+  
+  Kiểm tra: `BD` xanh; `grep -n "identity\|iconKeys\|\"visibility\"\|delete_outline" Views/Inventory/InventoryStockPage.cs` không còn kết quả
+- [x] 13.3 Bảng Danh mục, `Views/Inventory/CategoryTableRows.cs`, hàm `BuildRow`:
+  - xóa từ dòng `var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, ... };` tới hết `actions.Children.Add(delete);`. Đoạn này gồm 2 nút `edit`/`delete`, 2 dòng `delete.PointerEntered`/`delete.PointerExited` và dòng `if (!row.IsRoot) { edit.Padding = ...; delete.Padding = ...; }`. Thay bằng:
+    ```csharp
+    var edit = RowAction("Sửa danh mục", row, viewModel);
+    edit.Command(x => x.Binding(() => viewModel.EditCategoryCommand));
+    var delete = RowAction("Xóa danh mục", row, viewModel, danger: true);
+    delete.Command(x => x.Binding(() => viewModel.DeleteCategoryCommand));
+    var actions = RowActionsButton($"Thao tác cho {row.Name}", edit, delete);
+    actions.HorizontalAlignment = HorizontalAlignment.Right;
+    ```
+    Giữ dòng `AddCell(grid, actions, 4, row);`.
+  - **Giữ nguyên**: hover nền dòng (`grid.PointerEntered`/`grid.PointerExited`), chevron mở/thu gọn, khung icon dòng gốc, badge "Danh mục gốc" và công tắc trạng thái.
+  
+  Kiểm tra: `B` xanh, 0 cảnh báo; `TF` xanh và số test không đổi so với trước nhóm 13; `grep -n "delete.PointerEntered\|delete.PointerExited" Views/Inventory/CategoryTableRows.cs` không còn kết quả
+- [x] 13.4 Chạy thử thật (bắt buộc, vì menu và tốc độ cuộn không test headless được):
+  - build Release: `dotnet build frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop -c Release`. Đo bằng bản Debug sẽ chậm hơn nhiều và không phản ánh đúng;
+  - backend: `dotnet run --project backend/TechStore.Api.csproj -- --urls http://localhost:5179`;
+  - client: `cd frontend/TechStore.Client/bin/Release/net10.0-desktop && XDG_DATA_HOME=<thư mục tạm> TECHSTORE_API_BASE_URL=http://localhost:5179/ dotnet TechStore.Client.dll`, đăng nhập `admin`/`Admin@123`, mở "Danh mục và Kho";
+  - (a) **Tồn kho:** mỗi dòng không còn khung icon; cột Danh mục là chữ xám, không có viền; badge trạng thái vẫn có màu; cột THAO TÁC có một nút "•••" căn phải. Rê chuột lên nút thì thấy tooltip "Thao tác cho <tên sản phẩm>";
+  - (b) bấm "•••" ở một dòng: menu mở ngay dưới nút, căn mép phải, gồm "Xem chi tiết", "Điều chỉnh tồn" và "Xóa tồn" (chữ đỏ), font giống phần còn lại của app. Bấm lần lượt từng mục: mục 1 mở hộp thoại chi tiết, mục 2 mở hộp thoại điều chỉnh, mục 3 mở hộp thoại xóa, **đúng sản phẩm của dòng đó**. Với hộp thoại xóa, bấm **"Hủy bỏ"**, không xác nhận;
+  - (c) **Bàn phím:** bấm Tab tới nút "•••", nhấn Enter thì menu mở; mũi tên lên/xuống chọn mục; Esc đóng menu;
+  - (d) **Cuộn:** thu nhỏ cửa sổ để bảng phải cuộn, rồi cuộn nhanh bằng bánh xe và rê chuột qua các dòng. Không còn giật như trước. So với nhánh trước nhóm 13 nếu có thể (`git stash` hoặc checkout commit trước);
+  - (e) **Danh mục:** nút "•••" có menu "Sửa danh mục" và "Xóa danh mục" (chữ đỏ), mở đúng hộp thoại của dòng (bấm "Hủy bỏ"). Chevron, công tắc trạng thái và hover nền dòng vẫn chạy như cũ;
+  - (f) **Theme** (AGENTS.md §6 quy tắc 5): mở menu ở cả Sáng và Tối. Nền menu, chữ và chữ đỏ phải đọc được. Đổi theme trong Cài đặt khi trang đang mở, quay lại mở menu lần nữa.
+  
+  Nếu menu không mở hoặc mở sai dòng, ghi lỗi vào `evidence.md` và dừng lại, **không** quay về 3 nút cũ khi chưa báo người dùng. Kiểm tra: kết quả (a)–(f) ghi trong `evidence.md`, mục mới "13.4", kèm ảnh chụp nếu có
+- [x] 13.5 AGENTS.md, mục 6 "Frontend MVVM & C# Markup Pattern", phần "Theme tokens": chèn nguyên văn gạch đầu dòng "Long scrolling tables on Skia (Uno 6.7)" ở D14 mục 5, ngay sau gạch đầu dòng bắt đầu bằng `- Icons: pass the registered instance`. Không sửa chỗ khác của AGENTS.md (danh sách ngoại lệ `PointerEntered`/`PointerExited` vẫn đúng, vì hover nền dòng Danh mục vẫn còn).
+  
+  Kiểm tra: `grep -n "RowActionsButton" AGENTS.md` có đúng 1 kết quả
+- [x] 13.6 Commit `perf(inventory): keep stock and category rows light while scrolling`, cập nhật bảng số test trong `evidence.md` (số test không đổi). Kiểm tra: `B`/`TB`/`TF`/`BD` xanh, `openspec validate catalog-inventory-alignment --strict` hợp lệ
+
 ## Workflow follow-up
 
 - Gửi Dev 3 bản tóm tắt thay đổi (kể cả bỏ quyền xóa của Manager và định nghĩa `lowStock` mới) cùng ảnh Sáng/Tối để duyệt trước khi mở PR.

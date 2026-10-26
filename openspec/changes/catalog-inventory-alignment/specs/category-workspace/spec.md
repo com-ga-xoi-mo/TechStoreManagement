@@ -14,3 +14,14 @@ The "Danh mục và Kho" workspace (Danh mục, Tồn kho and Serial/IMEI tabs) 
 #### Scenario: Danger text contrast
 - **WHEN** a destructive warning or field error is shown on a light surface
 - **THEN** its text color has at least 4.5:1 contrast with that surface
+
+### Requirement: Category row actions open from one menu
+Each category row SHALL offer Edit and Delete through one “•••” button, labeled for assistive technology as “Thao tác cho <category name>”, that opens a menu with “Sửa danh mục” and “Xóa danh mục”, the latter in the danger color. The expand chevron, the status switch and the row hover background SHALL stay as they are.
+
+#### Scenario: Edit or delete from the row menu
+- **WHEN** the user opens the “•••” menu of the category row “Accessories” and picks “Sửa danh mục” or “Xóa danh mục”
+- **THEN** the Edit Category Dialog or the Delete Category Dialog opens for “Accessories”, and the tree is unchanged until that operation succeeds
+
+#### Scenario: Keyboard access
+- **WHEN** the user moves focus to a row's “•••” button with Tab and presses Enter
+- **THEN** the menu opens, the arrow keys move between its items, and Esc closes it without any action

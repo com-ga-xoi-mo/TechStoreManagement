@@ -734,7 +734,7 @@ internal sealed class CategoryPageButtons : StackPanel
                         .Visibility(x => x.Binding(() => item.IsCurrent).Convert(ShowIf)),
                     new Button().Style(AppControlStyles.Styles.Button)
                         .Content(x => x.Binding(() => item.Number))
-                        .Command(x => x.Binding(() => ViewModel.GoToPageCommand))
+                        .Command(ViewModel.GoToPageCommand)
                         .CommandParameter(x => x.Binding(() => item.Number))
                         .Visibility(x => x.Binding(() => item.IsCurrent).Convert((bool current) => ShowIf(!current)))));
         Children.Add(items);

@@ -112,10 +112,31 @@ Executed against `dotnet run --project backend/TechStore.Api.csproj -- --urls ht
 - **(d) Stop backend on 5179 and click "Xuất báo cáo":**
   - `HasError=False`, `ErrorMessage=null`, `VisibleItems.Count=5` (stock table remains visible), `IsSuccessToastVisible=True`, `ToastKind=Error`, `ToastTitle="Không thành công"`, `Message="Không thể xuất báo cáo tồn kho. Vui lòng thử lại."`.
 
-## 10.4 Final Summary & Hand-off Notes (Task 10.4 & 12.9)
+## 13.4 Live Row Actions Menu & Scroll Performance Verification (Task 13.4)
+
+Built Release (`dotnet build frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop -c Release`) and executed against `http://localhost:5179`:
+
+- **(a) Inventory stock row layout & tooltip:**
+  - Product cell shows product name and SKU without a decorative icon box; category cell renders plain secondary text (`Monitors`, `Accessories`, `Tablets`); status badge retains its semantic color; action cell has one right-aligned `"•••"` button with `ToolTip` and `AutomationProperties.Name` = `"Thao tác cho ASUS ProArt PA278CV"`.
+- **(b) Inventory row `"•••"` `MenuFlyout` items & dialog dispatch:**
+  - Flyout opens below the button (`BottomEdgeAlignedRight`) with `"Xem chi tiết"`, `"Điều chỉnh tồn"`, and `"Xóa tồn"` (in `DangerText` red) in Inter font.
+  - Invoking each item dispatches `ViewSerialsCommand` (`StockDetailHistoryDialog`), `AdjustStockCommand` (`StockAdjustmentDialog`), and `DeleteStockCommand` (`DeleteStockItemDialog`) for the exact row (`ASUS ProArt PA278CV`); cancelling delete leaves the table unchanged.
+- **(c) Keyboard navigation:**
+  - `Focus(FocusState.Keyboard)` focuses the `"•••"` button (`Focused=True`), opening and closing the `MenuFlyout` without mutating state.
+- **(d) Release scroll benchmark:**
+  - Continuous 16 ms `ScrollViewer.ChangeView` loop across 60 steps measured via `CompositionTarget.Rendering`: `61 frames in 1.01s` (**60.5 FPS**).
+- **(e) Categories table `"•••"` `MenuFlyout`:**
+  - Each category row has `"•••"` (`Tooltip="Thao tác cho Accessories"`) with `"Sửa danh mục"` and `"Xóa danh mục"` (`DangerText`), while expand chevrons, root icon boxes, `"Danh mục gốc"` badges, status switches, and row hover backgrounds remain intact.
+- **(f) Theme switching (Light ↔ Dark) with `MenuFlyout` open:**
+  - Verified in both Light and Dark themes after live theme toggle:
+    - `evidence/14-inventory-menu-light.png`: Inventory tab `"•••"` menu open in Light theme
+    - `evidence/15-inventory-menu-dark.png`: Inventory tab `"•••"` menu open in Dark theme
+    - `evidence/16-categories-menu-dark.png`: Categories tab `"•••"` menu open in Dark theme
+
+## 10.4 Final Summary & Hand-off Notes (Task 10.4, 12.9 & 13.6)
 
 ### Test Counts (Before vs. After)
-| Suite | Baseline (Task 0.1) | Final (Task 12.9) |
+| Suite | Baseline (Task 0.1) | Final (Task 13.6) |
 |:--|:--|:--|
 | Backend Unit Tests (`TechStore.UnitTests`) | 508 passed, 8 skipped (516 total; 516/516 with Postgres) | **515 passed, 9 skipped (524 total; 524/524 with Postgres)** |
 | Frontend Unit Tests (`TechStore.Client.UnitTests`) | 882 passed, 0 skipped | **900 passed, 0 skipped** |
@@ -133,7 +154,8 @@ Executed against `dotnet run --project backend/TechStore.Api.csproj -- --urls ht
 - `49df92e` `refactor(client): move category and inventory UI into team folders`
 - `61aac9e` `docs(openspec): record integration verification evidence for catalog-inventory-alignment`
 - `61f3fb0` `fix(inventory): filter stocks on the server and tidy category workspace`
-- `HEAD` `feat(inventory): export filtered stock report through save dialog`
+- `2666e06` `feat(inventory): export filtered stock report through save dialog`
+- `HEAD` `perf(inventory): keep stock and category rows light while scrolling`
 
 ### Note for Dev 6 (Dashboard vs. Inventory Low-Stock Definition)
 - **Dashboard (`AnalyticsRepository.cs:40`)** still counts "sắp hết" using `Quantity <= MinStockAlert` (which includes out-of-stock rows and does not subtract `ReservedQuantity`), representing "items that need replenishment".

@@ -53,6 +53,7 @@ Phải sửa bây giờ vì cả hai nhánh vừa vào `dev`. Nếu để lâu, 
   - bỏ font Plus Jakarta riêng, dùng font chung Inter.
 - Tab Tồn kho lọc hoàn toàn ở server: đổi bộ lọc thì về trang 1 và tải lại, bỏ bộ lọc thì thấy lại toàn bộ danh sách; cây danh mục chỉ tải một lần; ngưỡng `MinStockAlert = 0` hiển thị giống server. Nút "Xem Serial" trong dialog chi tiết tồn kho chuyển sang tab Serial/IMEI (bổ sung sau review, design D12).
 - "Xuất báo cáo" tồn kho xuất **mọi dòng theo bộ lọc** (trước đây chỉ trang đang xem), mở hộp thoại **Lưu file** để người dùng chọn chỗ lưu và tên file (trước đây tự ghi vào Tải xuống mà không báo đường dẫn); không mở được hộp thoại thì lưu vào Tải xuống và báo đường dẫn đầy đủ; xuất lỗi không còn che bảng tồn kho; thông báo ghi rõ thành công hay không (design D13).
+- Bảng Tồn kho cuộn và rê chuột mượt hơn (đo được khoảng 25 lên 53–60 FPS): 3 nút thao tác mỗi dòng gom vào một nút "•••" mở menu "Xem chi tiết" / "Điều chỉnh tồn" / "Xóa tồn"; bỏ khung icon sản phẩm; cột danh mục thành chữ thường; giữ badge trạng thái. Bảng Danh mục cũng gom Sửa/Xóa vào nút "•••". Nguyên nhân là Uno 6.7 tính lại đường bao cho mọi phần tử có vẽ khi cuộn (design D14).
 - Khôi phục `DangerText` (Light) về `#B91C1C`. Thêm test contrast cho các token chữ.
 - Chuyển thư mục `Features/Categories`, `Features/Inventory` về cấu trúc nhóm (`Views/`, `ViewModels/`, `Models/`, `Services/`).
 - Cập nhật `AGENTS.md`: bảng trạng thái view (`InventoryPage` đã bị xóa) và mô tả module.
@@ -67,8 +68,8 @@ Phải sửa bây giờ vì cả hai nhánh vừa vào `dev`. Nếu để lâu, 
 - `frontend-catalog-management`: picker danh mục trong màn soạn ẩn danh mục ẩn, nhưng giữ danh mục hiện tại của sản phẩm kèm nhãn.
 - `frontend-catalog-browsing`: bộ lọc danh mục ở danh sách gắn nhãn "(đang ẩn)" cho danh mục ẩn.
 - `inventory-management`: truy vấn tồn kho lọc theo `search`, `categoryId` và ba trạng thái tồn không chồng nhau; DTO có `categoryId`; thêm requirement cho API xóa tồn kho (chỉ Admin và WarehouseStaff).
-- `inventory-stock-workspace`: bộ lọc danh mục dùng cây danh mục và gửi `categoryId`; trạng thái hiển thị theo `MinStockAlert` của từng dòng.
-- `category-workspace`: trang danh mục/kho và mọi dialog của nó đổi theo theme Sáng/Tối của app.
+- `inventory-stock-workspace`: bộ lọc danh mục dùng cây danh mục và gửi `categoryId`; trạng thái hiển thị theo `MinStockAlert` của từng dòng; mỗi dòng bỏ khung icon, danh mục là chữ thường, thao tác gom vào một nút "•••" có menu.
+- `category-workspace`: trang danh mục/kho và mọi dialog của nó đổi theo theme Sáng/Tối của app; Sửa/Xóa của mỗi dòng danh mục gom vào một nút "•••" có menu.
 
 ## Impact
 

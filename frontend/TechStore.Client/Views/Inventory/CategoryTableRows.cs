@@ -134,20 +134,12 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
         ToolTipService.SetToolTip(statusButton, $"Đổi trạng thái {row.Name}");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(statusButton, $"Đổi trạng thái {row.Name}");
         AddCell(grid, statusButton, 3, row);
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Right };
-        var edit = Button(Icon("edit", AppColors.SecondaryText, row.IsRoot ? 18 : 16), tooltip: $"Sửa {row.Name}");
-        edit.DataContext = viewModel;
+        var edit = RowAction("Sửa danh mục", row, viewModel);
         edit.Command(x => x.Binding(() => viewModel.EditCategoryCommand));
-        edit.CommandParameter = row;
-        var delete = Button(Icon("delete", AppColors.SecondaryText, row.IsRoot ? 18 : 16), tooltip: $"Xóa {row.Name}");
-        delete.DataContext = viewModel;
+        var delete = RowAction("Xóa danh mục", row, viewModel, danger: true);
         delete.Command(x => x.Binding(() => viewModel.DeleteCategoryCommand));
-        delete.CommandParameter = row;
-        delete.PointerEntered += (_, _) => delete.Content = Icon("delete", AppColors.DangerText, row.IsRoot ? 18 : 16);
-        delete.PointerExited += (_, _) => delete.Content = Icon("delete", AppColors.SecondaryText, row.IsRoot ? 18 : 16);
-        if (!row.IsRoot) { edit.Padding = new Thickness(4); delete.Padding = new Thickness(4); }
-        actions.Children.Add(edit);
-        actions.Children.Add(delete);
+        var actions = RowActionsButton($"Thao tác cho {row.Name}", edit, delete);
+        actions.HorizontalAlignment = HorizontalAlignment.Right;
         AddCell(grid, actions, 4, row);
         return new Border { Child = grid, BorderThickness = new Thickness(0, 0, 0, 1) }.BorderBrush(Theme(AppColors.Stroke));
     }

@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using TechStore.Client.Controls;
 using TechStore.Client.Controls.Presentation;
@@ -80,6 +81,27 @@ internal static class WorkspaceParts
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, tooltip);
         }
         return button;
+    }
+
+    // One quiet "•••" button per table row. Its commands open in a MenuFlyout, so a long scrolling
+    // table keeps few painted elements per row (catalog-inventory-alignment D14).
+    internal static Button RowActionsButton(string tooltip, params MenuFlyoutItem[] items)
+    {
+        var flyout = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
+        foreach (var item in items) flyout.Items.Add(item);
+        var button = Button(Text("•••", 10, AppColors.SecondaryText, 600), tooltip: tooltip);
+        button.Padding = new Thickness(8, 6, 8, 6);
+        button.Flyout = flyout;
+        return button;
+    }
+
+    // The caller binds Command on the returned item; DataContext is the page ViewModel so the binding resolves.
+    internal static MenuFlyoutItem RowAction(string text, object row, object viewModel, bool danger = false)
+    {
+        var item = new MenuFlyoutItem { Text = text, CommandParameter = row, DataContext = viewModel }
+            .FontFamily(AppTypography.Fonts.RegularFont);
+        if (danger) item.Foreground(Theme(AppColors.DangerText));
+        return item;
     }
 
     // Locally authored 24-unit line icons; no web fonts or platform-specific glyphs.

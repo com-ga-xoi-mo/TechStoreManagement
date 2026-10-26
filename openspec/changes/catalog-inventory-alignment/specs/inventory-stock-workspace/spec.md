@@ -50,6 +50,52 @@ The workspace SHALL derive a display status from `AvailableQuantity` and the row
 - **WHEN** the user picks “Sắp hết hàng” in the status filter
 - **THEN** the workspace requests `lowStock=true`, shows every returned row without hiding any client-side, and the total count and page count equal the server's metadata
 
+### Requirement: Seven-column inventory table
+The table SHALL present exactly seven columns: product/SKU, category, sale price, available quantity, reserved quantity, status, and actions, with numeric values aligned as specified by the design. To keep scrolling smooth, a row SHALL NOT draw a decorative icon box, SHALL show the category as plain secondary text rather than a badge, and SHALL keep the colored stock status badge and the row separator.
+
+#### Scenario: Render stock row content
+- **WHEN** a stock DTO is displayed
+- **THEN** the product cell shows the name and SKU without an icon box, the category cell shows the category name as plain text, quantities show `Quantity`, `ReservedQuantity`, and `AvailableQuantity`, and unavailable fields display an em dash rather than fabricated values
+
+### Requirement: Inventory workspace visual contract
+The workspace SHALL be implemented without XAML and SHALL match the structure and tokens in `docs/designs/inventory-stock.html`, including the header actions, underline tabs, filter toolbar, seven-column card, and pagination footer. Where the design differs from the lighter row described in "Seven-column inventory table" and the single row actions menu described in "Deferred stock action hooks", those requirements SHALL take precedence.
+
+#### Scenario: Render the Tồn kho tab
+- **WHEN** the workspace is shown in the supported desktop theme
+- **THEN** it displays “Danh mục và Kho”, stock total text, “Xuất báo cáo”, “Nhập kho mới”, an active Tồn kho tab, the three filter controls, and the designed typography, spacing, borders, colors, and focus states
+
+### Requirement: Deferred stock action hooks
+The workspace SHALL expose actions for “Nhập kho mới”, viewing a stock row's detail, adjusting stock, and deleting a stock row. Each row SHALL offer its actions through one “•••” button, labeled for assistive technology as “Thao tác cho <product name>”, that opens a menu with “Xem chi tiết”, “Điều chỉnh tồn” and “Xóa tồn” in that order, and the menu SHALL be reachable and operable with the keyboard. “Xem chi tiết” SHALL open the stock detail/history dialog, and “Điều chỉnh tồn” SHALL open the adjustment dialog; delete SHALL continue to mutate inventory only after a supported delete operation succeeds.
+
+#### Scenario: Open the row actions menu
+- **WHEN** the user activates the “•••” button of a stock row with the pointer, or focuses it with Tab and presses Enter
+- **THEN** a menu opens below the button with “Xem chi tiết”, “Điều chỉnh tồn” and “Xóa tồn”, the last one in the danger color, and Esc closes it without any action
+
+#### Scenario: Open stock detail
+- **WHEN** the user picks “Xem chi tiết” in a stock row's actions menu
+- **THEN** the client opens the detail/history dialog with that row's immutable identity and display context
+
+#### Scenario: Activate a deferred action
+- **WHEN** the user activates an inventory action that remains outside this workflow, such as “Nhập kho mới”
+- **THEN** the client invokes the registered hook or reports the action as unavailable and issues no stock mutation request
+
+#### Scenario: Open stock adjustment
+- **WHEN** the user picks “Điều chỉnh tồn” in a stock row's actions menu
+- **THEN** the client opens the adjustment dialog with current quantity and reserved quantity
+
+#### Scenario: Complete supported adjustment
+- **WHEN** the user confirms a valid adjustment and the server succeeds
+- **THEN** the client closes the dialog, refreshes the inventory list exactly once, and raises the success notification
+
+#### Scenario: Request stock deletion
+- **WHEN** the user picks “Xóa tồn” in a stock row's actions menu
+- **THEN** the client opens the delete-stock confirmation dialog with that row's immutable identity and display context
+- **AND** the table remains unchanged while the dialog is open or the delete operation is unavailable
+
+#### Scenario: Complete supported deletion
+- **WHEN** the user confirms a supported delete operation and the server succeeds
+- **THEN** the client closes the dialog, refreshes the inventory list exactly once, and raises the success notification
+
 ## ADDED Requirements
 
 ### Requirement: Stock detail opens the row's serials

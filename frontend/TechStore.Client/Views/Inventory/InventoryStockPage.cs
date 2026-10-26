@@ -232,21 +232,13 @@ internal sealed class InventoryStockTableRows(InventoryStockViewModel viewModel)
     {
         var grid = Columns();
         var primaryTextColor = row.IsDimmed ? AppColors.SecondaryText : AppColors.Text;
-        var identity = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
-        var iconKeys = StatusBadgePresentation.GetKeys(row.Icon.Tone);
-        identity.Children.Add(new Border
-        {
-            Width = 36, Height = 36, CornerRadius = new CornerRadius(8),
-            BorderThickness = new Thickness(1), Child = Icon(row.Icon.Symbol, iconKeys.Text)
-        }.Background(Theme(iconKeys.Fill)).BorderBrush(Theme(iconKeys.Stroke)));
         var name = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
         name.Children.Add(Text(row.ProductName, 14, primaryTextColor, 600));
         name.Children.Add(Text(row.Sku, 11, AppColors.SecondaryText, 400));
-        identity.Children.Add(name);
-        Grid.SetColumn(identity, 0);
-        grid.Children.Add(identity);
+        Grid.SetColumn(name, 0);
+        grid.Children.Add(name);
 
-        var categoryBadge = Badge(Text(row.CategoryName, 12, AppColors.SecondaryText), StatusTone.Neutral);
+        var categoryBadge = Text(row.CategoryName, 13, AppColors.SecondaryText);
         Grid.SetColumn(categoryBadge, 1);
         grid.Children.Add(categoryBadge);
 
@@ -271,22 +263,14 @@ internal sealed class InventoryStockTableRows(InventoryStockViewModel viewModel)
         Grid.SetColumn(status, 5);
         grid.Children.Add(status);
 
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
-        var serial = Button(Icon("visibility", AppColors.SecondaryText, 17), tooltip: $"Xem Serial/IMEI {row.ProductName}");
-        serial.DataContext = viewModel;
-        serial.Command(x => x.Binding(() => viewModel.ViewSerialsCommand));
-        serial.CommandParameter = row;
-        var adjust = Button(Icon("edit", AppColors.SecondaryText, 17), tooltip: $"Điều chỉnh tồn {row.ProductName}");
-        adjust.DataContext = viewModel;
+        var detail = RowAction("Xem chi tiết", row, viewModel);
+        detail.Command(x => x.Binding(() => viewModel.ViewSerialsCommand));
+        var adjust = RowAction("Điều chỉnh tồn", row, viewModel);
         adjust.Command(x => x.Binding(() => viewModel.AdjustStockCommand));
-        adjust.CommandParameter = row;
-        var delete = Button(Icon("delete_outline", AppColors.DangerText, 17), tooltip: $"Xóa tồn {row.ProductName}");
-        delete.DataContext = viewModel;
+        var delete = RowAction("Xóa tồn", row, viewModel, danger: true);
         delete.Command(x => x.Binding(() => viewModel.DeleteStockCommand));
-        delete.CommandParameter = row;
-        actions.Children.Add(serial);
-        actions.Children.Add(adjust);
-        actions.Children.Add(delete);
+        var actions = RowActionsButton($"Thao tác cho {row.ProductName}", detail, adjust, delete);
+        actions.HorizontalAlignment = HorizontalAlignment.Right;
         Grid.SetColumn(actions, 6);
         grid.Children.Add(actions);
 
@@ -319,7 +303,7 @@ internal sealed class InventoryStockPageButtons : StackPanel
                         .Visibility(x => x.Binding(() => item.IsCurrent).Convert(ShowIf)),
                     new Button().Style(AppControlStyles.Styles.Button)
                         .Content(x => x.Binding(() => item.Number))
-                        .Command(x => x.Binding(() => ViewModel.GoToPageCommand))
+                        .Command(ViewModel.GoToPageCommand)
                         .CommandParameter(x => x.Binding(() => item.Number))
                         .Visibility(x => x.Binding(() => item.IsCurrent).Convert((bool current) => ShowIf(!current)))));
         Children.Add(items);

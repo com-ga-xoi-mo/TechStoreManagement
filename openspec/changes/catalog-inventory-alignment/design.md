@@ -437,6 +437,93 @@ Quyết định, theo mẫu `SerialImeiViewModel.ReloadAfterFilterChanged` đã 
 - Mở hộp thoại trước rồi mới tải dữ liệu: phải đổi `ICsvFileSaver` thành hai bước (chọn file, rồi ghi), phức tạp hơn mà không lợi bao nhiêu với vài nghìn dòng.
 - Xuất bằng endpoint CSV phía server: thêm API mới, không cần cho quy mô hiện tại.
 
+### D14. Bảng tồn kho cuộn mượt: ít phần tử có vẽ trong mỗi dòng, thao tác dòng gom vào nút "•••" (bổ sung ngày 2026-10-26)
+
+**Hiện trạng:** người dùng báo tab Tồn kho bị giật khi cuộn và khi rê chuột qua bảng, các tab khác bình thường. Mỗi dòng của `InventoryStockTableRows.BuildRow` (`Views/Inventory/InventoryStockPage.cs`) có khoảng 10 phần tử tự vẽ nền, viền hoặc nét:
+
+- khung icon 36×36 (`Border` có nền và viền) cùng icon `Path` bên trong;
+- badge danh mục (`Border`);
+- badge trạng thái (`Border`);
+- 3 nút thao tác, mỗi nút gồm template `Button` và một icon `Path`;
+- đường kẻ dưới dòng (`Border`).
+
+**Nguyên nhân (đã đo, không đoán):** Uno 6.7.135 (Skia) luôn tính "damage region" cho mỗi frame, không có cờ tắt. Code nằm ở `Visual.Damage.skia.cs`, hàm `TryGetPaintDamageRegion` và `OutsetForAntialiasing`. Khi cuộn, mọi visual bị dời chỗ mà có nội dung vẽ (nền/viền của `Border`, nét của `Path`) đều bị tô lại đường bao bằng nét 4px rồi gộp vào vùng hỏng bằng `SKPath.Op(Union)`. Kết quả `dotnet-trace` cho thấy phần này chiếm khoảng 87% thời gian frame khi cuộn liên tục. Vì vậy, càng nhiều phần tử có vẽ trong mỗi dòng thì cuộn càng chậm. Chữ (`TextBlock`) chỉ tính theo hình chữ nhật nên rẻ. Uno đã tối ưu phần này trên nhánh 7.0-dev, nhưng chưa có bản ổn định (NuGet chỉ có 6.7.x hoặc `7.0.0-dev`).
+
+**Số đo:** bản Release, Xvfb 1536×832, 15 dòng, tự cuộn bằng `ScrollViewer.ChangeView` mỗi 16 ms, đếm frame qua `CompositionTarget.Rendering`. Bản đo nằm ngoài repo, không commit. FPS tuyệt đối thay đổi giữa các lần chạy, nên chỉ so sánh trong cùng một lượt:
+
+| Lượt | Cấu hình | FPS |
+|:--|:--|:--|
+| 1 | Hiện tại | 13,9 |
+| 1 | Bỏ 3 nút | 33,3 |
+| 1 | Bỏ icon `Path` | 24,8 |
+| 1 | Bỏ đường kẻ dòng | 9,9 (chậm hơn) |
+| 1 | Bỏ bo góc thẻ bảng | 13,9 (không đổi) |
+| 1 | Bỏ 3 nút + khung icon + icon | 49,5 |
+| 1 | Bỏ thêm 2 badge | 60 |
+| 2 | Hiện tại | 25,3 / 25,2 |
+| 2 | **Phương án dưới đây** (bản thử) | **60,0 / 52,8** |
+
+Bản thử của lượt 2 đã chạy thật: menu mở đúng chỗ, "Xem chi tiết" mở hộp thoại chi tiết của đúng dòng, và ở bảng Danh mục, "Xóa danh mục" mở hộp thoại xóa của đúng dòng.
+
+**Quyết định:**
+
+1. **Helper chung trong `Views/Inventory/WorkspaceParts.cs`** (thêm `using Microsoft.UI.Xaml.Controls.Primitives;`), đặt ngay trên comment `// Locally authored 24-unit line icons`:
+   ```csharp
+   // One quiet "•••" button per table row. Its commands open in a MenuFlyout, so a long scrolling
+   // table keeps few painted elements per row (catalog-inventory-alignment D14).
+   internal static Button RowActionsButton(string tooltip, params MenuFlyoutItem[] items)
+   {
+       var flyout = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
+       foreach (var item in items) flyout.Items.Add(item);
+       var button = Button(Text("•••", 10, AppColors.SecondaryText, 600), tooltip: tooltip);
+       button.Padding = new Thickness(8, 6, 8, 6);
+       button.Flyout = flyout;
+       return button;
+   }
+
+   // The caller binds Command on the returned item; DataContext is the page ViewModel so the binding resolves.
+   internal static MenuFlyoutItem RowAction(string text, object row, object viewModel, bool danger = false)
+   {
+       var item = new MenuFlyoutItem { Text = text, CommandParameter = row, DataContext = viewModel }
+           .FontFamily(AppTypography.Fonts.RegularFont);
+       if (danger) item.Foreground(Theme(AppColors.DangerText));
+       return item;
+   }
+   ```
+   - Ký tự là `•••` (ba dấu U+2022). **Không** dùng `⋯` (U+22EF), vì font Inter của app không có glyph này (đã kiểm bằng `fc-query`).
+   - Nút "•••" là chữ, không phải `Path`. Tooltip và `AutomationProperties.Name` lấy từ tham số `tooltip`, do `Button(...)` đặt sẵn.
+   - `MenuFlyout` chưa tạo visual nào cho tới khi mở, nên tạo một menu cho mỗi dòng vẫn rẻ.
+   - `Command` vẫn bind theo mẫu hiện có: `item.Command(x => x.Binding(() => viewModel.XCommand))`. `CommandParameter` gán thẳng bằng dòng (`row`) như code cũ, không qua binding.
+2. **Bảng tồn kho** (`InventoryStockTableRows.BuildRow`):
+   - **Bỏ khung icon 36×36 và icon `Path`** ở cột sản phẩm. Cột 0 chỉ còn `StackPanel` tên và SKU như hiện tại. Icon này chỉ để trang trí, vì danh mục đã có cột riêng. **Giữ** thuộc tính `InventoryStockRow.Icon` trong model, không xóa.
+   - **Badge danh mục đổi thành chữ thường:** `Text(row.CategoryName, 13, AppColors.SecondaryText)`, không bọc `Badge`.
+   - **Giữ badge trạng thái**, vì màu của nó mang nghĩa ("Hết hàng", "Sắp hết hàng").
+   - **Giữ đường kẻ dưới dòng.** Bỏ nó đi lại làm chậm hơn (9,9 FPS), có lẽ vì Uno chuyển sang tính vùng cắt không phải hình chữ nhật.
+   - **3 nút thao tác thay bằng một nút "•••"**, menu gồm:
+
+     | Thứ tự | Chữ | Command | Màu |
+     |:--|:--|:--|:--|
+     | 1 | Xem chi tiết | `ViewSerialsCommand` | mặc định |
+     | 2 | Điều chỉnh tồn | `AdjustStockCommand` | mặc định |
+     | 3 | Xóa tồn | `DeleteStockCommand` | `DangerText` |
+
+     Chữ "Xem chi tiết" thay cho tooltip cũ "Xem Serial/IMEI", vì lệnh này mở hộp thoại chi tiết tồn kho (có lịch sử và link sang Serial/IMEI, xem requirement "Stock detail opens the row's serials"). Tooltip của nút là `$"Thao tác cho {row.ProductName}"`. Nút căn phải (`HorizontalAlignment.Right`) trong cột 6.
+   - Bố cục 7 cột, header và độ rộng cột giữ nguyên.
+3. **Bảng Danh mục** (`Views/Inventory/CategoryTableRows.cs`, `BuildRow`):
+   - 2 nút Sửa/Xóa thay bằng một nút "•••", menu gồm "Sửa danh mục" (`EditCategoryCommand`) và "Xóa danh mục" (`DeleteCategoryCommand`, màu `DangerText`); tooltip `$"Thao tác cho {row.Name}"`.
+   - Xóa luôn hai dòng `delete.PointerEntered += ...` và `delete.PointerExited += ...` (đổi icon khi rê chuột), vì nút xóa không còn nữa.
+   - **Giữ** nút mở/thu gọn (chevron), công tắc trạng thái, khung icon của dòng gốc, badge "Danh mục gốc" và hover nền dòng. Bảng này chỉ có vài dòng mỗi trang (tối đa 15 danh mục gốc), nên chỉ gom nút để thống nhất với bảng tồn kho và bớt phần tử có vẽ khi danh mục nhiều lên.
+4. **Không đổi ViewModel và test.** Các command vẫn nhận `InventoryStockRow?` / `CategoryRow?`, như test hiện có. Tab Serial/IMEI giữ nguyên, vì mỗi dòng chỉ có khoảng 2 phần tử có vẽ.
+5. **Ghi vào AGENTS.md** (mục 6, ngay sau gạch đầu dòng "Icons: pass the registered instance..."), để các trang khác không lặp lại lỗi:
+   > - **Long scrolling tables on Skia (Uno 6.7):** every `Border` with a background/border and every `Path` that moves during scrolling is re-outlined for the damage region each frame, so keep painted elements per row low. Put row commands in one "•••" `RowActionsButton` with a `MenuFlyout` (`Views/Inventory/WorkspaceParts.cs`), show secondary values as plain text instead of badges, and avoid decorative icon boxes. Keep the row separator border (removing it was slower). See `catalog-inventory-alignment` D14; re-measure after a Uno upgrade.
+
+**Phương án đã loại:**
+
+- Chỉ hiện 3 nút khi rê chuột vào dòng: rê chuột cũng đang giật, phải thêm ngoại lệ `PointerEntered` đổi `Visibility` (AGENTS.md cấm), và bàn phím, trình đọc màn hình khó tìm thấy nút.
+- `ItemsRepeater` hoặc `ListView` ảo hóa: chỉ có 15–20 dòng mỗi trang nên ảo hóa không bớt được bao nhiêu phần tử đang hiện; chi phí nằm ở số phần tử có vẽ trên màn hình.
+- Nâng Uno lên `7.0.0-dev`: bản chưa ổn định, `global.json` khóa `allowPrerelease: false`.
+- Bỏ luôn badge trạng thái (đạt 60 FPS ở lượt 1): mất tín hiệu màu cho "Hết hàng"/"Sắp hết hàng", trong khi phương án trên đã đủ mượt.
+
 ## Risks / Trade-offs
 
 - **[Rủi ro] Tranh code với Dev 3:** change sửa phần lớn file Feature 3. → Báo Dev 3 trước khi apply. Làm trên nhánh tạo từ `dev` sau khi nhánh Dev 3 đã merge, hoặc thống nhất để Dev 3 ngừng sửa các file này trong lúc làm.
@@ -446,6 +533,8 @@ Quyết định, theo mẫu `SerialImeiViewModel.ReloadAfterFilterChanged` đã 
 - **[Đánh đổi] `categoryName` bị đổi thành `categoryId` (breaking).** → Chỉ có client trong repo dùng tham số này. Đổi cả hai phía trong cùng commit nhóm 3+5, hoặc giữ backend nhận cả hai tạm thời. Không cần, vì không có client bên ngoài.
 - **[Đánh đổi] Repository Inventory vẫn trả DTO** (D3). → Chấp nhận theo tiền lệ Identity. Ghi vào AGENTS.md là việc về sau.
 - **[Rủi ro] Chuyển thư mục làm hỏng link trong project test.** → Task 8 cập nhật `<Compile Include>` và chạy lại toàn bộ test.
+- **[Đánh đổi] Gom thao tác vào nút "•••" (D14) thêm một lần bấm và lệch bản thiết kế HTML của Dev 3** (bỏ khung icon, badge danh mục). → Đổi lại bảng cuộn mượt gấp khoảng 2 lần. Gửi ảnh trước/sau cho Dev 3 duyệt cùng các thay đổi khác.
+- **[Rủi ro] `MenuFlyout` trên Skia không theo theme hoặc mất font Inter.** → Task 13.4 kiểm cả Sáng và Tối, kể cả khi đổi theme lúc trang đang mở.
 
 ## Migration Plan
 

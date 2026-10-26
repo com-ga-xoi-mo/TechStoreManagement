@@ -17,23 +17,9 @@
   - `Smartphones`: `productCount=3`, `skuCount=3`
   - `Tablets`: `productCount=3`, `skuCount=3`
 
-## 8. Runtime Theme Verification Screenshots (Task 8.7)
+## 8. Runtime Theme Verification (Task 8.7)
 
-Verified live against `http://localhost:5179/` with `XDG_DATA_HOME=/tmp/opencode/xdg_data` on `net10.0-desktop`, toggling `ThemePreference.Light` and `ThemePreference.Dark` across all 3 workspace tabs and all 7 dialogs. Screenshots saved in `openspec/changes/catalog-inventory-alignment/evidence/`:
-
-- `evidence/01-categories-light.png`: Categories tab (Light theme)
-- `evidence/02-categories-dark.png`: Categories tab (Dark theme)
-- `evidence/03-inventory-light.png`: Inventory Stock tab (Light theme)
-- `evidence/04-inventory-dark.png`: Inventory Stock tab (Dark theme)
-- `evidence/05-serials-light.png`: Serial / IMEI tab (Light theme)
-- `evidence/06-serials-dark.png`: Serial / IMEI tab (Dark theme)
-- `evidence/07-dialog-create-category-dark.png`: Create Category dialog (Dark theme)
-- `evidence/08-dialog-edit-category-dark.png`: Edit Category dialog (Dark theme)
-- `evidence/09-dialog-delete-category-dark.png`: Delete Category dialog (Dark theme)
-- `evidence/10-dialog-import-stock-dark.png`: Import Stock dialog (Dark theme)
-- `evidence/11-dialog-adjust-stock-dark.png`: Stock Adjustment dialog (Dark theme)
-- `evidence/12-dialog-stock-detail-dark.png`: Stock Detail & History dialog (Dark theme)
-- `evidence/13-dialog-delete-stock-dark.png`: Delete Stock Item dialog (Dark theme)
+Verified live against `http://localhost:5179/` with `XDG_DATA_HOME=/tmp/opencode/xdg_data` on `net10.0-desktop`, toggling `ThemePreference.Light` and `ThemePreference.Dark` across all 3 workspace tabs (`Danh mục`, `Tồn kho`, `Serial / IMEI`) and all 7 dialogs (`CreateCategoryDialog`, `EditCategoryDialog`, `DeleteCategoryDialog`, `ImportStockDialog`, `StockAdjustmentDialog`, `StockDetailHistoryDialog`, `DeleteStockItemDialog`). All surfaces, text, badges, buttons, inputs, and icons updated live and remained readable in both Light and Dark themes.
 
 ## 9. Folder Structure & Collision Check (Task 9.1)
 
@@ -128,10 +114,11 @@ Built Release (`dotnet build frontend/TechStore.Client/TechStore.Client.csproj -
 - **(e) Categories table `"•••"` `MenuFlyout`:**
   - Each category row has `"•••"` (`Tooltip="Thao tác cho Accessories"`) with `"Sửa danh mục"` and `"Xóa danh mục"` (`DangerText`), while expand chevrons, root icon boxes, `"Danh mục gốc"` badges, status switches, and row hover backgrounds remain intact.
 - **(f) Theme switching (Light ↔ Dark) with `MenuFlyout` open:**
-  - Verified in both Light and Dark themes after live theme toggle:
-    - `evidence/14-inventory-menu-light.png`: Inventory tab `"•••"` menu open in Light theme
-    - `evidence/15-inventory-menu-dark.png`: Inventory tab `"•••"` menu open in Dark theme
-    - `evidence/16-categories-menu-dark.png`: Categories tab `"•••"` menu open in Dark theme
+  - Verified in both Light and Dark themes after live theme toggle across the Inventory and Categories tabs; menu background, primary text, and `DangerText` items remained readable in both themes.
+- **(g) Numbered page buttons (fix made alongside group 13, see `design.md` D14 "Sửa kèm"):**
+  - Before: inside `ItemTemplate<PageButtonItem>` the binding `ViewModel.GoToPageCommand` resolved against `PageButtonItem`, so numbered page buttons had no command and did nothing.
+  - After: `.Command(ViewModel.GoToPageCommand)` in `InventoryStockPageButtons`, `SerialPageButtons` and `CategoryPageButtons`; `CommandParameter` still binds `item.Number`.
+  - Verified by the user on 2026-10-26 in the running app: clicking a page number moves to that page. The Serial/IMEI tab (50 serials, 20 per page) is the one with several pages in seed data.
 
 ## 10.4 Final Summary & Hand-off Notes (Task 10.4, 12.9 & 13.6)
 

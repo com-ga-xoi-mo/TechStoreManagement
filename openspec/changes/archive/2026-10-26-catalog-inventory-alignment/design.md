@@ -517,6 +517,13 @@ Bản thử của lượt 2 đã chạy thật: menu mở đúng chỗ, "Xem chi
 5. **Ghi vào AGENTS.md** (mục 6, ngay sau gạch đầu dòng "Icons: pass the registered instance..."), để các trang khác không lặp lại lỗi:
    > - **Long scrolling tables on Skia (Uno 6.7):** every `Border` with a background/border and every `Path` that moves during scrolling is re-outlined for the damage region each frame, so keep painted elements per row low. Put row commands in one "•••" `RowActionsButton` with a `MenuFlyout` (`Views/Inventory/WorkspaceParts.cs`), show secondary values as plain text instead of badges, and avoid decorative icon boxes. Keep the row separator border (removing it was slower). See `catalog-inventory-alignment` D14; re-measure after a Uno upgrade.
 
+**Sửa kèm (phát hiện khi làm nhóm 13, commit `9cb8232`):** nút số trang ở cả 3 tab không làm gì khi bấm. Lỗi nằm ở các file `InventoryStockPage.cs` (`InventoryStockPageButtons`), `SerialImeiPage.cs` (`SerialPageButtons`) và `CategoryManagementPage.cs` (`CategoryPageButtons`).
+
+- **Nguyên nhân:** nút nằm trong `ItemTemplate<PageButtonItem>`, nên `DataContext` của nút là `PageButtonItem(Number, IsCurrent)`. Binding `.Command(x => x.Binding(() => ViewModel.GoToPageCommand))` tìm `GoToPageCommand` trên `PageButtonItem`, không có, nên `Command` là `null`. Nút "Trang trước"/"Trang sau" không bị, vì chúng nằm ngoài template.
+- **Cách sửa:** gán thẳng command của ViewModel, `.Command(ViewModel.GoToPageCommand)`, giữ nguyên `.CommandParameter(x => x.Binding(() => item.Number))`. Command là thuộc tính chỉ đọc do `[RelayCommand]` sinh ra, không đổi trong suốt vòng đời trang, nên không cần binding. Repo đã có cách viết này ở `Views/Catalog/ProductImageViewerView.cs:32` (`.Command(Viewer.SelectImageCommand)` trong item template).
+- **Quy tắc rút ra:** trong `ItemTemplate`, chỉ bind những gì nằm trên item. Command của ViewModel trang thì gán thẳng instance, hoặc đặt `DataContext` riêng như các nút trong `BuildRow`.
+- **Đã kiểm:** người dùng chạy app và xác nhận bấm số trang chuyển đúng trang, ngày 2026-10-26.
+
 **Phương án đã loại:**
 
 - Chỉ hiện 3 nút khi rê chuột vào dòng: rê chuột cũng đang giật, phải thêm ngoại lệ `PointerEntered` đổi `Visibility` (AGENTS.md cấm), và bàn phím, trình đọc màn hình khó tìm thấy nút.

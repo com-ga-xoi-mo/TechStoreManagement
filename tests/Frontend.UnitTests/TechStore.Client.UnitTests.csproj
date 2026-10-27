@@ -47,6 +47,8 @@
              Link="Production\Services\Api\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\..\frontend\TechStore.Client\Services\Session\**\*.cs"
              Link="Production\Services\Session\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\..\frontend\TechStore.Client\Services\Inventory\**\*.cs"
+             Link="Production\Services\Inventory\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\..\frontend\TechStore.Client\ServiceCollectionExtensions.cs"
              Link="Production\ServiceCollectionExtensions.cs" />
     <Compile Include="..\..\frontend\TechStore.Client\ServiceProviderLifetime.cs"

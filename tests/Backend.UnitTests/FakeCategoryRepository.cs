@@ -13,13 +13,24 @@ public class FakeCategoryRepository : ICategoryRepository
         return Task.FromResult(category);
     }
 
-    public Task<IReadOnlyList<Category>> GetActiveCategoriesAsync(CancellationToken cancellationToken = default)
+    public Task<Category?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        => GetByIdAsync(id, cancellationToken);
+
+    public Task<IReadOnlyList<CategoryTreeRow>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<Category> active = Categories.Values
-            .Where(c => c.IsActive)
+        IReadOnlyList<CategoryTreeRow> rows = Categories.Values
             .OrderBy(c => c.Name)
+            .Select(c => new CategoryTreeRow(
+                c.Id,
+                c.Name,
+                c.Slug,
+                c.Description,
+                c.ParentId,
+                c.IsActive,
+                c.Products.Count,
+                c.Products.Sum(p => p.Variants.Count == 0 ? 1 : p.Variants.Count)))
             .ToList();
-        return Task.FromResult(active);
+        return Task.FromResult(rows);
     }
 
     public Task<bool> ExistsBySlugAsync(string slug, CancellationToken cancellationToken = default)
@@ -28,6 +39,38 @@ public class FakeCategoryRepository : ICategoryRepository
         var exists = Categories.Values.Any(c => c.Slug.ToLowerInvariant() == normalized);
         return Task.FromResult(exists);
     }
+
+    public Task<bool> ExistsBySlugExceptIdAsync(string slug, Guid excludedId, CancellationToken cancellationToken = default)
+    {
+        var normalized = slug.Trim().ToLowerInvariant();
+        var exists = Categories.Values.Any(c => c.Id != excludedId && c.Slug.ToLowerInvariant() == normalized);
+        return Task.FromResult(exists);
+    }
+
+    public Task<IReadOnlyList<Guid>> GetDescendantIdsAsync(Guid categoryId, CancellationToken cancellationToken = default)
+    {
+        var descendants = new List<Guid>();
+        var pending = new Queue<Guid>(Categories.Values.Where(c => c.ParentId == categoryId).Select(c => c.Id));
+        while (pending.Count > 0)
+        {
+            var id = pending.Dequeue();
+            if (descendants.Contains(id)) continue;
+            descendants.Add(id);
+            foreach (var child in Categories.Values.Where(c => c.ParentId == id)) pending.Enqueue(child.Id);
+        }
+        return Task.FromResult<IReadOnlyList<Guid>>(descendants);
+    }
+
+    public Task<bool> HasSubCategoriesAsync(Guid categoryId, CancellationToken cancellationToken = default)
+        => Task.FromResult(Categories.Values.Any(c => c.ParentId == categoryId));
+
+    public Task<bool> HasProductsAsync(Guid categoryId, CancellationToken cancellationToken = default)
+        => Task.FromResult(Categories.TryGetValue(categoryId, out var category) && category.Products.Count > 0);
+
+    public Task AcquireHierarchyUpdateLockAsync(CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    public void Delete(Category category) => Categories.Remove(category.Id);
 
     public void Add(Category category)
     {

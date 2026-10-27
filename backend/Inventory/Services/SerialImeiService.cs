@@ -30,6 +30,7 @@ public class SerialImeiService(
         if (pageSize > 100) pageSize = 100;
 
         var criteria = new SerialImeiSearchCriteria(
+            request.Search,
             request.ProductId,
             request.VariantId,
             request.Status,

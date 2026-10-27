@@ -29,6 +29,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     private readonly IProductSpecRepository _specs;
     private readonly IProductBrandRepository _brands;
     private IReadOnlyList<BrandOption> _brandOptions = [];
+    private IReadOnlyList<CategoryOption> _allCategories = [];
     private SpecCatalog _catalog = SpecCatalog.Empty;
 
     public ProductImageGallery Gallery { get; }
@@ -88,6 +89,9 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     public bool HasSpecCatalogMessage => !string.IsNullOrWhiteSpace(SpecCatalogMessage);
     public bool HasBrandSuggestions => BrandSuggestions.Count > 0;
     public bool HasBrandHint => !string.IsNullOrWhiteSpace(BrandHint);
+    public string CategoryHint => Categories.FirstOrDefault(o => o.Id == SelectedCategoryId) is { IsActive: false }
+        ? "Danh mục này đang bị ẩn. Sản phẩm vẫn lưu được, nhưng không thể chuyển sản phẩm khác vào danh mục này."
+        : string.Empty;
 
     public bool HasVariants => Variants.Count > 0;
     public bool IsBarcodeEnabled => !HasVariants;
@@ -154,6 +158,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
     partial void OnBrandSuggestionsChanged(IReadOnlyList<Choice> value) => OnPropertyChanged(nameof(HasBrandSuggestions));
     partial void OnBrandHintChanged(string value) => OnPropertyChanged(nameof(HasBrandHint));
     partial void OnBrandChanged(string value) => UpdateBrandSuggestions();
+    partial void OnSelectedCategoryIdChanged(Guid? value) => OnPropertyChanged(nameof(CategoryHint));
 
     // Suggestions are help only: the server stores the existing spelling anyway (API design D14).
     private void UpdateBrandSuggestions()
@@ -249,7 +254,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
 
         try
         {
-            Categories = await _categories.GetTreeAsync(cancellationToken);
+            _allCategories = await _categories.GetTreeAsync(cancellationToken);
             await LoadSpecCatalogAsync(cancellationToken);
             await LoadBrandsAsync(cancellationToken);
 
@@ -265,6 +270,8 @@ public sealed partial class ProductEditorViewModel : PageViewModel
 
                 IsNotFound = false;
                 SelectedCategoryId = product.CategoryId;
+                Categories = _allCategories.Where(o => o.IsActive || o.Id == SelectedCategoryId).ToArray();
+                OnPropertyChanged(nameof(CategoryHint));
                 Name = product.Name;
                 PageTitle = $"Chỉnh sửa: {product.Name}";
                 Sku = product.Sku;
@@ -305,6 +312,8 @@ public sealed partial class ProductEditorViewModel : PageViewModel
                 Gallery.Reset();
                 IsNotFound = false;
                 SelectedCategoryId = null;
+                Categories = _allCategories.Where(o => o.IsActive || o.Id == SelectedCategoryId).ToArray();
+                OnPropertyChanged(nameof(CategoryHint));
                 Name = string.Empty;
                 PageTitle = "Thêm sản phẩm mới";
                 Sku = string.Empty;

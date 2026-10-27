@@ -49,7 +49,7 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 - **`backend/Sales/`**: POS counter register sessions, cashier cart calculation, and dynamic VietQR generation (`PosSession`, `VietQrTransaction`).
 - **`backend/Identity/`**: User credentials, refresh tokens, store configuration settings, RBAC authorization, initial database seeding (`IAuthService`, `IStoreSettingsService`, `AuthController`, `StoreController`, `DataSeeder`, `IDataSeeder`).
 - **`backend/Common/`**: Core infrastructure including `AppDbContext`, `IUnitOfWork` / `UnitOfWork` (saves and transactions), `DuplicateKeyException`, `BaseEntity`, HTTP exception handling, and `Storage/` (`IObjectStorage`, `ObjectStorageOptions`, R2 or a local folder).
-- **`frontend/TechStore.Client/`**: Cross-platform desktop application organized into `Views/`, `ViewModels/`, `Models/`, `Repositories/`, `Services/` (including `Files/IImageFilePicker`; WinUI implementation `Views/Shell/ImageFilePicker.cs`), `Controls/`, and `Styles/`.
+- **`frontend/TechStore.Client/`**: Cross-platform desktop application organized into `Views/`, `ViewModels/`, `Models/`, `Repositories/`, `Services/` (including `Files/IImageFilePicker` and `Files/ICsvFileSaver`; WinUI implementations `Views/Shell/ImageFilePicker.cs` and `Views/Shell/CsvFileSaver.cs`), `Controls/`, and `Styles/`.
 - **`shared/`**: Common domain contracts consumed across backend, client, and test projects (`DTOs/`, `Requests/`, `Enums/`).
 
 ### 3. Data Flow
@@ -86,11 +86,11 @@ SalesManagement/
 │   ├── Directory.Packages.props   # Central Package Management package definitions
 │   └── TechStore.Client/          # Uno Platform multi-targeted client project
 │       ├── App.xaml / App.xaml.cs # DI bootstrap (AddFrontendFoundation, AddFrontendUi) and window lifecycle
-│       ├── Views/                 # UI pages: C# Markup (Catalog, Identity, Settings, Shell, Development/MarkupReferencePage) and legacy XAML (Customers, Dashboard, Inventory, Orders, Development/ComponentGalleryPage, MainPage)
+│       ├── Views/                 # UI pages: C# Markup (Catalog, Inventory, Orders, Identity, Settings, Shell, Development/MarkupReferencePage) and legacy XAML (Customers, Dashboard, Development/ComponentGalleryPage, MainPage)
 │       ├── ViewModels/            # MVVM ViewModels extending PageViewModel (Catalog, Customers, Dashboard, Inventory, Orders)
-│       ├── Repositories/          # Client data repositories mapping DTOs to client Models (Catalog, Analytics)
+│       ├── Repositories/          # Client data repositories mapping DTOs to client Models (Catalog, Inventory, Orders, Customers, Analytics; backlog: IInventoryRepository still returns DTOs)
 │       ├── Models/                # Client-side presentation models (ProductSummary, ProductDetail, DashboardSnapshot)
-│       ├── Services/              # Client services (Api, Files/IImageFilePicker, Navigation, Session, Theme, Dialog, Window); picker in Views/Shell/ImageFilePicker.cs
+│       ├── Services/              # Client services (Api, Files/IImageFilePicker, Files/ICsvFileSaver, Navigation, Session, Theme, Dialog, Window); WinUI implementations in Views/Shell/ImageFilePicker.cs and Views/Shell/CsvFileSaver.cs
 │       ├── Controls/              # Shared controls in C# Markup (StatCard, StatusBadge, SearchBoxControl, EmptyStateControl), Presentation/ (pure display rules), Charts/
 │       ├── Styles/                # C# design tokens: AppColors, AppTypography, AppMetrics, AppIcons, AppControlStyles (+ *.Resources.cs accessors), AppResources (registration); StitchTokens (legacy static colors)
 │       └── Platforms/             # Desktop (Skia macOS/Linux) and Windows entry points
@@ -225,7 +225,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - **Repository Methods:** Repositories express business query intent (`SearchAsync(criteria)`, `GetWithVariantsAsync(id)`, `FindExistingSkusAsync(skus)`, `Add(product)`). Read-only methods MUST use `AsNoTracking()`. Repositories stage changes (`Add`, `Remove`) and **never** invoke `SaveChanges`, `BeginTransaction`, `Commit`, or `Rollback`.
 - **Unit of Work Pattern (`IUnitOfWork` / `UnitOfWork`):**
   - Wraps the request-scoped `AppDbContext`.
-  - `SaveChangesAsync(cancellationToken)` writes all staged changes. PostgreSQL unique constraint violations (`23505`) are caught and translated into `DuplicateKeyException` (exposing `ConstraintName`), which domain services translate to conflict results (HTTP 409).
+  - `SaveChangesAsync(cancellationToken)` writes all staged changes. PostgreSQL unique constraint violations (`23505`) are caught and translated into `DuplicateKeyException` (exposing `ConstraintName`), and check constraint violations (`23514`) are translated into `CheckConstraintViolationException`, which domain services translate to conflict results (HTTP 409).
   - `BeginTransactionAsync(cancellationToken)` throws an `InvalidOperationException` if a transaction is already active (no nested transactions).
   - `RollbackAsync(cancellationToken)` rolls back the active transaction and clears the EF Core `ChangeTracker` (`dbContext.ChangeTracker.Clear()`) to prevent dirty state contamination.
 
@@ -297,19 +297,21 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - Typed WinUI properties bind the same way, e.g. `this.RequestedTheme(x => x.Binding(() => ViewModel.ThemeIndex).Convert((int i) => ...))`.
   - The binding path is derived from the lambda text at run time, so a wrong path still builds. Always run the page and check the binding, not only the build.
   - Grid sizes in strings (`.ColumnDefinitions("2*, 1*, Auto")`) take whole numbers only: Uno Markup 6.7 reads a star size with the regex `(\d+)\*`, so `"1.15*"` silently becomes `15*`. Write `"6*, 5*"` instead of `"1.2*, 1*"`.
-  - Item templates: Uno calls the builder passed to `ItemTemplate<T>(Func<T, UIElement>)` with `default`, so the item parameter is always `null` when the template is built. Use it only inside binding lambdas (`.Text(x => x.Binding(() => item.Name))`, `.CommandParameter(x => x.Binding(() => item))`, `.ItemsSource(x => x.Binding(() => item.Children))`); never `.Text(item.Name)`, `.CommandParameter(item)` or `.ItemsSource(item.Children)`, which build but break at run time. A command that receives such a `CommandParameter` binding takes `object?` and checks the type (`if (parameter is Row row)`): while a row is being removed the binding can briefly hand over the page's DataContext, and a typed `RelayCommand<T>` then throws.
+  - Item templates: Uno calls the builder passed to `ItemTemplate<T>(Func<T, UIElement>)` with `default`, so the item parameter is always `null` when the template is built. Use it only inside binding lambdas (`.Text(x => x.Binding(() => item.Name))`, `.CommandParameter(x => x.Binding(() => item))`, `.ItemsSource(x => x.Binding(() => item.Children))`); never `.Text(item.Name)`, `.CommandParameter(item)` or `.ItemsSource(item.Children)`, which build but break at run time. A command that receives such a `CommandParameter` binding takes `object?` and checks the type (`if (parameter is Row row)`): while a row is being removed the binding can briefly hand over the page's DataContext, and a typed `RelayCommand<T>` then throws. Inside an item template the `DataContext` is the item, so bind only the item's own properties there. A command of the page ViewModel must be assigned directly (`.Command(ViewModel.GoToPageCommand)`, as in `ProductImageViewerView`), or the element gets its own `DataContext = viewModel` like the row buttons in `BuildRow`; `.Command(x => x.Binding(() => ViewModel.XCommand))` inside the template resolves against the item and leaves the button without a command (see `catalog-inventory-alignment` D14 "Sửa kèm").
 - **Forbidden in View/Control files when syncing data with the ViewModel:** `PropertyChanged +=`, `TextChanged +=`, `Checked +=`, `Click +=`, `Color.FromArgb`, `new SolidColorBrush(...)`, and setting `Visibility`/`Text` from event handlers. Use bindings, converters and commands instead.
-- **Allowed exceptions (documented in `openspec/changes/csharp-markup-foundation/design.md` D2):**
+- **Allowed exceptions (documented in `openspec/changes/archive/2026-10-17-csharp-markup-foundation/design.md` D2):**
   - `AutoSuggestBox.QuerySubmitted` in `SearchBoxControl` to raise `SearchCommand` (no command exists for submit);
   - returning focus to the text box when "Xóa" is pressed (focus cannot be bound);
   - `PasswordBox` sync in `LoginPage` via `PasswordChanged` (and `ViewModel.PropertyChanged` for show/hide), because `PasswordBox.Password` is not a DependencyProperty;
   - a DependencyProperty changed-callback in a shared control that only computes derived display properties through `Controls/Presentation` helpers;
-  - focus restore in Catalog pages (`ProductListPage` returns focus to the product card or heading after coming back from detail via `ViewModel.PropertyChanged` on `Snapshot`; `ProductDetailPage`/`ProductEditorPage` focus their heading on `Loaded`), because focus cannot be bound — see `openspec/changes/archive/2026-10-23-catalog-product-management-ui/design.md` D8.
-  Any new exception must be added to design D2 first.
+  - focus restore in Catalog pages (`ProductListPage` returns focus to the product card or heading after coming back from detail via `ViewModel.PropertyChanged` on `Snapshot`; `ProductDetailPage`/`ProductEditorPage` focus their heading on `Loaded`), because focus cannot be bound — see `openspec/changes/archive/2026-10-23-catalog-product-management-ui/design.md` D8;
+  - dialog `RequestClose` → `Hide()`, C# events requesting dialog presentation or reporting dialog outcomes from ViewModel to Page (`DeleteRequested`, `StockDetailRequested`, `StockAdjustmentRequested`, `ActionRequested`, `AdjustmentRequested`, `SerialsRequested`, `CategoryCreated`, `CategoryUpdated`, `CategoryDeleted`, `ImportSucceeded`, `AdjustmentSucceeded`, `DeleteSucceeded`, `ICategoryDialogRequests.Requested`), `SizeChanged` for responsive layout reflow, `PointerEntered`/`PointerExited` hover effects that only swap theme token brushes, and `Loaded`/`Unloaded` lifecycle hooks — see `openspec/changes/archive/2026-10-26-catalog-inventory-alignment/design.md` D5 and D12.
+  Any later exception must be recorded in the `design.md` of the change that introduces it (for example `catalog-inventory-alignment` D5).
 - **Theme tokens (`frontend/TechStore.Client/Styles/`):**
   - Values live in C#: `AppColors`, `AppTypography`, `AppMetrics`, `AppIcons`, `AppControlStyles`. Key names are string constants (`AppColors.Canvas == "TechStoreCanvasBrush"`, pure C#, unit-tested). `AppResources.Register(this)` merges them into `Application.Resources` in the `App` constructor, after `XamlControlsResources`. `App.xaml` has no `Styles/*.xaml`.
   - Typed accessors for C# Markup return theme references, so colors follow Light/Dark: `.Background(AppColors.Brushes.Canvas)`, `.Foreground(AppColors.Brushes.SecondaryText)`, `.Style(AppTypography.Styles.HeadingText)`, `.Style(AppControlStyles.Styles.PrimaryButton)`, `AppMetrics.Values.CardRadius`. Do not use a static `Brush` or `Color` for themed UI. When the same element also sets its own theme color (e.g. `.Foreground(AppColors.Brushes.SecondaryText)`), apply the style with `.Style(AppResources.GetStyle(AppTypography.CaptionText))` instead of `AppTypography.Styles.*`, so the style cannot override that color (see `MarkupReferencePage`).
   - Icons: pass the registered instance, `.IconSource(AppIcons.Get(AppIcons.EmptyIcon))`. Do not bind an `IconSource` through a Markup `StaticResource` builder: on Skia it made the first layout of the product list take about 8.5 s instead of 0.2 s.
+  - **Long scrolling tables on Skia (Uno 6.7):** every `Border` with a background/border and every `Path` that moves during scrolling is re-outlined for the damage region each frame, so keep painted elements per row low. Put row commands in one "•••" `RowActionsButton` with a `MenuFlyout` (`Views/Inventory/WorkspaceParts.cs`), show secondary values as plain text instead of badges, and avoid decorative icon boxes. Keep the row separator border (removing it was slower). See `catalog-inventory-alignment` D14; re-measure after a Uno upgrade.
   - **Theme colors and Styles (verified on Skia, see `design.md` D3 and "Việc về sau"):** in Uno C# Markup, a Style `Setter` whose value is a theme color (`new Style<T>().Setters(s => s.Background(AppColors.Brushes.Surface))`) is resolved once and does NOT update when the theme changes at run time. Rules:
     1. **In C# Markup views and controls, set theme colors directly on the element**: `.Background(AppColors.Brushes.Surface)`, `.Foreground(AppColors.Brushes.Text)`. This updates live on Light/Dark switch.
     2. **Markup `Style<T>` holds only non-color properties** (font, size, line height, padding, corner radius, min height). Do not put theme colors in a Markup style.
@@ -329,9 +331,9 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
 
   |State|Views|
   |:---|:---|
-  |C# Markup with theme-aware tokens|`MarkupReferencePage`, `OrderListPage`, `OrderCreatePage`, `OrderDetailDialog`, `ProductListPage`, `ProductDetailPage`, `ProductEditorPage`, `ProductImageGalleryView`, `ProductImageViewerView`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
+  |C# Markup with theme-aware tokens|`MarkupReferencePage`, `OrderListPage`, `OrderCreatePage`, `OrderDetailDialog`, `ProductListPage`, `ProductDetailPage`, `ProductEditorPage`, `ProductImageGalleryView`, `ProductImageViewerView`, `CategoryManagementPage`, `InventoryStockPage`, `SerialImeiPage`, `CreateCategoryDialog`, `EditCategoryDialog`, `DeleteCategoryDialog`, `ImportStockDialog`, `StockAdjustmentDialog`, `StockDetailHistoryDialog`, `DeleteStockItemDialog`; shared controls `StatCard`, `StatusBadge`, `SearchBoxControl`, `EmptyStateControl`|
   |C# Markup, colors still static (`StitchTokens` / `Color.FromArgb`), light only|`LoginPage`, `ShellPage`, `SettingsPage` (backlog: move to the theme accessors, then delete `StitchTokens`)|
-  |Still XAML|`DashboardPage`, `InventoryPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
+  |Still XAML|`DashboardPage`, `CustomerListPage`, `ComponentGalleryPage`, `MainPage`|
 
 ### 7. Asynchronous Programming Pattern
 - Pure non-blocking `async`/`await` end-to-end.
@@ -356,7 +358,7 @@ dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --collect:"XPlat 
   - **Singleton:** Stateless utility services (`TimeProvider.System`), token generators, `IObjectStorage` (`R2ObjectStorage` or `LocalObjectStorage`).
 - **Frontend (`frontend/TechStore.Client/App.xaml.cs`):**
   - `AddFrontendFoundation`: Registers `ApiClientOptions`, `ISessionStore` (Singleton), `BearerTokenHandler` (Transient), and configured `IApiClient` / `ApiClient` via `AddHttpClient`.
-  - `AddFrontendUi`: Registers core client services (`INavigationService`, `IDialogService`, `IThemePreferenceService`, `IWindowLifetime`) as Singleton; `ImageFilePicker` / `IImageFilePicker` as Singleton; ViewModels, Views, and Client Repositories (`IProductRepository`, `ICategoryRepository`, `IProductImageRepository`) as Transient.
+  - `AddFrontendUi`: Registers core client services (`INavigationService`, `IDialogService`, `IThemePreferenceService`, `IWindowLifetime`) as Singleton; `ImageFilePicker` / `IImageFilePicker` and `CsvFileSaver` / `ICsvFileSaver` as Singleton; ViewModels, Views, and Client Repositories (`IProductRepository`, `ICategoryRepository`, `ICategoryWorkspaceRepository`, `IProductImageRepository`, `IInventoryRepository`) as Transient (note: `IInventoryRepository` still returns shared DTOs; mapping to client models is a follow-up item).
 
 ---
 

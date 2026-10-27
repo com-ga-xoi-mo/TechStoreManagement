@@ -28,6 +28,8 @@ public static partial class AppColors
         public static Action<IDependencyPropertyBuilder<Brush>> InfoText => ThemeResource.Get<Brush>(AppColors.InfoText);
         public static Action<IDependencyPropertyBuilder<Brush>> InfoFill => ThemeResource.Get<Brush>(AppColors.InfoFill);
         public static Action<IDependencyPropertyBuilder<Brush>> InfoStroke => ThemeResource.Get<Brush>(AppColors.InfoStroke);
+        public static Action<IDependencyPropertyBuilder<Brush>> EditContextFill => ThemeResource.Get<Brush>(AppColors.EditContextFill);
+        public static Action<IDependencyPropertyBuilder<Brush>> EditContextStroke => ThemeResource.Get<Brush>(AppColors.EditContextStroke);
         public static Action<IDependencyPropertyBuilder<Brush>> SuccessText => ThemeResource.Get<Brush>(AppColors.SuccessText);
         public static Action<IDependencyPropertyBuilder<Brush>> SuccessFill => ThemeResource.Get<Brush>(AppColors.SuccessFill);
         public static Action<IDependencyPropertyBuilder<Brush>> SuccessStroke => ThemeResource.Get<Brush>(AppColors.SuccessStroke);

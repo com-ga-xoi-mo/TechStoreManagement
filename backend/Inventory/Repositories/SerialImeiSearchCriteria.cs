@@ -3,6 +3,7 @@ using TechStore.Shared.Enums;
 namespace TechStore.Api.Inventory.Repositories;
 
 public sealed record SerialImeiSearchCriteria(
+    string? Search,
     Guid? ProductId,
     Guid? VariantId,
     SerialImeiStatus? Status,

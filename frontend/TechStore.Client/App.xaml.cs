@@ -60,6 +60,7 @@ public partial class App : Application
 
         MainWindow = new Window();
         _applicationServices.Services.GetRequiredService<ImageFilePicker>().Host = MainWindow;
+        _applicationServices.Services.GetRequiredService<CsvFileSaver>().Host = MainWindow;
         MainWindow.Closed += OnMainWindowClosed;
 
         if (MainWindow.Content is null)

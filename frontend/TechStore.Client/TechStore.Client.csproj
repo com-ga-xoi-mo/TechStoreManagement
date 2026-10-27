@@ -5,6 +5,11 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+
+    <!-- The runtime theme probe is a Skia desktop-only harness. It uses
+         UnoPlatformHostBuilder and must not be compiled into the native
+         Windows target. -->
+    <Compile Remove="Testing\ThemeBindingProbeHarness.cs" Condition="'$(TargetFramework)' != 'net10.0-desktop'" />
   </ItemGroup>
   <PropertyGroup>
     <TargetFrameworks>net10.0-windows10.0.26100;net10.0-desktop</TargetFrameworks>

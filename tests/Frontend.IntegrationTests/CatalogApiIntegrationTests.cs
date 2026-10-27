@@ -1,9 +1,12 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Services.Api;
 using TechStore.Client.Services.Session;
+using TechStore.Shared.DTOs;
+using TechStore.Shared.Requests;
 using Xunit.Abstractions;
 
 namespace TechStore.Client.IntegrationTests;
@@ -27,11 +30,13 @@ public sealed class CatalogApiIntegrationTests(ITestOutputHelper output)
             throw new InvalidOperationException($"Preflight failed: {BaseUrlEnvironmentVariable} is invalid.", exception);
         }
 
-        using var handler = new BearerTokenHandler(new InMemorySessionStore())
+        var session = new InMemorySessionStore();
+        using var handler = new BearerTokenHandler(session)
         {
             InnerHandler = new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }
         };
         using var http = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+        await SignInAsync(http, baseUri, session);
         var api = new ApiClient(http, options);
         var products = new ProductRepository(api);
         var categories = new CategoryRepository(api);
@@ -128,6 +133,18 @@ public sealed class CatalogApiIntegrationTests(ITestOutputHelper output)
         output.WriteLine($"Seed dataset: {firstPage.TotalCount} products, {categoryTree.Count} active category roots, {expectedPages} pages at pageSize=2.");
         output.WriteLine($"First product: {first.Name} ({first.Sku}); category={first.CategoryId}; brand={first.Brand}; detail variants={details[0].Variants.Count}.");
         output.WriteLine($"Checks: paging/count uniqueness, keyword+brand+category, price overlap/order, effectiveSpecs, empty result, raw 400 validation, detail and random 404.");
+    }
+
+    // Category reads need a session, so the suite signs in with the seeded administrator.
+    private static async Task SignInAsync(HttpClient http, Uri baseUri, InMemorySessionStore session)
+    {
+        using var response = await http.PostAsJsonAsync(
+            new Uri(baseUri, "api/auth/login"),
+            new LoginRequest { Username = "admin", Password = "Admin@123" });
+        response.EnsureSuccessStatusCode();
+        var login = await response.Content.ReadFromJsonAsync<LoginResponseDto>()
+            ?? throw new InvalidOperationException("Login returned no body.");
+        session.SetAccessToken(login.AccessToken);
     }
 }
 

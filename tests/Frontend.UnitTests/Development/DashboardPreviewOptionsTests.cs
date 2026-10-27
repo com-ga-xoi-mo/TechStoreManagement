@@ -59,8 +59,10 @@ public sealed class DashboardPreviewOptionsTests
             .BuildServiceProvider();
 
         using (services)
-        using (var scope = services.CreateScope())
+        {
+            using var scope = services.CreateScope();
             Assert.IsType<FixtureAnalyticsRepository>(scope.ServiceProvider.GetRequiredService<IAnalyticsRepository>());
+        }
     }
 
     private sealed class ThrowingApiClient : IApiClient
@@ -71,8 +73,8 @@ public sealed class DashboardPreviewOptionsTests
         public Task<TResponse> PostAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<TResponse> PutAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task PostAsync<TRequest>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task<TResponse> PatchAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task PatchAsync(string relativePath, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task PatchAsync(string relativePath, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<TResponse> PatchAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

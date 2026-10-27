@@ -12,8 +12,11 @@ namespace TechStore.Api.Inventory.Services;
 public class InventoryService(
     IInventoryStockRepository stockRepository,
     IProductRepository productRepository,
-    IUnitOfWork unitOfWork) : IInventoryService
+    ISerialImeiRepository serialRepository,
+    IUnitOfWork unitOfWork,
+    TimeProvider? timeProvider = null) : IInventoryService
 {
+    private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     public async Task<InventoryStockSearchResult> GetStocksAsync(
         InventoryStockFilterRequest request,
         CancellationToken cancellationToken = default)
@@ -26,9 +29,13 @@ public class InventoryService(
         if (pageSize > 100) pageSize = 100;
 
         var criteria = new InventoryStockSearchCriteria(
+            request.Search,
+            request.CategoryId,
             request.ProductId,
             request.VariantId,
             request.LowStock,
+            request.OutOfStock,
+            request.InStock,
             page,
             pageSize);
 
@@ -76,16 +83,17 @@ public class InventoryService(
             errors["minStockAlert"] = ["MinStockAlert must be greater than or equal to zero."];
         }
 
+        Product? validatedProduct = null;
         if (request.ProductId.HasValue && request.ProductId.Value != Guid.Empty)
         {
-            var product = await productRepository.GetWithVariantsAsync(request.ProductId.Value, cancellationToken);
-            if (product == null)
+            validatedProduct = await productRepository.GetWithVariantsAsync(request.ProductId.Value, cancellationToken);
+            if (validatedProduct == null)
             {
                 errors["productId"] = [$"Product with ID '{request.ProductId.Value}' does not exist."];
             }
             else if (request.VariantId.HasValue && request.VariantId.Value != Guid.Empty)
             {
-                if (product.Variants == null || product.Variants.All(v => v.Id != request.VariantId.Value))
+                if (validatedProduct.Variants == null || validatedProduct.Variants.All(v => v.Id != request.VariantId.Value))
                 {
                     errors["variantId"] = [$"Variant with ID '{request.VariantId.Value}' does not belong to product '{request.ProductId.Value}'."];
                 }
@@ -136,7 +144,12 @@ public class InventoryService(
             await unitOfWork.SaveChangesAsync(cancellationToken);
             await unitOfWork.CommitAsync(cancellationToken);
 
-            return InitializeStockResult.Success(MapToDto(stock));
+            stock.Product = validatedProduct!;
+            stock.Variant = request.VariantId.HasValue
+                ? validatedProduct!.Variants?.FirstOrDefault(v => v.Id == request.VariantId.Value)
+                : null;
+
+            return InitializeStockResult.Success(MapToDto(new InventoryStockView(stock, 0)));
         }
         catch (DuplicateKeyException ex)
         {
@@ -150,14 +163,175 @@ public class InventoryService(
         }
     }
 
-    private static InventoryStockDto MapToDto(InventoryStock stock)
+    public async Task<DeleteInventoryStockResult> DeleteStockAsync(
+        Guid stockId,
+        CancellationToken cancellationToken = default)
     {
+        if (stockId == Guid.Empty)
+            return DeleteInventoryStockResult.NotFound();
+
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var stock = await stockRepository.GetByIdForUpdateAsync(stockId, cancellationToken);
+            if (stock is null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeleteInventoryStockResult.NotFound();
+            }
+
+            if (stock.ReservedQuantity > 0)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeleteInventoryStockResult.Conflict(
+                    "Không thể xóa tồn kho vì sản phẩm đang có số lượng được giữ chỗ.");
+            }
+
+            var movementCount = await stockRepository.CountMovementsAsync(stock.Id, cancellationToken);
+            if (movementCount > 0)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeleteInventoryStockResult.Conflict(
+                    "Không thể xóa tồn kho đã có lịch sử nhập, xuất hoặc điều chỉnh.");
+            }
+
+            var serials = await serialRepository.GetByStockKeyForUpdateAsync(
+                stock.ProductId,
+                stock.VariantId,
+                cancellationToken);
+            if (stock.Quantity > serials.Count)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeleteInventoryStockResult.Conflict(
+                    "Không thể xóa vì tồn kho vẫn còn số lượng sản phẩm chưa được đối soát.");
+            }
+
+            if (serials.Any(serial => serial.Status != SerialImeiStatus.InStock))
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeleteInventoryStockResult.Conflict(
+                    "Không thể xóa vì sản phẩm có Serial/IMEI đã được giữ chỗ, bán hoặc liên kết với giao dịch.");
+            }
+
+            serialRepository.RemoveRange(serials);
+            stockRepository.Delete(stock);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+            return DeleteInventoryStockResult.Success();
+        }
+        catch (ForeignKeyViolationException)
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            return DeleteInventoryStockResult.Conflict(
+                "Không thể xóa vì tồn kho vẫn còn dữ liệu liên kết trong hệ thống.");
+        }
+        catch
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<InventoryStockDetailResult> GetStockDetailAsync(
+        Guid stockId,
+        CancellationToken cancellationToken = default)
+    {
+        if (stockId == Guid.Empty) return InventoryStockDetailResult.NotFound();
+        var stock = await stockRepository.GetDetailAsync(stockId, cancellationToken);
+        return stock is null
+            ? InventoryStockDetailResult.NotFound()
+            : InventoryStockDetailResult.Success(MapToDetailDto(stock));
+    }
+
+    public async Task<AdjustInventoryStockResult> AdjustStockAsync(
+        Guid stockId,
+        AdjustStockRequest request,
+        Guid performedByUserId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var errors = new Dictionary<string, string[]>();
+        if (stockId == Guid.Empty) return AdjustInventoryStockResult.NotFound();
+        if (request.QuantityChange == 0)
+            errors["quantityChange"] = ["QuantityChange must not be zero."];
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            errors["reason"] = ["A reason is required for a stock adjustment."];
+        else if (request.Reason.Trim().Length > 200)
+            errors["reason"] = ["Reason must be 200 characters or fewer."];
+        if (request.Note?.Length > 1000)
+            errors["note"] = ["Note must be 1000 characters or fewer."];
+        if (performedByUserId == Guid.Empty)
+            errors["performedByUserId"] = ["A valid performing user is required."];
+        if (errors.Count > 0) return AdjustInventoryStockResult.ValidationFailed(errors);
+
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var stock = await stockRepository.GetByIdForUpdateAsync(stockId, cancellationToken);
+            if (stock is null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return AdjustInventoryStockResult.NotFound();
+            }
+
+            var newQuantityLong = (long)stock.Quantity + request.QuantityChange;
+            if (newQuantityLong < 0 || newQuantityLong < stock.ReservedQuantity || newQuantityLong > int.MaxValue)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return AdjustInventoryStockResult.Conflict(
+                    "Không thể giảm tồn kho thấp hơn số lượng đang giữ chỗ hoặc nhỏ hơn 0.");
+            }
+
+            var quantityBefore = stock.Quantity;
+            stock.Quantity = checked((int)newQuantityLong);
+            var now = _time.GetUtcNow().UtcDateTime;
+            stock.UpdatedAt = now;
+            var reason = request.Note is { Length: > 0 }
+                ? $"{request.Reason.Trim()} — {request.Note.Trim()}"
+                : request.Reason.Trim();
+            stockRepository.AddMovement(new InventoryMovement
+            {
+                InventoryStockId = stock.Id,
+                MovementType = InventoryMovementType.Adjustment,
+                QuantityChange = request.QuantityChange,
+                QuantityAfter = stock.Quantity,
+                PerformedByUserId = performedByUserId,
+                Reason = reason,
+                CreatedAt = now
+            });
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+
+            var detail = await stockRepository.GetDetailAsync(stock.Id, cancellationToken);
+            return detail is null
+                ? AdjustInventoryStockResult.NotFound()
+                : AdjustInventoryStockResult.Success(MapToDetailDto(detail));
+        }
+        catch (CheckConstraintViolationException)
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            return AdjustInventoryStockResult.Conflict("Điều chỉnh vi phạm ràng buộc số lượng tồn kho.");
+        }
+        catch
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    private static InventoryStockDto MapToDto(InventoryStockView view)
+    {
+        var stock = view.Stock;
         return new InventoryStockDto
         {
             Id = stock.Id,
             ProductId = stock.ProductId,
             ProductName = stock.Product?.Name ?? string.Empty,
             ProductSku = stock.Product?.Sku ?? string.Empty,
+            CategoryId = stock.Product?.CategoryId,
+            CategoryName = stock.Product?.Category?.Name ?? string.Empty,
+            SellingPrice = stock.Variant?.Price ?? stock.Product?.BasePrice,
             VariantId = stock.VariantId,
             VariantName = stock.Variant?.VariantName,
             VariantSku = stock.Variant?.Sku,
@@ -165,7 +339,48 @@ public class InventoryService(
             ReservedQuantity = stock.ReservedQuantity,
             MinStockAlert = stock.MinStockAlert,
             CreatedAt = stock.CreatedAt,
-            UpdatedAt = stock.UpdatedAt
+            UpdatedAt = stock.UpdatedAt,
+            TotalSerialsCount = view.SerialCount
+        };
+    }
+
+    private static InventoryStockDetailDto MapToDetailDto(InventoryStockView view)
+    {
+        var stock = view.Stock;
+        return new InventoryStockDetailDto
+        {
+            Id = stock.Id,
+            ProductId = stock.ProductId,
+            VariantId = stock.VariantId,
+            ProductName = stock.Product?.Name ?? string.Empty,
+            ProductSku = stock.Product?.Sku ?? string.Empty,
+            VariantName = stock.Variant?.VariantName,
+            VariantSku = stock.Variant?.Sku,
+            CategoryId = stock.Product?.CategoryId,
+            CategoryName = stock.Product?.Category?.Name ?? string.Empty,
+            SellingPrice = stock.Variant?.Price ?? stock.Product?.BasePrice,
+            Quantity = stock.Quantity,
+            ReservedQuantity = stock.ReservedQuantity,
+            TotalSerialsCount = view.SerialCount,
+            CreatedAt = stock.CreatedAt,
+            UpdatedAt = stock.UpdatedAt,
+            RecentMovements = stock.Movements
+                .OrderByDescending(movement => movement.CreatedAt)
+                .Take(10)
+                .Select(movement => new InventoryMovementDto
+                {
+                    Id = movement.Id,
+                    MovementType = movement.MovementType,
+                    QuantityChange = movement.QuantityChange,
+                    QuantityBefore = movement.QuantityAfter - movement.QuantityChange,
+                    QuantityAfter = movement.QuantityAfter,
+                    Note = movement.Reason,
+                    CreatedAt = movement.CreatedAt,
+                    PerformedByUserName = movement.PerformedByUser?.FullName
+                        ?? movement.PerformedByUser?.Username
+                        ?? string.Empty
+                })
+                .ToArray()
         };
     }
 }

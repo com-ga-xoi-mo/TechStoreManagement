@@ -33,5 +33,7 @@
     <Compile Include="../../frontend/TechStore.Client/Styles/AppControlStyles.cs" Link="Production/Styles/AppControlStyles.cs" />
     <Compile Include="../../frontend/TechStore.Client/Services/Api/**/*.cs" Link="Production/Services/Api/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Services/Session/**/*.cs" Link="Production/Services/Session/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Authentication/**/*.cs" Link="Production/Services/Authentication/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Inventory/**/*.cs" Link="Production/Models/Inventory/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

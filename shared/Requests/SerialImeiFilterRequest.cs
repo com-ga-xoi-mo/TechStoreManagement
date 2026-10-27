@@ -4,6 +4,7 @@ namespace TechStore.Shared.Requests;
 
 public class SerialImeiFilterRequest
 {
+    public string? Search { get; set; }
     public Guid? ProductId { get; set; }
     public Guid? VariantId { get; set; }
     public SerialImeiStatus? Status { get; set; }

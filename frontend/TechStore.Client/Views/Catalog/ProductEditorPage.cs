@@ -100,10 +100,17 @@ public sealed class ProductEditorPage : Page, IRoutePage
         var categoryBox = new ComboBox()
             .Header("Danh mục *")
             .ItemsSource(x => x.Binding(() => ViewModel.Categories))
-            .DisplayMemberPath("DisplayPath")
+            .DisplayMemberPath("Label")
             .SelectedValuePath("Id")
             .SelectedValue(x => x.Binding(() => ViewModel.SelectedCategoryId).Mode(BindingMode.TwoWay))
             .HorizontalAlignment(HorizontalAlignment.Stretch);
+
+        var categoryHint = new TextBlock()
+            .Text(x => x.Binding(() => ViewModel.CategoryHint))
+            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+            .Foreground(AppColors.Brushes.InfoText)
+            .TextWrapping(TextWrapping.Wrap)
+            .Visibility(x => x.Binding(() => ViewModel.CategoryHint).Convert((string s) => string.IsNullOrEmpty(s) ? Visibility.Collapsed : Visibility.Visible));
 
         var categoryError = new TextBlock()
             .Text(x => x.Binding(() => ViewModel.CategoryError))
@@ -189,7 +196,7 @@ public sealed class ProductEditorPage : Page, IRoutePage
                     .ColumnSpacing(12)
                     .ColumnDefinitions("6*, 5*")
                     .Children(
-                        new StackPanel().Spacing(4).Children(categoryBox, categoryError),
+                        new StackPanel().Spacing(4).Children(categoryBox, categoryHint, categoryError),
                         new StackPanel().Spacing(4).Grid(column: 1).Children(brandBox, brandHint, brandSuggestions, brandError)),
                 new Grid()
                     .ColumnSpacing(12)

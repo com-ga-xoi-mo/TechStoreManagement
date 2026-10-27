@@ -203,7 +203,7 @@ public sealed class ComponentGalleryPage : Page
     private UIElement BuildTable()
     {
         var list = new ListView().ItemsSource(_viewModel.Rows);
-        list.ItemTemplate = new DataTemplate(() =>
+        list.ItemTemplate<GalleryRow>(_ =>
         {
             var panel = new StackPanel().Orientation(Orientation.Horizontal).Spacing(16);
             panel.Children.Add(new TextBlock().Width(100).Text(x => x.Binding(nameof(GalleryRow.Code))));
@@ -292,9 +292,13 @@ public sealed class ComponentGalleryPage : Page
     {
         grid.ColumnDefinitions.Clear();
         for (var i = 0; i < count; i++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        for (var i = 0; i < grid.Children.Count; i++) Grid.SetColumn(grid.Children[i], i % count);
+        for (var i = 0; i < grid.Children.Count; i++)
+            if (grid.Children[i] is FrameworkElement element)
+                Grid.SetColumn(element, i % count);
         if (count == 1)
-            for (var i = 0; i < grid.Children.Count; i++) Grid.SetRow(grid.Children[i], i);
+            for (var i = 0; i < grid.Children.Count; i++)
+                if (grid.Children[i] is FrameworkElement element)
+                    Grid.SetRow(element, i);
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)

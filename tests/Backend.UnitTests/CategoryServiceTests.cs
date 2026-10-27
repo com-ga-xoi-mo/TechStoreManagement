@@ -49,7 +49,7 @@ public class CategoryServiceTests
     }
 
     [Fact]
-    public async Task GetTreeAsync_Should_Exclude_Inactive_Categories()
+    public async Task GetTreeAsync_Should_Include_Inactive_Categories()
     {
         // Arrange
         var activeRoot = new Category { Id = Guid.NewGuid(), Name = "Active", Slug = "active", IsActive = true };
@@ -63,8 +63,26 @@ public class CategoryServiceTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Data.Should().HaveCount(1);
-        result.Data[0].Id.Should().Be(activeRoot.Id);
+        result.Data.Should().HaveCount(2);
+        result.Data.Should().ContainSingle(c => c.Id == activeRoot.Id && c.IsActive);
+        result.Data.Should().ContainSingle(c => c.Id == inactiveRoot.Id && !c.IsActive);
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_Should_Aggregate_Product_Counts_Through_Descendants()
+    {
+        var root = new Category { Id = Guid.NewGuid(), Name = "Phones", Slug = "phones" };
+        root.Products.Add(new Product { Id = Guid.NewGuid(), Name = "Phone case", Sku = "case-1" });
+        var child = new Category { Id = Guid.NewGuid(), Name = "Apple", Slug = "apple", ParentId = root.Id };
+        child.Products.Add(new Product { Id = Guid.NewGuid(), Name = "iPhone", Sku = "iphone-1" });
+        _categoryRepository.Add(root);
+        _categoryRepository.Add(child);
+
+        var result = await _service.GetTreeAsync();
+
+        var rootNode = result.Data.Should().ContainSingle().Subject;
+        rootNode.ProductCount.Should().Be(2);
+        rootNode.SubCategories.Should().ContainSingle().Which.ProductCount.Should().Be(1);
     }
 
     [Fact]
@@ -188,5 +206,29 @@ public class CategoryServiceTests
         result.IsSuccess.Should().BeFalse();
         result.ValidationErrors.Should().ContainKey("slug");
         _unitOfWork.SaveChangesCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UsesTimeProvider_ForUpdatedAt()
+    {
+        // Arrange
+        var expected = new DateTimeOffset(2026, 10, 25, 8, 0, 0, TimeSpan.Zero);
+        var service = new CategoryService(_categoryRepository, _unitOfWork, new FixedTimeProvider(expected));
+        var id = Guid.NewGuid();
+        _categoryRepository.Add(new Category { Id = id, Name = "Laptops", Slug = "laptops", IsActive = true });
+
+        var request = new UpdateCategoryRequest
+        {
+            Name = "Laptops Updated",
+            Slug = "laptops-updated",
+            IsActive = true
+        };
+
+        // Act
+        var result = await service.UpdateAsync(id, request);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.UpdatedAt.Should().Be(expected.UtcDateTime);
     }
 }

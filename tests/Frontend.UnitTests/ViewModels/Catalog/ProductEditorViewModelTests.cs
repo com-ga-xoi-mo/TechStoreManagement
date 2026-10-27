@@ -547,4 +547,136 @@ public sealed class ProductEditorViewModelTests
         Assert.True(vm.HasSpecsError);
         Assert.Empty(commands.Created);
     }
+
+    [Fact]
+    public async Task Load_CreateMode_HidesInactiveCategories()
+    {
+        // Arrange
+        var activeId = Guid.NewGuid();
+        var hiddenId = Guid.NewGuid();
+        var categories = new StubCategoryReader
+        {
+            CustomOptions =
+            [
+                new(activeId, null, "Active", "Active", IsActive: true),
+                new(hiddenId, null, "Hidden", "Hidden", IsActive: false)
+            ]
+        };
+        var vm = CreateVm(categories: categories);
+        vm.SetRoute(null, null);
+
+        // Act
+        await vm.ActivateAsync();
+
+        // Assert
+        var single = Assert.Single(vm.Categories);
+        Assert.Equal(activeId, single.Id);
+        Assert.Equal(string.Empty, vm.CategoryHint);
+    }
+
+    [Fact]
+    public async Task Load_EditProductInHiddenCategory_KeepsItWithHint()
+    {
+        // Arrange
+        var activeId = Guid.NewGuid();
+        var currentHiddenId = CatalogSamples.CategoryId;
+        var otherHiddenId = Guid.NewGuid();
+        var categories = new StubCategoryReader
+        {
+            CustomOptions =
+            [
+                new(activeId, null, "Active", "Active", IsActive: true),
+                new(currentHiddenId, null, "Legacy", "Legacy", IsActive: false),
+                new(otherHiddenId, null, "OtherHidden", "OtherHidden", IsActive: false)
+            ]
+        };
+        var vm = CreateVm(categories: categories);
+        vm.SetRoute(CatalogSamples.ProductId, null);
+
+        // Act
+        await vm.ActivateAsync();
+
+        // Assert
+        Assert.Equal(2, vm.Categories.Count);
+        Assert.Contains(vm.Categories, c => c.Id == currentHiddenId && c.Label == "Legacy (đang ẩn)");
+        Assert.DoesNotContain(vm.Categories, c => c.Id == otherHiddenId);
+        Assert.NotEmpty(vm.CategoryHint);
+    }
+
+    [Fact]
+    public async Task SelectActiveCategory_ClearsHint()
+    {
+        // Arrange
+        var activeId = Guid.NewGuid();
+        var currentHiddenId = CatalogSamples.CategoryId;
+        var categories = new StubCategoryReader
+        {
+            CustomOptions =
+            [
+                new(activeId, null, "Active", "Active", IsActive: true),
+                new(currentHiddenId, null, "Legacy", "Legacy", IsActive: false)
+            ]
+        };
+        var vm = CreateVm(categories: categories);
+        vm.SetRoute(CatalogSamples.ProductId, null);
+        await vm.ActivateAsync();
+        Assert.NotEmpty(vm.CategoryHint);
+
+        // Act
+        vm.SelectedCategoryId = activeId;
+
+        // Assert
+        Assert.Equal(string.Empty, vm.CategoryHint);
+    }
+
+    [Fact]
+    public async Task Save_ProductInHiddenCategory_SendsSameCategoryId()
+    {
+        // Arrange
+        var currentHiddenId = CatalogSamples.CategoryId;
+        var categories = new StubCategoryReader
+        {
+            CustomOptions =
+            [
+                new(currentHiddenId, null, "Legacy", "Legacy", IsActive: false)
+            ]
+        };
+        var commands = new RecordingProductCommands();
+        var vm = CreateVm(categories: categories, commands: commands);
+        vm.SetRoute(CatalogSamples.ProductId, null);
+        await vm.ActivateAsync();
+
+        vm.BasePriceText = "31000000";
+
+        // Act
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        // Assert
+        var (_, req) = Assert.Single(commands.Updated);
+        Assert.Equal(currentHiddenId, req.CategoryId);
+    }
+
+    [Fact]
+    public async Task Save_ServerRejectsCategory_ShowsErrorUnderCategory()
+    {
+        // Arrange
+        var fieldErrors = new Dictionary<string, IReadOnlyList<string>>
+        {
+            ["categoryId"] = ["Category does not exist or is inactive."]
+        };
+        var badRequest = new ApiException(ApiErrorKind.Http, "Bad Request", statusCode: 400, fieldErrors: fieldErrors);
+        var commands = new RecordingProductCommands { OnUpdate = (_, _) => throw badRequest };
+        var vm = CreateVm(commands: commands);
+        vm.SetRoute(CatalogSamples.ProductId, null);
+        await vm.ActivateAsync();
+
+        vm.BasePriceText = "31000000";
+
+        // Act
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.True(vm.HasCategoryError);
+        Assert.Equal("Category does not exist or is inactive.", vm.CategoryError);
+    }
 }

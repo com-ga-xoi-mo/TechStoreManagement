@@ -101,6 +101,7 @@ internal sealed class StubCategoryReader : ICategoryRepository
 {
     public bool Fail { get; set; }
     public int RequestCount { get; private set; }
+    public IReadOnlyList<CategoryOption>? CustomOptions { get; set; }
 
     public Task<IReadOnlyList<CategoryOption>> GetTreeAsync(CancellationToken cancellationToken = default)
     {
@@ -108,6 +109,11 @@ internal sealed class StubCategoryReader : ICategoryRepository
         if (Fail)
         {
             throw new InvalidOperationException("Category load failed.");
+        }
+
+        if (CustomOptions is not null)
+        {
+            return Task.FromResult(CustomOptions);
         }
 
         IReadOnlyList<CategoryOption> options =

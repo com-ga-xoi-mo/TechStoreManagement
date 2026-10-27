@@ -13,9 +13,11 @@ public class ProductService(
     ICategoryRepository categoryRepository,
     IUnitOfWork unitOfWork,
     ISpecDefinitionRepository specDefinitionRepository,
-    IObjectStorage objectStorage) : IProductService
+    IObjectStorage objectStorage,
+    TimeProvider? timeProvider = null) : IProductService
 {
     private const string SpecNameConflictMessage = "A spec name was created by someone else at the same time. Reload the product and save again.";
+    private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
 
     public async Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -98,7 +100,7 @@ public class ProductService(
                 Label = entry.Value.Label!.Trim(),
                 Unit = string.IsNullOrWhiteSpace(entry.Value.Unit) ? null : entry.Value.Unit.Trim(),
                 ValueKind = entry.Value.ValueKind!,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = _time.GetUtcNow().UtcDateTime
             })
             .ToList() ?? [];
 
@@ -265,11 +267,11 @@ public class ProductService(
 
         // 2. Check Category existence via ICategoryRepository
         var category = await categoryRepository.GetByIdAsync(request.CategoryId!.Value, cancellationToken);
-        if (category == null)
+        if (category == null || !category.IsActive)
         {
             return CreateProductResult.ValidationFailed(new Dictionary<string, string[]>
             {
-                ["categoryId"] = [$"Category with ID '{request.CategoryId!.Value}' does not exist."]
+                ["categoryId"] = [$"Category '{request.CategoryId!.Value}' does not exist or is inactive."]
             });
         }
 
@@ -299,7 +301,7 @@ public class ProductService(
         }
 
         // 4. Build product and variant entities: new products start not selling (design D15)
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var prodSpecsDict = request.Specs ?? new Dictionary<string, JsonElement>();
         var prodSpecsJson = ProductSpecHelper.SerializeSpecs(prodSpecsDict);
 
@@ -405,7 +407,7 @@ public class ProductService(
             }
 
             var category = await categoryRepository.GetByIdAsync(request.CategoryId!.Value, cancellationToken);
-            if (category == null || !category.IsActive)
+            if (category == null || (!category.IsActive && request.CategoryId!.Value != product.CategoryId))
             {
                 AddError("categoryId", $"Category '{request.CategoryId!.Value}' does not exist or is inactive.");
             }
@@ -508,7 +510,7 @@ public class ProductService(
             product.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
             product.Specs = ProductSpecHelper.SerializeSpecs(request.Specs);
             product.IsSerialTracked = request.IsSerialTracked!.Value;
-            var now = DateTime.UtcNow;
+            var now = _time.GetUtcNow().UtcDateTime;
             product.UpdatedAt = now;
 
             // Step F - apply variants
@@ -608,7 +610,7 @@ public class ProductService(
             }
 
             product.IsActive = request.IsActive.Value;
-            product.UpdatedAt = DateTime.UtcNow;
+            product.UpdatedAt = _time.GetUtcNow().UtcDateTime;
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
             await unitOfWork.CommitAsync(cancellationToken);

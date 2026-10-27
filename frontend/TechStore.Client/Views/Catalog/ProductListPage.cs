@@ -93,7 +93,7 @@ public sealed class ProductListPage : Page, IRoutePage
 
         var categoryBox = new ComboBox()
             .ItemsSource(x => x.Binding(() => ViewModel.Categories))
-            .DisplayMemberPath("DisplayPath")
+            .DisplayMemberPath("Label")
             .SelectedValuePath("Id")
             .SelectedValue(x => x.Binding(() => ViewModel.SelectedCategoryId).Mode(BindingMode.TwoWay))
             .PlaceholderText("Tất cả danh mục")

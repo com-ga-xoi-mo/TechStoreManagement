@@ -664,6 +664,31 @@ public class ProductServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_HiddenCategory_ReturnsCategoryIdValidationError()
+    {
+        // Arrange
+        var productRepo = new FakeProductRepository();
+        var categoryRepo = new FakeCategoryRepository();
+        var unitOfWork = new FakeUnitOfWork();
+        var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
+
+        var id = Guid.NewGuid();
+        categoryRepo.Categories[id] = new Category { Id = id, Name = "Ẩn", IsActive = false };
+
+        var request = CreateValidRequest();
+        request.CategoryId = id;
+
+        // Act
+        var result = await service.CreateAsync(request);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("categoryId");
+        unitOfWork.SaveChangesCount.Should().Be(0);
+        productRepo.AddedProducts.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task CreateAsync_Should_Fail_When_Sku_Exists_And_Zero_Saves()
     {
         // Arrange

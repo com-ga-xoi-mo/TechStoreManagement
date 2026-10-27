@@ -49,7 +49,7 @@ Client SHALL cho lọc trên giao diện theo từ khóa q, categoryId, isActive
 - **THEN** bộ lọc thông số mở ra và hiển thị lỗi, không gửi truy vấn; dòng chưa chọn tên được bỏ qua; lỗi validation từ API vẫn được xử lý nếu server từ chối
 
 ### Requirement: Category filter availability
-Client SHALL hiển thị tên và phân cấp danh mục từ cây API, không bịa danh mục hoặc counts. Lỗi tải cây SHALL có thông báo và retry riêng, không biến kết quả sản phẩm thành rỗng hay chặn tìm kiếm không dùng danh mục.
+Client SHALL hiển thị tên và phân cấp danh mục từ cây API, không bịa danh mục hoặc counts. Danh mục ẩn (`isActive` false) vẫn có trong bộ lọc để tìm sản phẩm cũ, nhưng nhãn SHALL có hậu tố "(đang ẩn)". Lỗi tải cây SHALL có thông báo và retry riêng, không biến kết quả sản phẩm thành rỗng hay chặn tìm kiếm không dùng danh mục.
 
 #### Scenario: Parent category selected
 - **WHEN** chọn một danh mục cha và áp dụng
@@ -58,6 +58,10 @@ Client SHALL hiển thị tên và phân cấp danh mục từ cây API, không 
 #### Scenario: Category lookup failure
 - **WHEN** danh sách tải thành công nhưng cây danh mục lỗi
 - **THEN** kết quả vẫn dùng được, bộ chọn danh mục báo chưa tải được và cho retry, không lấy category facets từ một trang sản phẩm
+
+#### Scenario: Hidden category in the filter
+- **WHEN** cây danh mục có một danh mục ẩn
+- **THEN** bộ lọc vẫn liệt kê danh mục đó với hậu tố "(đang ẩn)" và chọn nó gửi đúng categoryId của nó
 
 ### Requirement: Server ordering and pagination
 Client SHALL dùng sort name/price/createdAt với asc/desc, mặc định createdAt:desc; paging mặc định page=1/pageSize=20. Items và tổng số SHALL dùng envelope server, không sort/filter riêng trang hiện tại hoặc tự dựng tổng toàn bộ từ số card.

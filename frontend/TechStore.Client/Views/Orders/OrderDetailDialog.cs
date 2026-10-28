@@ -104,9 +104,10 @@ public sealed class OrderDetailDialog : ContentDialog
             if (!string.IsNullOrWhiteSpace(line.Imei)) details.Children.Add(Caption($"IMEI: {line.Imei.Trim()}"));
             if (!string.IsNullOrWhiteSpace(line.SerialNumber)) details.Children.Add(Caption($"Serial: {line.SerialNumber.Trim()}"));
 
-            var amount = new StackPanel().Spacing(2).HorizontalAlignment(HorizontalAlignment.Right).Children(
-                Body(OrderPresentation.FormatMoney(line.TotalPrice)).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold).HorizontalAlignment(HorizontalAlignment.Right),
-                Caption(PriceBreakdown(line)).HorizontalAlignment(HorizontalAlignment.Right));
+            // Right-align through TextAlignment: a right-aligned wrapping TextBlock measured to nothing on Skia.
+            var amount = new StackPanel().Spacing(2).Children(
+                Body(OrderPresentation.FormatMoney(line.TotalPrice)).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold).TextAlignment(TextAlignment.Right),
+                Caption(PriceBreakdown(line)).TextAlignment(TextAlignment.Right));
 
             lines.Children.Add(
                 new Border()
@@ -153,7 +154,7 @@ public sealed class OrderDetailDialog : ContentDialog
         {
             totals.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             var label = rows[i].Strong ? Body(rows[i].Label).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold) : Caption(rows[i].Label);
-            var value = Body(OrderPresentation.FormatMoney(rows[i].Value)).HorizontalAlignment(HorizontalAlignment.Right);
+            var value = Body(OrderPresentation.FormatMoney(rows[i].Value)).TextAlignment(TextAlignment.Right);
             if (rows[i].Strong) value.FontWeight(Microsoft.UI.Text.FontWeights.Bold);
             totals.Children.Add(label.Grid(row: i, column: 0));
             totals.Children.Add(value.Grid(row: i, column: 1));

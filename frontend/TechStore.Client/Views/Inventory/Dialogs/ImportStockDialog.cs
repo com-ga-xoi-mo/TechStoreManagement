@@ -145,7 +145,7 @@ public sealed class ImportStockDialog : ContentDialog
             Height = 42,
             PlaceholderText = "Ví dụ: 200000"
         };
-        unitCost.Text(x => x.Binding(() => ViewModel.UnitCostText).Mode(BindingMode.TwoWay));
+        unitCost.Text(x => x.Binding(() => ViewModel.UnitCostText).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged));
         unitCost.Visibility(x => x.Binding(() => ViewModel.NeedsUnitCost).Convert(ShowIf));
         body.Children.Add(unitCost);
         var costHint = Text("", 11, AppColors.SecondaryText);

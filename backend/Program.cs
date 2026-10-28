@@ -89,6 +89,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 // Inventory Module repositories
 builder.Services.AddScoped<IInventoryStockRepository, InventoryStockRepository>();
 builder.Services.AddScoped<ISerialImeiRepository, SerialImeiRepository>();
+builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
 
 // Inventory Module services
 builder.Services.AddScoped<IInventoryService, InventoryService>();

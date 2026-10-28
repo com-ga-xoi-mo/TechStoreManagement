@@ -110,6 +110,13 @@ public class SerialImeiService(
             var serial = string.IsNullOrWhiteSpace(item.SerialNumber) ? null : item.SerialNumber.Trim();
             var imei = string.IsNullOrWhiteSpace(item.Imei) ? null : item.Imei.Trim();
 
+            // Each device carries its own cost, taken from the item or else from defaultUnitCost.
+            var costError = UnitCostRules.Check(item.UnitCost ?? request.DefaultUnitCost);
+            if (costError != null)
+            {
+                errors[$"items[{i}].unitCost"] = [$"{costError} Set it on the item or send defaultUnitCost."];
+            }
+
             if (serial == null && imei == null)
             {
                 errors[$"items[{i}]"] = ["Either SerialNumber or IMEI must be provided."];

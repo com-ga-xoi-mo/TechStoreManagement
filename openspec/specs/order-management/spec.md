@@ -163,7 +163,7 @@ Each order SHALL receive a unique code `ORD-{yyyyMM}-{NNNN}` using the UTC creat
 - **THEN** the response is 400 with an error under `targetStatus`
 
 ### Requirement: Cost snapshot at fulfilment
-When an order is completed, each line's `unit_cost` SHALL be set from the sold device's own `unit_cost` for serial-tracked lines, and from the weighted average `unit_cost` of the purchase-order lines already received (weighted by `received_quantity`) for non-tracked lines. The product's `cost_price` is only a reference and SHALL NOT be used. When no cost is known the line's `unit_cost` SHALL stay null. Completed lines SHALL keep that value even if costs or `cost_price` later change.
+When an order is completed, each line's `unit_cost` SHALL be set from the sold device's own `unit_cost` for serial-tracked lines, and from the weighted average `unit_cost` of the purchase-order lines already received (weighted by `received_quantity`) for non-tracked lines. The product's `cost_price` is only a reference and SHALL NOT be used. When no cost is known (data entered before cost became mandatory at intake) the line's `unit_cost` SHALL stay null. Completed lines SHALL keep that value even if costs or `cost_price` later change.
 
 #### Scenario: Device cost wins
 - **WHEN** a line's device has `unit_cost` 21,500,000 and the product's `cost_price` is 22,000,000

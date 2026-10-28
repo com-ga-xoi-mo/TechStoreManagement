@@ -323,6 +323,7 @@ Content-Type: application/json
   "productId": "{{createProduct.response.body.$.id}}",
   "quantity": 100,
   "minStockAlert": 10,
+  "unitCost": 200000,
   "reason": "Warehouse initial load"
 }
 
@@ -333,7 +334,8 @@ Content-Type: application/json
 {
   "productId": "{{findMacbook.response.body.$.items[0].id}}",
   "quantity": 50,
-  "minStockAlert": 5
+  "minStockAlert": 5,
+  "unitCost": 200000
 }
 
 ### 40. Initialize Stock Balance - Negative Quantity (400 Bad Request)

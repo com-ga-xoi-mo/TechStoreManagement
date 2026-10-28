@@ -34,6 +34,7 @@
   - Sổ cái: `quantity_change <> 0`, `quantity_after >= 0`.
 - **Partial Index:**
   - `serial_imeis`: `(product_id, status)` WHERE `status = 'InStock'` tối ưu hóa tốc độ quét POS tại quầy.
+- **Giá vốn bắt buộc khi nhập hàng:** máy có Serial/IMEI phải có `unit_cost` riêng (theo từng máy hoặc `defaultUnitCost` của cả lô); hàng không có Serial/IMEI phải có `unitCost` khi khởi tạo tồn kho, và được ghi thành một dòng `purchase_order_items` đã nhận trên đơn nhập hệ thống (nhà cung cấp "Số dư đầu kỳ"). Đơn hàng khi hoàn tất chốt `order_items.unit_cost` từ các nguồn này, không dùng `products.cost_price`.
 - **Bất biến số dư & Concurrency:**
   - Hàng serial-tracked (`is_serial_tracked = true`): `inventory_stocks.quantity = COUNT(serial_imeis WHERE status IN ('InStock', 'Reserved'))`.
   - Số lượng bán khả dụng: `available = quantity - reserved_quantity`.

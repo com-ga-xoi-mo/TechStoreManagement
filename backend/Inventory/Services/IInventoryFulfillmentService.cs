@@ -34,15 +34,16 @@ public record FulfillmentResult(bool IsSuccess, FulfillmentProblem? Conflict)
     public static FulfillmentResult Failed(FulfillmentProblem conflict) => new(false, conflict);
 }
 
-// DeviceUnitCosts maps an order item id to the sold device's unit_cost (null when the device has none
-// or the line is not serial-tracked), so the caller can snapshot costs on the order line.
+// UnitCosts maps an order item id to the cost to snapshot on that order line: the sold device's own
+// unit_cost for a serial-tracked line, the average received purchase cost for a non-tracked line
+// (null when none is known). products.cost_price is only a reference and is never used.
 public record SaleConfirmationResult(
     bool IsSuccess,
     FulfillmentProblem? Conflict,
-    IReadOnlyDictionary<Guid, decimal?> DeviceUnitCosts)
+    IReadOnlyDictionary<Guid, decimal?> UnitCosts)
 {
-    public static SaleConfirmationResult Success(IReadOnlyDictionary<Guid, decimal?> deviceUnitCosts) =>
-        new(true, null, deviceUnitCosts);
+    public static SaleConfirmationResult Success(IReadOnlyDictionary<Guid, decimal?> unitCosts) =>
+        new(true, null, unitCosts);
 
     public static SaleConfirmationResult Failed(FulfillmentProblem conflict) =>
         new(false, conflict, new Dictionary<Guid, decimal?>());

@@ -104,6 +104,15 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
         CancellationToken cancellationToken = default) =>
         Task.FromResult(Movements.Count(movement => movement.InventoryStockId == stockId));
 
+    // Average received purchase cost per stock key; a missing key means no purchase line was received.
+    public Dictionary<(Guid ProductId, Guid? VariantId), decimal> ReceivedUnitCosts { get; } = [];
+
+    public Task<decimal?> GetAverageReceivedUnitCostAsync(
+        Guid productId,
+        Guid? variantId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(ReceivedUnitCosts.TryGetValue((productId, variantId), out var cost) ? (decimal?)cost : null);
+
     public void Add(InventoryStock stock)
     {
         Stocks.Add(stock);

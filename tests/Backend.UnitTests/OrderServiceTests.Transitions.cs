@@ -53,11 +53,11 @@ public partial class OrderServiceTests
     }
 
     [Fact]
-    public async Task UpdateStatusAsync_Completion_UsesDeviceCostWhenAvailable()
+    public async Task UpdateStatusAsync_Completion_StoresTheCostInventoryReturnedForADevice()
     {
         // Arrange
         var (order, item, _) = AddOrder(OrderStatus.Processing, paidAt: Now, costPrice: 22_000_000m);
-        _fulfillment.DeviceCostsByOrderItem[item.Id] = 21_500_000m;
+        _fulfillment.CostsByOrderItem[item.Id] = 21_500_000m;
 
         // Act
         await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
@@ -67,17 +67,31 @@ public partial class OrderServiceTests
     }
 
     [Fact]
-    public async Task UpdateStatusAsync_Completion_FallsBackToProductCostWhenDeviceHasNone()
+    public async Task UpdateStatusAsync_Completion_NeverUsesTheProductReferenceCost()
     {
-        // Arrange
+        // Arrange: Inventory knows no cost for the line; products.cost_price (22,000,000) is only a reference.
         var (order, item, _) = AddOrder(OrderStatus.Processing, paidAt: Now, costPrice: 22_000_000m);
-        _fulfillment.DeviceCostsByOrderItem[item.Id] = null;
+        _fulfillment.CostsByOrderItem[item.Id] = null;
 
         // Act
         await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
 
         // Assert
-        item.UnitCost.Should().Be(22_000_000m);
+        item.UnitCost.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_Completion_StoresTheCostInventoryReturnedForANonTrackedLine()
+    {
+        // Arrange: a non-tracked line takes the average purchase cost Inventory computed, not products.cost_price.
+        var (order, item, _) = AddOrder(OrderStatus.Processing, paidAt: Now, costPrice: 500_000m);
+        _fulfillment.CostsByOrderItem[item.Id] = 250_000m;
+
+        // Act
+        await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
+
+        // Assert
+        item.UnitCost.Should().Be(250_000m);
     }
 
     [Fact]
@@ -85,7 +99,7 @@ public partial class OrderServiceTests
     {
         // Arrange
         var (order, item, _) = AddOrder(OrderStatus.Pending);
-        _fulfillment.DeviceCostsByOrderItem[item.Id] = 21_500_000m;
+        _fulfillment.CostsByOrderItem[item.Id] = 21_500_000m;
 
         // Act
         var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);

@@ -165,6 +165,21 @@ public class InventoryStockRepository(AppDbContext dbContext) : IInventoryStockR
     public Task<int> CountMovementsAsync(Guid stockId, CancellationToken cancellationToken = default) =>
         dbContext.InventoryMovements.CountAsync(movement => movement.InventoryStockId == stockId, cancellationToken);
 
+    public async Task<decimal?> GetAverageReceivedUnitCostAsync(
+        Guid productId,
+        Guid? variantId,
+        CancellationToken cancellationToken = default)
+    {
+        var lines = await dbContext.PurchaseOrderItems
+            .AsNoTracking()
+            .Where(i => i.ProductId == productId && i.VariantId == variantId && i.ReceivedQuantity > 0)
+            .Select(i => new { i.UnitCost, i.ReceivedQuantity })
+            .ToListAsync(cancellationToken);
+
+        var received = lines.Sum(l => l.ReceivedQuantity);
+        return received == 0 ? null : Math.Round(lines.Sum(l => l.UnitCost * l.ReceivedQuantity) / received, 2);
+    }
+
     public void Add(InventoryStock stock)
     {
         dbContext.InventoryStocks.Add(stock);

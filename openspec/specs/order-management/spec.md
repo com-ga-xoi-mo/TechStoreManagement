@@ -163,15 +163,19 @@ Each order SHALL receive a unique code `ORD-{yyyyMM}-{NNNN}` using the UTC creat
 - **THEN** the response is 400 with an error under `targetStatus`
 
 ### Requirement: Cost snapshot at fulfilment
-When an order is completed, each line's `unit_cost` SHALL be set from the sold device's `unit_cost` for serial-tracked lines, falling back to the product's `cost_price` when the device has none, and from the product's `cost_price` for non-tracked lines. Completed lines SHALL keep that value even if the product's cost later changes.
+When an order is completed, each line's `unit_cost` SHALL be set from the sold device's own `unit_cost` for serial-tracked lines, and from the weighted average `unit_cost` of the purchase-order lines already received (weighted by `received_quantity`) for non-tracked lines. The product's `cost_price` is only a reference and SHALL NOT be used. When no cost is known the line's `unit_cost` SHALL stay null. Completed lines SHALL keep that value even if costs or `cost_price` later change.
 
 #### Scenario: Device cost wins
 - **WHEN** a line's device has `unit_cost` 21,500,000 and the product's `cost_price` is 22,000,000
 - **THEN** the completed line's `unit_cost` is 21,500,000
 
-#### Scenario: Fallback to product cost
-- **WHEN** the device has no `unit_cost`
-- **THEN** the completed line's `unit_cost` is the product's `cost_price`
+#### Scenario: Non-tracked goods use received purchase cost
+- **WHEN** a non-tracked product was received on purchase lines 5 x 200,000 and 5 x 300,000 and its `cost_price` is 500,000
+- **THEN** the completed line's `unit_cost` is 250,000
+
+#### Scenario: No known cost stays empty
+- **WHEN** the device has no `unit_cost`, or no purchase line was received for a non-tracked product
+- **THEN** the completed line's `unit_cost` is null and the product's `cost_price` is not used
 
 ### Requirement: Conflicts and atomicity on transition
 A transition that moves devices or stock SHALL run in one transaction that locks the order, then the affected devices in ascending id order, then the affected stock rows in ascending product / variant order. If any device is no longer `InStock` (or `Reserved` for fulfilment), the product or variant no longer matches, a stock row is missing or lacks available quantity, the response SHALL be 409 and the order status, devices, stock, movements and warranty SHALL be exactly as before the call.

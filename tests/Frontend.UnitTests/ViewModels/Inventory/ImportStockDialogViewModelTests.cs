@@ -168,18 +168,20 @@ public sealed class ImportStockDialogViewModelTests
     }
 
     [Fact]
-    public void ConfirmCommand_BecomesExecutable_WhenTheFormTurnsValid()
+    public void ConfirmCommand_RaisesCanExecuteChanged_WhenTheFormTurnsValid()
     {
         // Arrange
         var vm = new ImportStockDialogViewModel(new FakeProducts(), new FakeApi());
-        Assert.False(vm.ConfirmCommand.CanExecute(null));
+        var raised = 0;
+        vm.ConfirmCommand.CanExecuteChanged += (_, _) => raised++;
 
         // Act
         vm.SelectedProduct = Option();
         vm.Quantity = 3;
         vm.UnitCostText = "1000";
 
-        // Assert: the button reads CanExecute, so it must have been re-raised
+        // Assert: the button only re-reads CanExecute when this event fires
+        Assert.True(raised > 0);
         Assert.True(vm.ConfirmCommand.CanExecute(null));
     }
 

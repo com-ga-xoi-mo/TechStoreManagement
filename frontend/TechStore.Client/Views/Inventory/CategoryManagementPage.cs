@@ -104,7 +104,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         Unloaded += OnUnloaded;
     }
 
-    private UIElement BuildHeader()
+    private FrameworkElement BuildHeader()
     {
         var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         title.Children.Add(Text("Danh mục và Kho", 20, AppColors.Text, 700));
@@ -156,7 +156,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         return Button(content, primary: true, tooltip: tooltip);
     }
 
-    private UIElement BuildTabs()
+    private FrameworkElement BuildTabs()
     {
         var tabs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 24 };
         tabs.Children.Add(CreateTabButton("Danh mục", color =>
@@ -218,7 +218,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         return button;
     }
 
-    private UIElement BuildFilters()
+    private FrameworkElement BuildFilters()
     {
         var search = new TextBox
         {
@@ -259,7 +259,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         return new ResponsivePair(searchSlot, status) { Margin = new Thickness(0, -8, 0, 0) };
     }
 
-    private UIElement BuildCard()
+    private FrameworkElement BuildCard()
     {
         var body = new Grid();
         body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });

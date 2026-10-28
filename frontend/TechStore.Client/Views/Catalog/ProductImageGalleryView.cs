@@ -101,8 +101,17 @@ public sealed class ProductImageGalleryView : UserControl
             if (GetTemplateChild("TemplateRoot") is Grid root && root.Children.FirstOrDefault() is FrameworkElement content)
             {
                 var groups = VisualStateManager.GetVisualStateGroups(content).ToArray();
+#if WINDOWS
+                // WinUI has no SetVisualStateGroups: move the groups between the two live collections.
+                VisualStateManager.GetVisualStateGroups(content).Clear();
+                foreach (var group in groups)
+                {
+                    VisualStateManager.GetVisualStateGroups(root).Add(group);
+                }
+#else
                 VisualStateManager.SetVisualStateGroups(content, new List<VisualStateGroup>());
                 VisualStateManager.SetVisualStateGroups(root, groups);
+#endif
             }
             base.OnApplyTemplate();
         }

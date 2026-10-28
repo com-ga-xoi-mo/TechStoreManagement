@@ -331,7 +331,7 @@ public sealed class CreateCategoryDialog : ContentDialog
             CornerRadius = new CornerRadius(6),
             VerticalAlignment = VerticalAlignment.Center
         }.Background(Theme(AppColors.Surface));
-        iconBox.Child(x => x.Binding(() => ViewModel.SelectedIcon).Convert((string symbol) => Icon(symbol, AppColors.InfoText, 16)));
+        iconBox.Child = new ContentControl().Content(x => x.Binding(() => ViewModel.SelectedIcon).Convert((string symbol) => Icon(symbol, AppColors.InfoText, 16)));
         var iconNameText = Text(ViewModel.SelectedIconLabel, 13, AppColors.Text, 500);
         iconNameText.Text(x => x.Binding(() => ViewModel.SelectedIconLabel));
 

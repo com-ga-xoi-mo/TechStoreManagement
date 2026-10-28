@@ -105,22 +105,15 @@ public sealed class OrderDetailDialog : ContentDialog
             if (!string.IsNullOrWhiteSpace(line.SerialNumber)) details.Children.Add(Caption($"Serial: {line.SerialNumber.Trim()}"));
 
             // Right-align through TextAlignment: a right-aligned wrapping TextBlock measured to nothing on Skia.
-            var amount = new StackPanel().Spacing(2).Children(
-                Body(OrderPresentation.FormatMoney(line.TotalPrice)).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold).TextWrapping(TextWrapping.NoWrap).TextAlignment(TextAlignment.Right),
-                Caption(PriceBreakdown(line)).TextWrapping(TextWrapping.NoWrap).TextAlignment(TextAlignment.Right));
+            details.Children.Add(Body(OrderPresentation.FormatMoney(line.TotalPrice)).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold));
+            details.Children.Add(Caption(PriceBreakdown(line)));
 
             lines.Children.Add(
                 new Border()
                     .BorderBrush(AppColors.Brushes.Stroke)
                     .BorderThickness(new Thickness(0, 0, 0, 1))
                     .Padding(new Thickness(0, 8, 0, 8))
-                    .Child(
-                        new Grid()
-                            .ColumnSpacing(16)
-                            .ColumnDefinitions(
-                                new ColumnDefinition().Width(new GridLength(1, GridUnitType.Star)),
-                                new ColumnDefinition().Width(GridLength.Auto))
-                            .Children(details.Grid(column: 0), amount.Grid(column: 1))));
+                    .Child(details));
         }
 
         return lines;
@@ -142,21 +135,22 @@ public sealed class OrderDetailDialog : ContentDialog
             ("Tổng cộng", order.TotalAmount, true)
         };
 
-        // One Star + Auto grid per row: label on the left, amount on the right. Fixed pixel columns in a
-        // right-aligned grid measured the amount column to almost nothing on Skia, so the amounts never painted.
-        var totals = new StackPanel().Spacing(4).Width(280).HorizontalAlignment(HorizontalAlignment.Right);
-        foreach (var (label, amount, strong) in rows)
+        // Same two-column layout as the facts above. Text placed in a right-hand column of this dialog was laid
+        // out but never painted on Skia, so the amounts sit in the left-aligned value column instead.
+        var totals = new Grid()
+            .ColumnSpacing(16)
+            .RowSpacing(6)
+            .ColumnDefinitions(
+                new ColumnDefinition().Width(new GridLength(150, GridUnitType.Pixel)),
+                new ColumnDefinition().Width(new GridLength(1, GridUnitType.Star)));
+        for (var i = 0; i < rows.Count; i++)
         {
-            var labelText = strong ? Body(label).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold) : Caption(label);
-            var value = Body(OrderPresentation.FormatMoney(amount)).TextWrapping(TextWrapping.NoWrap);
-            if (strong) value.FontWeight(Microsoft.UI.Text.FontWeights.Bold);
-            totals.Children.Add(
-                new Grid()
-                    .ColumnSpacing(16)
-                    .ColumnDefinitions(
-                        new ColumnDefinition().Width(new GridLength(1, GridUnitType.Star)),
-                        new ColumnDefinition().Width(GridLength.Auto))
-                    .Children(labelText.Grid(column: 0), value.Grid(column: 1)));
+            totals.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var label = rows[i].Strong ? Body(rows[i].Label).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold) : Caption(rows[i].Label);
+            var value = Body(OrderPresentation.FormatMoney(rows[i].Value));
+            if (rows[i].Strong) value.FontWeight(Microsoft.UI.Text.FontWeights.Bold);
+            totals.Children.Add(label.Grid(row: i, column: 0));
+            totals.Children.Add(value.Grid(row: i, column: 1));
         }
 
         return totals;

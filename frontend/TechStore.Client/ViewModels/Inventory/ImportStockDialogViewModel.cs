@@ -152,7 +152,12 @@ public sealed partial class ImportStockDialogViewModel(
 
     partial void OnErrorMessageChanged(string? value) => OnPropertyChanged(nameof(HasError));
 
-    private void NotifyValidation() => OnPropertyChanged(nameof(CanSubmit));
+    // The button follows ConfirmCommand.CanExecute, which is only re-read when told to.
+    private void NotifyValidation()
+    {
+        OnPropertyChanged(nameof(CanSubmit));
+        ConfirmCommand.NotifyCanExecuteChanged();
+    }
 
     [RelayCommand]
     private async Task LoadProductsAsync(CancellationToken cancellationToken)

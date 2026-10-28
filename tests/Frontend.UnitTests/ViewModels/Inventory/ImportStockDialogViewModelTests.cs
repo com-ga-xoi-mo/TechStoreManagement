@@ -167,6 +167,22 @@ public sealed class ImportStockDialogViewModelTests
         Assert.Null(api.InitializeRequest?.UnitCost);
     }
 
+    [Fact]
+    public void ConfirmCommand_BecomesExecutable_WhenTheFormTurnsValid()
+    {
+        // Arrange
+        var vm = new ImportStockDialogViewModel(new FakeProducts(), new FakeApi());
+        Assert.False(vm.ConfirmCommand.CanExecute(null));
+
+        // Act
+        vm.SelectedProduct = Option();
+        vm.Quantity = 3;
+        vm.UnitCostText = "1000";
+
+        // Assert: the button reads CanExecute, so it must have been re-raised
+        Assert.True(vm.ConfirmCommand.CanExecute(null));
+    }
+
     private static ImportStockProductOption Option() => new(
         Guid.NewGuid(), "Điện thoại", "PHONE-01", "Điện thoại", false);
 

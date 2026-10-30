@@ -71,6 +71,7 @@ public sealed partial class InventoryStockViewModel(
     public bool IsEmpty => HasLoaded && !IsLoading && !HasError && VisibleItems.Count == 0;
     public bool CanGoPrevious => Page > 1;
     public bool CanGoNext => Page < TotalPages;
+    public string PageLabel => $"Trang {Page} / {Math.Max(1, TotalPages)}";
     public string ToastTitle => ToastKind == ToastKind.Error ? "Không thành công" : "Thành công";
     public bool IsErrorToast => ToastKind == ToastKind.Error;
     public bool IsSuccessToastKind => ToastKind == ToastKind.Success;
@@ -150,6 +151,7 @@ public sealed partial class InventoryStockViewModel(
     {
         OnPropertyChanged(nameof(CanGoPrevious));
         OnPropertyChanged(nameof(CanGoNext));
+        OnPropertyChanged(nameof(PageLabel));
         OnPropertyChanged(nameof(FooterText));
         PreviousPageCommand.NotifyCanExecuteChanged();
         NextPageCommand.NotifyCanExecuteChanged();
@@ -159,6 +161,7 @@ public sealed partial class InventoryStockViewModel(
     partial void OnTotalPagesChanged(int value)
     {
         OnPropertyChanged(nameof(CanGoNext));
+        OnPropertyChanged(nameof(PageLabel));
         NextPageCommand.NotifyCanExecuteChanged();
         RefreshPageNumbers();
     }

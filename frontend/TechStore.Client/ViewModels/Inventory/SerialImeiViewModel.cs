@@ -62,6 +62,7 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository inventoryRe
     public bool CanGoPrevious => Page > 1;
     public bool CanGoNext => Page < TotalPages;
     public string TotalLabel => $"{TotalCount:N0} Serial / IMEI";
+    public string PageLabel => $"Trang {Page} / {Math.Max(1, TotalPages)}";
     public string FooterText => $"Hiển thị {(TotalCount == 0 ? 0 : (Page - 1) * PageSize + 1)} – {Math.Min(Page * PageSize, TotalCount)} trên tổng số {TotalCount:N0} Serial / IMEI";
 
     partial void OnSearchTextChanged(string value) => ReloadAfterFilterChanged();
@@ -71,9 +72,9 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository inventoryRe
     partial void OnIsLoadingChanged(bool value) => NotifyState();
     partial void OnHasLoadedChanged(bool value) => NotifyState();
     partial void OnTotalCountChanged(int value) { OnPropertyChanged(nameof(TotalLabel)); OnPropertyChanged(nameof(FooterText)); }
-    partial void OnPageChanged(int value) { OnPropertyChanged(nameof(CanGoPrevious)); OnPropertyChanged(nameof(CanGoNext)); OnPropertyChanged(nameof(FooterText)); RefreshPageNumbers(); PreviousPageCommand.NotifyCanExecuteChanged(); NextPageCommand.NotifyCanExecuteChanged(); }
+    partial void OnPageChanged(int value) { OnPropertyChanged(nameof(CanGoPrevious)); OnPropertyChanged(nameof(CanGoNext)); OnPropertyChanged(nameof(PageLabel)); OnPropertyChanged(nameof(FooterText)); RefreshPageNumbers(); PreviousPageCommand.NotifyCanExecuteChanged(); NextPageCommand.NotifyCanExecuteChanged(); }
     partial void OnPageSizeChanged(int value) => OnPropertyChanged(nameof(FooterText));
-    partial void OnTotalPagesChanged(int value) { OnPropertyChanged(nameof(CanGoNext)); RefreshPageNumbers(); NextPageCommand.NotifyCanExecuteChanged(); }
+    partial void OnTotalPagesChanged(int value) { OnPropertyChanged(nameof(CanGoNext)); OnPropertyChanged(nameof(PageLabel)); RefreshPageNumbers(); NextPageCommand.NotifyCanExecuteChanged(); }
 
     public void FilterByStock(InventoryStockRow row)
     {

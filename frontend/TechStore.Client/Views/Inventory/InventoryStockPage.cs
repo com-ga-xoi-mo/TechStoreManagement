@@ -258,7 +258,7 @@ internal sealed class InventoryStockTableRows(InventoryStockViewModel viewModel)
         grid.Children.Add(reserved);
 
         var statusKeys = StatusBadgePresentation.GetKeys(row.StatusTone);
-        var status = Badge(Text(row.StatusText, 12, statusKeys.Text, 600), row.StatusTone);
+        var status = TableStatusBadge(Text(row.StatusText, 12, statusKeys.Text, 600), row.StatusTone);
         status.HorizontalAlignment = HorizontalAlignment.Center;
         Grid.SetColumn(status, 5);
         grid.Children.Add(status);
@@ -287,30 +287,18 @@ internal sealed class InventoryStockPageButtons : StackPanel
         ViewModel = viewModel;
         DataContext = viewModel;
         Orientation = Orientation.Horizontal;
-        Spacing = 6;
-        var previous = Button(Icon("left", size: 18), tooltip: "Trang trước");
-        previous.Command(x => x.Binding(() => ViewModel.PreviousPageCommand));
-        previous.Height = 32;
-        previous.IsEnabled(x => x.Binding(() => ViewModel.CanGoPrevious));
+        Spacing = 8;
+        var previous = new Button { Content = "Trang trước", Padding = new Thickness(12, 6, 12, 6) }
+            .Command(x => x.Binding(() => ViewModel.PreviousPageCommand))
+            .IsEnabled(x => x.Binding(() => ViewModel.CanGoPrevious));
+        var pageText = Text("", 12, AppColors.Text, 600);
+        pageText.Text(x => x.Binding(() => ViewModel.PageLabel));
+        pageText.VerticalAlignment = VerticalAlignment.Center;
         Children.Add(previous);
-        var items = new ItemsControl()
-            .ItemsSource(x => x.Binding(() => ViewModel.PageButtons))
-            .ItemsPanel<StackPanel>(panel => panel.Orientation(Orientation.Horizontal).Spacing(6))
-            .ItemTemplate<PageButtonItem>(item =>
-                new Grid().Children(
-                    new Button().Style(AppControlStyles.Styles.PrimaryButton)
-                        .Content(x => x.Binding(() => item.Number))
-                        .Visibility(x => x.Binding(() => item.IsCurrent).Convert(ShowIf)),
-                    new Button().Style(AppControlStyles.Styles.Button)
-                        .Content(x => x.Binding(() => item.Number))
-                        .Command(ViewModel.GoToPageCommand)
-                        .CommandParameter(x => x.Binding(() => item.Number))
-                        .Visibility(x => x.Binding(() => item.IsCurrent).Convert((bool current) => ShowIf(!current)))));
-        Children.Add(items);
-        var next = Button(Icon("right", size: 18), tooltip: "Trang sau");
-        next.Command(x => x.Binding(() => ViewModel.NextPageCommand));
-        next.Height = 32;
-        next.IsEnabled(x => x.Binding(() => ViewModel.CanGoNext));
+        Children.Add(pageText);
+        var next = new Button { Content = "Trang sau", Padding = new Thickness(12, 6, 12, 6) }
+            .Command(x => x.Binding(() => ViewModel.NextPageCommand))
+            .IsEnabled(x => x.Binding(() => ViewModel.CanGoNext));
         Children.Add(next);
     }
 }

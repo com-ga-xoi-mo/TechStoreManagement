@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using TechStore.Client.Controls;
+using TechStore.Client.Controls.Presentation;
 using TechStore.Client.Models.Inventory;
 using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Styles;
@@ -225,7 +226,9 @@ internal sealed class SerialRows : ItemsControl
         Add(grid, Text(row.SerialNumber ?? row.Imei ?? "—", 13, AppColors.Text, 600), 0);
         Add(grid, Text(row.ProductName, 13, AppColors.Text, 500), 1);
         Add(grid, Text(row.VariantName ?? "—", 12, AppColors.SecondaryText), 2);
-        Add(grid, Badge(Text(SerialImeiViewModel.StatusText(row.Status), 12, AppColors.SecondaryText, 600), StatusTone.Neutral), 3);
+        var tone = InventoryStatusPresentation.SerialTone(row.Status);
+        var toneKeys = StatusBadgePresentation.GetKeys(tone);
+        Add(grid, TableStatusBadge(Text(SerialImeiViewModel.StatusText(row.Status), 12, toneKeys.Text, 600), tone), 3);
         Add(grid, Text(row.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"), 12, AppColors.SecondaryText), 4);
         return new Border { Child = grid, BorderThickness = new Thickness(0, 0, 0, 1) }.BorderBrush(Theme(AppColors.Stroke));
     }
@@ -245,28 +248,18 @@ internal sealed class SerialPageButtons : StackPanel
         ViewModel = viewModel;
         DataContext = viewModel;
         Orientation = Orientation.Horizontal;
-        Spacing = 6;
-        var previous = Button(Icon("left", size: 18), tooltip: "Trang trước");
-        previous.Command(x => x.Binding(() => ViewModel.PreviousPageCommand));
-        previous.IsEnabled(x => x.Binding(() => ViewModel.CanGoPrevious));
+        Spacing = 8;
+        var previous = new Button { Content = "Trang trước", Padding = new Thickness(12, 6, 12, 6) }
+            .Command(x => x.Binding(() => ViewModel.PreviousPageCommand))
+            .IsEnabled(x => x.Binding(() => ViewModel.CanGoPrevious));
+        var pageText = Text("", 12, AppColors.Text, 600);
+        pageText.Text(x => x.Binding(() => ViewModel.PageLabel));
+        pageText.VerticalAlignment = VerticalAlignment.Center;
         Children.Add(previous);
-        var items = new ItemsControl()
-            .ItemsSource(x => x.Binding(() => ViewModel.PageButtons))
-            .ItemsPanel<StackPanel>(panel => panel.Orientation(Orientation.Horizontal).Spacing(6))
-            .ItemTemplate<PageButtonItem>(item =>
-                new Grid().Children(
-                    new Button().Style(AppControlStyles.Styles.PrimaryButton)
-                        .Content(x => x.Binding(() => item.Number))
-                        .Visibility(x => x.Binding(() => item.IsCurrent).Convert(ShowIf)),
-                    new Button().Style(AppControlStyles.Styles.Button)
-                        .Content(x => x.Binding(() => item.Number))
-                        .Command(ViewModel.GoToPageCommand)
-                        .CommandParameter(x => x.Binding(() => item.Number))
-                        .Visibility(x => x.Binding(() => item.IsCurrent).Convert((bool current) => ShowIf(!current)))));
-        Children.Add(items);
-        var next = Button(Icon("right", size: 18), tooltip: "Trang sau");
-        next.Command(x => x.Binding(() => ViewModel.NextPageCommand));
-        next.IsEnabled(x => x.Binding(() => ViewModel.CanGoNext));
+        Children.Add(pageText);
+        var next = new Button { Content = "Trang sau", Padding = new Thickness(12, 6, 12, 6) }
+            .Command(x => x.Binding(() => ViewModel.NextPageCommand))
+            .IsEnabled(x => x.Binding(() => ViewModel.CanGoNext));
         Children.Add(next);
     }
 }

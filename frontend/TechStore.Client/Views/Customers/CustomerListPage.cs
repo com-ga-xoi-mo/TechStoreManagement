@@ -65,12 +65,14 @@ public sealed class CustomerListPage : Page, IRoutePage
             }
         };
         var heading = new StackPanel { Spacing = 3 };
-        heading.Children.Add(Text("Hệ thống CRM & Khách hàng", 11, AppColors.SecondaryText, true));
         var titleLine = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, VerticalAlignment = VerticalAlignment.Center };
-        titleLine.Children.Add(Text("Danh sách Khách hàng", 25, AppColors.Text, true));
+        titleLine.Children.Add(new TextBlock().Text("Danh sách khách hàng")
+            .Style(AppResources.GetStyle(AppTypography.HeadingText)).Foreground(AppColors.Brushes.Text));
         titleLine.Children.Add(_countText);
         heading.Children.Add(titleLine);
-        heading.Children.Add(Text("Quản lý hồ sơ, hạng thành viên và lịch sử mua hàng.", 13, AppColors.SecondaryText));
+        heading.Children.Add(new TextBlock().Text("Quản lý hồ sơ, hạng thành viên và lịch sử mua hàng.")
+            .Style(AppResources.GetStyle(AppTypography.CaptionText)).Foreground(AppColors.Brushes.SecondaryText)
+            .TextWrapping(TextWrapping.Wrap));
         var addButton = PrimaryButton("＋  Thêm khách hàng");
         // Modal lifetime commands belong to this View, not its data-context ViewModel.
         addButton.Command(ShowCreateDialogCommand);

@@ -106,22 +106,25 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 
     private UIElement BuildHeader()
     {
-        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        title.Children.Add(Text("Danh mục và Kho", 20, AppColors.Text, 700));
+        var title = new StackPanel { Spacing = 4 };
+        var titleLine = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        titleLine.Children.Add(Text("Danh mục và Kho", 25, AppColors.Text, 700));
         var categoryTotal = Text(size: 14, color: AppColors.SecondaryText);
         categoryTotal.Text(x => x.Binding(() => ViewModel.TotalLabel));
         categoryTotal.Visibility(x => x.Binding(() => ViewModel.IsCategoryTab).Convert(ShowIf));
-        title.Children.Add(categoryTotal);
+        titleLine.Children.Add(categoryTotal);
         var inventoryTotal = Text(size: 14, color: AppColors.SecondaryText);
         inventoryTotal.Text(x => x.Binding(() => ViewModel.Inventory.TotalLabel));
         var inventoryTotalHost = new Border { Child = inventoryTotal };
         inventoryTotalHost.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
-        title.Children.Add(inventoryTotalHost);
+        titleLine.Children.Add(inventoryTotalHost);
         var serialTotal = Text(size: 14, color: AppColors.SecondaryText);
         serialTotal.Text(x => x.Binding(() => ViewModel.Serials.TotalLabel));
         var serialTotalHost = new Border { Child = serialTotal };
         serialTotalHost.Visibility(x => x.Binding(() => ViewModel.IsSerialTab).Convert(ShowIf));
-        title.Children.Add(serialTotalHost);
+        titleLine.Children.Add(serialTotalHost);
+        title.Children.Add(titleLine);
+        title.Children.Add(Text("Quản lý danh mục, tồn kho và serial/IMEI.", 13, AppColors.SecondaryText));
 
         var actions = new Grid();
         var categoryAction = BuildPrimaryAction("add", "Thêm danh mục", "Thêm danh mục");
@@ -151,9 +154,11 @@ public sealed class CategoryManagementPage : Page, IRoutePage
     private static Button BuildPrimaryAction(string icon, string label, string tooltip)
     {
         var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-        content.Children.Add(Icon(icon, AppColors.OnPrimary, 18));
-        content.Children.Add(Text(label, 14, AppColors.OnPrimary, 600));
-        return Button(content, primary: true, tooltip: tooltip);
+        content.Children.Add(Icon(icon, AppColors.OnPrimary, 13));
+        content.Children.Add(Text(label, 13, AppColors.OnPrimary, 600));
+        return Button(content, primary: true, tooltip: tooltip)
+            .Padding(new Thickness(16, 10, 16, 10))
+            .CornerRadius(new CornerRadius(7));
     }
 
     private UIElement BuildTabs()
@@ -719,28 +724,18 @@ internal sealed class CategoryPageButtons : StackPanel
         ViewModel = viewModel;
         DataContext = viewModel;
         Orientation = Orientation.Horizontal;
-        Spacing = 6;
-        var previous = Button(Icon("left", size: 18), tooltip: "Trang trước");
-        previous.Command(x => x.Binding(() => ViewModel.PreviousPageCommand));
-        previous.Height = 32;
+        Spacing = 8;
+        var previous = new Button { Content = "Trang trước", Padding = new Thickness(12, 6, 12, 6) }
+            .Command(x => x.Binding(() => ViewModel.PreviousPageCommand))
+            .IsEnabled(x => x.Binding(() => ViewModel.CanGoPrevious));
+        var pageText = Text("", 12, AppColors.Text, 600);
+        pageText.Text(x => x.Binding(() => ViewModel.PageLabel));
+        pageText.VerticalAlignment = VerticalAlignment.Center;
         Children.Add(previous);
-        var items = new ItemsControl()
-            .ItemsSource(x => x.Binding(() => ViewModel.PageButtons))
-            .ItemsPanel<StackPanel>(panel => panel.Orientation(Orientation.Horizontal).Spacing(6))
-            .ItemTemplate<PageButtonItem>(item =>
-                new Grid().Children(
-                    new Button().Style(AppControlStyles.Styles.PrimaryButton)
-                        .Content(x => x.Binding(() => item.Number))
-                        .Visibility(x => x.Binding(() => item.IsCurrent).Convert(ShowIf)),
-                    new Button().Style(AppControlStyles.Styles.Button)
-                        .Content(x => x.Binding(() => item.Number))
-                        .Command(ViewModel.GoToPageCommand)
-                        .CommandParameter(x => x.Binding(() => item.Number))
-                        .Visibility(x => x.Binding(() => item.IsCurrent).Convert((bool current) => ShowIf(!current)))));
-        Children.Add(items);
-        var next = Button(Icon("right", size: 18), tooltip: "Trang sau");
-        next.Command(x => x.Binding(() => ViewModel.NextPageCommand));
-        next.Height = 32;
+        Children.Add(pageText);
+        var next = new Button { Content = "Trang sau", Padding = new Thickness(12, 6, 12, 6) }
+            .Command(x => x.Binding(() => ViewModel.NextPageCommand))
+            .IsEnabled(x => x.Binding(() => ViewModel.CanGoNext));
         Children.Add(next);
     }
 }

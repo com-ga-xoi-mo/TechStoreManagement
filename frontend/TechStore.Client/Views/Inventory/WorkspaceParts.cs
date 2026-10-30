@@ -49,6 +49,11 @@ internal static class WorkspaceParts
         .BorderBrush(Theme(keys.Stroke));
     }
 
+    internal static Border TableStatusBadge(UIElement content, StatusTone tone = StatusTone.Neutral) =>
+        Badge(content, tone)
+            .CornerRadius(AppMetrics.Values.BadgeRadius)
+            .Padding(AppMetrics.Values.BadgePadding);
+
     internal static Button Button(UIElement content, bool primary = false, string? tooltip = null)
     {
         var button = new Button

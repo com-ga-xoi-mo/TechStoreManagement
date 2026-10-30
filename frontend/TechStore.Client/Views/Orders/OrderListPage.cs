@@ -49,12 +49,18 @@ public sealed class OrderListPage : Page, IRoutePage
                 new StackPanel()
                     .Spacing(4)
                     .Children(
-                        new TextBlock().Style(AppTypography.Styles.HeadingText).Text("Danh sách đơn hàng"),
+                        new TextBlock().Style(AppResources.GetStyle(AppTypography.HeadingText))
+                            .Foreground(AppColors.Brushes.Text).Text("Danh sách đơn hàng"),
                         Caption("Tìm, lọc và xử lý đơn bán tại quầy. Máy có IMEI chỉ chốt khi hoàn tất đơn.")),
                 new Button()
-                    .Style(AppControlStyles.Styles.PrimaryButton)
-                    .Content("Lập đơn mới")
-                    .VerticalAlignment(VerticalAlignment.Top)
+                    .Content("＋  Lập đơn mới")
+                    .FontSize(13)
+                    .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
+                    .Padding(new Thickness(16, 10, 16, 10))
+                    .CornerRadius(new CornerRadius(7))
+                    .Background(AppColors.Brushes.Primary)
+                    .Foreground(AppColors.Brushes.OnPrimary)
+                    .VerticalAlignment(VerticalAlignment.Center)
                     .Command(x => x.Binding(() => ViewModel.NewOrderCommand))
                     .Grid(column: 1));
 
@@ -72,41 +78,50 @@ public sealed class OrderListPage : Page, IRoutePage
                         new ColumnDefinition().Width(GridLength.Auto))
                     .Children(
                         new SearchBoxControl()
+                            .WithInputHeight(40)
                             .Label("Tìm đơn hàng")
                             .PlaceholderText("Mã đơn, tên hoặc số điện thoại khách")
                             .Text(x => x.Binding(() => ViewModel.SearchText).Mode(BindingMode.TwoWay))
                             .SearchCommand(x => x.Binding(() => ViewModel.SearchCommand))
                             .ClearCommand(x => x.Binding(() => ViewModel.ClearSearchCommand))
                             .Grid(column: 0),
-                        new ComboBox()
+                        ToolbarFilter("Trạng thái", new ComboBox()
                             .Style(AppControlStyles.Styles.ComboBox)
-                            .Header("Trạng thái")
                             .MinWidth(170)
                             .ItemsSource(ViewModel.StatusFilters)
                             .DisplayMemberPath("Label")
-                            .SelectedItem(x => x.Binding(() => ViewModel.SelectedStatusFilter).Mode(BindingMode.TwoWay))
+                            .SelectedItem(x => x.Binding(() => ViewModel.SelectedStatusFilter).Mode(BindingMode.TwoWay)))
                             .Grid(column: 1),
-                        new ComboBox()
+                        ToolbarFilter("Sắp xếp", new ComboBox()
                             .Style(AppControlStyles.Styles.ComboBox)
-                            .Header("Sắp xếp")
                             .MinWidth(170)
                             .ItemsSource(ViewModel.SortOptions)
                             .DisplayMemberPath("Label")
-                            .SelectedItem(x => x.Binding(() => ViewModel.SelectedSort).Mode(BindingMode.TwoWay))
+                            .SelectedItem(x => x.Binding(() => ViewModel.SelectedSort).Mode(BindingMode.TwoWay)))
                             .Grid(column: 2),
-                        new ComboBox()
+                        ToolbarFilter("Mỗi trang", new ComboBox()
                             .Style(AppControlStyles.Styles.ComboBox)
-                            .Header("Mỗi trang")
                             .MinWidth(90)
                             .ItemsSource(ViewModel.PageSizes)
-                            .SelectedItem(x => x.Binding(() => ViewModel.SelectedPageSize).Mode(BindingMode.TwoWay))
+                            .SelectedItem(x => x.Binding(() => ViewModel.SelectedPageSize).Mode(BindingMode.TwoWay)))
                             .Grid(column: 3),
                         new Button()
                             .Style(AppControlStyles.Styles.Button)
+                            .Height(40)
                             .VerticalAlignment(VerticalAlignment.Bottom)
                             .Content("Đặt lại")
                             .Command(x => x.Binding(() => ViewModel.ResetFiltersCommand))
                             .Grid(column: 4)));
+
+    private static StackPanel ToolbarFilter(string label, ComboBox combo) =>
+        new StackPanel()
+            .Spacing(6)
+            .Children(
+                new TextBlock()
+                    .Style(AppResources.GetStyle(AppTypography.BodyText))
+                    .Foreground(AppColors.Brushes.Text)
+                    .Text(label),
+                combo.Height(40));
 
     private UIElement BuildActionMessage() =>
         new Border()

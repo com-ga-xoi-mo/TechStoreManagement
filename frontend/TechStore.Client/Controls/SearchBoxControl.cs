@@ -17,6 +17,7 @@ public sealed class SearchBoxControl : UserControl
 {
     private readonly AutoSuggestBox _query;
     private readonly TextBlock _label;
+    private readonly Button _clear;
 
     public SearchBoxControl()
     {
@@ -37,13 +38,13 @@ public sealed class SearchBoxControl : UserControl
         // Exception 1 (D2): submit has no command on AutoSuggestBox.
         _query.QuerySubmitted += OnQuerySubmitted;
 
-        var clear = new Button()
+        _clear = new Button()
             .Style(AppResources.GetStyle(AppControlStyles.Button))
             .Content("Xóa")
             .Command(x => x.Binding(() => Self.ClearCommand));
-        AutomationProperties.SetName(clear, "Xóa nội dung tìm kiếm");
+        AutomationProperties.SetName(_clear, "Xóa nội dung tìm kiếm");
         // Exception 2 (D2): focus cannot be expressed as a binding. Runs before ClearCommand executes.
-        clear.Click += OnClearClick;
+        _clear.Click += OnClearClick;
 
         Content = new StackPanel()
             .DataContext(this)
@@ -55,7 +56,7 @@ public sealed class SearchBoxControl : UserControl
                     .ColumnDefinitions(
                         new ColumnDefinition().Width(new GridLength(1, GridUnitType.Star)),
                         new ColumnDefinition().Width(GridLength.Auto))
-                    .Children(_query.Grid(column: 0), clear.Grid(column: 1)));
+                    .Children(_query.Grid(column: 0), _clear.Grid(column: 1)));
 
         ApplyThemeColors();
         // Style setters win over a theme reference applied before the first load, so apply again once loaded.
@@ -64,6 +65,13 @@ public sealed class SearchBoxControl : UserControl
 
     // Binding source for the inner tree (its DataContext is this control; the control's own DataContext stays the consumer's).
     private SearchBoxControl Self => this;
+
+    internal SearchBoxControl WithInputHeight(double height)
+    {
+        _query.Height = height;
+        _clear.Height = height;
+        return this;
+    }
 
     private void ApplyThemeColors() => _label.Foreground(AppColors.Brushes.Text);
 

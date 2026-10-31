@@ -45,9 +45,12 @@ public sealed class ProductListPage : Page, IRoutePage
         AutomationProperties.SetName(_listHeading, "Số kết quả sản phẩm");
 
         var addProductButton = new Button()
-            .Content("Thêm sản phẩm")
+            .Content(new TextBlock().Text("+  Thêm sản phẩm").FontSize(13).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold))
             .Command(x => x.Binding(() => ViewModel.CreateProductCommand))
-            .Style(AppControlStyles.Styles.PrimaryButton)
+            .Padding(new Thickness(16, 10, 16, 10))
+            .CornerRadius(new CornerRadius(7))
+            .Background(AppColors.Brushes.Primary)
+            .Foreground(AppColors.Brushes.OnPrimary)
             .Visibility(x => x.Binding(() => ViewModel.CanManage).Convert((bool v) => CatalogViewParts.ShowIf(v)));
 
         var refreshButton = new Button()
@@ -76,12 +79,16 @@ public sealed class ProductListPage : Page, IRoutePage
             .PlaceholderText("Tên, SKU, hãng hoặc barcode")
             .Text(x => x.Binding(() => ViewModel.SearchText).Mode(BindingMode.TwoWay))
             .SearchCommand(x => x.Binding(() => ViewModel.SearchCommand))
-            .ClearCommand(x => x.Binding(() => ViewModel.ClearSearchCommand));
+            .ClearCommand(x => x.Binding(() => ViewModel.ClearSearchCommand))
+            .WithInputHeight(40);
 
         var searchButton = new Button()
-            .Content("Tìm kiếm")
+            .Content(new TextBlock().Text("Tìm kiếm").FontSize(13).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold))
             .Command(x => x.Binding(() => ViewModel.SearchCommand))
-            .Style(AppControlStyles.Styles.PrimaryButton)
+            .Padding(new Thickness(16, 10, 16, 10))
+            .CornerRadius(new CornerRadius(7))
+            .Background(AppColors.Brushes.Primary)
+            .Foreground(AppColors.Brushes.OnPrimary)
             .VerticalAlignment(VerticalAlignment.Bottom);
 
         var searchRow = new Grid()

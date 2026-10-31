@@ -142,3 +142,49 @@ App SHALL cung cấp shared resources cùng tài nguyên WinUI trước khi tạ
 #### Scenario: Repeated initialization or navigation
 - **WHEN** resource registration được gọi lại hoặc người dùng điều hướng nhiều lần
 - **THEN** resource collection không tích lũy bản sao và cùng key tiếp tục có kiểu, giá trị theo theme và độ ưu tiên ổn định
+
+### Requirement: Order list toolbar alignment
+The Orders list SHALL present its title, primary create action, search field, filters, and reset action as a visually aligned toolbar. The search field and its clear action SHALL use a 40 DIP height on this page.
+
+#### Scenario: View order list toolbar
+- **WHEN** a user opens the Orders list
+- **THEN** the title and description align with the reference; “Lập đơn mới” uses the shared primary button appearance and plus sign; filter labels sit above their controls; the search field, clear action, selectors, and reset action align within the filter panel.
+
+#### Scenario: Search control on other pages
+- **WHEN** a user opens another page that uses the shared search control
+- **THEN** that page keeps its existing search-control height unless it explicitly sets a page-specific height.
+
+### Requirement: Consistent admin page headings
+Admin pages SHALL present page titles and supporting descriptions with a consistent visual hierarchy and alignment.
+
+#### Scenario: View common admin pages
+- **WHEN** a user opens Products, Customers, Dashboard, Category and Inventory, or Settings
+- **THEN** each page shows a clear title and any supporting description with consistent typography and spacing
+
+### Requirement: Shared primary action presentation
+Primary actions across admin pages SHALL use the shared primary color, typography, spacing, and corner shape; actions shown with a plus sign SHALL keep that sign visually balanced with the label.
+
+#### Scenario: Compare add and search actions
+- **WHEN** a user views primary actions on Products, Category and Inventory, Customers, or the Orders list toolbar
+- **THEN** buttons use the shared primary appearance and plus signs are sized consistently with their labels
+
+### Requirement: Compact semantic inventory status badges
+Inventory and Serial/IMEI tables SHALL display status as compact text badges whose color communicates the corresponding status category.
+
+#### Scenario: View inventory and device statuses
+- **WHEN** a user views stock or Serial/IMEI rows
+- **THEN** each status appears in a compact badge with readable status text and the appropriate semantic color
+
+### Requirement: Aligned Settings content
+The Settings page SHALL align its title and description and provide consistent horizontal insets for settings rows and application information.
+
+#### Scenario: View Settings sections
+- **WHEN** a user opens the Settings page and expands its information sections
+- **THEN** the title appears above its description and the settings content aligns within consistent left and right margins
+
+### Requirement: Consistent inventory pagination
+Pagination in the Category, Inventory, and Serial/IMEI views SHALL use the same labeled navigation pattern as the Customers list.
+
+#### Scenario: Navigate inventory pages
+- **WHEN** a user views a paginated Category, Inventory, or Serial/IMEI list
+- **THEN** the footer presents “Trang trước”, the current page and page count, and “Trang sau”, with unavailable directions disabled

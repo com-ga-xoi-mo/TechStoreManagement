@@ -52,6 +52,7 @@ public sealed partial class CategoryManagementViewModel(
     public bool ShowStatePanel => IsLoading || IsEmpty || IsError;
     public bool HasStatusUpdateError => !string.IsNullOrWhiteSpace(StatusUpdateError);
     public string TotalLabel => $"{TotalCount} danh mục";
+    public string PageLabel => $"Trang {CurrentPage} / {Math.Max(1, PageCount)}";
     public string FooterText => $"Hiển thị {(EligibleCount == 0 ? 0 : (CurrentPage - 1) * PageSize + 1)} - {Math.Min(CurrentPage * PageSize, EligibleCount)} trên tổng số {EligibleCount} danh mục";
     public string EmptyText => TotalCount == 0 ? "Chưa có danh mục để hiển thị." : "Không tìm thấy danh mục phù hợp.";
     public bool IsCategoryTab => SelectedTab == CategoryWorkspaceTab.Categories;
@@ -191,6 +192,7 @@ public sealed partial class CategoryManagementViewModel(
         OnPropertyChanged(nameof(CurrentPage));
         OnPropertyChanged(nameof(CanGoPrevious));
         OnPropertyChanged(nameof(CanGoNext));
+        OnPropertyChanged(nameof(PageLabel));
         OnPropertyChanged(nameof(FooterText));
         OnPropertyChanged(nameof(EmptyText));
         PreviousPageCommand.NotifyCanExecuteChanged();

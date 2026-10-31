@@ -40,7 +40,7 @@ public sealed class DashboardPage : Page, IRoutePage
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         var periodSelector = BuildPeriodSelector();
 
-        var content = new StackPanel().Spacing(18).Children(
+        var content = new StackPanel().Padding(new Thickness(20, 20, 20, 4)).Spacing(18).Children(
             BuildHeader(periodSelector),
             new InfoBar().IsOpen(x => x.Binding(() => viewModel.ShowPreviewBanner)).IsClosable(false)
                 .Severity(InfoBarSeverity.Informational).Title("Dữ liệu minh họa — chưa kết nối Analytics API")
@@ -77,7 +77,9 @@ public sealed class DashboardPage : Page, IRoutePage
                 new ColumnDefinition().Width(GridLength.Auto))
             .RowDefinitions(new RowDefinition { Height = GridLength.Auto });
         _headerGrid.Children.Add(new StackPanel().Spacing(4).Children(
-            new TextBlock().Style(AppTypography.Styles.HeadingText).FontSize(25).Text("Tổng quan kinh doanh")).Grid(row: 0, column: 0));
+            new TextBlock().Style(AppTypography.Styles.HeadingText).FontSize(25).Text("Tổng quan kinh doanh"),
+            new TextBlock().Style(AppResources.GetStyle(AppTypography.CaptionText)).Foreground(ThemeResource.Get<Brush>(AppColors.SecondaryText))
+                .Text("Theo dõi doanh thu, đơn hàng và tình hình tồn kho.")).Grid(row: 0, column: 0));
         _headerGrid.Children.Add(periodSelector.Grid(row: 0, column: 1));
         return _headerGrid;
     }
@@ -271,16 +273,18 @@ public sealed class DashboardPage : Page, IRoutePage
         var row = new Grid().ColumnSpacing(12).Padding(new Thickness(12, 10, 12, 10));
         AddOrderColumns(row);
         var code = BindText<DashboardRecentOrderRow>(nameof(DashboardRecentOrderRow.OrderCode), AppTypography.BodyText);
+        code.VerticalAlignment(VerticalAlignment.Center);
         code.Foreground(ThemeResource.Get<Brush>(AppColors.Primary)).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
             .TextTrimming(TextTrimming.CharacterEllipsis);
         var customer = new StackPanel().Spacing(2).Children(
             BindText<DashboardRecentOrderRow>(nameof(DashboardRecentOrderRow.CustomerDisplayName), AppTypography.BodyText),
             BindText<DashboardRecentOrderRow>(nameof(DashboardRecentOrderRow.CreatedAtText), AppTypography.CaptionText)
                 .Foreground(ThemeResource.Get<Brush>(AppColors.SecondaryText)));
+        customer.VerticalAlignment(VerticalAlignment.Center);
         var product = BindText<DashboardRecentOrderRow>(nameof(DashboardRecentOrderRow.ProductSummary), AppTypography.BodyText);
-        product.TextTrimming(TextTrimming.CharacterEllipsis);
+        product.TextTrimming(TextTrimming.CharacterEllipsis).VerticalAlignment(VerticalAlignment.Center);
         var amount = BindText<DashboardRecentOrderRow>(nameof(DashboardRecentOrderRow.TotalText), AppTypography.BodyText);
-        amount.HorizontalAlignment(HorizontalAlignment.Right).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold);
+        amount.HorizontalAlignment(HorizontalAlignment.Right).VerticalAlignment(VerticalAlignment.Center).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold);
         var status = new StatusBadge();
         status.SetBinding(StatusBadge.LabelProperty, new Binding { Path = new PropertyPath(nameof(DashboardRecentOrderRow.StatusLabel)) });
         status.SetBinding(StatusBadge.ToneProperty, new Binding
@@ -292,7 +296,7 @@ public sealed class DashboardPage : Page, IRoutePage
         row.Children.Add(customer.Grid(column: 1));
         row.Children.Add(product.Grid(column: 2));
         row.Children.Add(amount.Grid(column: 3));
-        row.Children.Add(status.HorizontalAlignment(HorizontalAlignment.Center).Grid(column: 4));
+        row.Children.Add(status.HorizontalAlignment(HorizontalAlignment.Center).VerticalAlignment(VerticalAlignment.Center).Grid(column: 4));
         return new Border().HorizontalAlignment(HorizontalAlignment.Stretch)
             .BorderBrush(ThemeResource.Get<Brush>(AppColors.Stroke))
             .BorderThickness(new Thickness(0, 0, 0, 1)).Child(row);

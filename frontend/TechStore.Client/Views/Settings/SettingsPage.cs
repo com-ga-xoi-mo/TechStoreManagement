@@ -47,22 +47,25 @@ public sealed class SettingsPage : Page, IRoutePage
         return new StackPanel()
             .Spacing(4)
             .Children(
-                new TextBlock()
-                    .Text("Cấu hình hệ thống > Cài đặt chung")
-                    .FontSize(12)
-                    .Foreground(new SolidColorBrush(StitchTokens.ContentMuted)),
                 new Grid()
                     .ColumnDefinitions(
                         new ColumnDefinition().Width(new GridLength(1, GridUnitType.Star)),
                         new ColumnDefinition().Width(GridLength.Auto)
                     )
                     .Children(
-                        new TextBlock()
-                            .Text("Cài đặt")
-                            .FontSize(24)
-                            .FontWeight(Microsoft.UI.Text.FontWeights.Bold)
-                            .Foreground(new SolidColorBrush(StitchTokens.ContentTitle))
-                            .Grid(column: 0),
+                        new StackPanel()
+                            .Spacing(4)
+                            .Grid(column: 0)
+                            .Children(
+                                new TextBlock()
+                                    .Text("Cài đặt")
+                                    .FontSize(24)
+                                    .FontWeight(Microsoft.UI.Text.FontWeights.Bold)
+                                    .Foreground(new SolidColorBrush(StitchTokens.ContentTitle)),
+                                new TextBlock()
+                                    .Text("Quản lý thông tin cửa hàng và giao diện ứng dụng.")
+                                    .FontSize(13)
+                                    .Foreground(new SolidColorBrush(StitchTokens.ContentMuted))),
                         new TextBlock()
                             .Text($"v2.4.0 · {ViewModel.RuntimeDescription}")
                             .FontSize(12)
@@ -142,6 +145,7 @@ public sealed class SettingsPage : Page, IRoutePage
                 .Text(x => x.Binding(() => ViewModel.IsSaving).Convert((bool saving) => saving ? "Đang lưu..." : "Lưu thay đổi")));
 
         // CommunityToolkit SettingsExpander & SettingsCard
+        var expanderItemPadding = new Thickness(16, 8, 16, 8);
         var storeSection = new SettingsExpander
         {
             Header = "Thông tin cửa hàng",
@@ -149,12 +153,12 @@ public sealed class SettingsPage : Page, IRoutePage
             IsExpanded = true,
             Items =
             {
-                new SettingsCard { Header = "Tên cửa hàng *", Description = "In trên tiêu đề hóa đơn bán hàng", Content = storeNameBox },
-                new SettingsCard { Header = "Địa chỉ trụ sở *", Description = "Địa chỉ giao dịch kinh doanh", Content = storeAddressBox },
-                new SettingsCard { Header = "Số hotline *", Description = "Số tổng đài chăm sóc khách hàng", Content = storePhoneBox },
-                new SettingsCard { Header = "Email liên hệ", Description = "Hộp thư tiếp nhận phản hồi", Content = storeEmailBox },
-                new SettingsCard { Header = "Mã số thuế", Description = "Mã số thuế đăng ký kinh doanh", Content = storeTaxIdBox },
-                new SettingsCard { Content = saveButton, HorizontalContentAlignment = HorizontalAlignment.Right }
+                new SettingsCard { Header = "Tên cửa hàng *", Description = "In trên tiêu đề hóa đơn bán hàng", Content = storeNameBox, Padding = expanderItemPadding },
+                new SettingsCard { Header = "Địa chỉ trụ sở *", Description = "Địa chỉ giao dịch kinh doanh", Content = storeAddressBox, Padding = expanderItemPadding },
+                new SettingsCard { Header = "Số hotline *", Description = "Số tổng đài chăm sóc khách hàng", Content = storePhoneBox, Padding = expanderItemPadding },
+                new SettingsCard { Header = "Email liên hệ", Description = "Hộp thư tiếp nhận phản hồi", Content = storeEmailBox, Padding = expanderItemPadding },
+                new SettingsCard { Header = "Mã số thuế", Description = "Mã số thuế đăng ký kinh doanh", Content = storeTaxIdBox, Padding = expanderItemPadding },
+                new SettingsCard { Content = saveButton, HorizontalContentAlignment = HorizontalAlignment.Right, Padding = expanderItemPadding }
             }
         };
 
@@ -178,9 +182,9 @@ public sealed class SettingsPage : Page, IRoutePage
             IsExpanded = false,
             Items =
             {
-                new SettingsCard { Header = "Ứng dụng", Description = ViewModel.ApplicationName },
-                new SettingsCard { Header = "Phiên bản", Description = ViewModel.ApplicationVersion },
-                new SettingsCard { Header = "Nền tảng", Description = ViewModel.RuntimeDescription }
+                new SettingsCard { Header = "Ứng dụng", Description = ViewModel.ApplicationName, Padding = expanderItemPadding },
+                new SettingsCard { Header = "Phiên bản", Description = ViewModel.ApplicationVersion, Padding = expanderItemPadding },
+                new SettingsCard { Header = "Nền tảng", Description = ViewModel.RuntimeDescription, Padding = expanderItemPadding }
             }
         };
 

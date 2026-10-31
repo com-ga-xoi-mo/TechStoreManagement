@@ -331,7 +331,12 @@ public sealed class CreateCategoryDialog : ContentDialog
             CornerRadius = new CornerRadius(6),
             VerticalAlignment = VerticalAlignment.Center
         }.Background(Theme(AppColors.Surface));
+#if WINDOWS
+        // On WinUI the Border.Child binding extension resolves to ItemContainer, so bind through a ContentControl.
+        iconBox.Child = new ContentControl().Content(x => x.Binding(() => ViewModel.SelectedIcon).Convert((string symbol) => Icon(symbol, AppColors.InfoText, 16)));
+#else
         iconBox.Child(x => x.Binding(() => ViewModel.SelectedIcon).Convert((string symbol) => Icon(symbol, AppColors.InfoText, 16)));
+#endif
         var iconNameText = Text(ViewModel.SelectedIconLabel, 13, AppColors.Text, 500);
         iconNameText.Text(x => x.Binding(() => ViewModel.SelectedIconLabel));
 

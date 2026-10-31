@@ -1,5 +1,6 @@
 using TechStore.Client.Repositories.Inventory;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Models.Catalog;
@@ -53,6 +54,7 @@ public sealed partial class ImportStockDialogViewModel(
     [ObservableProperty] private ImportStockVariantOption? _selectedVariant;
     [ObservableProperty] private int _quantity = 1;
     [ObservableProperty] private string _serialLines = string.Empty;
+    [ObservableProperty] private string _unitCostText = string.Empty;
     [ObservableProperty] private string _reason = "Nhập kho mới";
     [ObservableProperty] private bool _isLoadingProducts;
     [ObservableProperty] private bool _isBusy;
@@ -63,6 +65,12 @@ public sealed partial class ImportStockDialogViewModel(
     public bool HasSelectedProduct => SelectedProduct is not null;
     public bool IsSerialTracked => SelectedProduct?.IsSerialTracked == true;
     public bool HasVariants => VariantOptions.Count > 0;
+    // Goods without serial/IMEI and every serial import must say what the stock cost; a bare opening
+    // quantity of serial-tracked goods carries no devices, so it needs none.
+    public bool NeedsUnitCost => HasSelectedProduct && (!IsSerialTracked || SerialCount > 0);
+    public string UnitCostHint => SerialCount > 0
+        ? "Áp dụng cho từng máy trong danh sách Serial/IMEI bên dưới."
+        : "Giá nhập thực tế của mỗi đơn vị, dùng để tính lãi khi bán.";
     public int SerialCount => ParseSerialEntries().Count;
     public string SerialCountText => $"Đã nhập {SerialCount:N0} mã Serial/IMEI";
     public string ProductMetaText => SelectedProduct is null
@@ -77,6 +85,8 @@ public sealed partial class ImportStockDialogViewModel(
             if (HasDuplicateSerials) return "Danh sách Serial/IMEI không được có mã trùng nhau.";
             if (SerialCount > 0 && SerialCount != Quantity)
                 return $"Số mã Serial/IMEI ({SerialCount}) phải bằng số lượng nhập ({Quantity}).";
+            if (NeedsUnitCost && !TryReadUnitCost(out _))
+                return "Vui lòng nhập giá vốn mỗi đơn vị (số không âm).";
             return null;
         }
     }
@@ -96,6 +106,8 @@ public sealed partial class ImportStockDialogViewModel(
             _ = LoadVariantsAsync(value.Id);
         OnPropertyChanged(nameof(HasSelectedProduct));
         OnPropertyChanged(nameof(IsSerialTracked));
+        OnPropertyChanged(nameof(NeedsUnitCost));
+        OnPropertyChanged(nameof(UnitCostHint));
         OnPropertyChanged(nameof(ProductMetaText));
         OnPropertyChanged(nameof(ValidationMessage));
         OnPropertyChanged(nameof(HasValidationError));
@@ -121,6 +133,15 @@ public sealed partial class ImportStockDialogViewModel(
         OnPropertyChanged(nameof(SerialCount));
         OnPropertyChanged(nameof(SerialCountText));
         OnPropertyChanged(nameof(HasDuplicateSerials));
+        OnPropertyChanged(nameof(NeedsUnitCost));
+        OnPropertyChanged(nameof(UnitCostHint));
+        OnPropertyChanged(nameof(ValidationMessage));
+        OnPropertyChanged(nameof(HasValidationError));
+        NotifyValidation();
+    }
+
+    partial void OnUnitCostTextChanged(string value)
+    {
         OnPropertyChanged(nameof(ValidationMessage));
         OnPropertyChanged(nameof(HasValidationError));
         NotifyValidation();
@@ -131,7 +152,12 @@ public sealed partial class ImportStockDialogViewModel(
 
     partial void OnErrorMessageChanged(string? value) => OnPropertyChanged(nameof(HasError));
 
-    private void NotifyValidation() => OnPropertyChanged(nameof(CanSubmit));
+    // The button follows ConfirmCommand.CanExecute, which is only re-read when told to.
+    private void NotifyValidation()
+    {
+        OnPropertyChanged(nameof(CanSubmit));
+        ConfirmCommand.NotifyCanExecuteChanged();
+    }
 
     [RelayCommand]
     private async Task LoadProductsAsync(CancellationToken cancellationToken)
@@ -203,6 +229,7 @@ public sealed partial class ImportStockDialogViewModel(
         IsBusy = true;
         try
         {
+            decimal? unitCost = TryReadUnitCost(out var parsedCost) ? parsedCost : null;
             var serials = ParseSerialLines();
             if (serials.Count > 0)
             {
@@ -226,6 +253,7 @@ public sealed partial class ImportStockDialogViewModel(
                         ProductId = SelectedProduct.Id,
                         VariantId = SelectedVariant?.Id,
                         Items = serials.Select(ToImportItem).ToList(),
+                        DefaultUnitCost = unitCost,
                         Reason = NormalizedReason()
                     }, cancellationToken);
 
@@ -246,6 +274,7 @@ public sealed partial class ImportStockDialogViewModel(
                     ProductId = SelectedProduct.Id,
                     VariantId = SelectedVariant?.Id,
                     Quantity = Quantity,
+                    UnitCost = NeedsUnitCost ? unitCost : null,
                     Reason = NormalizedReason()
                 }, cancellationToken);
 
@@ -269,6 +298,9 @@ public sealed partial class ImportStockDialogViewModel(
             ConfirmCommand.NotifyCanExecuteChanged();
         }
     }
+
+    private bool TryReadUnitCost(out decimal cost) =>
+        decimal.TryParse(UnitCostText?.Trim(), NumberStyles.Number, CultureInfo.GetCultureInfo("vi-VN"), out cost) && cost >= 0;
 
     private string NormalizedReason() => string.IsNullOrWhiteSpace(Reason) ? "Nhập kho mới" : Reason.Trim();
 

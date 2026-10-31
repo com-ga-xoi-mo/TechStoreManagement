@@ -43,7 +43,7 @@ public sealed class SerialImeiPage : Page
         Unloaded += (_, _) => ViewModel.CancelLoading();
     }
 
-    private UIElement BuildProductFilterBanner()
+    private FrameworkElement BuildProductFilterBanner()
     {
         var label = Text("Đang xem serial của:", 13, AppColors.InfoText, 500);
         var product = Text("", 13, AppColors.InfoText, 600);
@@ -78,7 +78,7 @@ public sealed class SerialImeiPage : Page
         .Visibility(x => x.Binding(() => ViewModel.HasProductFilter).Convert(ShowIf));
     }
 
-    private UIElement BuildFilters()
+    private FrameworkElement BuildFilters()
     {
         var grid = new Grid { ColumnSpacing = 12 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star), MinWidth = 280 });
@@ -121,7 +121,7 @@ public sealed class SerialImeiPage : Page
         return grid;
     }
 
-    private UIElement BuildCard()
+    private FrameworkElement BuildCard()
     {
         var table = new SerialRows();
         table.ItemsSource(x => x.Binding(() => ViewModel.Items));

@@ -473,7 +473,7 @@ public class OrderService(
 
                     foreach (var item in items)
                     {
-                        item.UnitCost = sale.DeviceUnitCosts.GetValueOrDefault(item.Id) ?? item.Product.CostPrice;
+                        item.UnitCost = sale.UnitCosts.GetValueOrDefault(item.Id);
                         item.UpdatedAt = now;
                     }
 

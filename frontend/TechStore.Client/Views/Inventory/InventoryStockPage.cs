@@ -40,7 +40,7 @@ public sealed class InventoryStockPage : Page
         Unloaded += (_, _) => ViewModel.CancelLoading();
     }
 
-    private UIElement BuildFilters()
+    private FrameworkElement BuildFilters()
     {
         var grid = new Grid { ColumnSpacing = 12 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star), MinWidth = 280 });
@@ -109,7 +109,7 @@ public sealed class InventoryStockPage : Page
         return combo;
     }
 
-    private UIElement BuildCard()
+    private FrameworkElement BuildCard()
     {
         var table = new InventoryStockTableRows(ViewModel);
         table.ItemsSource(x => x.Binding(() => ViewModel.VisibleItems));

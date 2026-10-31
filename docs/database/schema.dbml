@@ -464,8 +464,8 @@ Table order_items {
   Note: '''
     Backend checks products.is_serial_tracked: tracked products have quantity = 1 and require a device before fulfillment; non-tracked products always have serial_imei_id = NULL.
     A draft may omit its device. The device/product FK does not compare nullable variants: backend must compare device.variant_id IS NOT DISTINCT FROM order_items.variant_id and prevent simultaneous allocation across orders using device locks.
-    Snapshot product_name, variant_name and sku before payment. At fulfillment snapshot unit_cost using the agreed Inventory costing policy: source PO line for a tracked device; the selected stock valuation method for non-tracked goods.
-    Reports use stored unit_cost, never the mutable products.cost_price. Inventory costing policy must be agreed with Dev 3 before implementing non-tracked goods valuation.
+    Snapshot product_name, variant_name and sku before payment. At fulfillment snapshot unit_cost using the agreed Inventory costing policy: source PO line for a tracked device; the weighted average unit_cost of the received purchase_order_items lines (by received_quantity) for non-tracked goods; null when none is known.
+    Reports use stored unit_cost, never the mutable products.cost_price. Non-tracked valuation uses the weighted average above; confirm this policy with Dev 3.
   '''
 }
 

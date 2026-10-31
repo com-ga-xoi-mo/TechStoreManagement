@@ -172,7 +172,7 @@ public class InventoryFulfillmentService(
         var unitCosts = new Dictionary<Guid, decimal?>();
         foreach (var line in lines)
         {
-            decimal? deviceCost = null;
+            decimal? unitCost;
             if (line.SerialImeiId.HasValue)
             {
                 var device = devices[line.SerialImeiId.Value];
@@ -180,7 +180,12 @@ public class InventoryFulfillmentService(
                 device.WarrantyStartAt = completedAt;
                 device.WarrantyEndAt = completedAt.AddMonths(device.WarrantyMonths);
                 device.UpdatedAt = completedAt;
-                deviceCost = device.UnitCost;
+                unitCost = device.UnitCost;
+            }
+            else
+            {
+                // No device of its own: cost is what the received purchase lines paid, not products.cost_price.
+                unitCost = await stockRepository.GetAverageReceivedUnitCostAsync(line.ProductId, line.VariantId, cancellationToken);
             }
 
             var stock = stocks[new StockKey(line.ProductId, line.VariantId)];
@@ -198,7 +203,7 @@ public class InventoryFulfillmentService(
                 OrderItemId = line.OrderItemId
             });
 
-            unitCosts[line.OrderItemId!.Value] = deviceCost;
+            unitCosts[line.OrderItemId!.Value] = unitCost;
         }
 
         return SaleConfirmationResult.Success(unitCosts);

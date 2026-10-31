@@ -137,6 +137,22 @@ public sealed class ImportStockDialog : ContentDialog
         quantity.Value(x => x.Binding(() => ViewModel.Quantity).Mode(BindingMode.TwoWay));
         body.Children.Add(quantity);
 
+        var costLabel = RequiredLabel("Giá vốn mỗi đơn vị (₫)");
+        costLabel.Visibility(x => x.Binding(() => ViewModel.NeedsUnitCost).Convert(ShowIf));
+        body.Children.Add(costLabel);
+        var unitCost = new TextBox
+        {
+            Height = 42,
+            PlaceholderText = "Ví dụ: 200000"
+        };
+        unitCost.Text(x => x.Binding(() => ViewModel.UnitCostText).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged));
+        unitCost.Visibility(x => x.Binding(() => ViewModel.NeedsUnitCost).Convert(ShowIf));
+        body.Children.Add(unitCost);
+        var costHint = Text("", 11, AppColors.SecondaryText);
+        costHint.Text(x => x.Binding(() => ViewModel.UnitCostHint));
+        costHint.Visibility(x => x.Binding(() => ViewModel.NeedsUnitCost).Convert(ShowIf));
+        body.Children.Add(costHint);
+
         var serialHeader = new Grid();
         serialHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         serialHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });

@@ -68,6 +68,7 @@ public class SerialImeiServiceTests
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = productId,
+            DefaultUnitCost = 1_000_000m,
             Items =
             [
                 new SerialImeiImportItemRequest { SerialNumber = "SN101", Imei = "123456789012345" },
@@ -122,6 +123,7 @@ public class SerialImeiServiceTests
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = productId,
+            DefaultUnitCost = 1_000_000m,
             Items =
             [
                 new SerialImeiImportItemRequest { SerialNumber = "SN201", Imei = "987654321098765" },
@@ -162,6 +164,7 @@ public class SerialImeiServiceTests
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = productId,
+            DefaultUnitCost = 1_000_000m,
             Items =
             [
                 new SerialImeiImportItemRequest { SerialNumber = "SN999", Imei = "111112222233333" }
@@ -188,6 +191,7 @@ public class SerialImeiServiceTests
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = productId,
+            DefaultUnitCost = 1_000_000m,
             Items =
             [
                 new SerialImeiImportItemRequest { SerialNumber = "DUPE-SN" },
@@ -214,6 +218,7 @@ public class SerialImeiServiceTests
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = productId,
+            DefaultUnitCost = 1_000_000m,
             Items =
             [
                 new SerialImeiImportItemRequest { Imei = "12345" }
@@ -242,6 +247,7 @@ public class SerialImeiServiceTests
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = productId,
+            DefaultUnitCost = 1_000_000m,
             Items = items
         };
 
@@ -263,6 +269,7 @@ public class SerialImeiServiceTests
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = nonExistentProductId,
+            DefaultUnitCost = 1_000_000m,
             Items = [new SerialImeiImportItemRequest { SerialNumber = "SN-001" }]
         };
 
@@ -296,6 +303,7 @@ public class SerialImeiServiceTests
         var request = new BatchImportSerialImeiRequest
         {
             ProductId = productId,
+            DefaultUnitCost = 1_000_000m,
             VariantId = mismatchedVariantId,
             Items = [new SerialImeiImportItemRequest { SerialNumber = "SN-002" }]
         };
@@ -308,5 +316,79 @@ public class SerialImeiServiceTests
         result.ValidationErrors.Should().ContainKey("variantId");
         result.ValidationErrors!["variantId"].Should().Contain($"Variant with ID '{mismatchedVariantId}' does not belong to product '{productId}'.");
         _unitOfWork.BeginTransactionCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task BatchImportAsync_Should_Require_A_Cost_For_Every_Device()
+    {
+        // Arrange: no item cost and no defaultUnitCost
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Product C" });
+        var request = new BatchImportSerialImeiRequest
+        {
+            ProductId = productId,
+            Items =
+            [
+                new SerialImeiImportItemRequest { SerialNumber = "SN-C1", UnitCost = 21_500_000m },
+                new SerialImeiImportItemRequest { SerialNumber = "SN-C2" }
+            ]
+        };
+
+        // Act
+        var result = await _service.BatchImportAsync(request, _userId);
+
+        // Assert: only the second item is rejected, and nothing is written
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("items[1].unitCost").And.NotContainKey("items[0].unitCost");
+        _unitOfWork.BeginTransactionCount.Should().Be(0);
+        _serialRepository.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task BatchImportAsync_Should_Store_The_Item_Cost_Or_Else_The_Default()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Product D" });
+        var request = new BatchImportSerialImeiRequest
+        {
+            ProductId = productId,
+            DefaultUnitCost = 20_000_000m,
+            Items =
+            [
+                new SerialImeiImportItemRequest { SerialNumber = "SN-D1", UnitCost = 21_500_000m },
+                new SerialImeiImportItemRequest { SerialNumber = "SN-D2" }
+            ]
+        };
+
+        // Act
+        var result = await _service.BatchImportAsync(request, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _serialRepository.Items.Single(i => i.SerialNumber == "SN-D1").UnitCost.Should().Be(21_500_000m);
+        _serialRepository.Items.Single(i => i.SerialNumber == "SN-D2").UnitCost.Should().Be(20_000_000m);
+    }
+
+    [Theory]
+    [InlineData(-5)]
+    [InlineData(1_000_000_000_001)]
+    public async Task BatchImportAsync_Should_Reject_A_Cost_Outside_Range(long cost)
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Product E" });
+        var request = new BatchImportSerialImeiRequest
+        {
+            ProductId = productId,
+            Items = [new SerialImeiImportItemRequest { SerialNumber = "SN-E1", UnitCost = cost }]
+        };
+
+        // Act
+        var result = await _service.BatchImportAsync(request, _userId);
+
+        // Assert
+        result.ValidationErrors.Should().ContainKey("items[0].unitCost");
+        _serialRepository.Items.Should().BeEmpty();
     }
 }

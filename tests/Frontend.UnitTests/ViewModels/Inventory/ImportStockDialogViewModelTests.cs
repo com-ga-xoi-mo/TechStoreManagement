@@ -33,6 +33,7 @@ public sealed class ImportStockDialogViewModelTests
         {
             SelectedProduct = product,
             Quantity = 12,
+            UnitCostText = "200.000",
             Reason = "Nhập lô đầu kỳ"
         };
         var closed = 0;
@@ -41,6 +42,7 @@ public sealed class ImportStockDialogViewModelTests
         await vm.ConfirmCommand.ExecuteAsync(null);
 
         Assert.Equal(12, api.InitializeRequest?.Quantity);
+        Assert.Equal(200_000m, api.InitializeRequest?.UnitCost);
         Assert.Equal("Nhập lô đầu kỳ", api.InitializeRequest?.Reason);
         Assert.Equal(1, closed);
         Assert.Null(vm.ErrorMessage);
@@ -69,6 +71,7 @@ public sealed class ImportStockDialogViewModelTests
         {
             SelectedProduct = Option(),
             Quantity = 2,
+            UnitCostText = "21500000",
             SerialLines = "SN-001\n123456789012345"
         };
         var imported = 0;
@@ -78,6 +81,7 @@ public sealed class ImportStockDialogViewModelTests
 
         Assert.Equal(2, imported);
         Assert.Equal(2, api.SerialImportRequest?.Items?.Count);
+        Assert.Equal(21_500_000m, api.SerialImportRequest?.DefaultUnitCost);
         Assert.Equal("123456789012345", api.SerialImportRequest?.Items?[1].Imei);
         Assert.Equal(1, api.BatchCalls);
     }
@@ -93,6 +97,7 @@ public sealed class ImportStockDialogViewModelTests
         {
             SelectedProduct = Option(),
             Quantity = 1,
+            UnitCostText = "1000",
             SerialLines = "SN-001"
         };
         var closed = 0;
@@ -103,6 +108,81 @@ public sealed class ImportStockDialogViewModelTests
         Assert.Contains("đã được khởi tạo", vm.ErrorMessage);
         Assert.Equal(0, closed);
         Assert.Equal(0, api.BatchCalls);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("abc")]
+    [InlineData("-1")]
+    public async Task Confirm_WithoutAValidUnitCost_IsBlockedForGoodsWithoutSerial(string cost)
+    {
+        var api = new FakeApi();
+        var vm = new ImportStockDialogViewModel(new FakeProducts(), api)
+        {
+            SelectedProduct = Option(),
+            Quantity = 3,
+            UnitCostText = cost
+        };
+
+        Assert.True(vm.NeedsUnitCost);
+        Assert.False(vm.CanSubmit);
+        Assert.Contains("giá vốn", vm.ValidationMessage);
+        await vm.ConfirmCommand.ExecuteAsync(null);
+        Assert.Null(api.InitializeRequest);
+    }
+
+    [Fact]
+    public async Task Confirm_SerialImportWithoutUnitCost_IsBlocked()
+    {
+        var api = new FakeApi();
+        var vm = new ImportStockDialogViewModel(new FakeProducts(), api)
+        {
+            SelectedProduct = Option(),
+            Quantity = 1,
+            SerialLines = "SN-001"
+        };
+
+        Assert.False(vm.CanSubmit);
+        await vm.ConfirmCommand.ExecuteAsync(null);
+        Assert.Equal(0, api.BatchCalls);
+    }
+
+    [Fact]
+    public async Task Confirm_OpeningQuantityOfSerialTrackedGoods_NeedsNoCost()
+    {
+        var api = new FakeApi();
+        var tracked = new ImportStockProductOption(Guid.NewGuid(), "iPhone", "IP15", "Điện thoại", true);
+        var vm = new ImportStockDialogViewModel(new FakeProducts(), api)
+        {
+            SelectedProduct = tracked,
+            Quantity = 3,
+            UnitCostText = "999"
+        };
+
+        Assert.False(vm.NeedsUnitCost);
+        Assert.True(vm.CanSubmit);
+        await vm.ConfirmCommand.ExecuteAsync(null);
+        Assert.Equal(3, api.InitializeRequest?.Quantity);
+        Assert.Null(api.InitializeRequest?.UnitCost);
+    }
+
+    [Fact]
+    public void ConfirmCommand_RaisesCanExecuteChanged_WhenTheFormTurnsValid()
+    {
+        // Arrange
+        var vm = new ImportStockDialogViewModel(new FakeProducts(), new FakeApi());
+        var raised = 0;
+        vm.ConfirmCommand.CanExecuteChanged += (_, _) => raised++;
+
+        // Act
+        vm.SelectedProduct = Option();
+        vm.Quantity = 3;
+        vm.UnitCostText = "1000";
+
+        // Assert: the button only re-reads CanExecute when this event fires
+        Assert.True(raised > 0);
+        Assert.True(vm.ConfirmCommand.CanExecute(null));
     }
 
     private static ImportStockProductOption Option() => new(

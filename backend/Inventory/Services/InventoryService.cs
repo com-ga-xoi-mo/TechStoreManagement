@@ -13,9 +13,13 @@ public class InventoryService(
     IInventoryStockRepository stockRepository,
     IProductRepository productRepository,
     ISerialImeiRepository serialRepository,
+    IPurchaseOrderRepository purchaseOrderRepository,
     IUnitOfWork unitOfWork,
     TimeProvider? timeProvider = null) : IInventoryService
 {
+    // System supplier that owns the purchase orders created for opening balances.
+    private const string OpeningSupplierName = "Số dư đầu kỳ";
+
     private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     public async Task<InventoryStockSearchResult> GetStocksAsync(
         InventoryStockFilterRequest request,
@@ -100,6 +104,20 @@ public class InventoryService(
             }
         }
 
+        // Goods without serial/IMEI have no per-unit record, so their cost must come in with the stock.
+        var needsCost = validatedProduct is { IsSerialTracked: false };
+        var costError = needsCost || request.UnitCost.HasValue ? UnitCostRules.Check(request.UnitCost) : null;
+        if (costError == null && needsCost && request.Quantity.HasValue
+            && request.UnitCost!.Value * request.Quantity.Value > UnitCostRules.MaxLineTotal)
+        {
+            costError = "Quantity multiplied by unit cost is too large.";
+        }
+
+        if (costError != null)
+        {
+            errors["unitCost"] = [costError];
+        }
+
         if (errors.Count > 0)
         {
             return InitializeStockResult.ValidationFailed(errors);
@@ -130,6 +148,10 @@ public class InventoryService(
             };
             stockRepository.Add(stock);
 
+            var receiptLine = needsCost
+                ? await StageOpeningReceiptAsync(request, performedByUserId, cancellationToken)
+                : null;
+
             var movement = new InventoryMovement
             {
                 InventoryStock = stock,
@@ -137,6 +159,7 @@ public class InventoryService(
                 QuantityChange = request.Quantity.Value,
                 QuantityAfter = request.Quantity.Value,
                 PerformedByUserId = performedByUserId,
+                PurchaseOrderItem = receiptLine,
                 Reason = request.Reason ?? "Initial stock balance"
             };
             stockRepository.AddMovement(movement);
@@ -161,6 +184,47 @@ public class InventoryService(
             await unitOfWork.RollbackAsync(cancellationToken);
             throw;
         }
+    }
+
+    // Records the opening stock as one received purchase line (quantity + unit cost) on a system purchase order,
+    // the same shape as any other intake, so cost of goods can always be read back from purchase_order_items.
+    private async Task<PurchaseOrderItem> StageOpeningReceiptAsync(
+        InitializeStockRequest request,
+        Guid performedByUserId,
+        CancellationToken cancellationToken)
+    {
+        var supplier = await purchaseOrderRepository.FindSupplierByNameAsync(OpeningSupplierName, cancellationToken);
+        if (supplier == null)
+        {
+            supplier = new Supplier { Name = OpeningSupplierName, Phone = "N/A", IsActive = false };
+            purchaseOrderRepository.AddSupplier(supplier);
+        }
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        var quantity = request.Quantity!.Value;
+        var unitCost = request.UnitCost!.Value;
+        var line = new PurchaseOrderItem
+        {
+            ProductId = request.ProductId!.Value,
+            VariantId = request.VariantId,
+            OrderedQuantity = quantity,
+            ReceivedQuantity = quantity,
+            UnitCost = unitCost
+        };
+        purchaseOrderRepository.Add(new PurchaseOrder
+        {
+            Supplier = supplier,
+            CreatedByUserId = performedByUserId,
+            ReceivedByUserId = performedByUserId,
+            PoNumber = $"OB-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
+            Status = PurchaseOrderStatus.Received,
+            TotalCost = unitCost * quantity,
+            Notes = request.Reason,
+            OrderedAt = now,
+            ReceivedAt = now,
+            Items = [line]
+        });
+        return line;
     }
 
     public async Task<DeleteInventoryStockResult> DeleteStockAsync(

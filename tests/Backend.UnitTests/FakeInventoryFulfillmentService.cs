@@ -20,9 +20,9 @@ public class FakeInventoryFulfillmentService : IInventoryFulfillmentService
     public List<FulfillmentProblem> CheckProblems { get; } = [];
     public FulfillmentResult ReserveResult { get; set; } = FulfillmentResult.Success();
 
-    // When set, ConfirmSaleAsync fails with it; otherwise it succeeds and returns DeviceCostsByOrderItem.
+    // When set, ConfirmSaleAsync fails with it; otherwise it succeeds and returns CostsByOrderItem.
     public FulfillmentProblem? ConfirmConflict { get; set; }
-    public Dictionary<Guid, decimal?> DeviceCostsByOrderItem { get; } = new();
+    public Dictionary<Guid, decimal?> CostsByOrderItem { get; } = new();
 
     public Task<FulfillmentCheckResult> CheckAvailabilityAsync(
         IReadOnlyList<FulfillmentLine> lines,
@@ -55,6 +55,6 @@ public class FakeInventoryFulfillmentService : IInventoryFulfillmentService
 
         return Task.FromResult(ConfirmConflict != null
             ? SaleConfirmationResult.Failed(ConfirmConflict)
-            : SaleConfirmationResult.Success(new Dictionary<Guid, decimal?>(DeviceCostsByOrderItem)));
+            : SaleConfirmationResult.Success(new Dictionary<Guid, decimal?>(CostsByOrderItem)));
     }
 }

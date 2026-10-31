@@ -13,13 +13,14 @@ public class InventoryServiceTests
     private readonly FakeInventoryStockRepository _stockRepository = new();
     private readonly FakeProductRepository _productRepository = new();
     private readonly FakeSerialImeiRepository _serialRepository = new();
+    private readonly FakePurchaseOrderRepository _purchaseOrders = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly InventoryService _service;
     private readonly Guid _userId = Guid.NewGuid();
 
     public InventoryServiceTests()
     {
-        _service = new InventoryService(_stockRepository, _productRepository, _serialRepository, _unitOfWork);
+        _service = new InventoryService(_stockRepository, _productRepository, _serialRepository, _purchaseOrders, _unitOfWork);
     }
 
     [Fact]
@@ -183,6 +184,7 @@ public class InventoryServiceTests
             ProductId = productId,
             Quantity = 50,
             MinStockAlert = 10,
+            UnitCost = 200_000m,
             Reason = "Initial inventory import"
         };
 
@@ -224,7 +226,8 @@ public class InventoryServiceTests
         var request = new InitializeStockRequest
         {
             ProductId = productId,
-            Quantity = 30
+            Quantity = 30,
+            UnitCost = 200_000m
         };
 
         // Act
@@ -513,5 +516,125 @@ public class InventoryServiceTests
         inRes.Data.Items[0].IsLowStock.Should().BeFalse();
 
         (outRes.Data.TotalCount + lowRes.Data.TotalCount + inRes.Data.TotalCount).Should().Be(3);
+    }
+
+    [Fact]
+    public async Task InitializeStockAsync_Should_Require_UnitCost_For_Goods_Without_Serial()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Headphones", IsSerialTracked = false });
+
+        // Act
+        var result = await _service.InitializeStockAsync(new InitializeStockRequest { ProductId = productId, Quantity = 5 }, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("unitCost");
+        _unitOfWork.BeginTransactionCount.Should().Be(0);
+        _purchaseOrders.PurchaseOrders.Should().BeEmpty();
+        _stockRepository.Stocks.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1_000_000_000_001)]
+    public async Task InitializeStockAsync_Should_Reject_UnitCost_Outside_Range(long cost)
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Headphones", IsSerialTracked = false });
+
+        // Act
+        var result = await _service.InitializeStockAsync(
+            new InitializeStockRequest { ProductId = productId, Quantity = 5, UnitCost = cost }, _userId);
+
+        // Assert
+        result.ValidationErrors.Should().ContainKey("unitCost");
+        _purchaseOrders.PurchaseOrders.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task InitializeStockAsync_Should_Reject_A_Line_Total_The_Database_Cannot_Hold()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Headphones", IsSerialTracked = false });
+
+        // Act
+        var result = await _service.InitializeStockAsync(
+            new InitializeStockRequest { ProductId = productId, Quantity = 100_000, UnitCost = 1_000_000_000_000m }, _userId);
+
+        // Assert
+        result.ValidationErrors.Should().ContainKey("unitCost");
+    }
+
+    [Fact]
+    public async Task InitializeStockAsync_Should_Record_The_Opening_Stock_As_A_Received_Purchase_Line()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Headphones A", IsSerialTracked = false });
+
+        // Act
+        var result = await _service.InitializeStockAsync(
+            new InitializeStockRequest { ProductId = productId, Quantity = 5, UnitCost = 200_000m, Reason = "Opening" }, _userId);
+
+        // Assert: one purchase line "5 x 200,000", received, on the system supplier
+        result.IsSuccess.Should().BeTrue();
+        var supplier = _purchaseOrders.Suppliers.Should().ContainSingle().Subject;
+        supplier.IsActive.Should().BeFalse();
+        var order = _purchaseOrders.PurchaseOrders.Should().ContainSingle().Subject;
+        order.Supplier.Should().BeSameAs(supplier);
+        order.Status.Should().Be(PurchaseOrderStatus.Received);
+        order.TotalCost.Should().Be(1_000_000m);
+        order.CreatedByUserId.Should().Be(_userId);
+        order.ReceivedByUserId.Should().Be(_userId);
+        order.ReceivedAt.Should().NotBeNull();
+        var line = order.Items.Should().ContainSingle().Subject;
+        line.ProductId.Should().Be(productId);
+        line.OrderedQuantity.Should().Be(5);
+        line.ReceivedQuantity.Should().Be(5);
+        line.UnitCost.Should().Be(200_000m);
+
+        // and the opening movement points at that line
+        _stockRepository.Movements.Should().ContainSingle().Which.PurchaseOrderItem.Should().BeSameAs(line);
+        _unitOfWork.SaveChangesCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task InitializeStockAsync_Should_Reuse_The_System_Supplier_For_Later_Opening_Stock()
+    {
+        // Arrange
+        var first = Guid.NewGuid();
+        var second = Guid.NewGuid();
+        _productRepository.Products.Add(first, new Product { Id = first, Name = "Headphones A", IsSerialTracked = false });
+        _productRepository.Products.Add(second, new Product { Id = second, Name = "Cable B", IsSerialTracked = false });
+
+        // Act
+        await _service.InitializeStockAsync(new InitializeStockRequest { ProductId = first, Quantity = 5, UnitCost = 200_000m }, _userId);
+        await _service.InitializeStockAsync(new InitializeStockRequest { ProductId = second, Quantity = 9, UnitCost = 30_000m }, _userId);
+
+        // Assert
+        _purchaseOrders.Suppliers.Should().ContainSingle();
+        _purchaseOrders.PurchaseOrders.Should().HaveCount(2);
+        _purchaseOrders.PurchaseOrders.Select(p => p.PoNumber).Distinct().Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task InitializeStockAsync_Should_Not_Require_A_Cost_For_Serial_Tracked_Goods()
+    {
+        // Arrange: devices carry their own cost, so the opening quantity needs none and makes no purchase line.
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "iPhone", IsSerialTracked = true });
+
+        // Act
+        var result = await _service.InitializeStockAsync(new InitializeStockRequest { ProductId = productId, Quantity = 3 }, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _purchaseOrders.PurchaseOrders.Should().BeEmpty();
+        _purchaseOrders.Suppliers.Should().BeEmpty();
+        _stockRepository.Movements.Should().ContainSingle().Which.PurchaseOrderItem.Should().BeNull();
     }
 }

@@ -499,7 +499,7 @@ public class InventoryFulfillmentServiceTests
     }
 
     [Fact]
-    public async Task ConfirmSale_ReturnsDeviceCostsByOrderItem()
+    public async Task ConfirmSale_ReturnsTheDeviceCostForEachOrderItem()
     {
         // Arrange
         var productId = Guid.NewGuid();
@@ -514,8 +514,56 @@ public class InventoryFulfillmentServiceTests
             [DeviceLine(costed, itemA), DeviceLine(uncosted, itemB)], CompletedAt, UserId);
 
         // Assert
-        result.DeviceUnitCosts[itemA].Should().Be(21_500_000m);
-        result.DeviceUnitCosts[itemB].Should().BeNull();
+        result.UnitCosts[itemA].Should().Be(21_500_000m);
+        result.UnitCosts[itemB].Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ConfirmSale_NonTracked_UsesTheAverageReceivedPurchaseCost()
+    {
+        // Arrange: purchase lines (5 x 200k and 5 x 300k) average to 250k per unit.
+        var productId = Guid.NewGuid();
+        AddStock(productId, null, 10, reserved: 3);
+        _stocks.ReceivedUnitCosts[(productId, null)] = 250_000m;
+        var item = Guid.NewGuid();
+
+        // Act
+        var result = await _service.ConfirmSaleAsync([QuantityLine(productId, 3, orderItemId: item)], CompletedAt, UserId);
+
+        // Assert
+        result.UnitCosts[item].Should().Be(250_000m);
+    }
+
+    [Fact]
+    public async Task ConfirmSale_NonTrackedWithNoReceivedPurchase_HasNoCost()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        AddStock(productId, null, 10, reserved: 3);
+        var item = Guid.NewGuid();
+
+        // Act
+        var result = await _service.ConfirmSaleAsync([QuantityLine(productId, 3, orderItemId: item)], CompletedAt, UserId);
+
+        // Assert
+        result.UnitCosts[item].Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ConfirmSale_TrackedDevice_KeepsItsOwnCostEvenWhenPurchaseLinesDiffer()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        var device = AddDevice(productId, status: SerialImeiStatus.Reserved, unitCost: 21_500_000m);
+        AddStock(productId, null, 5, reserved: 1);
+        _stocks.ReceivedUnitCosts[(productId, null)] = 1_000_000m;
+        var item = Guid.NewGuid();
+
+        // Act
+        var result = await _service.ConfirmSaleAsync([DeviceLine(device, item)], CompletedAt, UserId);
+
+        // Assert
+        result.UnitCosts[item].Should().Be(21_500_000m);
     }
 
     [Fact]

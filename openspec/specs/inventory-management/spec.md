@@ -63,6 +63,18 @@ The system SHALL allow staff with the Admin or WarehouseStaff role to initialize
 - **WHEN** client posts a `variantId` that does not belong to the specified `productId`
 - **THEN** system rejects the request and returns HTTP 400 Bad Request indicating the variant does not belong to the product
 
+#### Scenario: Opening stock of goods without serial/IMEI records its cost
+- **WHEN** an authorized user initializes stock for a product with `is_serial_tracked = false` and sends `quantity` 5 and `unitCost` 200,000
+- **THEN** system also creates one received purchase line (ordered = received = 5, `unit_cost` 200,000) on a system purchase order for the inactive supplier "Số dư đầu kỳ", and links the `OpeningBalance` movement to that line through `purchase_order_item_id`
+
+#### Scenario: Opening stock of goods without serial/IMEI requires a cost
+- **WHEN** client initializes stock for a product with `is_serial_tracked = false` and omits `unitCost`, sends a negative `unitCost`, one above 1,000,000,000,000, or a `quantity` multiplied by `unitCost` too large for `numeric(18,2)`
+- **THEN** system rejects the request with HTTP 400 Bad Request under `unitCost` and writes no stock, movement or purchase order
+
+#### Scenario: Opening stock of serial-tracked goods needs no cost
+- **WHEN** client initializes stock for a product with `is_serial_tracked = true` without `unitCost`
+- **THEN** system accepts it and creates no purchase order, because each device carries its own cost
+
 #### Scenario: Stock initialization unauthorized access
 - **WHEN** an unauthenticated request, or an authenticated user without the Admin or WarehouseStaff role (including Manager and SalesStaff), calls the initialization endpoint
 - **THEN** system rejects the request with HTTP 401 Unauthorized or HTTP 403 Forbidden and writes no stock row or movement
@@ -106,6 +118,14 @@ The system SHALL allow staff with the Admin or WarehouseStaff role to import bat
 #### Scenario: Batch import format validation failure
 - **WHEN** client sends serial/IMEI entries with empty identifiers or invalid 15-digit IMEI patterns
 - **THEN** system rejects the request and returns HTTP 400 Bad Request with validation details
+
+#### Scenario: Batch import requires a cost for every device
+- **WHEN** an item has neither its own `unitCost` nor a request-level `defaultUnitCost`, or the effective cost is negative or above 1,000,000,000,000
+- **THEN** system rejects the whole request with HTTP 400 Bad Request under `items[n].unitCost` and imports nothing
+
+#### Scenario: Batch import stores each device's cost
+- **WHEN** a batch sets `defaultUnitCost` 20,000,000 and one item sets `unitCost` 21,500,000
+- **THEN** that item's `serial_imeis.unit_cost` is 21,500,000 and every other item's is 20,000,000
 
 #### Scenario: Batch import unauthorized access
 - **WHEN** an unauthenticated caller, or an authenticated user without the Admin or WarehouseStaff role (including Manager and SalesStaff), attempts batch import

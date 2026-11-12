@@ -18,39 +18,37 @@ public sealed class AuthRepository : IAuthRepository
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
+        var generation = _sessionStore.Current.Generation;
         var response = await _apiClient.PostAsync<LoginRequest, LoginResponseDto>("api/auth/login", request, cancellationToken);
         if (response != null && !string.IsNullOrEmpty(response.AccessToken))
         {
-            _sessionStore.SetSession(
-                response.AccessToken,
-                response.RefreshToken,
-                response.User.Username,
-                response.User.FullName,
-                response.User.Role.ToString()
-            );
+            if (!_sessionStore.TrySetSession(generation, response, request.RememberMe))
+                throw new OperationCanceledException("Phiên đăng nhập đã thay đổi.");
         }
         return response!;
     }
 
     public async Task<UserProfileDto> GetProfileAsync(CancellationToken cancellationToken = default)
     {
-        return await _apiClient.GetAsync<UserProfileDto>("api/auth/me", cancellationToken);
+        var generation = _sessionStore.Current.Generation;
+        var profile = await _apiClient.GetAsync<UserProfileDto>("api/auth/me", cancellationToken);
+        if (!_sessionStore.TryUpdateProfile(generation, profile))
+            throw new OperationCanceledException("Phiên đăng nhập đã thay đổi.");
+        return profile;
     }
 
     public async Task LogoutAsync(CancellationToken cancellationToken = default)
     {
+        var session = _sessionStore.Current;
         try
         {
-            var refreshToken = _sessionStore.Current.RefreshToken ?? string.Empty;
-            await _apiClient.PostAsync<LogoutRequest, object>("api/auth/logout", new LogoutRequest { RefreshToken = refreshToken }, cancellationToken);
+            var refreshToken = session.RefreshToken ?? string.Empty;
+            await _apiClient.PostAsync<LogoutRequest>("api/auth/logout", new LogoutRequest { RefreshToken = refreshToken }, cancellationToken);
         }
-        catch
-        {
-            // Ignore server-side logout exceptions to ensure client session is purged
-        }
+
         finally
         {
-            _sessionStore.Clear();
+            _sessionStore.Clear(session.Generation);
         }
     }
 }

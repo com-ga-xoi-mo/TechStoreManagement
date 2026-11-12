@@ -1,3 +1,4 @@
+using TechStore.Client.Repositories.Identity;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Services.Navigation;
@@ -9,6 +10,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 {
     private readonly INavigationService _navigation;
     private readonly ISessionStore _sessionStore;
+    private readonly IAuthRepository? _authRepository;
 
     [ObservableProperty] private ShellDestination selectedDestination;
     [ObservableProperty] private string currentTitle;
@@ -24,8 +26,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public ShellDestinationInfo SettingsDestination { get; } = ShellDestinations.Get(ShellDestination.Settings);
     public bool HasNavigationError => !string.IsNullOrWhiteSpace(NavigationError);
 
-    public ShellViewModel(INavigationService navigation, ISessionStore sessionStore)
+    public ShellViewModel(INavigationService navigation, ISessionStore sessionStore, IAuthRepository? authRepository = null)
     {
+        _authRepository = authRepository;
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
         selectedDestination = navigation.CurrentDestination;
@@ -42,6 +45,20 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         var outcome = _navigation.Navigate(destination);
         if (outcome is NavigationOutcome.UnknownDestination or NavigationOutcome.DestinationUnavailable)
             NavigationError = "Không thể mở mục này. Hãy thử lại.";
+    }
+
+    [RelayCommand]
+    private async Task LogoutAsync()
+    {
+        try
+        {
+            if (_authRepository is not null) await _authRepository.LogoutAsync();
+            else _sessionStore.Clear();
+        }
+        catch
+        {
+            NavigationError = "Đã đăng xuất trên máy này; chưa xác nhận thu hồi phiên trên máy chủ.";
+        }
     }
 
     public void Dispose()

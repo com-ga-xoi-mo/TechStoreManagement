@@ -108,6 +108,22 @@ public class LoginViewModelTests
         fakeNav.LastNavigatedDestination.Should().Be(ShellDestination.Dashboard);
         fakeRepo.LastRequest.Should().NotBeNull();
         fakeRepo.LastRequest!.Username.Should().Be("admin");
+        vm.Password.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task LoginAsync_RememberMeDisabled_PassesChoiceToRepositoryAndClearsPassword()
+    {
+        var repository = new FakeAuthRepository();
+        var vm = new LoginViewModel(repository, new FakeNavigationService())
+        {
+            Username = "admin", Password = "Admin@123", RememberMe = false
+        };
+
+        await vm.LoginCommand.ExecuteAsync(null);
+
+        repository.LastRequest!.RememberMe.Should().BeFalse();
+        vm.Password.Should().BeEmpty();
     }
 
     [Fact]

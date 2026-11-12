@@ -12,5 +12,7 @@ public sealed record PersistedSessionData(
     string RefreshToken,
     string Username,
     string FullName,
-    string Role
+    string Role,
+    DateTimeOffset? ExpiresAt = null,
+    bool RememberMe = true
 );

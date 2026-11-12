@@ -1,3 +1,5 @@
+using TechStore.Shared.DTOs;
+
 namespace TechStore.Client.Services.Session;
 
 public interface ISessionStore
@@ -10,7 +12,11 @@ public interface ISessionStore
 
     void SetSession(string accessToken, string refreshToken, string username, string fullName, string role);
 
-    void Clear();
+    void Clear(long? expectedGeneration = null);
 
-    bool TryExpire(long expectedGeneration);
+    bool TryUpdateProfile(long expectedGeneration, UserProfileDto profile);
+
+    bool TryExpire(long expectedGeneration, string? expectedAccessToken = null);
+
+    bool TrySetSession(long expectedGeneration, LoginResponseDto response, bool rememberMe, bool renewal = false, string? expectedAccessToken = null, string? expectedRefreshToken = null);
 }

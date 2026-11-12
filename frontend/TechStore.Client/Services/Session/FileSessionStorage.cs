@@ -38,29 +38,15 @@ public sealed class FileSessionStorage : ISessionStorage
 
     public void Save(PersistedSessionData data)
     {
-        try
-        {
-            var json = JsonSerializer.Serialize(data, JsonOptions);
-            File.WriteAllText(_filePath, json);
-        }
-        catch
-        {
-            // Ignore write failures in restricted environments
-        }
+        var json = JsonSerializer.Serialize(data, JsonOptions);
+        File.WriteAllText(_filePath, json);
     }
 
     public void Clear()
     {
-        try
+        if (File.Exists(_filePath))
         {
-            if (File.Exists(_filePath))
-            {
-                File.Delete(_filePath);
-            }
-        }
-        catch
-        {
-            // Ignore delete failures
+            File.Delete(_filePath);
         }
     }
 }

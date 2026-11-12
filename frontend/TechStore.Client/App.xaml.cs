@@ -68,8 +68,9 @@ public partial class App : Application
             var sessionStore = _applicationServices.Services.GetRequiredService<ISessionStore>();
             sessionStore.SessionChanged += (s, e) =>
             {
-                if (MainWindow is not null)
+                MainWindow?.DispatcherQueue.TryEnqueue(() =>
                 {
+                    if (MainWindow is null || _applicationServices is null || sessionStore.Current.Generation != e.Generation) return;
                     if (e.Status == SessionStatus.Active)
                     {
                         MainWindow.Content = _applicationServices.Services.GetRequiredService<ShellPage>();
@@ -78,7 +79,7 @@ public partial class App : Application
                     {
                         MainWindow.Content = _applicationServices.Services.GetRequiredService<LoginPage>();
                     }
-                }
+                });
             };
 
             if (_applicationServices.Services.GetRequiredService<GalleryOptions>().Enabled)
@@ -93,7 +94,8 @@ public partial class App : Application
 #endif
                 if (sessionStore.Current.Status == SessionStatus.Active)
                 {
-                    MainWindow.Content = _applicationServices.Services.GetRequiredService<ShellPage>();
+                    MainWindow.Content = _applicationServices.Services.GetRequiredService<LoginPage>();
+                    _ = RestoreSessionAsync();
                 }
                 else
                 {
@@ -105,6 +107,22 @@ public partial class App : Application
         MainWindow.SetWindowIcon();
         // Ensure the current window is active
         MainWindow.Activate();
+    }
+
+    private async Task RestoreSessionAsync()
+    {
+        var store = _applicationServices!.Services.GetRequiredService<ISessionStore>();
+        var generation = store.Current.Generation;
+        try
+        {
+            await _applicationServices.Services.GetRequiredService<TechStore.Client.Repositories.Identity.IAuthRepository>().GetProfileAsync();
+            if (MainWindow is not null && store.Current.Generation == generation && store.Current.Status == SessionStatus.Active)
+                MainWindow.Content = _applicationServices.Services.GetRequiredService<ShellPage>();
+        }
+        catch
+        {
+            store.TryExpire(generation);
+        }
     }
 
     private static ServiceProvider CreateServiceProvider()

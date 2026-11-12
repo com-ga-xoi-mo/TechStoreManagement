@@ -36,7 +36,7 @@ Dùng lại phần đã có ở M2: khóa dòng chống bán vượt tồn, lị
 | Vy (Dev 5) | Khách hàng thân thiết: điểm thưởng, VIP và voucher |
 | T. Vinh (Dev 6) | Trợ lý Gemini và các tools đọc dữ liệu theo quyền |
 
-M4 có bốn sprint: xác định đầu vào/đầu ra, xây dựng tính năng, tích hợp và nghiệm thu. Mỗi người làm trọn API, giao diện, dữ liệu demo, test và đoạn video của phần mình. An ghép tài liệu và bộ nộp ở sprint cuối.
+M4 có ba sprint: xây dựng tính năng, tích hợp, nghiệm thu và nộp bài. API/DTO và test được làm ngay trong sprint xây dựng, không tách sprint chuẩn bị. Mỗi người làm trọn API, giao diện, dữ liệu demo, test và đoạn video của phần mình. An ghép tài liệu và bộ nộp ở sprint cuối.
 
 Chỉ giữ các điểm nối cần thiết: Đạt và An gọi service điểm/voucher của Vy; Bình đọc dữ liệu giao dịch để báo cáo; T. Vinh gọi API báo cáo của Bình và API M3. Đầu vào/đầu ra được ghi rõ trong kế hoạch M4 để các phần có thể làm độc lập.
 
@@ -53,7 +53,7 @@ Chỉ giữ các điểm nối cần thiết: Đạt và An gọi service điể
 | Mục 7: Git private, lịch sử đóng góp, bảo mật và README | Thực hiện xuyên suốt; kiểm tra cuối ở M4 |
 | Mục 8: AI dùng dữ liệu thật và tuân thủ RBAC | M4, T. Vinh phụ trách |
 | Mục 9: test chức năng, biên, API, RBAC, hồi quy và báo cáo chất lượng | Test trong từng sprint; tổng hợp ở M4 |
-| Mục 11: video, năm file nộp bài, ZIP và Moodle | M4 sprint 4 |
+| Mục 11: video, năm file nộp bài, ZIP và Moodle | M4 sprint 3 |
 
 POS, ca thu ngân, VietQR, nhập hàng, full-text, đổi trả/bảo hành, VIP/voucher và lợi nhuận là phạm vi TechStore đã chọn. AI là phần khuyến khích trong đề và vẫn được giữ trong M4. Các ví dụ AI khác trong đề không bắt buộc triển khai tất cả.
 

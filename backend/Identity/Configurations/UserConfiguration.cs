@@ -8,7 +8,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("users");
+        builder.ToTable("users", table => table.HasCheckConstraint("chk_users_token_version", "token_version >= 0"));
 
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
@@ -17,6 +17,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.PasswordHash).HasColumnName("password_hash").IsRequired();
         builder.Property(x => x.FullName).HasColumnName("full_name").IsRequired();
         builder.Property(x => x.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+        builder.Property(x => x.TokenVersion).HasColumnName("token_version").HasDefaultValue(0L);
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz");
 

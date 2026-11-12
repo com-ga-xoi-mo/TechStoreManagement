@@ -656,12 +656,15 @@ Table users {
   password_hash text [not null, note: 'Argon2id or PBKDF2 hashed password']
   full_name text [not null, note: 'Employee display name']
   is_active boolean [not null, default: true, note: 'Account active status']
+  token_version bigint [not null, default: 0, note: 'Nonnegative JWT revocation version; check token_version >= 0']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [null]
 
   indexes {
     username [unique, name: 'idx_users_username']
     email [unique, name: 'idx_users_email']
+    `lower(btrim(username))` [unique, name: 'idx_users_normalized_username']
+    `lower(btrim(email))` [unique, name: 'idx_users_normalized_email']
   }
 
   Note: 'System user credentials and personnel directory'

@@ -9,6 +9,7 @@ public class User : BaseEntity
     public string PasswordHash { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    public long TokenVersion { get; set; }
 
     // Navigation properties
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();

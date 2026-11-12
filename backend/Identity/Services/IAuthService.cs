@@ -7,6 +7,8 @@ namespace TechStore.Api.Identity.Services;
 public interface IAuthService
 {
     Task<LoginResponseDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
+    Task<LoginResponseDto?> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default);
+    Task<bool> ValidateIdentityAsync(AuthenticatedUser identity, CancellationToken cancellationToken = default);
     Task<UserProfileDto?> GetProfileAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<bool> LogoutAsync(Guid userId, LogoutRequest request, CancellationToken cancellationToken = default);
 }

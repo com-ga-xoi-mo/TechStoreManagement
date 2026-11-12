@@ -15,11 +15,11 @@ using TechStore.Shared.Requests;
 
 namespace TechStore.UnitTests;
 
-public class CustomerAuthorizationHttpTests : IClassFixture<CustomerApiFactory>
+public class CustomerAuthorizationHttpTests(CustomerApiFactory factory) : IClassFixture<CustomerApiFactory>
 {
-    private readonly HttpClient _client;
+    private readonly HttpClient _client = factory.CreateClient();
 
-    public CustomerAuthorizationHttpTests(CustomerApiFactory factory) => _client = factory.CreateClient();
+    private readonly CustomerApiFactory _factory = factory;
 
     [Fact]
     public async Task CustomersEndpoint_Should_Return401403And200ForMissingSalesAndAdmin()
@@ -93,13 +93,13 @@ public class CustomerAuthorizationHttpTests : IClassFixture<CustomerApiFactory>
         (await _client.SendAsync(deleteRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.MethodNotAllowed);
     }
 
-    private static string CreateToken(string role)
+    private string CreateToken(string role)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("TechStore_Default_Secret_Key_At_Least_32_Bytes_Long_2026!"));
         var token = new JwtSecurityToken(
             issuer: "TechStore.Api",
             audience: "TechStore.Client",
-            claims: [new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()), new Claim(ClaimTypes.Role, role)],
+            claims: [new Claim(ClaimTypes.NameIdentifier, TestJwtAuthentication.AddIdentity(_factory.Services, role).ToString()), new Claim(ClaimTypes.Role, role), new Claim("token_version", "0")],
             notBefore: DateTime.UtcNow.AddMinutes(-1),
             expires: DateTime.UtcNow.AddMinutes(5),
             signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
@@ -114,6 +114,7 @@ public sealed class CustomerApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Testing");
         builder.ConfigureTestServices(services =>
         {
+            services.AddTestIdentities();
             services.RemoveAll<ICustomerService>();
             services.AddSingleton<ICustomerService, TestCustomerService>();
         });

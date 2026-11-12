@@ -50,10 +50,10 @@ public sealed class InventoryApiHost : IAsyncDisposable
 
     public string Token(string role = "Admin", Guid? userId = null, bool includeSub = true, string? sub = null, string? nameIdentifier = null)
     {
-        var claims = new List<Claim> { new("role", role) };
+        var claims = new List<Claim> { new("role", role), new("token_version", "0") };
         if (includeSub)
         {
-            claims.Add(new Claim("sub", sub ?? (userId ?? Guid.NewGuid()).ToString()));
+            claims.Add(new Claim("sub", sub ?? TestJwtAuthentication.AddIdentity(App.Services, role, userId).ToString()));
         }
 
         if (nameIdentifier is not null)

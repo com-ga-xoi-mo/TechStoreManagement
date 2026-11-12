@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace TechStore.Api.Controllers;
@@ -7,6 +8,7 @@ namespace TechStore.Api.Controllers;
 public class HealthController : ControllerBase
 {
     [HttpGet]
+    [AllowAnonymous]
     public IActionResult Check()
     {
         return Ok(new

@@ -18,4 +18,5 @@ public sealed record OrderSearchCriteria(
     OrderSortField SortField,
     bool Descending,
     int Page,
-    int PageSize);
+    int PageSize,
+    Guid? CashierUserId = null);

@@ -2,6 +2,7 @@ using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Customers.Entities;
 using TechStore.Api.Orders.Entities;
 using TechStore.Api.Orders.Services;
+using TechStore.Api.Identity.Services;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
 
@@ -11,6 +12,7 @@ namespace TechStore.UnitTests;
 public partial class OrderServiceTests
 {
     private static readonly Guid ActingUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly AuthenticatedUser ActingUser = new(ActingUserId, RoleType.Admin, 0);
     private static readonly DateTime Now = new(2026, 10, 11, 8, 0, 0, DateTimeKind.Utc);
 
     private readonly FakeOrderRepository _orders = new();

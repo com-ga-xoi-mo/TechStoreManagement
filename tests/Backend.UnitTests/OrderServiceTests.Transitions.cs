@@ -15,7 +15,7 @@ public partial class OrderServiceTests
         var (order, _, _) = AddOrder(OrderStatus.Pending);
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target("Processing"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target("Processing"), ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -39,7 +39,7 @@ public partial class OrderServiceTests
         var (order, item, _) = AddOrder(OrderStatus.Processing, paidAt: paidEarlier);
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target("completed"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target("completed"), ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -60,7 +60,7 @@ public partial class OrderServiceTests
         _fulfillment.CostsByOrderItem[item.Id] = 21_500_000m;
 
         // Act
-        await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
+        await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUser);
 
         // Assert
         item.UnitCost.Should().Be(21_500_000m);
@@ -74,7 +74,7 @@ public partial class OrderServiceTests
         _fulfillment.CostsByOrderItem[item.Id] = null;
 
         // Act
-        await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
+        await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUser);
 
         // Assert
         item.UnitCost.Should().BeNull();
@@ -88,7 +88,7 @@ public partial class OrderServiceTests
         _fulfillment.CostsByOrderItem[item.Id] = 250_000m;
 
         // Act
-        await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
+        await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUser);
 
         // Assert
         item.UnitCost.Should().Be(250_000m);
@@ -102,7 +102,7 @@ public partial class OrderServiceTests
         _fulfillment.CostsByOrderItem[item.Id] = 21_500_000m;
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -124,7 +124,7 @@ public partial class OrderServiceTests
         var (order, _, _) = AddOrder(OrderStatus.Pending);
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target("Cancelled"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target("Cancelled"), ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -142,7 +142,7 @@ public partial class OrderServiceTests
         var (order, _, _) = AddOrder(OrderStatus.Processing, paidAt: Now);
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target("Cancelled"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target("Cancelled"), ActingUser);
 
         // Assert
         result.IsConflict.Should().BeTrue();
@@ -159,7 +159,7 @@ public partial class OrderServiceTests
         var (order, _, _) = AddOrder(OrderStatus.Completed, paidAt: Now);
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUser);
 
         // Assert
         result.IsConflict.Should().BeTrue();
@@ -171,7 +171,7 @@ public partial class OrderServiceTests
     public async Task UpdateStatusAsync_UnknownOrder_ReturnsNotFoundAndRollsBack()
     {
         // Act
-        var result = await _service.UpdateStatusAsync(Guid.NewGuid(), Target("Completed"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(Guid.NewGuid(), Target("Completed"), ActingUser);
 
         // Assert
         result.Found.Should().BeFalse();
@@ -185,18 +185,18 @@ public partial class OrderServiceTests
     [InlineData("nonsense")]
     [InlineData("1")]
     [InlineData(null)]
-    public async Task UpdateStatusAsync_DisallowedTargetStatus_ReportsTargetStatusWithoutOpeningATransaction(string? status)
+    public async Task UpdateStatusAsync_DisallowedTargetStatus_ChecksOwnershipThenReportsTargetStatus(string? status)
     {
         // Arrange
         var (order, _, _) = AddOrder(OrderStatus.Pending);
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target(status), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target(status), ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("targetStatus");
-        _unitOfWork.BeginTransactionCount.Should().Be(0);
-        _orders.GetForUpdateCallCount.Should().Be(0);
+        _unitOfWork.BeginTransactionCount.Should().Be(1);
+        _orders.GetForUpdateCallCount.Should().Be(1);
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public partial class OrderServiceTests
         var (order, _, _) = AddOrder(OrderStatus.Pending, productActive: false);
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target("Processing"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target("Processing"), ActingUser);
 
         // Assert
         result.IsConflict.Should().BeTrue();
@@ -222,7 +222,7 @@ public partial class OrderServiceTests
         var (order, _, _) = AddOrder(OrderStatus.Processing, productActive: false, paidAt: Now);
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -236,7 +236,7 @@ public partial class OrderServiceTests
         _fulfillment.ReserveResult = FulfillmentResult.Failed(new FulfillmentProblem(0, "Device is Sold; expected InStock."));
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUser);
 
         // Assert
         result.IsConflict.Should().BeTrue();
@@ -258,7 +258,7 @@ public partial class OrderServiceTests
             0, "Stock is not reserved for this sale.", FulfillmentProblemKind.InsufficientStock);
 
         // Act
-        var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUserId);
+        var result = await _service.UpdateStatusAsync(order.Id, Target("Completed"), ActingUser);
 
         // Assert
         result.IsConflict.Should().BeTrue();
@@ -278,7 +278,7 @@ public partial class OrderServiceTests
         _unitOfWork.SaveExceptionQueue.Enqueue(new InvalidOperationException("boom"));
 
         // Act
-        var act = () => _service.UpdateStatusAsync(order.Id, Target("Processing"), ActingUserId);
+        var act = () => _service.UpdateStatusAsync(order.Id, Target("Processing"), ActingUser);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -293,7 +293,7 @@ public partial class OrderServiceTests
         var (order, item, product) = AddOrder(OrderStatus.Pending);
 
         // Act
-        await _service.UpdateStatusAsync(order.Id, Target("Processing"), ActingUserId);
+        await _service.UpdateStatusAsync(order.Id, Target("Processing"), ActingUser);
 
         // Assert
         var line = _fulfillment.LastReservedLines!.Should().ContainSingle().Subject;

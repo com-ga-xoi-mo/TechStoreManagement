@@ -56,7 +56,7 @@ public sealed class CategoryApiHost : IAsyncDisposable
         var token = new JwtSecurityToken(
             issuer: kind == "issuer" ? "wrong-issuer" : _issuer,
             audience: kind == "audience" ? "wrong-audience" : _audience,
-            claims: [new Claim("sub", Guid.NewGuid().ToString()), new Claim("role", role)],
+            claims: [new Claim("sub", TestJwtAuthentication.AddIdentity(App.Services, role).ToString()), new Claim("role", role), new Claim("token_version", "0")],
             notBefore: now.AddHours(-2),
             expires: kind == "expired" ? now.AddHours(-1) : now.AddMinutes(10),
             signingCredentials: new SigningCredentials(new SymmetricSecurityKey(

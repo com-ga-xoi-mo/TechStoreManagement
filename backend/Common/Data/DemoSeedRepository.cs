@@ -66,27 +66,28 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
         IReadOnlyDictionary<RoleType, Role> roles, CancellationToken ct)
     {
         var rows = await dbContext.Users.ToListAsync(ct);
+        var existingIds = rows.Select(user => user.Id).ToHashSet();
         var admin = await EnsureUserAsync(rows, "admin", "admin@techstore.vn", "System Administrator", "Admin@123", ct);
         var cashier = await EnsureUserAsync(rows, "cashier1", "cashier1@techstore.vn", "Nguyen Thu Ngan", "Cashier@123", ct);
         var warehouse = await EnsureUserAsync(rows, "warehouse1", "warehouse1@techstore.vn", "Tran Van Kho", "Warehouse@123", ct);
 
-        await EnsureUserRoleAsync(admin, roles[RoleType.Admin], ct);
-        await EnsureUserRoleAsync(cashier, roles[RoleType.SalesStaff], ct);
-        await EnsureUserRoleAsync(warehouse, roles[RoleType.WarehouseStaff], ct);
+        var manager = await EnsureUserAsync(rows, "manager1", "manager1@techstore.vn", "Store Manager", "Manager@123", ct);
+        if (!existingIds.Contains(admin.Id)) await EnsureUserRoleAsync(admin, roles[RoleType.Admin], ct);
+        if (!existingIds.Contains(cashier.Id)) await EnsureUserRoleAsync(cashier, roles[RoleType.SalesStaff], ct);
+        if (!existingIds.Contains(warehouse.Id)) await EnsureUserRoleAsync(warehouse, roles[RoleType.WarehouseStaff], ct);
+        if (!existingIds.Contains(manager.Id)) await EnsureUserRoleAsync(manager, roles[RoleType.Manager], ct);
         return (admin, cashier, warehouse);
     }
 
     private async Task<User> EnsureUserAsync(List<User> rows, string username, string email, string fullName, string password, CancellationToken ct)
     {
-        var matches = rows.Where(x => string.Equals(x.Username.Trim(), username, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (matches.Count > 1) throw Conflict("user", username, "duplicate username");
+        var expectedId = username == "admin" ? Guid.Parse("11111111-1111-1111-1111-111111111111") : DemoSeedManifest.Id($"user:{username}");
+        var matches = rows.Where(x => x.Id == expectedId || string.Equals(x.Username.Trim(), username, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (matches.Count > 1) throw Conflict("user", username, "ambiguous identity or duplicate username");
         var user = matches.SingleOrDefault();
         if (user is not null)
         {
-            if (!string.Equals(user.Email.Trim(), email, StringComparison.OrdinalIgnoreCase))
-                throw Conflict("user", username, $"email is {user.Email}, expected {email}");
-            if (!user.IsActive) throw Conflict("user", username, "seed account is inactive; refusing to reactivate a user record");
-            if (username == "admin" && user.Id != Guid.Parse("11111111-1111-1111-1111-111111111111"))
+            if (username == "admin" && user.Id != expectedId)
                 throw Conflict("user", username, "identifier differs from the fixed administrative ID");
             return user;
         }

@@ -23,8 +23,16 @@ public class RefreshTokenRepository : IRefreshTokenRepository
     {
         return await _dbContext.RefreshTokens
             .Where(t => t.UserId == userId && !t.IsRevoked)
+            .OrderBy(t => t.Id)
             .ToListAsync(cancellationToken);
     }
+
+    public Task<RefreshToken?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
+        _dbContext.RefreshTokens.AsNoTracking().SingleOrDefaultAsync(t => t.TokenHash == tokenHash, cancellationToken);
+
+    public Task<RefreshToken?> GetForUpdateAsync(string tokenHash, CancellationToken cancellationToken = default) =>
+        _dbContext.RefreshTokens.FromSqlInterpolated($"SELECT * FROM refresh_tokens WHERE token_hash = {tokenHash} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
 
     public void Add(RefreshToken refreshToken)
     {

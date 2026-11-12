@@ -1,46 +1,46 @@
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
-using TechStore.Api.Identity.Configurations;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using TechStore.Api.Common.Data;
+using TechStore.Api.Identity;
+using TechStore.Api.Identity.Entities;
+using TechStore.Api.Identity.Repositories;
+using TechStore.Api.Identity.Services;
+using TechStore.Shared.Enums;
 
 namespace TechStore.UnitTests;
 
-/// <summary>
-/// Registers JWT bearer with the same options as backend/Program.cs so test hosts validate tokens
-/// exactly like production. Keep in sync with Program.cs until Feature 1 exposes a shared extension.
-/// </summary>
 internal static class TestJwtAuthentication
 {
-    public static IServiceCollection AddStoreJwtAuthentication(
-        this IServiceCollection services,
-        IConfiguration configuration)
+    public static IServiceCollection AddStoreJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
-
-        services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
-        {
-            options.RequireHttpsMetadata = false;
-            options.SaveToken = true;
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
-                ValidateIssuer = true,
-                ValidIssuer = jwtOptions.Issuer,
-                ValidateAudience = true,
-                ValidAudience = jwtOptions.Audience,
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            };
-        });
-        services.AddAuthorization();
+        services.AddStoreAuthentication(configuration);
+        services.AddTestIdentities();
         return services;
+    }
+
+    public static void AddTestIdentities(this IServiceCollection services)
+    {
+        services.RemoveAll<IUserRepository>();
+        services.AddSingleton<FakeUserRepository>();
+        services.AddSingleton<IUserRepository>(sp => sp.GetRequiredService<FakeUserRepository>());
+        services.RemoveAll<IRefreshTokenRepository>();
+        services.AddSingleton<IRefreshTokenRepository, FakeRefreshTokenRepository>();
+        services.RemoveAll<IUnitOfWork>();
+        services.AddScoped<IUnitOfWork, FakeUnitOfWork>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddScoped<IAuthService, AuthService>();
+    }
+
+    public static Guid AddIdentity(IServiceProvider services, string role, Guid? id = null)
+    {
+        var repository = services.GetRequiredService<FakeUserRepository>();
+        var userId = id ?? Guid.NewGuid();
+        if (repository.Users.ContainsKey(userId)) return userId;
+        var assignedRole = new Role { Id = Guid.NewGuid(), Name = Enum.Parse<RoleType>(role) };
+        var user = new User { Id = userId, Username = "http-" + userId, Email = userId + "@test.vn", FullName = role };
+        user.UserRoles.Add(new UserRole { UserId = userId, RoleId = assignedRole.Id, Role = assignedRole });
+        repository.Add(user);
+        return userId;
     }
 }

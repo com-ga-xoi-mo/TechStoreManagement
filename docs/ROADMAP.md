@@ -1,56 +1,67 @@
-# ROADMAP - TECHSTORE SYSTEM
-**Quy mô:** Team 6 Kỹ sư Phần mềm | **Nền tảng:** .NET 10 | **Kiến trúc:** API-First
+# Roadmap TechStore
 
----
+Yêu cầu gốc: [REQUIREMENTS.md](REQUIREMENTS.md).
 
-## 1. Phân công Trách nhiệm cho 2 Giai đoạn
+M1 và M2 đã hoàn thành. M3 do An làm một mình. M4 chia cho sáu thành viên. Thời gian từng sprint sẽ được chốt theo hạn nộp.
 
-### BẢNG 1: GIAI ĐOẠN BÁO CÁO TIẾN ĐỘ (MÔ HÌNH 1 ADMIN)
-> **Mục tiêu:** Cả 6 Kỹ sư cùng xây dựng phiên bản đầu tiên của ứng dụng với mô hình **một người quản trị (Admin)**, kết nối CSDL và xử lý đầy đủ các nghiệp vụ quản lý cốt lõi theo đúng yêu cầu đề bài.
+## Các milestone
 
-| STT | Kỹ sư | Chức năng Admin đảm nhận (Theo đúng đề bài) | Chi tiết công việc thực hiện |
-| :---: | :--- | :--- | :--- |
-| 1 | **Dev 1 (Lead)** | **Quản trị Hệ thống & Tài khoản** | • Quản lý tài khoản Admin, cấu hình thông tin cửa hàng.<br>• Setup nền tảng: Solution .NET 10, Uno Shell, Base API, kết nối DB. |
-| 2 | **Dev 2** | **Quản lý Sản phẩm (CRUD & Tìm kiếm)** | • Thêm, sửa, xóa và tìm kiếm sản phẩm theo tên, giá, thương hiệu.<br>• Lưu trữ thông số cấu hình phần cứng dạng JSON specs; thiết kế Schema PostgreSQL. |
-| 3 | **Dev 3** | **Quản lý Danh mục & Tồn kho ban đầu** | • Thêm, sửa, xóa và tìm kiếm danh mục sản phẩm.<br>• Quản lý danh sách Serial / IMEI từng máy và cập nhật số lượng tồn kho ban đầu. |
-| 4 | **Dev 4** | **Tạo & Quản lý Đơn hàng** | • Form tạo đơn hàng mới: Chọn khách hàng, chọn sản phẩm, tính tổng tiền, lưu đơn.<br>• Quản lý danh sách và theo dõi trạng thái đơn (Mới tạo, Đang xử lý, Hoàn thành, Hủy). |
-| 5 | **Dev 5** | **Quản lý Thông tin Khách hàng** | • Thêm, sửa, xóa, tìm kiếm thông tin khách hàng, lưu số điện thoại và lịch sử mua. |
-| 6 | **Dev 6** | **Báo cáo Thống kê cơ bản & Dữ liệu Demo** | • Xem thông tin thống kê cơ bản: Tổng số lượng sản phẩm, doanh thu tổng hợp.<br>• Chuẩn bị & Seeding dữ liệu demo: $\ge 20$ SP, $\ge 5$ danh mục, $\ge 10$ khách, $\ge 20$ đơn. |
+| Milestone | Nội dung | Phụ trách |
+| --- | --- | --- |
+| [M1: Nền tảng](MILESTONE_1_PLAN.md) | Solution, API, client, database, migrations và dữ liệu mẫu | Cả nhóm, đã hoàn thành |
+| [M2: Quản trị Admin](MILESTONE_2_PLAN.md) | Sản phẩm, danh mục, kho/IMEI, khách hàng, đơn hàng và thống kê cơ bản | Cả nhóm, đã hoàn thành |
+| [M3: Vận hành đa vai trò](MILESTONE_3_PLAN.md) | Phân quyền, tài khoản, nhập hàng, POS tiền mặt, ca thu ngân và dashboard Manager | An |
+| [M4: Hoàn thiện và bàn giao](MILESTONE_4_PLAN.md) | VietQR, đổi trả, bảo hành, điểm thưởng, voucher, báo cáo nâng cao, AI và nghiệm thu | Sáu thành viên |
 
----
+## Milestone 3
 
-### BẢNG 2: GIAI ĐOẠN CUỐI KỲ (HỆ THỐNG ĐA VAI TRÒ RBAC & NÂNG CAO)
-> **Mục tiêu:** Tách quyền thành hệ thống **Đa vai trò (RBAC)** với giao diện và quyền hạn chuyên biệt cho từng bộ phận, xử lý đồng thời, tích hợp AI Agent và kiểm thử tự động.
+1. Phân quyền toàn bộ API; quản lý tài khoản và phiên đăng nhập.
+2. Điều chỉnh màn hình theo role; hoàn thiện tìm kiếm sản phẩm và khách hàng cho Sales.
+3. Quản lý nhà cung cấp, phiếu nhập và nhận hàng theo lô.
+4. Hoàn thiện POS tiền mặt, thuế, giảm giá và ca thu ngân.
+5. Kiểm thử, đối chiếu số liệu và bàn giao cho nhóm làm M4.
 
-| STT | Kỹ sư | Phân hệ & Vai trò đảm nhận (Cuối kỳ) | Chi tiết công việc thực hiện |
-| :---: | :--- | :--- | :--- |
-| 1 | **Dev 1 (Lead)** | **Quản trị Người dùng & Vòng đời Đơn hàng** | • Quản lý Nhân sự & Phân quyền: Thêm, sửa, khóa tài khoản nhân viên, gán vai trò.<br>• Nghiệp vụ Vòng đời đơn hàng nâng cao: Hủy đơn, hoàn tiền, đổi trả thiết bị. |
-| 2 | **Dev 2** | **Tối ưu Catalog & Quản lý Bảo hành** | • Tối ưu hóa Catalog: Tìm kiếm full-text, bộ lọc nâng cao đa thuộc tính (RAM, CPU, Giá).<br>• Quản lý và kích hoạt thời hạn bảo hành theo Serial/IMEI khi đơn hoàn tất. |
-| 3 | **Dev 3** | **Phân hệ Thủ kho (Warehouse) & Concurrency** | • Giao diện riêng cho Thủ kho: Quản lý Nhà cung cấp, lập phiếu nhập kho theo lô.<br>• Kỹ thuật: Transaction khóa dòng (`FOR UPDATE`) triệt tiêu Race-Condition khi trừ kho. |
-| 4 | **Dev 4** | **Phân hệ Bán hàng (Sales Staff) & POS Quầy** | • Giao diện POS bán hàng chuyên biệt tại quầy cho nhân viên bán hàng (bị khóa xem doanh thu tổng).<br>• Tự động tạo mã VietQR thanh toán động, quản lý ca làm việc (tiền mặt/két tiền). |
-| 5 | **Dev 5** | **Phân hệ Quản lý (Manager) & Loyalty** | • Giao diện Dashboard cho Quản lý: Biểu đồ doanh thu nâng cao, phân tích lợi nhuận.<br>• Chương trình khách hàng thân thiết VIP (tích điểm thành viên), áp mã voucher. |
-| 6 | **Dev 6** | **Bảo mật RBAC Server & Tích hợp AI Agent** | • Middleware kiểm tra quyền 4 role (`Admin`, `Manager`, `Staff`, `Warehouse`) tại Server API.<br>• Tích hợp AI Gemini Function Calling (Tư vấn bán hàng từ kho thực & Báo cáo BI). |
+Dùng lại phần đã có ở M2: khóa dòng chống bán vượt tồn, lịch sử biến động kho, giá vốn tại thời điểm bán và kích hoạt ngày bảo hành.
 
-*Lưu ý: Cả 6 Kỹ sư đều chịu trách nhiệm tự viết Unit Test (`xUnit`) và Integration Test cho module của mình.*
+Ưu tiên sửa API đơn hàng chưa yêu cầu đăng nhập và còn dùng ID Admin mặc định. Thuế và giảm giá cấp đơn hiện bằng 0 cũng cần hoàn thiện trong M3.
 
----
+## Milestone 4
 
-## 2. Các Cột mốc Hoàn thành (Feature Milestones)
+| Thành viên | Công việc chính |
+| --- | --- |
+| An (Dev 1) | Đổi trả và hoàn tiền, gồm cả hàng nhận lại và nhập lại kho |
+| Q. Vinh (Dev 2) | Bảo hành và sửa chữa, gồm cả trạng thái kho và xuất máy thay |
+| Bình (Dev 3) | Báo cáo doanh thu, hoàn tiền, lợi nhuận và hiệu suất |
+| Đạt (Dev 4) | Thanh toán VietQR, giữ hàng, hoàn tất bán và đối soát ca |
+| Vy (Dev 5) | Khách hàng thân thiết: điểm thưởng, VIP và voucher |
+| T. Vinh (Dev 6) | Trợ lý Gemini và các tools đọc dữ liệu theo quyền |
 
-* **🚩 Milestone 1: Nền tảng & CSDL**
-  * Solution .NET 10 (Uno Platform + ASP.NET Core API).
-  * Schema PostgreSQL, EF Core Migrations, Seeding dữ liệu thực tế ($\ge 20$ SP, $\ge 5$ danh mục, $\ge 10$ khách, $\ge 20$ đơn).
-* **🚩 Milestone 2: Hoàn thiện Phân hệ Quản trị (Admin - Bảng 1)**
-  * Cả 6 Kỹ sư hoàn tất 6 chức năng Admin qua API: Sản phẩm, Danh mục, Kho IMEI, Tạo & Quản lý Đơn hàng, Khách hàng, Thống kê cơ bản.
-* **🚩 Milestone 3: Tách Phân quyền Đa vai trò (RBAC - Bảng 2)**
-  * Tách giao diện riêng cho 4 vai trò (`Admin`, `Manager`, `Sales Staff`, `Warehouse`).
-  * Middleware JWT kiểm tra quyền tại Server API (chặn Staff xem doanh thu).
-* **🚩 Milestone 4: Xử lý Đồng thời, Kho Nâng cao & Loyalty**
-  * Transaction khóa dòng chống bán âm kho; Đổi trả bảo hành theo Serial/IMEI.
-  * Tích điểm VIP, tạo mã VietQR thanh toán tự động.
-* **🚩 Milestone 5: Tích hợp Trợ lý AI (Gemini Tool Calling) & Dashboard**
-  * Dashboard báo cáo doanh thu & lợi nhuận cho Quản lý.
-  * AI Gemini Function Calling tư vấn thiết bị theo ngân sách/cấu hình từ kho thực tế, bảo mật theo vai trò RBAC.
-* **🚩 Milestone 6: Kiểm thử Tự động & Nghiệm thu Bàn giao**
-  * Bộ Test Cases và Automated Tests (`xUnit` + `WebApplicationFactory`).
-  * Hoàn thiện `README.md`, video demo unlisted và đóng gói sản phẩm.
+M4 có bốn sprint: xác định đầu vào/đầu ra, xây dựng tính năng, tích hợp và nghiệm thu. Mỗi người làm trọn API, giao diện, dữ liệu demo, test và đoạn video của phần mình. An ghép tài liệu và bộ nộp ở sprint cuối.
+
+Chỉ giữ các điểm nối cần thiết: Đạt và An gọi service điểm/voucher của Vy; Bình đọc dữ liệu giao dịch để báo cáo; T. Vinh gọi API báo cáo của Bình và API M3. Đầu vào/đầu ra được ghi rõ trong kế hoạch M4 để các phần có thể làm độc lập.
+
+## Đối chiếu yêu cầu
+
+| Yêu cầu trong đề | Nơi thực hiện |
+| --- | --- |
+| Mục 1, 2, 5: nghiệp vụ cửa hàng, CRUD, tìm kiếm, đơn hàng, thống kê và thiết kế | Kế thừa M2; bổ sung trong M3; kiểm thử lại ở M4 |
+| Mục 3, 4: client chỉ qua API, nghiệp vụ và dữ liệu xử lý tại server | Giữ kiến trúc hiện có trong cả M3 và M4 |
+| Mục 3, 9: đăng nhập, đăng xuất, token và phân quyền tại server | M3 sprint 1, 2; kiểm thử lại toàn bộ ở M4 |
+| Mục 9: tính tiền, thuế, giảm giá, trừ kho, transaction và xử lý đồng thời | M3 sprint 3, 4, 5; mở rộng cho thanh toán và hoàn tiền ở M4 |
+| Mục 3, 10: UI hoàn chỉnh, validation, loading, empty và error | Mỗi sprint có giao diện; nghiệm thu tổng thể ở M4 |
+| Mục 6: dữ liệu demo đầy đủ và tài khoản đại diện các role | Chuẩn bị ở M3; chốt dữ liệu cuối kỳ ở M4 |
+| Mục 7: Git private, lịch sử đóng góp, bảo mật và README | Thực hiện xuyên suốt; kiểm tra cuối ở M4 |
+| Mục 8: AI dùng dữ liệu thật và tuân thủ RBAC | M4, T. Vinh phụ trách |
+| Mục 9: test chức năng, biên, API, RBAC, hồi quy và báo cáo chất lượng | Test trong từng sprint; tổng hợp ở M4 |
+| Mục 11: video, năm file nộp bài, ZIP và Moodle | M4 sprint 4 |
+
+POS, ca thu ngân, VietQR, nhập hàng, full-text, đổi trả/bảo hành, VIP/voucher và lợi nhuận là phạm vi TechStore đã chọn. AI là phần khuyến khích trong đề và vẫn được giữ trong M4. Các ví dụ AI khác trong đề không bắt buộc triển khai tất cả.
+
+## Cách nghiệm thu
+
+- Chạy tính năng qua giao diện, API và database thật; ghi kết quả kiểm thử theo bản build.
+- Kiểm tra lại các luồng M2 sau khi thay đổi. Không tính test bị bỏ qua hoặc chưa chạy là đạt.
+- Giữ kiến trúc client qua API và cập nhật tài liệu, test, dữ liệu mẫu khi đổi nghiệp vụ.
+- Chỉ đóng milestone khi không còn lỗi chặn luồng chính, sai tiền, sai tồn kho hoặc vượt quyền.
+
+Tài liệu cuối kỳ cần mô tả đúng việc nhóm đã dùng API-first từ đầu. Điểm AI ở mục 8 và mục 10 của đề chưa thống nhất; An xác minh với giảng viên trước khi tổng hợp phần đề xuất điểm.

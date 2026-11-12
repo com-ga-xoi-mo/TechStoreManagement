@@ -1,6 +1,6 @@
 # Milestone 4: Hoàn thiện và bàn giao
 
-Bắt đầu sau khi [M3](MILESTONE_3_PLAN.md) được nghiệm thu. Hoàn thành các tính năng dưới đây và bộ nộp theo [REQUIREMENTS.md](REQUIREMENTS.md). M3 vẫn do An làm một mình.
+Bắt đầu sau khi [M3](MILESTONE_3_PLAN.md) được nghiệm thu. Hoàn thành các tính năng dưới đây và bộ nộp theo [REQUIREMENTS.md](REQUIREMENTS.md). M3 và M4 đều chia cho sáu thành viên.
 
 ## Phân công
 
@@ -149,7 +149,7 @@ Mỗi người bàn giao test, dữ liệu demo, hướng dẫn, giới hạn v�
 ### README và Git
 
 - [ ] README đủ: tên/domain, tổng quan, chức năng/giới hạn, sơ đồ giữa kỳ/cuối kỳ (ghi đúng API-first từ đầu), công nghệ, hướng dẫn cài/build/chạy Windows/Skia/test, cấu hình DB/API/JWT/ảnh/VietQR/Gemini và tài khoản/quyền demo.
-- [ ] Ghi họ tên, MSSV, vai trò, tỷ lệ đóng góp cả sáu người; tổng 100%, phản ánh M3 do An làm một mình.
+- [ ] Ghi họ tên, MSSV, vai trò, tỷ lệ đóng góp cả sáu người; tổng 100%, phản ánh phần việc thực tế mỗi người đã hoàn thành ở M3 và M4.
 - [ ] Repo private; commit/push thường xuyên, message rõ, lịch sử đúng đóng góp. Secrets dùng biến môi trường/config local có gitignore; kiểm tra file/lịch sử/ZIP/video, thu hồi secrets đã lộ. PAT chỉ nằm trong bộ nộp riêng.
 - [ ] Ghi rõ thanh toán thật/sandbox/thủ công. AI là phần khuyến khích nhóm đã chọn; An xác minh chênh lệch điểm AI giữa mục 8 và 10 của đề.
 

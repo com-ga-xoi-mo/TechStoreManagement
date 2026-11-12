@@ -1,6 +1,6 @@
 @host = http://localhost:5176
 
-### 0a. Login as Admin (needed by product write requests)
+### 0a. Login as Admin (required by all business API requests)
 # @name loginAdmin
 POST {{host}}/api/auth/login
 Content-Type: application/json
@@ -10,94 +10,117 @@ Content-Type: application/json
 ### 0. Named Lookup for MacBook Pro (Dynamic ID Reference)
 # @name findMacbook
 GET {{host}}/api/products?q=MBP14-M3-512
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 1. Get Product Detail by ID - Success (200 OK)
 GET {{host}}/api/products/{{findMacbook.response.body.$.items[0].id}}
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 2. Get Product Detail - Unknown ID (404 Not Found)
 GET {{host}}/api/products/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/problem+json
 
 ### 3. Search Products - Default Listing (200 OK)
 GET {{host}}/api/products
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 4. Search Products - Keyword 'iphone' (200 OK)
 GET {{host}}/api/products?q=iphone
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 5. Search Products - Variant SKU 'IP15PM-256-NT' (200 OK)
 GET {{host}}/api/products?q=IP15PM-256-NT
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 6. Search Products - Filter by Brand 'apple' (200 OK)
 GET {{host}}/api/products?brand=apple
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 6a. Search Products - Filter by Brand Wildcard '%' (200 OK with 0 items)
 GET {{host}}/api/products?brand=%25
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 6b. Search Products - Filter by Brand Wildcard 'a_ple' (200 OK with 0 items)
 GET {{host}}/api/products?brand=a_ple
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 7. Search Products - Filter by Category Laptops (200 OK)
 GET {{host}}/api/products?categoryId={{findMacbook.response.body.$.items[0].categoryId}}
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 8. Search Products - Price Range Overlap (200 OK)
 GET {{host}}/api/products?minPrice=22000000&maxPrice=30000000
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 9. Search Products - Inverted Price Range (400 Bad Request)
 GET {{host}}/api/products?minPrice=30000000&maxPrice=22000000
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/problem+json
 
 ### 10. Search Products - Spec Containment 'ram_gb:16' (200 OK)
 GET {{host}}/api/products?spec=ram_gb:16
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 11. Search Products - Spec Containment Multiple 'cpu:Apple M3' & 'color:Space Gray' (200 OK)
 GET {{host}}/api/products?spec=cpu:Apple%20M3&spec=color:Space%20Gray
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 12. Search Products - Spec Containment Variant 'color:Natural Titanium' (200 OK)
 GET {{host}}/api/products?spec=color:Natural%20Titanium
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 13. Search Products - Malformed Spec (400 Bad Request)
 GET {{host}}/api/products?spec=RAM:16
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/problem+json
 
 ### 14. Search Products - Sort by Price Ascending (200 OK)
 GET {{host}}/api/products?sort=price:asc
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 15. Search Products - Unknown Sort Field (400 Bad Request)
 GET {{host}}/api/products?sort=stock
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/problem+json
 
 ### 16. Search Products - Pagination Normalization (200 OK)
 GET {{host}}/api/products?page=0&pageSize=500
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 17. Search Products - Page Beyond Total (200 OK with empty items)
 GET {{host}}/api/products?page=99
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 18. Search Products - Pagination Walk Page 1 (200 OK)
 GET {{host}}/api/products?page=1&pageSize=2
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 19. Search Products - Pagination Walk Page 2 (200 OK)
 GET {{host}}/api/products?page=2&pageSize=2
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 20. Search Products - Pagination Walk Page 3 (200 OK)
 GET {{host}}/api/products?page=3&pageSize=2
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 21. Create Product - Valid with Variants (201 Created)
@@ -141,6 +164,7 @@ Content-Type: application/json
 
 ### 22. Get Created Product Back by ID (200 OK)
 GET {{host}}/api/products/{{createProduct.response.body.$.id}}
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 23. Create Product - Negative Base Price (400 Bad Request)
@@ -263,11 +287,13 @@ Content-Type: application/json
 
 ### 30. Get Category Hierarchy Tree (200 OK)
 GET {{host}}/api/categories/tree
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 31. Create Top-Level Category (201 Created)
 # @name createCategory
 POST {{host}}/api/categories
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -278,6 +304,7 @@ Content-Type: application/json
 
 ### 32. Create Subcategory with Parent (201 Created)
 POST {{host}}/api/categories
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -288,6 +315,7 @@ Content-Type: application/json
 
 ### 33. Create Category - Missing Name (400 Bad Request)
 POST {{host}}/api/categories
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -296,6 +324,7 @@ Content-Type: application/json
 
 ### 34. Create Category - Duplicate Slug Conflict (409 Conflict)
 POST {{host}}/api/categories
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -305,18 +334,22 @@ Content-Type: application/json
 
 ### 35. Search Stocks - Default Listing (200 OK)
 GET {{host}}/api/inventory/stocks
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 36. Search Stocks - Filter by LowStock Alert (200 OK)
 GET {{host}}/api/inventory/stocks?lowStock=true
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 37. Search Stocks - Filter by Product ID (200 OK)
 GET {{host}}/api/inventory/stocks?productId={{findMacbook.response.body.$.items[0].id}}
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 38. Initialize Stock Balance (201 Created)
 POST {{host}}/api/inventory/stocks/initialize
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -329,6 +362,7 @@ Content-Type: application/json
 
 ### 39. Initialize Stock Balance - Duplicate Conflict (409 Conflict)
 POST {{host}}/api/inventory/stocks/initialize
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -340,6 +374,7 @@ Content-Type: application/json
 
 ### 40. Initialize Stock Balance - Negative Quantity (400 Bad Request)
 POST {{host}}/api/inventory/stocks/initialize
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -349,10 +384,12 @@ Content-Type: application/json
 
 ### 41. Query Serials - Status Filter InStock (200 OK)
 GET {{host}}/api/inventory/serials?status=InStock
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 42. Batch Import Serials - Valid Batch (201 Created)
 POST {{host}}/api/inventory/serials/batch-import
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -376,6 +413,7 @@ Content-Type: application/json
 
 ### 43. Batch Import Serials - Duplicate Serial in DB (409 Conflict)
 POST {{host}}/api/inventory/serials/batch-import
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -389,6 +427,7 @@ Content-Type: application/json
 
 ### 44. Batch Import Serials - Duplicate Within Batch Payload (409 Conflict)
 POST {{host}}/api/inventory/serials/batch-import
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -405,6 +444,7 @@ Content-Type: application/json
 
 ### 45. Batch Import Serials - Invalid IMEI Format (400 Bad Request)
 POST {{host}}/api/inventory/serials/batch-import
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -430,26 +470,31 @@ Content-Type: application/json
 ### 50. Lookup iPhone product
 # @name findIphone
 GET {{host}}/api/products?q=IP15PM-256-NT
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 51. Lookup iPhone detail (variant id)
 # @name iphoneDetail
 GET {{host}}/api/products/{{findIphone.response.body.$.items[0].id}}
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 52. Lookup InStock iPhone devices
 # @name iphoneDevices
 GET {{host}}/api/inventory/serials?status=InStock&productId={{findIphone.response.body.$.items[0].id}}
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 53. Lookup Sony headphones (not serial-tracked)
 # @name findSony
 GET {{host}}/api/products?q=SONY-WH1000XM5
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 54. Create order - walk-in, one iPhone device (201 Created, status Pending, code ORD-yyyyMM-NNNN)
 # @name createOrder
 POST {{host}}/api/orders
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -466,36 +511,43 @@ Content-Type: application/json
 
 ### 55. Order detail (200 OK, line shows the IMEI)
 GET {{host}}/api/orders/{{createOrder.response.body.$.id}}
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 56. List pending orders (200 OK)
 GET {{host}}/api/orders?status=pending
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 57. Search by order code (200 OK)
 GET {{host}}/api/orders?q={{createOrder.response.body.$.orderCode}}
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 58. Pending -> Processing (200 OK: device Reserved, reserved_quantity +1, paid_at set)
 PATCH {{host}}/api/orders/{{createOrder.response.body.$.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Processing" }
 
 ### 59. Processing -> Cancelled (409 Conflict: paid orders use the refund flow)
 PATCH {{host}}/api/orders/{{createOrder.response.body.$.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Cancelled" }
 
 ### 60. Processing -> Completed (200 OK: device Sold + warranty, stock -1, Sale movement)
 PATCH {{host}}/api/orders/{{createOrder.response.body.$.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Completed" }
 
 ### 61. Completed -> Completed again (409 Conflict, nothing changes)
 PATCH {{host}}/api/orders/{{createOrder.response.body.$.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Completed" }
@@ -503,6 +555,7 @@ Content-Type: application/json
 ### 62. Create order for the cash shortcut (device [1])
 # @name createShortcutOrder
 POST {{host}}/api/orders
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -517,6 +570,7 @@ Content-Type: application/json
 
 ### 63. Pending -> Completed in one step (200 OK, paid_at = completed_at)
 PATCH {{host}}/api/orders/{{createShortcutOrder.response.body.$.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Completed" }
@@ -524,6 +578,7 @@ Content-Type: application/json
 ### 64. Race, order A: pending order holding device [2]
 # @name createRaceA
 POST {{host}}/api/orders
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -539,6 +594,7 @@ Content-Type: application/json
 ### 65. Race, order B: a second pending order for the same device (still 201, drafts reserve nothing)
 # @name createRaceB
 POST {{host}}/api/orders
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -553,24 +609,28 @@ Content-Type: application/json
 
 ### 66. Race: complete A (200 OK)
 PATCH {{host}}/api/orders/{{createRaceA.response.body.$.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Completed" }
 
 ### 67. Race: complete B (409 Conflict, B stays Pending, device stays Sold for A)
 PATCH {{host}}/api/orders/{{createRaceB.response.body.$.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Completed" }
 
 ### 68. Cancel the losing pending order B (200 OK, no inventory touched)
 PATCH {{host}}/api/orders/{{createRaceB.response.body.$.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Cancelled" }
 
 ### 69. Create order with a device that is already Sold (400 Bad Request under items[0].serialImeiId)
 POST {{host}}/api/orders
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -586,6 +646,7 @@ Content-Type: application/json
 ### 70. Non-serial-tracked order: 2 headphones with a 100,000 line discount (201 Created)
 # @name createSonyOrder
 POST {{host}}/api/orders
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -601,12 +662,14 @@ Content-Type: application/json
 
 ### 71. Sony order Pending -> Completed (200 OK: stock 9 -> 7, one Sale movement of -2)
 PATCH {{host}}/api/orders/{{createSonyOrder.response.body.$.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Completed" }
 
 ### 72. Non-tracked order asking for more than the stock (400 Bad Request under items[0].quantity)
 POST {{host}}/api/orders
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -617,6 +680,7 @@ Content-Type: application/json
 
 ### 73. Several validation errors at once (400 Bad Request)
 POST {{host}}/api/orders
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -629,12 +693,14 @@ Content-Type: application/json
 
 ### 74. Empty order (400 Bad Request)
 POST {{host}}/api/orders
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "items": [] }
 
 ### 75. Order with an unknown customer (400 Bad Request under customerId)
 POST {{host}}/api/orders
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 {
@@ -650,34 +716,41 @@ Content-Type: application/json
 
 ### 76. List completed orders, newest first (200 OK)
 GET {{host}}/api/orders?status=completed&sort=createdAt:desc&pageSize=5
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 77. List sorted by total amount (200 OK)
 GET {{host}}/api/orders?sort=totalAmount:desc
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 78. List with invalid filters (400 Bad Request: status, sort and from)
 GET {{host}}/api/orders?status=foo&sort=customer&from=2026-10-10&to=2026-10-01
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/problem+json
 
 ### 79. List page beyond the end (200 OK with empty items)
 GET {{host}}/api/orders?page=99
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### 80. Disallowed target status (400 Bad Request)
 PATCH {{host}}/api/orders/{{createOrder.response.body.$.id}}/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Refunded" }
 
 ### 81. Unknown order id (404 Not Found)
 PATCH {{host}}/api/orders/00000000-0000-0000-0000-000000000000/status
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Content-Type: application/json
 
 { "targetStatus": "Completed" }
 
 ### 82. Order detail - unknown id (404 Not Found)
 GET {{host}}/api/orders/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/problem+json
 
 # Checks to run in the database after the requests above:
@@ -699,6 +772,7 @@ Content-Type: application/json
 ### W2. (b) Category tree
 # @name categoryTree
 GET {{host}}/api/categories/tree
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### W3. (c) Create product 1
@@ -824,6 +898,7 @@ Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 
 ### W12. (h2) Get deleted product 1 (404 Not Found)
 GET {{host}}/api/products/{{createWrite1.response.body.$.id}}
+Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
 Accept: application/json
 
 ### W13. (i) Create product 2
@@ -949,7 +1024,7 @@ Content-Type: application/json
   }
 }
 
-### W22. (r) Search products with keyword TEST-WRITE without header (200 OK)
+### W22. (r) Search products with keyword TEST-WRITE without header (401 Unauthorized)
 GET {{host}}/api/products?q=TEST-WRITE
 Accept: application/json
 
@@ -976,3 +1051,21 @@ Content-Type: application/json
 ### Product image delete (204)
 DELETE {{host}}/api/products/{{findMacbook.response.body.$.items[0].id}}/images/{{uploadProductImage.response.body.$.id}}
 Authorization: Bearer {{loginAdmin.response.body.$.accessToken}}
+
+
+### Identity: authenticate before every protected API example
+# @name identityLogin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{"username":"admin","password":"Admin@123","rememberMe":false}
+
+### Identity: account list (Admin only)
+GET {{host}}/api/users?page=1&pageSize=20&isActive=true
+Authorization: Bearer {{identityLogin.response.body.$.accessToken}}
+
+### Identity: rotate refresh token (single use)
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{"refreshToken":"{{identityLogin.response.body.$.refreshToken}}"}

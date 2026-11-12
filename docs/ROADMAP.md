@@ -2,7 +2,7 @@
 
 Yêu cầu gốc: [REQUIREMENTS.md](REQUIREMENTS.md).
 
-M1 và M2 đã hoàn thành. M3 do An làm một mình. M4 chia cho sáu thành viên. Thời gian từng sprint sẽ được chốt theo hạn nộp.
+M1 và M2 đã hoàn thành. M3 và M4 chia cho sáu thành viên. Thời gian từng sprint sẽ được chốt theo hạn nộp.
 
 ## Các milestone
 
@@ -10,10 +10,21 @@ M1 và M2 đã hoàn thành. M3 do An làm một mình. M4 chia cho sáu thành 
 | --- | --- | --- |
 | [M1: Nền tảng](MILESTONE_1_PLAN.md) | Solution, API, client, database, migrations và dữ liệu mẫu | Cả nhóm, đã hoàn thành |
 | [M2: Quản trị Admin](MILESTONE_2_PLAN.md) | Sản phẩm, danh mục, kho/IMEI, khách hàng, đơn hàng và thống kê cơ bản | Cả nhóm, đã hoàn thành |
-| [M3: Vận hành đa vai trò](MILESTONE_3_PLAN.md) | Phân quyền, tài khoản, nhập hàng, POS tiền mặt, ca thu ngân và dashboard Manager | An |
+| [M3: Vận hành đa vai trò](MILESTONE_3_PLAN.md) | Phân quyền, tài khoản, nhập hàng, POS tiền mặt, ca thu ngân và dashboard Manager | Sáu thành viên |
 | [M4: Hoàn thiện và bàn giao](MILESTONE_4_PLAN.md) | VietQR, đổi trả, bảo hành, điểm thưởng, voucher, báo cáo nâng cao, AI và nghiệm thu | Sáu thành viên |
 
 ## Milestone 3
+
+| Thành viên | Công việc chính |
+| --- | --- |
+| An (Dev 1) | Phân quyền, tài khoản, phiên đăng nhập và ghép bản bàn giao |
+| Q. Vinh (Dev 2) | Nhà cung cấp, phiếu nhập, nhận hàng và kho/Serial/IMEI |
+| Bình (Dev 3) | Dashboard Manager, dữ liệu demo và tổng hợp đối chiếu/kiểm thử |
+| Đạt (Dev 4) | POS tiền mặt, vòng đời đơn và ca thu ngân |
+| Vy (Dev 5) | Khách hàng cho Sales, công thức thuế và giảm giá |
+| T. Vinh (Dev 6) | Shell theo role, tra cứu sản phẩm và kiểm tra UI hai nền tảng |
+
+Mỗi người làm API, UI, test và tài liệu phần mình. Chốt quyền/contract ở sprint 1; các phần độc lập của sprint 2–4 làm song song; sprint 5 nghiệm thu toàn luồng. Chi tiết người phụ trách từng task và điểm nối nằm trong [kế hoạch M3](MILESTONE_3_PLAN.md).
 
 1. Phân quyền toàn bộ API; quản lý tài khoản và phiên đăng nhập.
 2. Điều chỉnh màn hình theo role; hoàn thiện tìm kiếm sản phẩm và khách hàng cho Sales.

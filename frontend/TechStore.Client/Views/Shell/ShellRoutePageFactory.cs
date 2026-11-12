@@ -1,3 +1,5 @@
+using TechStore.Client.Views.Identity;
+using TechStore.Client.Services.Session;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Controls;
@@ -28,6 +30,8 @@ public sealed class ShellRoutePageFactory(
         var scope = scopeFactory.CreateAsyncScope();
         try
         {
+            if (route.Kind == AppRouteKind.UserManagement && scope.ServiceProvider.GetRequiredService<ISessionStore>().Current is not { Status: SessionStatus.Active, Role: "Admin" })
+                throw new UnauthorizedAccessException("Bạn không có quyền quản lý tài khoản.");
             var page = ResolvePage(route, scope.ServiceProvider);
             if (page is not IRoutePage routePage)
                 throw new InvalidOperationException($"The page for {route} does not expose its ViewModel.");
@@ -65,9 +69,19 @@ public sealed class ShellRoutePageFactory(
         }
 
         // Routes that are not a Shell root are only reached by navigation, so resolve them here too.
+        if (CanManageAccounts())
+        {
+            using var accounts = Create(AppRoute.UserManagement());
+        }
         using var orderCreate = Create(AppRoute.OrderCreate());
         using var productCreate = Create(AppRoute.ProductCreate());
         using var productEdit = Create(AppRoute.ProductEdit(Guid.NewGuid()));
+    }
+
+    private bool CanManageAccounts()
+    {
+        using var scope = scopeFactory.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<ISessionStore>().Current is { Status: SessionStatus.Active, Role: "Admin" };
     }
 
     private static Page ResolvePage(AppRoute route, IServiceProvider services) => route.Kind switch
@@ -75,6 +89,7 @@ public sealed class ShellRoutePageFactory(
         AppRouteKind.Root => ResolveRootPage(route.Destination, services),
         AppRouteKind.ProductList => services.GetRequiredService<ProductListPage>(),
         AppRouteKind.ProductDetail => services.GetRequiredService<ProductDetailPage>(),
+        AppRouteKind.UserManagement => services.GetRequiredService<UserManagementPage>(),
         AppRouteKind.OrderCreate => services.GetRequiredService<OrderCreatePage>(),
         AppRouteKind.ProductCreate or AppRouteKind.ProductEdit => services.GetRequiredService<ProductEditorPage>(),
         _ => throw new ArgumentOutOfRangeException(nameof(route), route.Kind, "Unknown route kind.")

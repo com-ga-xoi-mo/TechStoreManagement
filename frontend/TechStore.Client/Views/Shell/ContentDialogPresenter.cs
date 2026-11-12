@@ -28,12 +28,15 @@ public sealed class ContentDialogPresenter(IThemePreferenceService themePreferen
         _root = root.XamlRoot;
         _dispatcher = root.DispatcherQueue;
         _focusFallback = focusFallback;
+        themePreference.PreferenceChanged -= OnThemePreferenceChanged;
+        themePreference.PreferenceChanged += OnThemePreferenceChanged;
         Volatile.Write(ref _ready, 1);
     }
 
     public void Detach()
     {
         Volatile.Write(ref _ready, 0);
+        themePreference.PreferenceChanged -= OnThemePreferenceChanged;
         var dispatcher = _dispatcher;
         var activeDialog = _activeDialog;
         _root = null;
@@ -191,6 +194,15 @@ public sealed class ContentDialogPresenter(IThemePreferenceService themePreferen
         ThemePreference.Dark => ElementTheme.Dark,
         _ => ElementTheme.Default
     };
+
+    private void OnThemePreferenceChanged(object? sender, ThemePreference preference)
+    {
+        _dispatcher?.TryEnqueue(() =>
+        {
+            if (IsReady && _activeDialog is { } dialog)
+                dialog.RequestedTheme = ToElementTheme(themePreference.Preference);
+        });
+    }
 
     private void RestoreFocus(XamlRoot root, object? previousFocus)
     {

@@ -56,6 +56,7 @@ public sealed class ProbeApp : App
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        TechStore.Client.Styles.AppResources.Register(this);
         MainWindow = new Window();
         var probeView = new ProbeView(this, _isNegative, _isTimeoutTest);
         MainWindow.Content = probeView;
@@ -160,6 +161,8 @@ public sealed class ProbeView : UserControl
             // Step 5: Probing R4 (Wait, dispatch validation & TryEnqueue verification)
             Console.WriteLine("[Step 5] Probing R4 (Layout & Dispatch Validation)...");
             await TestLayoutDispatchValidationAsync(reports, ct);
+
+            reports.AddRange(await IdentityThemeProbe.RunAsync(this, () => WaitForLayoutAsync(ct), ct));
 
             // Evaluate aggregate results
             Console.WriteLine("\n================================================================================");

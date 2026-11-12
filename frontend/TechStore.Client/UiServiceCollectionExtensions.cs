@@ -66,6 +66,9 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<CustomerDetailViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<LoginViewModel>();
+        services.AddTransient<UserManagementViewModel>();
+        services.AddTransient<UserManagementPage>();
+        services.AddTransient<IUserManagementRepository, UserManagementRepository>();
 
         services.AddSingleton<CategoryDialogRequests>();
         services.AddSingleton<ICategoryDialogRequests>(provider => provider.GetRequiredService<CategoryDialogRequests>());

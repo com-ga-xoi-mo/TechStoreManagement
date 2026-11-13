@@ -938,6 +938,12 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
 
+                    b.Property<long>("TokenVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("token_version");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("updated_at");
@@ -957,7 +963,10 @@ namespace TechStore.Api.Common.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("idx_users_username");
 
-                    b.ToTable("users", (string)null);
+                    b.ToTable("users", null, t =>
+                        {
+                            t.HasCheckConstraint("chk_users_token_version", "token_version >= 0");
+                        });
                 });
 
             modelBuilder.Entity("TechStore.Api.Identity.Entities.UserRole", b =>

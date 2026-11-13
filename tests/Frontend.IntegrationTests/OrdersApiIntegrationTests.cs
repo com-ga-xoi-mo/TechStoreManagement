@@ -1,3 +1,4 @@
+using TechStore.Client.Models.Catalog;
 using System.Diagnostics;
 using TechStore.Client.Models.Orders;
 using TechStore.Client.Repositories.Catalog;
@@ -25,14 +26,15 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
     [OptInFact]
     public async Task LiveOrders_CounterFlowWorksThroughTheViewModels()
     {
-        using var rig = LiveRig.Create();
+        using var rig = await LiveRig.CreateAsync();
+        await rig.PrepareDevicesAsync();
 
         // ---- 1. draft with a serial-tracked device: estimate must equal what the server prices ----
         var draft = rig.NewCreate();
         var iphone = await rig.PickProduct(draft, IphoneKeyword);
         var variantPrice = draft.SelectedVariant?.Price ?? iphone.BasePrice;
         await Eventually(() => !draft.IsLoadingDevices && draft.Devices.Count >= 3,
-            "Preflight failed: the iPhone needs at least 3 InStock devices. Reset the database (docker compose down -v) and restart the API.");
+            "Preflight failed: the iPhone needs at least 3 InStock devices. Run this suite against a disposable test database and verify the test intake succeeded.");
         var devices = draft.Devices.ToArray();
         draft.SelectedDevice = devices[0];
         draft.AddLineCommand.Execute(null);
@@ -166,7 +168,32 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
             _products = new ProductRepository(api);
         }
 
-        public static LiveRig Create()
+        public async Task PrepareDevicesAsync()
+        {
+            var page = await _products.SearchAsync(new ProductQuery { Query = IphoneKeyword });
+            var product = await _products.GetByIdAsync(page.Items.Single().Id)
+                ?? throw new InvalidOperationException("The test catalog product is missing.");
+            var variant = product.Variants.Single(v => v.Sku == IphoneKeyword);
+            var accessoryPage = await _products.SearchAsync(new ProductQuery { Query = HeadphonesKeyword });
+            var accessoryId = accessoryPage.Items.Single().Id;
+            var balances = await _api.GetAsync<TechStore.Shared.DTOs.PagedResultDto<TechStore.Shared.DTOs.InventoryStockDto>>($"api/inventory/stocks?productId={accessoryId:D}");
+            var stock = balances.Items.SingleOrDefault();
+            if (stock is null)
+                await _api.PostAsync<TechStore.Shared.Requests.InitializeStockRequest, System.Text.Json.JsonElement>("api/inventory/stocks/initialize",
+                    new() { ProductId = accessoryId, Quantity = 4, UnitCost = 6500000m, Reason = "Live Orders disposable fixture" });
+            else if (stock.AvailableQuantity < 2)
+                await _api.PostAsync<TechStore.Shared.Requests.AdjustStockRequest, System.Text.Json.JsonElement>($"api/inventory/stocks/{stock.Id:D}/adjust",
+                    new() { QuantityChange = 2 - stock.AvailableQuantity, Reason = "Live Orders disposable fixture" });
+            var prefix = "LIVE-ORD-" + Guid.NewGuid().ToString("N");
+            await _api.PostAsync<TechStore.Shared.Requests.BatchImportSerialImeiRequest, System.Text.Json.JsonElement>(
+                "api/inventory/serials/batch-import", new()
+                {
+                    ProductId = product.Id, VariantId = variant.Id, DefaultUnitCost = 26000000m, DefaultWarrantyMonths = 12,
+                    Items = Enumerable.Range(0, 4).Select(i => new TechStore.Shared.Requests.SerialImeiImportItemRequest { SerialNumber = prefix + i }).ToList()
+                });
+        }
+
+        public static async Task<LiveRig> CreateAsync()
         {
             var baseUrl = Environment.GetEnvironmentVariable("TECHSTORE_API_BASE_URL");
             if (string.IsNullOrWhiteSpace(baseUrl))
@@ -174,12 +201,17 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
 
             var options = new ApiClientOptions { BaseUrl = baseUrl, TimeoutSeconds = 20 };
             options.Validate();
-            var handler = new BearerTokenHandler(new InMemorySessionStore())
+            var session = new InMemorySessionStore();
+            var handler = new BearerTokenHandler(session)
             {
                 InnerHandler = new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }
             };
             var http = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
-            return new LiveRig(http, new ApiClient(http, options));
+            var api = new ApiClient(http, options);
+            var login = await api.PostAsync<TechStore.Shared.Requests.LoginRequest, TechStore.Shared.DTOs.LoginResponseDto>("api/auth/login",
+                new() { Username = "admin", Password = "Admin@123" });
+            session.SetAccessToken(login.AccessToken);
+            return new LiveRig(http, api);
         }
 
         public OrderCreateViewModel NewCreate() =>

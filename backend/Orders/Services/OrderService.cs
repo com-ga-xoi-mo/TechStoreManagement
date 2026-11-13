@@ -1,3 +1,4 @@
+using TechStore.Api.Identity.Services;
 using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Catalog.Services;
@@ -313,10 +314,11 @@ public class OrderService(
 
     public async Task<OrderDetailResult> GetByIdAsync(
         Guid id,
+        AuthenticatedUser actor,
         CancellationToken cancellationToken = default)
     {
         var order = await orderRepository.GetWithItemsAsync(id, cancellationToken);
-        return order == null
+        return order == null || (actor.Role == RoleType.SalesStaff && order.CashierUserId != actor.Id)
             ? OrderDetailResult.NotFound()
             : OrderDetailResult.Success(MapToDto(order));
     }
@@ -327,6 +329,7 @@ public class OrderService(
 
     public async Task<OrderSearchResult> SearchAsync(
         OrderSearchRequest request,
+        AuthenticatedUser actor,
         CancellationToken cancellationToken = default)
     {
         var errors = new Dictionary<string, string[]>();
@@ -378,7 +381,8 @@ public class OrderService(
             sortField,
             descending,
             page,
-            pageSize);
+            pageSize,
+            actor.Role == RoleType.SalesStaff ? actor.Id : null);
 
         var (items, totalCount) = await orderRepository.SearchAsync(criteria, cancellationToken);
         var totalPages = ProductPagingHelper.CalculateTotalPages(totalCount, pageSize);
@@ -394,25 +398,27 @@ public class OrderService(
     public async Task<OrderTransitionResult> UpdateStatusAsync(
         Guid id,
         UpdateOrderStatusRequest request,
-        Guid performedByUserId,
+        AuthenticatedUser actor,
         CancellationToken cancellationToken = default)
     {
-        if (!OrderStatusTransitions.TryParseTarget(request?.TargetStatus, out var target))
-        {
-            return OrderTransitionResult.ValidationFailed(new Dictionary<string, string[]>
-            {
-                ["targetStatus"] = ["Target status must be one of: Processing, Completed, Cancelled."]
-            });
-        }
 
         await unitOfWork.BeginTransactionAsync(cancellationToken);
         try
         {
             var order = await orderRepository.GetForUpdateWithItemsAsync(id, cancellationToken);
-            if (order == null)
+            if (order == null || (actor.Role == RoleType.SalesStaff && order.CashierUserId != actor.Id))
             {
                 await unitOfWork.RollbackAsync(cancellationToken);
                 return OrderTransitionResult.NotFound();
+            }
+
+            if (!OrderStatusTransitions.TryParseTarget(request?.TargetStatus, out var target))
+            {
+                await unitOfWork.RollbackAsync(CancellationToken.None);
+                return OrderTransitionResult.ValidationFailed(new Dictionary<string, string[]>
+                {
+                    ["targetStatus"] = ["Target status must be one of: Processing, Completed, Cancelled."]
+                });
             }
 
             if (!OrderStatusTransitions.IsAllowed(order.Status, target))
@@ -464,7 +470,7 @@ public class OrderService(
 
                 if (target == OrderStatus.Completed)
                 {
-                    var sale = await fulfillmentService.ConfirmSaleAsync(lines, now, performedByUserId, cancellationToken);
+                    var sale = await fulfillmentService.ConfirmSaleAsync(lines, now, actor.Id, cancellationToken);
                     if (!sale.IsSuccess)
                     {
                         await unitOfWork.RollbackAsync(cancellationToken);

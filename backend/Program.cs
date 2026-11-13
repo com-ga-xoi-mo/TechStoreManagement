@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using TechStore.Api.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Catalog.Services;
 using TechStore.Api.Analytics.Repositories;
@@ -12,7 +10,6 @@ using TechStore.Api.Common.Data;
 using TechStore.Api.Common.Storage;
 using TechStore.Api.Customers.Repositories;
 using TechStore.Api.Customers.Services;
-using TechStore.Api.Identity.Configurations;
 using TechStore.Api.Identity.Repositories;
 using TechStore.Api.Identity.Services;
 using TechStore.Api.Inventory.Repositories;
@@ -29,33 +26,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// JWT Authentication Configuration
-var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
-builder.Services.Configure<JwtOptions>(jwtSection);
-var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = false;
-    options.SaveToken = true;
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
-        ValidateIssuer = true,
-        ValidIssuer = jwtOptions.Issuer,
-        ValidateAudience = true,
-        ValidAudience = jwtOptions.Audience,
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
-    };
-});
-builder.Services.AddAuthorization();
+builder.Services.AddStoreAuthentication(builder.Configuration);
 
 // Database Context (PostgreSQL EF Core)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -118,6 +89,7 @@ builder.Services.AddScoped<IStoreSettingRepository, StoreSettingRepository>();
 
 // Identity Module services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<IStoreSettingsService, StoreSettingsService>();
 
 // Swagger / OpenAPI documentation

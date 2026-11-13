@@ -1,3 +1,4 @@
+using TechStore.Api.Identity.Services;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -70,17 +71,19 @@ public interface IOrderService
     // UC-ORD-03
     Task<OrderDetailResult> GetByIdAsync(
         Guid id,
+        AuthenticatedUser actor,
         CancellationToken cancellationToken = default);
 
     // UC-ORD-02
     Task<OrderSearchResult> SearchAsync(
         OrderSearchRequest request,
+        AuthenticatedUser actor,
         CancellationToken cancellationToken = default);
 
     // UC-ORD-04
     Task<OrderTransitionResult> UpdateStatusAsync(
         Guid id,
         UpdateOrderStatusRequest request,
-        Guid performedByUserId,
+        AuthenticatedUser actor,
         CancellationToken cancellationToken = default);
 }

@@ -28,7 +28,7 @@ public sealed class PostgresDatabase : IAsyncDisposable
         ConnectionString = builder.ConnectionString;
     }
 
-    public static async Task<PostgresDatabase> CreateAsync()
+    public static async Task<PostgresDatabase> CreateAsync(bool migrate = false)
     {
         var database = new PostgresDatabase(Environment.GetEnvironmentVariable("TECHSTORE_TEST_CONNECTION")
             ?? throw new InvalidOperationException("TECHSTORE_TEST_CONNECTION is required."));
@@ -39,7 +39,8 @@ public sealed class PostgresDatabase : IAsyncDisposable
         try
         {
             await using var context = database.CreateContext();
-            await context.Database.EnsureCreatedAsync();
+            if (migrate) await context.Database.MigrateAsync();
+            else await context.Database.EnsureCreatedAsync();
             return database;
         }
         catch

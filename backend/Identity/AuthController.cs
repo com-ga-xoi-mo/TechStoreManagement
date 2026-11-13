@@ -49,15 +49,26 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            return Problem(statusCode: 400, title: "Validation Error", detail: "Refresh token không được để trống.");
+        var result = await _authService.RefreshAsync(request, cancellationToken);
+        return result is null
+            ? Problem(statusCode: 401, title: "Unauthorized", detail: "Phiên đăng nhập không còn hợp lệ.")
+            : Ok(result);
+    }
+
     [HttpGet("me")]
     [Authorize]
     [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId) || userId == Guid.Empty)
         {
             return Unauthorized(new ProblemDetails
             {
@@ -70,11 +81,11 @@ public class AuthController : ControllerBase
         var profile = await _authService.GetProfileAsync(userId, cancellationToken);
         if (profile == null)
         {
-            return NotFound(new ProblemDetails
+            return Unauthorized(new ProblemDetails
             {
-                Title = "User Not Found",
+                Title = "Unauthorized",
                 Detail = "Không tìm thấy tài khoản người dùng hoặc tài khoản đã bị khóa.",
-                Status = StatusCodes.Status404NotFound
+                Status = StatusCodes.Status401Unauthorized
             });
         }
 
@@ -88,7 +99,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Logout([FromBody] LogoutRequest? request, CancellationToken cancellationToken)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId) || userId == Guid.Empty)
         {
             return Unauthorized();
         }

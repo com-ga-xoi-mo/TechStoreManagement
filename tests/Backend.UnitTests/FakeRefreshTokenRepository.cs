@@ -20,6 +20,12 @@ public class FakeRefreshTokenRepository : IRefreshTokenRepository
         return Task.FromResult(active);
     }
 
+    public Task<RefreshToken?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Tokens.SingleOrDefault(t => t.TokenHash == tokenHash));
+
+    public Task<RefreshToken?> GetForUpdateAsync(string tokenHash, CancellationToken cancellationToken = default) =>
+        FindByHashAsync(tokenHash, cancellationToken);
+
     public void Add(RefreshToken refreshToken)
     {
         Tokens.Add(refreshToken);

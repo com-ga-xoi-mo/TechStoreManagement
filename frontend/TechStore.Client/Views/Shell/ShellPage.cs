@@ -104,14 +104,7 @@ public sealed class ShellPage : Page
                 .Foreground(ThemeResource.Get<Brush>(AppColors.SecondaryText)));
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(logoutButton, "Đăng xuất tài khoản");
         ToolTipService.SetToolTip(logoutButton, "Đăng xuất khỏi hệ thống");
-        logoutButton.Click += (s, e) =>
-        {
-            if (Application.Current is App app && app.Services != null)
-            {
-                var sessionStore = (ISessionStore?)app.Services.GetService(typeof(ISessionStore));
-                sessionStore?.Clear();
-            }
-        };
+        logoutButton.Command(x => x.Binding(() => ViewModel.LogoutCommand));
 
         var userInfoRow = new Grid()
             .ColumnSpacing(8)

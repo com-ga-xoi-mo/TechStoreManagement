@@ -32,7 +32,7 @@ public class FakeOrderRepository : IOrderRepository
             return Task.FromResult(CustomSearchResult.Value);
         }
 
-        var items = Orders.Values.ToList();
+        var items = Orders.Values.Where(o => criteria.CashierUserId is null || o.CashierUserId == criteria.CashierUserId).ToList();
         return Task.FromResult<(IReadOnlyList<Order> Items, int TotalCount)>((items, items.Count));
     }
 

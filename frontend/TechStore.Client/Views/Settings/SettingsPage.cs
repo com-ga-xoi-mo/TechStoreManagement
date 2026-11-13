@@ -1,15 +1,12 @@
 using CommunityToolkit.WinUI.Controls;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Media;
 using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.ViewModels.Settings;
 using TechStore.Client.Views.Shell;
 using Uno.Extensions.Markup;
-using Windows.UI;
 
 namespace TechStore.Client.Views.Settings;
 
@@ -23,7 +20,7 @@ public sealed class SettingsPage : Page, IRoutePage
         ViewModel = viewModel;
         DataContext = viewModel;
 
-        this.Background(new SolidColorBrush(StitchTokens.SurfaceCanvas))
+        this.Background(AppColors.Brushes.Canvas)
             .Content(
                 new Grid()
                     .Padding(24)
@@ -61,15 +58,15 @@ public sealed class SettingsPage : Page, IRoutePage
                                     .Text("Cài đặt")
                                     .FontSize(24)
                                     .FontWeight(Microsoft.UI.Text.FontWeights.Bold)
-                                    .Foreground(new SolidColorBrush(StitchTokens.ContentTitle)),
+                                    .Foreground(AppColors.Brushes.Text),
                                 new TextBlock()
                                     .Text("Quản lý thông tin cửa hàng và giao diện ứng dụng.")
                                     .FontSize(13)
-                                    .Foreground(new SolidColorBrush(StitchTokens.ContentMuted))),
+                                    .Foreground(AppColors.Brushes.SecondaryText)),
                         new TextBlock()
                             .Text($"v2.4.0 · {ViewModel.RuntimeDescription}")
                             .FontSize(12)
-                            .Foreground(new SolidColorBrush(StitchTokens.ContentMuted))
+                            .Foreground(AppColors.Brushes.SecondaryText)
                             .VerticalAlignment(VerticalAlignment.Bottom)
                             .Grid(column: 1)
                     )
@@ -80,8 +77,8 @@ public sealed class SettingsPage : Page, IRoutePage
     {
         // Success Notification Banner
         var saveSuccessBanner = new Border()
-            .Background(new SolidColorBrush(StitchTokens.SuccessBg))
-            .BorderBrush(new SolidColorBrush(StitchTokens.SuccessBorder))
+            .Background(AppColors.Brushes.SuccessFill)
+            .BorderBrush(AppColors.Brushes.SuccessStroke)
             .BorderThickness(new Thickness(1))
             .CornerRadius(new CornerRadius(10))
             .Padding(new Thickness(16, 12, 16, 12))
@@ -93,19 +90,19 @@ public sealed class SettingsPage : Page, IRoutePage
                     .Children(
                         new FontIcon()
                             .Glyph("\uE73E")
-                            .Foreground(new SolidColorBrush(StitchTokens.SuccessGreen))
+                            .Foreground(AppColors.Brushes.SuccessText)
                             .FontSize(16),
                         new TextBlock()
                             .Text("Đã lưu thay đổi thông tin cửa hàng thành công.")
                             .FontSize(13)
                             .FontWeight(Microsoft.UI.Text.FontWeights.Medium)
-                            .Foreground(new SolidColorBrush(StitchTokens.SuccessText))
+                            .Foreground(AppColors.Brushes.SuccessText)
                     )
             );
 
         var saveErrorText = new TextBlock()
             .FontSize(12)
-            .Foreground(new SolidColorBrush(StitchTokens.ErrorRed))
+            .Foreground(AppColors.Brushes.DangerText)
             .Text(x => x.Binding(() => ViewModel.SaveErrorMessage))
             .Visibility(x => x.Binding(() => ViewModel.SaveErrorMessage).Convert((string msg) => string.IsNullOrEmpty(msg) ? Visibility.Collapsed : Visibility.Visible));
 
@@ -131,8 +128,8 @@ public sealed class SettingsPage : Page, IRoutePage
             .Text(x => x.Binding(() => ViewModel.StoreTaxId).Mode(BindingMode.TwoWay));
 
         var saveButton = new Button()
-            .Background(new SolidColorBrush(StitchTokens.Primary))
-            .Foreground(new SolidColorBrush(Colors.White))
+            .Background(AppColors.Brushes.Primary)
+            .Foreground(AppColors.Brushes.OnPrimary)
             .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
             .Padding(new Thickness(20, 8, 20, 8))
             .CornerRadius(new CornerRadius(6))
@@ -140,7 +137,7 @@ public sealed class SettingsPage : Page, IRoutePage
             .Command(x => x.Binding(() => ViewModel.SaveStoreSettingsCommand))
             .IsEnabled(x => x.Binding(() => ViewModel.IsSaving).Convert((bool saving) => !saving))
             .Content(new TextBlock()
-                .Foreground(new SolidColorBrush(Colors.White))
+                .Foreground(AppColors.Brushes.OnPrimary)
                 .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
                 .Text(x => x.Binding(() => ViewModel.IsSaving).Convert((bool saving) => saving ? "Đang lưu..." : "Lưu thay đổi")));
 
@@ -194,6 +191,8 @@ public sealed class SettingsPage : Page, IRoutePage
             .Children(
                 saveSuccessBanner,
                 saveErrorText,
+                new Button().Content("Quản lý tài khoản nhân viên").Command(ViewModel.ManageAccountsCommand)
+                    .Visibility(x => x.Binding(() => ViewModel.CanManageAccounts).Convert((bool allowed) => allowed ? Visibility.Visible : Visibility.Collapsed)),
                 storeSection,
                 themeCard,
                 appInfoExpander

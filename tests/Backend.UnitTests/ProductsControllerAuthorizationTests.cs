@@ -33,7 +33,7 @@ public class ProductsControllerAuthorizationTests
     [InlineData(nameof(ProductsController.GetSpecKeys))]
     [InlineData(nameof(ProductsController.GetSpecDefinitions))]
     [InlineData(nameof(ProductsController.GetBrands))]
-    public void ReadActions_AreNotProtected(string actionName)
+    public void ReadActions_InheritControllerAuthentication(string actionName)
     {
         // Arrange & Act
         var method = typeof(ProductsController).GetMethod(actionName);
@@ -46,13 +46,13 @@ public class ProductsControllerAuthorizationTests
     }
 
     [Fact]
-    public void Controller_HasNoClassLevelAuthorize()
+    public void Controller_RequiresAuthentication()
     {
         // Act
         var authAttr = typeof(ProductsController).GetCustomAttribute<AuthorizeAttribute>();
 
         // Assert
-        authAttr.Should().BeNull();
+        authAttr.Should().NotBeNull();
     }
 
     [Fact]

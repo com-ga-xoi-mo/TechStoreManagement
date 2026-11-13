@@ -18,7 +18,7 @@ public partial class OrderServiceTests
     public async Task GetByIdAsync_UnknownOrder_ReturnsNotFound()
     {
         // Act
-        var result = await _service.GetByIdAsync(Guid.NewGuid());
+        var result = await _service.GetByIdAsync(Guid.NewGuid(), ActingUser);
 
         // Assert
         result.Found.Should().BeFalse();
@@ -35,7 +35,7 @@ public partial class OrderServiceTests
         item.SerialImei = new SerialImei { Imei = "358912345678901", ProductId = item.ProductId };
 
         // Act
-        var result = await _service.GetByIdAsync(order.Id);
+        var result = await _service.GetByIdAsync(order.Id, ActingUser);
 
         // Assert
         result.Found.Should().BeTrue();
@@ -56,7 +56,7 @@ public partial class OrderServiceTests
         order.Items.Add(new OrderItem { OrderId = order.Id, ProductName = "Apple", Sku = "A", Quantity = 1 });
 
         // Act
-        var result = await _service.GetByIdAsync(order.Id);
+        var result = await _service.GetByIdAsync(order.Id, ActingUser);
 
         // Assert
         result.Data!.Items.Select(i => $"{i.ProductName}/{i.Sku}").Should().Equal("Apple/A", "Apple/B", "Zebra/IP15P");
@@ -66,7 +66,7 @@ public partial class OrderServiceTests
     public async Task SearchAsync_Defaults_UseFirstPageNewestFirst()
     {
         // Act
-        var result = await _service.SearchAsync(new OrderSearchRequest());
+        var result = await _service.SearchAsync(new OrderSearchRequest(), ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -83,7 +83,7 @@ public partial class OrderServiceTests
     public async Task SearchAsync_StatusFilter_IsParsedCaseInsensitively()
     {
         // Act
-        await _service.SearchAsync(new OrderSearchRequest { Status = "completed" });
+        await _service.SearchAsync(new OrderSearchRequest { Status = "completed" }, ActingUser);
 
         // Assert
         _orders.LastCriteria!.Status.Should().Be(OrderStatus.Completed);
@@ -93,7 +93,7 @@ public partial class OrderServiceTests
     public async Task SearchAsync_InvalidStatusAndSort_AreBothReported()
     {
         // Act
-        var result = await _service.SearchAsync(new OrderSearchRequest { Status = "foo", Sort = "customer" });
+        var result = await _service.SearchAsync(new OrderSearchRequest { Status = "foo", Sort = "customer" }, ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeFalse();
@@ -109,7 +109,7 @@ public partial class OrderServiceTests
     public async Task SearchAsync_ValidSort_IsPassedToTheRepository(string sort, OrderSortField field, bool descending)
     {
         // Act
-        var result = await _service.SearchAsync(new OrderSearchRequest { Sort = sort });
+        var result = await _service.SearchAsync(new OrderSearchRequest { Sort = sort }, ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -124,7 +124,7 @@ public partial class OrderServiceTests
     public async Task SearchAsync_MalformedSort_IsRejected(string sort)
     {
         // Act
-        var result = await _service.SearchAsync(new OrderSearchRequest { Sort = sort });
+        var result = await _service.SearchAsync(new OrderSearchRequest { Sort = sort }, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("sort");
@@ -138,7 +138,7 @@ public partial class OrderServiceTests
         {
             From = new DateTime(2026, 10, 10, 0, 0, 0, DateTimeKind.Utc),
             To = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc)
-        });
+        }, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("from");
@@ -148,7 +148,7 @@ public partial class OrderServiceTests
     public async Task SearchAsync_UnspecifiedDateKind_IsTreatedAsUtc()
     {
         // Act
-        await _service.SearchAsync(new OrderSearchRequest { From = new DateTime(2026, 10, 1) });
+        await _service.SearchAsync(new OrderSearchRequest { From = new DateTime(2026, 10, 1) }, ActingUser);
 
         // Assert
         _orders.LastCriteria!.From!.Value.Kind.Should().Be(DateTimeKind.Utc);
@@ -158,7 +158,7 @@ public partial class OrderServiceTests
     public async Task SearchAsync_OutOfRangePaging_IsNormalized()
     {
         // Act
-        await _service.SearchAsync(new OrderSearchRequest { Page = 0, PageSize = 500 });
+        await _service.SearchAsync(new OrderSearchRequest { Page = 0, PageSize = 500 }, ActingUser);
 
         // Assert
         _orders.LastCriteria!.Page.Should().Be(1);
@@ -172,7 +172,7 @@ public partial class OrderServiceTests
         var customerId = Guid.NewGuid();
 
         // Act
-        await _service.SearchAsync(new OrderSearchRequest { Q = "  0901234567  ", CustomerId = customerId });
+        await _service.SearchAsync(new OrderSearchRequest { Q = "  0901234567  ", CustomerId = customerId }, ActingUser);
 
         // Assert
         _orders.LastCriteria!.Keyword.Should().Be("0901234567");
@@ -186,7 +186,7 @@ public partial class OrderServiceTests
         _orders.CustomSearchResult = (new List<Order>(), 5);
 
         // Act
-        var result = await _service.SearchAsync(new OrderSearchRequest { Page = 99, PageSize = 2 });
+        var result = await _service.SearchAsync(new OrderSearchRequest { Page = 99, PageSize = 2 }, ActingUser);
 
         // Assert
         result.Data!.Items.Should().BeEmpty();
@@ -207,7 +207,7 @@ public partial class OrderServiceTests
         order.PaymentMethod = PaymentMethod.VietQr;
 
         // Act
-        var result = await _service.SearchAsync(new OrderSearchRequest());
+        var result = await _service.SearchAsync(new OrderSearchRequest(), ActingUser);
 
         // Assert
         var summary = result.Data!.Items.Should().ContainSingle().Subject;

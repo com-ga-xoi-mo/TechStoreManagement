@@ -1,3 +1,5 @@
+using TechStore.Client.Services.Navigation;
+using TechStore.Client.Services.Session;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Repositories.Identity;
@@ -11,6 +13,15 @@ public sealed partial class SettingsViewModel : PageViewModel, IDisposable
 {
     private readonly IThemePreferenceService _theme;
     private readonly IStoreSettingsRepository? _storeSettingsRepository;
+    private readonly INavigationService? _navigation;
+    private readonly ISessionStore? _session;
+    public bool CanManageAccounts => _session?.Current is { Status: SessionStatus.Active, Role: "Admin" };
+
+    [RelayCommand]
+    private void ManageAccounts()
+    {
+        if (CanManageAccounts) _navigation?.Navigate(AppRoute.UserManagement());
+    }
 
     public string[] ThemeOptions { get; } = ["Theo hệ thống", "Sáng", "Tối"];
 
@@ -44,8 +55,10 @@ public sealed partial class SettingsViewModel : PageViewModel, IDisposable
     public string ApplicationVersion => typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "—";
     public string RuntimeDescription => ".NET 10 · Uno Platform 6.7.30";
 
-    public SettingsViewModel(IThemePreferenceService theme, IStoreSettingsRepository? storeSettingsRepository = null)
+    public SettingsViewModel(IThemePreferenceService theme, IStoreSettingsRepository? storeSettingsRepository = null, INavigationService? navigation = null, ISessionStore? session = null)
     {
+        _navigation = navigation;
+        _session = session;
         _theme = theme ?? throw new ArgumentNullException(nameof(theme));
         _storeSettingsRepository = storeSettingsRepository;
         _selectedThemeIndex = (int)theme.Preference;

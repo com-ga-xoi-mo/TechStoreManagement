@@ -22,6 +22,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISessionStorage, FileSessionStorage>();
         services.AddSingleton<ISessionStore, InMemorySessionStore>();
         services.AddTransient<BearerTokenHandler>();
+        services.AddSingleton<SessionRefreshCoordinator>();
+        services.AddHttpClient("SessionRefresh").ConfigurePrimaryHttpMessageHandler(CreatePrimaryHttpMessageHandler);
         services.AddLogging(builder =>
             builder.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning));
         if (loggerFactory is not null)

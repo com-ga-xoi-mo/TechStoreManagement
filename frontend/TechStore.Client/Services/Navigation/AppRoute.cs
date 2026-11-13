@@ -9,7 +9,8 @@ public enum AppRouteKind
     ProductDetail,
     OrderCreate,
     ProductCreate,
-    ProductEdit
+    ProductEdit,
+    UserManagement
 }
 
 /// <summary>Value-only route state. It deliberately carries no page, ViewModel, service, or scope.</summary>
@@ -25,6 +26,8 @@ public sealed class AppRoute : IEquatable<AppRoute>
         if (!Enum.IsDefined(destination)) throw new ArgumentOutOfRangeException(nameof(destination));
         if (kind is AppRouteKind.ProductList or AppRouteKind.ProductDetail or AppRouteKind.ProductCreate or AppRouteKind.ProductEdit && destination != ShellDestination.Products)
             throw new ArgumentException("Catalog routes must stay under the Products Shell destination.", nameof(destination));
+        if (kind == AppRouteKind.UserManagement && destination != ShellDestination.Settings)
+            throw new ArgumentException("Account management stays under Settings.", nameof(destination));
         if (kind == AppRouteKind.OrderCreate && destination != ShellDestination.Orders)
             throw new ArgumentException("The order create route must stay under the Orders Shell destination.", nameof(destination));
         if (kind is AppRouteKind.ProductDetail or AppRouteKind.ProductEdit && (!productId.HasValue || productId.Value == Guid.Empty))
@@ -54,6 +57,7 @@ public sealed class AppRoute : IEquatable<AppRoute>
     public static AppRoute Root(ShellDestination destination) => new(destination, AppRouteKind.Root);
     public static AppRoute Products(ProductQuery? returnQuery = null, Guid? focusProductId = null) =>
         new(ShellDestination.Products, AppRouteKind.ProductList, returnQuery: returnQuery, focusProductId: focusProductId);
+    public static AppRoute UserManagement() => new(ShellDestination.Settings, AppRouteKind.UserManagement);
     public static AppRoute OrderCreate() => new(ShellDestination.Orders, AppRouteKind.OrderCreate);
     public static AppRoute ProductDetail(Guid productId, ProductQuery? returnQuery = null, Guid? focusProductId = null) =>
         new(ShellDestination.Products, AppRouteKind.ProductDetail, productId, returnQuery, focusProductId);

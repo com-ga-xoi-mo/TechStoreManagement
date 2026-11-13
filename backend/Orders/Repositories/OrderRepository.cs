@@ -18,6 +18,9 @@ public class OrderRepository(AppDbContext dbContext) : IOrderRepository
                     .ThenInclude(p => p.Category)
             .AsQueryable();
 
+        if (criteria.CashierUserId is { } cashierId)
+            query = query.Where(o => o.CashierUserId == cashierId);
+
         if (criteria.Status.HasValue)
         {
             query = query.Where(o => o.Status == criteria.Status.Value);

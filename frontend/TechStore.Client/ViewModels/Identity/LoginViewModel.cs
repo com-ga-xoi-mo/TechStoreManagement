@@ -90,6 +90,7 @@ public sealed partial class LoginViewModel : ObservableObject
         }
         finally
         {
+            Password = string.Empty;
             IsLoggingIn = false;
         }
     }

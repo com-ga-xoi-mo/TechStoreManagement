@@ -10,6 +10,7 @@ namespace TechStore.Api.Catalog;
 
 [ApiController]
 [Route("api/products")]
+[Authorize]
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;

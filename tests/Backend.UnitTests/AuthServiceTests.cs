@@ -126,6 +126,8 @@ public class AuthServiceTests
             IsActive = false
         };
         user.PasswordHash = passwordHasher.HashPassword(user, "Password123");
+        var role = new Role { Id = Guid.NewGuid(), Name = RoleType.SalesStaff };
+        user.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id, Role = role });
         userRepository.Add(user);
 
         // Act
@@ -183,6 +185,8 @@ public class AuthServiceTests
             IsActive = true
         };
         user.PasswordHash = passwordHasher.HashPassword(user, "Password123");
+        var role = new Role { Id = Guid.NewGuid(), Name = RoleType.SalesStaff };
+        user.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id, Role = role });
         userRepository.Add(user);
 
         // Login first to generate refresh token
@@ -206,5 +210,73 @@ public class AuthServiceTests
         var tokenInRepo = refreshTokenRepository.Tokens.FirstOrDefault(t => t.UserId == user.Id);
         tokenInRepo.Should().NotBeNull();
         tokenInRepo!.IsRevoked.Should().BeTrue();
+    }
+    [Theory]
+    [InlineData(RoleType.Admin)]
+    [InlineData(RoleType.Manager)]
+    [InlineData(RoleType.SalesStaff)]
+    [InlineData(RoleType.WarehouseStaff)]
+    public async Task LoginAsync_EachRole_IssuesVersionAndKeepsPasswordHash(RoleType role)
+    {
+        var (users, _, work, service) = CreateSut();
+        var user = IdentityMigrationPostgresTests.NewAdmin();
+        user.UserRoles.Single().Role.Name = role;
+        user.TokenVersion = 7;
+        var hash = user.PasswordHash;
+        users.Add(user);
+        var response = await service.LoginAsync(new LoginRequest { Username = " ADMIN ", Password = "Admin@123" });
+        Assert.NotNull(response);
+        Assert.Equal(role, response.User.Role);
+        var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(response.AccessToken);
+        Assert.Equal("7", jwt.Claims.Single(c => c.Type == "token_version").Value);
+        Assert.Equal(hash, user.PasswordHash);
+        Assert.Equal(1, work.CommitCount);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public async Task LoginAsync_AmbiguousRoles_ReturnsNull(int roleCount)
+    {
+        var (users, _, _, service) = CreateSut();
+        var user = IdentityMigrationPostgresTests.NewAdmin();
+        user.UserRoles.Clear();
+        for (var i = 0; i < roleCount; i++)
+            user.UserRoles.Add(new UserRole { UserId = user.Id, Role = new Role { Name = (RoleType)i } });
+        users.Add(user);
+        Assert.Null(await service.LoginAsync(new LoginRequest { Username = "admin", Password = "Admin@123" }));
+    }
+
+    [Fact]
+    public async Task RefreshAsync_ConsumedOrRevokedToken_FailsWithoutRevokingReplacement()
+    {
+        var (users, tokens, _, service) = CreateSut();
+        var user = IdentityMigrationPostgresTests.NewAdmin();
+        users.Add(user);
+        var login = (await service.LoginAsync(new LoginRequest { Username = "admin", Password = "Admin@123" }))!;
+        var refresh = await service.RefreshAsync(new RefreshTokenRequest { RefreshToken = login.RefreshToken });
+        Assert.NotNull(refresh);
+        Assert.Null(await service.RefreshAsync(new RefreshTokenRequest { RefreshToken = login.RefreshToken }));
+        Assert.Single(tokens.Tokens, t => !t.IsRevoked);
+        Assert.NotNull(await service.RefreshAsync(new RefreshTokenRequest { RefreshToken = refresh.RefreshToken }));
+        await service.LogoutAsync(user.Id, new LogoutRequest { RefreshToken = "another-user-token" });
+        Assert.All(tokens.Tokens, t => Assert.True(t.IsRevoked));
+        Assert.Equal(1, user.TokenVersion);
+        Assert.False(await service.ValidateIdentityAsync(new AuthenticatedUser(user.Id, RoleType.Admin, 0)));
+    }
+
+    [Fact]
+    public async Task RefreshAsync_ExpiredOrInactiveOwner_DoesNotIssueTokens()
+    {
+        var (users, tokens, _, service) = CreateSut();
+        var user = IdentityMigrationPostgresTests.NewAdmin();
+        users.Add(user);
+        var login = (await service.LoginAsync(new LoginRequest { Username = "admin", Password = "Admin@123" }))!;
+        tokens.Tokens.Single().ExpiresAt = DateTime.MinValue;
+        Assert.Null(await service.RefreshAsync(new RefreshTokenRequest { RefreshToken = login.RefreshToken }));
+        tokens.Tokens.Single().ExpiresAt = DateTime.MaxValue;
+        user.IsActive = false;
+        Assert.Null(await service.RefreshAsync(new RefreshTokenRequest { RefreshToken = login.RefreshToken }));
+        Assert.Single(tokens.Tokens);
     }
 }

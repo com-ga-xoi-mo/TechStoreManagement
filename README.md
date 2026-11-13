@@ -111,3 +111,23 @@ Mở một cửa sổ terminal mới và chạy:
 ```bash
 dotnet test TechStore.sln
 ```
+
+
+## Tài khoản và quyền — M3 Sprint 1
+
+Dữ liệu mẫu mới có `admin` / `Admin@123`, `manager1` / `Manager@123`,
+`cashier1` / `Cashier@123`, `warehouse1` / `Warehouse@123`. Seeder giữ nguyên
+mật khẩu, hồ sơ, trạng thái và quyền đã chỉnh; không khôi phục role cũ khi chạy lại.
+Admin quản lý nhân viên tại **Cài đặt → Quản lý tài khoản nhân viên**.
+Không thể khóa hoặc hạ quyền Admin hoạt động cuối cùng.
+
+Mọi API nghiệp vụ cần đăng nhập. [Bảng quyền](docs/API_PERMISSIONS.md) mô tả quyền
+đọc/ghi và phạm vi dữ liệu từng endpoint; Sales chỉ thấy đơn mình lập, Warehouse
+không sửa giá hoặc quản lý tài khoản. Dashboard Manager và Customers Sales thuộc Sprint 2.
+
+Nâng cấp yêu cầu login lại vì JWT cũ thiếu token_version. Logout thu hồi mọi phiên
+của tài khoản; khóa/đổi role/reset password cũng thu hồi JWT và refresh tokens cũ.
+Desktop refresh trước request sắp hết hạn, không tự gửi lại thao tác ghi hoặc retry
+refresh không rõ kết quả. RememberMe chỉ lưu session khi được chọn; logout/401
+xóa session local. File storage hiện có chưa thay bằng OS credential vault.
+Chi tiết migration, preflight, lock order và rollback: [Identity README](backend/Identity/README.md).

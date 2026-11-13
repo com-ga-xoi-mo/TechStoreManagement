@@ -1,4 +1,5 @@
-using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using TechStore.Api.Identity.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -9,11 +10,9 @@ namespace TechStore.Api.Orders;
 
 [ApiController]
 [Route("api/orders")]
+[Authorize(Roles = "Admin,Manager,SalesStaff")]
 public class OrdersController : ControllerBase
 {
-    // Default administrator seeded by DataSeeder; used while authentication is not implemented.
-    private static readonly Guid DefaultActingUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-
     private readonly IOrderService _orderService;
 
     public OrdersController(IOrderService orderService)
@@ -22,9 +21,11 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,SalesStaff")]
     public async Task<IActionResult> Create([FromBody] CreateOrderRequest request, CancellationToken cancellationToken)
     {
-        var result = await _orderService.CreateAsync(request, GetUserId(), cancellationToken);
+        if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
+        var result = await _orderService.CreateAsync(request, actor.Id, cancellationToken);
         if (!result.IsSuccess)
         {
             if (result.IsConflict)
@@ -44,7 +45,8 @@ public class OrdersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Search([FromQuery] OrderSearchRequest request, CancellationToken cancellationToken)
     {
-        var result = await _orderService.SearchAsync(request, cancellationToken);
+        if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
+        var result = await _orderService.SearchAsync(request, actor, cancellationToken);
         if (!result.IsSuccess)
         {
             return ValidationProblem(BuildModelState(result.ValidationErrors));
@@ -56,7 +58,8 @@ public class OrdersController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _orderService.GetByIdAsync(id, cancellationToken);
+        if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
+        var result = await _orderService.GetByIdAsync(id, actor, cancellationToken);
         if (!result.Found)
         {
             return NotFound();
@@ -66,12 +69,14 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/status")]
+    [Authorize(Roles = "Admin,SalesStaff")]
     public async Task<IActionResult> UpdateStatus(
         Guid id,
         [FromBody] UpdateOrderStatusRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await _orderService.UpdateStatusAsync(id, request, GetUserId(), cancellationToken);
+        if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
+        var result = await _orderService.UpdateStatusAsync(id, request, actor, cancellationToken);
         if (!result.Found)
         {
             return NotFound();
@@ -91,17 +96,6 @@ public class OrdersController : ControllerBase
         }
 
         return Ok(result.Data);
-    }
-
-    // Acting user from the token when present. TODO: remove the fixed fallback once authentication is added.
-    private Guid GetUserId()
-    {
-        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value;
-
-        return !string.IsNullOrEmpty(claim) && Guid.TryParse(claim, out var userId)
-            ? userId
-            : DefaultActingUserId;
     }
 
     private static ModelStateDictionary BuildModelState(Dictionary<string, string[]>? errors)

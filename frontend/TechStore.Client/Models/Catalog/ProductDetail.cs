@@ -11,7 +11,7 @@ public sealed record ProductDetail(
     string? Barcode,
     string Brand,
     decimal BasePrice,
-    decimal CostPrice,
+    decimal? CostPrice,
     string? Description,
     string? ImageUrl,
     IReadOnlyDictionary<string, JsonElement> Specs,

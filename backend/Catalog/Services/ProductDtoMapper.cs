@@ -11,7 +11,7 @@ internal static class ProductDtoMapper
         ContentType = image.ContentType, SizeBytes = image.SizeBytes, SortOrder = image.SortOrder
     };
 
-    public static ProductDto ToDto(Product product, string categoryName)
+    public static ProductDto ToDto(Product product, string categoryName, bool includeCost = true)
     {
         var productSpecs = ProductSpecHelper.ParseJsonSpecs(product.Specs);
 
@@ -50,7 +50,7 @@ internal static class ProductDtoMapper
             Barcode = product.Barcode,
             Brand = product.Brand,
             BasePrice = product.BasePrice,
-            CostPrice = product.CostPrice,
+            CostPrice = includeCost ? product.CostPrice : null,
             Description = product.Description,
             ImageUrl = product.ImageUrl,
             Images = product.Images.OrderBy(i => i.SortOrder).Select(ToImageDto).ToList(),

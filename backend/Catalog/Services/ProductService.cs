@@ -19,7 +19,7 @@ public class ProductService(
     private const string SpecNameConflictMessage = "A spec name was created by someone else at the same time. Reload the product and save again.";
     private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
 
-    public async Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ProductDetailResult> GetByIdAsync(Guid id, bool includeCost, CancellationToken cancellationToken = default)
     {
         var product = await productRepository.GetDetailAsync(id, cancellationToken);
         if (product == null)
@@ -27,7 +27,7 @@ public class ProductService(
             return ProductDetailResult.NotFound();
         }
 
-        var dto = ProductDtoMapper.ToDto(product, product.Category?.Name ?? string.Empty);
+        var dto = ProductDtoMapper.ToDto(product, product.Category?.Name ?? string.Empty, includeCost);
         return ProductDetailResult.Success(dto);
     }
 

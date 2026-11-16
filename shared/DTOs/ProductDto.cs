@@ -12,7 +12,8 @@ public class ProductDto
     public string? Barcode { get; set; }
     public string Brand { get; set; } = string.Empty;
     public decimal BasePrice { get; set; }
-    public decimal CostPrice { get; set; }
+    /// <summary>Null when the caller's role may not see cost (see FieldAccess).</summary>
+    public decimal? CostPrice { get; set; }
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
     public List<ProductImageDto> Images { get; set; } = [];

@@ -118,6 +118,33 @@ public sealed class IdentityHttpTests
         }
     }
 
+    [Theory]
+    [InlineData(RoleType.Admin, true)]
+    [InlineData(RoleType.Manager, true)]
+    [InlineData(RoleType.SalesStaff, false)]
+    [InlineData(RoleType.WarehouseStaff, false)]
+    public async Task ProductDetail_CostPrice_OnlyForAdminAndManager(RoleType role, bool seesCost)
+    {
+        // Arrange
+        await using var factory = new IdentityApiFactory();
+        using var client = factory.CreateClient();
+        var product = ProductCommandTestData.NewProduct(Guid.NewGuid());
+        product.CostPrice = 17_000_000m;
+        factory.Products.Products[product.Id] = product;
+        var user = IdentityMigrationPostgresTests.NewAdmin();
+        user.Username = "u-" + role;
+        user.UserRoles.Single().Role.Name = role;
+        factory.Users.Add(user);
+        await factory.LoginAsync(client, user.Username);
+
+        // Act
+        var dto = await client.GetFromJsonAsync<ProductDto>($"/api/products/{product.Id}");
+
+        // Assert
+        Assert.Equal(seesCost ? 17_000_000m : null, dto!.CostPrice);
+        Assert.Equal(product.Sku, dto.Sku);
+    }
+
     [Fact]
     public async Task Accounts_AdminFlow_RevokesOldTokensAndPreservesLastAdmin()
     {
@@ -210,6 +237,10 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<IOrderRepository>(Orders);
             services.RemoveAll<IProductRepository>();
             services.AddSingleton<IProductRepository>(Products);
+            services.RemoveAll<ICategoryRepository>();
+            services.AddSingleton<ICategoryRepository, FakeCategoryRepository>();
+            services.RemoveAll<ISpecDefinitionRepository>();
+            services.AddSingleton<ISpecDefinitionRepository, FakeSpecDefinitionRepository>();
             services.RemoveAll<ICustomerRepository>();
             services.AddSingleton<ICustomerRepository, FakeCustomerRepository>();
             services.RemoveAll<IInventoryFulfillmentService>();

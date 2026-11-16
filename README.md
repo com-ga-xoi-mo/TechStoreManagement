@@ -84,10 +84,11 @@ docker compose up -d
 #### Bước 3: Khởi chạy Backend API Server
 Mở terminal và chạy lệnh:
 ```bash
-dotnet run --project backend
+dotnet run --project backend/TechStore.Api.csproj --launch-profile http
 ```
-- API Server sẽ khởi động tại: `http://localhost:5000` (hoặc cổng hiển thị trên console).
-- Mở trình duyệt truy cập: **`http://localhost:5000`** để xem giao diện **Swagger UI** và thử nghiệm các API (như `/api/health`).
+- API Server sẽ khởi động tại: `http://localhost:5176` theo launch profile `http`.
+- Mở **`http://localhost:5176`** để xem **Swagger UI**, hoặc `/api/health` để kiểm tra API.
+- Trong Development, API tự áp dụng migrations rồi chạy seed. Kiểm tra log báo cả hai thành công trước khi dùng app; seed giữ mật khẩu/quyền đã chỉnh. Nâng cấp database có dữ liệu cần đọc [preflight và rollback Identity](backend/Identity/README.md#upgrade-and-rollback), sao lưu trước khi migrate; JWT trước nâng cấp Identity cần login lại.
 
 #### Bước 4: Khởi chạy Frontend Desktop App
 Mở một cửa sổ terminal mới và chạy:
@@ -102,7 +103,9 @@ Mở một cửa sổ terminal mới và chạy:
   dotnet run --project frontend/TechStore.Client -f net10.0-windows10.0.26100
   ```
 
-Ứng dụng Desktop sẽ hiển thị giao diện Fluent Design kèm thanh điều hướng (NavigationView) kết nối với hệ thống.
+Client mặc định gọi `http://localhost:5176/`. Nếu API chạy ở địa chỉ khác, đặt biến
+`TECHSTORE_API_BASE_URL` trước khi chạy client, ví dụ `http://localhost:5197/`;
+kiểm tra cấu hình local không ghi đè địa chỉ bạn muốn dùng.
 
 ---
 
@@ -111,6 +114,12 @@ Mở một cửa sổ terminal mới và chạy:
 ```bash
 dotnet test TechStore.sln
 ```
+
+Kiểm chứng phần độc lập của An dùng database test tự tạo/xóa, không dùng database ứng dụng:
+[lệnh HTTP + PostgreSQL](backend/Identity/README.md#repeatable-http--postgresql-regression).
+Chạy backend và frontend tests tuần tự nếu build chung project `shared`; test PostgreSQL/live API
+là opt-in, skipped không được tính là đạt. Kết quả theo build và các phần còn chờ tích hợp M3:
+[bản bàn giao Identity](docs/M3_IDENTITY_INTEGRATION_HANDOFF.md).
 
 
 ## Tài khoản và quyền — M3 Sprint 1

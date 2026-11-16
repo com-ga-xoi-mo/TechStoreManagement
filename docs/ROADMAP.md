@@ -34,7 +34,7 @@ Mỗi người làm API, UI, test và tài liệu phần mình. Chốt quyền/c
 
 Dùng lại phần đã có ở M2: khóa dòng chống bán vượt tồn, lịch sử biến động kho, giá vốn tại thời điểm bán và kích hoạt ngày bảo hành.
 
-Ưu tiên sửa API đơn hàng chưa yêu cầu đăng nhập và còn dùng ID Admin mặc định. Thuế và giảm giá cấp đơn hiện bằng 0 cũng cần hoàn thiện trong M3.
+Identity Sprint 1 đã hoàn tất: Orders yêu cầu xác thực, lấy actor từ token và không còn ID Admin mặc định; xem [bằng chứng](IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md). An tiếp tục phần kiểm chứng và tài liệu độc lập trong [change M3](../openspec/changes/archive/2026-11-16-m3-security-verification-handoff/proposal.md), với [bản bàn giao hiện trạng](M3_IDENTITY_INTEGRATION_HANDOFF.md). Thuế và giảm giá cấp đơn hiện bằng 0 vẫn thuộc phần công thức của Vy và tích hợp checkout của Đạt trong M3.
 
 ## Milestone 4
 

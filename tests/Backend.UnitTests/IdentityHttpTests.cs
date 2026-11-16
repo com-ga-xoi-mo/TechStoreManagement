@@ -118,6 +118,26 @@ public sealed class IdentityHttpTests
         }
     }
 
+    [Fact]
+    public async Task UnhandledException_Returns500ProblemDetailsWithoutStackTrace()
+    {
+        // Arrange
+        await using var factory = new IdentityApiFactory();
+        using var client = factory.CreateClient();
+
+        // Act
+        using var response = await client.GetAsync("/api/test-unhandled-error");
+        var body = await response.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        var problem = System.Text.Json.JsonDocument.Parse(body).RootElement;
+        Assert.Equal(500, problem.GetProperty("status").GetInt32());
+        Assert.DoesNotContain("probe-secret-detail", body);
+        Assert.DoesNotContain("   at ", body);
+    }
+
     [Theory]
     [InlineData(RoleType.Admin, true)]
     [InlineData(RoleType.Manager, true)]
@@ -268,6 +288,15 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
             next(app);
         };
     }
+}
+
+[ApiController]
+[Route("api/test-unhandled-error")]
+[Microsoft.AspNetCore.Authorization.AllowAnonymous]
+public sealed class UnhandledErrorProbeController : ControllerBase
+{
+    [HttpGet]
+    public IActionResult Get() => throw new InvalidOperationException("probe-secret-detail");
 }
 
 [ApiController]

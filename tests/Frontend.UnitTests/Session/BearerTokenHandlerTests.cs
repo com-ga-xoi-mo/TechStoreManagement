@@ -75,11 +75,11 @@ public sealed class BearerTokenHandlerTests
         store.SetAccessToken("token-b");
         using var currentResponse = await client.GetAsync("https://localhost/b");
         finishRequestA.SetResult(new HttpResponseMessage(HttpStatusCode.Unauthorized));
-        using var oldResponse = await oldRequest;
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => oldRequest);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, currentResponse.StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, oldResponse.StatusCode);
+        Assert.Equal("Phiên đăng nhập đã thay đổi. Vui lòng thử lại.", error.Message);
         Assert.Equal(SessionStatus.Active, store.Current.Status);
         Assert.Equal("token-b", store.Current.AccessToken);
         Assert.Equal("token-b", terminal.Requests[1].Authorization?.Parameter);
@@ -107,10 +107,10 @@ public sealed class BearerTokenHandlerTests
         await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
         store.SetAccessToken(replacementToken);
         finish.SetResult(new HttpResponseMessage(HttpStatusCode.Unauthorized));
-        using var oldResponse = await oldRequest;
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => oldRequest);
 
         // Assert
-        Assert.Equal(HttpStatusCode.Unauthorized, oldResponse.StatusCode);
+        Assert.Equal("Phiên đăng nhập đã thay đổi. Vui lòng thử lại.", error.Message);
         Assert.Equal(SessionStatus.Active, store.Current.Status);
         Assert.Equal(replacementToken, store.Current.AccessToken);
     }
@@ -162,6 +162,56 @@ public sealed class BearerTokenHandlerTests
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousUnauthorized.StatusCode);
         Assert.Equal(SessionStatus.Anonymous, store.Current.Status);
         Assert.Null(terminal.Requests[1].Authorization);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LateBusinessResponse_AfterLogoutOrReplacement_IsDisposedAndNotReturned(bool replaceAccount)
+    {
+        var store = new InMemorySessionStore();
+        store.SetSession("admin", "refresh", "admin", "Admin", "Admin");
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finish = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var terminal = new RecordingHttpMessageHandler(async (_, _) =>
+        {
+            started.SetResult();
+            return await finish.Task;
+        });
+        using var client = CreateClient(new BearerTokenHandler(store) { InnerHandler = terminal });
+        var pending = client.GetAsync("https://localhost/api/inventory/stocks");
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        store.Clear();
+        if (replaceAccount) store.SetSession("cashier", "refresh", "cashier1", "Cashier", "SalesStaff");
+        var content = new StringContent("private stock data");
+        finish.SetResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => pending);
+        Assert.Equal("Phiên đăng nhập đã thay đổi. Vui lòng thử lại.", error.Message);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => content.ReadAsStringAsync());
+    }
+
+    [Theory]
+    [InlineData("login")]
+    [InlineData("refresh")]
+    public async Task AuthenticationResponse_AfterSessionChange_IsReturned(string endpoint)
+    {
+        var store = new InMemorySessionStore();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finish = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var terminal = new RecordingHttpMessageHandler(async (_, _) =>
+        {
+            started.SetResult();
+            return await finish.Task;
+        });
+        using var client = CreateClient(new BearerTokenHandler(store) { InnerHandler = terminal });
+        var pending = client.GetAsync($"https://localhost/api/auth/{endpoint}");
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        store.SetAccessToken("new-session");
+        finish.SetResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("auth response") });
+
+        using var response = await pending;
+        Assert.Equal("auth response", await response.Content.ReadAsStringAsync());
     }
 
     private static HttpClient CreateClient(HttpMessageHandler handler) => new(handler)

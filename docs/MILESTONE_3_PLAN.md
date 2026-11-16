@@ -117,12 +117,14 @@ Triển khai ở Sprint 2. Bàn giao tìm sản phẩm/IMEI cho Đạt. Dùng se
 
 - [ ] Chọn trang mở đầu, menu và nút thao tác theo role. Kiểm tra cả trường hợp mở thẳng một trang bị hạn chế.
 - [ ] Tách cài đặt cá nhân như theme khỏi quyền sửa cấu hình cửa hàng.
-- [ ] Xóa dữ liệu và hủy request cũ khi đăng xuất hoặc đổi tài khoản; không hiển thị kết quả trả về muộn của phiên trước.
-- [ ] Hoàn thiện full-text và lọc kết hợp theo giá, thương hiệu, CPU, RAM và specs; giữ phân trang ổn định và tìm chính xác SKU/barcode/IMEI.
-- [ ] Kiểm tra quyền trả về giá vốn trong DTO sản phẩm. Không chỉ ẩn giá trên giao diện.
+- [x] Xóa dữ liệu và hủy request cũ khi đăng xuất hoặc đổi tài khoản; không hiển thị kết quả trả về muộn của phiên trước.
+- [x] Hoàn thiện full-text và lọc kết hợp theo giá, thương hiệu, CPU, RAM và specs; giữ phân trang ổn định và tìm chính xác SKU/barcode/IMEI.
+- [x] Kiểm tra quyền trả về giá vốn trong DTO sản phẩm. Không chỉ ẩn giá trên giao diện.
 - [ ] Kiểm tra loading, dữ liệu rỗng, lỗi, retry, focus bàn phím, tiếng Việt, resize và đổi theme trên các trang đã sửa.
 
 Nghiệm thu: Bốn role vào đúng trang, dùng đúng chức năng; mở thẳng route trái quyền bị chặn. Tìm/lọc/phân trang qua API thật, không lẫn dữ liệu giữa các phiên; UI đọc được ở các theme và kích thước đã kiểm tra.
+
+Bằng chứng T. Vinh theo build `7240d3f`: [M3 UI/API verification](M3_UI_API_VERIFICATION.md). Mục 120–122 đạt qua client/API/PostgreSQL thật và tests; 118–119/123 còn chờ quan sát UI, không coi headless/startup log là nghiệm thu binding/theme. Các mục Sprint 5 và điều kiện hoàn thành toàn M3 chưa được suy ra từ kết quả này.
 
 ## Tích hợp và kiểm tra toàn luồng
 

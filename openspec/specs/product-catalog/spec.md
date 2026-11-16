@@ -398,7 +398,7 @@ A product that has at least one variant, counting variants added by the same req
 - **THEN** the response is 204, the three image rows are gone and their files are deleted from storage
 
 ### Requirement: Product write authorization
-`POST /api/products`, `PUT /api/products/{id}`, `PATCH /api/products/{id}/status` and `DELETE /api/products/{id}` SHALL require a valid bearer token whose role is `Admin` or `Manager`. A request without a valid token SHALL return 401 and a request from another role SHALL return 403, in both cases without changing data. Product read endpoints are not changed by this requirement.
+`POST /api/products`, `PUT /api/products/{id}`, `PATCH /api/products/{id}/status` and `DELETE /api/products/{id}` SHALL require a valid bearer token whose role is `Admin` or `Manager`. A request without a valid token SHALL return 401 and a request from another role SHALL return 403, in both cases without changing data. All product read endpoints SHALL require authentication with any one of the four system roles.
 
 #### Scenario: Missing token
 - **WHEN** a client calls `PUT /api/products/{id}` without a bearer token
@@ -412,12 +412,16 @@ A product that has at least one variant, counting variants added by the same req
 - **WHEN** a user with role `Manager` sends a valid update
 - **THEN** the response is 200
 
+#### Scenario: Reads require login
+- **WHEN** a client calls any product read endpoint without a valid token
+- **THEN** the response is 401 instead of product data
+
 #### Scenario: Reads stay open
-- **WHEN** a client calls `GET /api/products` without a token
-- **THEN** the response is 200 as before
+- **WHEN** any of the four roles calls a product read endpoint with a valid current token
+- **THEN** the existing successful response contract is preserved
 
 ### Requirement: Specification filter suggestions
-`GET /api/products/spec-keys` SHALL return, without authentication, each spec key that occurs in the effective specs of stored products (active and inactive), with the number of distinct products having it and its distinct scalar values. Each value SHALL carry a display `label`, its product count and a `filterValue` that, sent as `spec=<key>:<filterValue>`, matches exactly that value. An optional `categoryId` SHALL limit the products to that category only.
+`GET /api/products/spec-keys` SHALL return, for authenticated users with any one of the four system roles, each spec key that occurs in the effective specs of stored products (active and inactive), with the number of distinct products having it and its distinct scalar values. Each value SHALL carry a display `label`, its product count and a `filterValue` that, sent as `spec=<key>:<filterValue>`, matches exactly that value. An optional `categoryId` SHALL limit the products to that category only.
 
 #### Scenario: Keys with their values
 - **WHEN** products have specs `{"ram_gb": 16}` and `{"ram_gb": 8, "cpu": "Apple M3"}` and a client calls `GET /api/products/spec-keys`
@@ -439,8 +443,12 @@ A product that has at least one variant, counting variants added by the same req
 - **WHEN** a product has specs `{"bluetooth": "5.2"}`
 - **THEN** the value has `label` `5.2` and `filterValue` `"5.2"` (quoted), and `GET /api/products?spec=bluetooth:"5.2"` returns the product
 
+#### Scenario: Anonymous suggestion request
+- **WHEN** a caller requests this endpoint without a valid token
+- **THEN** the response is 401 and contains no catalog data
+
 ### Requirement: Specification definitions
-The `spec_definitions` table SHALL hold one row per spec key with a display `label` (unique ignoring letter case), an optional `unit` and a `valueKind` (`number`, `string` or `boolean`), seeded with the keys used by the catalog seed data. `GET /api/products/spec-definitions` SHALL return all definitions without authentication, ordered by label, and `GET /api/products/spec-keys` SHALL add `label`, `unit` and `valueKind` to every key that has a definition.
+The `spec_definitions` table SHALL hold one row per spec key with a display `label` (unique ignoring letter case), an optional `unit` and a `valueKind` (`number`, `string` or `boolean`), seeded with the keys used by the catalog seed data. `GET /api/products/spec-definitions` SHALL return all definitions for authenticated users with any one of the four system roles, ordered by label, and `GET /api/products/spec-keys` SHALL add `label`, `unit` and `valueKind` to every key that has a definition.
 
 #### Scenario: Seeded definition
 - **WHEN** a client calls `GET /api/products/spec-definitions` on a fresh database
@@ -449,6 +457,10 @@ The `spec_definitions` table SHALL hold one row per spec key with a display `lab
 #### Scenario: Suggestion carries the label
 - **WHEN** a client calls `GET /api/products/spec-keys` and `ram_gb` has a definition
 - **THEN** the `ram_gb` entry has `label` `RAM` and `unit` `GB`; a key without a definition has null `label`, `unit` and `valueKind`
+
+#### Scenario: Anonymous suggestion request
+- **WHEN** a caller requests this endpoint without a valid token
+- **THEN** the response is 401 and contains no catalog data
 
 ### Requirement: New specification names are saved with the product
 Product creation and update SHALL accept an optional `specLabels` map from spec key to `{ label, unit, valueKind }`. Every key in it SHALL appear in the request's product or variant specs, have a non-empty label of at most 100 characters, a unit of at most 20 characters and a `valueKind` matching the JSON type of its values, otherwise 400 for `specLabels.<key>`. A definition SHALL be inserted, in the same save as the product, only for a key that has none; an existing definition is never changed.
@@ -488,11 +500,15 @@ Product creation and update SHALL store the brand with the spelling already used
 - **THEN** its brand becomes `Apple`
 
 ### Requirement: Brand suggestions
-`GET /api/products/brands` SHALL return, without authentication, every brand used by stored products (active and inactive) once, grouped ignoring letter case with the most used spelling, each with its product count, ordered by name ignoring case.
+`GET /api/products/brands` SHALL return, for authenticated users with any one of the four system roles, every brand used by stored products (active and inactive) once, grouped ignoring letter case with the most used spelling, each with its product count, ordered by name ignoring case.
 
 #### Scenario: Brands with counts
 - **WHEN** three products use `Apple` and one uses `Logitech`
 - **THEN** the response lists `{ "name": "Apple", "productCount": 3 }` and `{ "name": "Logitech", "productCount": 1 }`
+
+#### Scenario: Anonymous suggestion request
+- **WHEN** a caller requests this endpoint without a valid token
+- **THEN** the response is 401 and contains no catalog data
 
 ### Requirement: Cost price is the expected cost
 `costPrice` SHALL be the expected unit cost that the owner enters to set the selling price and estimate the gross margin. Within Catalog only product creation and update SHALL change it, storing the value as sent; it is not the actual cost of a sale, which order lines keep in their own `unitCost`.

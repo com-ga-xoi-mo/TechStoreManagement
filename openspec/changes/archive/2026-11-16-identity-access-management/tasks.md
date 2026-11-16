@@ -45,7 +45,7 @@
 - [x] 6.1 Thêm client account models và IUserManagementRepository gọi các endpoint mới, map DTO sang models; repository tests URI/filter/paging/enum, safe metadata, field errors/409 và reset-password 204 không deserialize JSON.
 - [x] 6.2 Thêm PageViewModel danh sách/search/filter/paging cùng commands create/edit/lock/unlock/role/reset và confirmations qua dialog contracts hiện có; headless tests loading/empty/error/retry, chống submit lặp, invalid role state, preserve non-secret inputs khi lỗi, clear password sau success/close.
 - [x] 6.3 Thêm route con Settings, entry chỉ cho Admin, route guard và DI/factory/VerifyAllRoutesResolve; navigation tests vẫn sáu destinations, Settings selected, non-Admin direct route không load dữ liệu, logout/role loss hủy activation và late account responses không commit.
-- [ ] 6.4 Làm trang/form/dialog bằng C# Markup với tokens, typed bindings, PasswordBox exception được giới hạn tại design D8, commands trong template đúng DataContext; build net10.0-desktop và chạy thật kiểm tra binding, masked password, focus/keyboard, resize và toàn bộ thao tác quản lý tài khoản qua API.
+- [x] 6.4 Làm trang/form/dialog bằng C# Markup với tokens, typed bindings, PasswordBox exception được giới hạn tại design D8, commands trong template đúng DataContext; build net10.0-desktop và chạy thật kiểm tra binding, masked password, focus/keyboard, resize và toàn bộ thao tác quản lý tài khoản qua API.
 - [x] 6.5 Chuyển màu static trong SettingsPage sang theme accessors khi thêm account entry, giữ thay đổi ngoài phạm vi account ở mức cần thiết; runtime switch Sáng/Tối/System khi account screen/dialog đang mở, xác nhận text/panel/button readable và ghi ảnh/log build-specific, không coi headless/build là nghiệm thu theme.
 
 ## 7. Manager demo và seed không đảo quyền
@@ -57,6 +57,10 @@
 ## 8. Kiểm chứng tích hợp Sprint 1
 
 - [x] 8.1 Chạy backend/frontend unit suites, PostgreSQL identity/concurrency và live API suites với auth thật trên database test riêng; ghi Pass/Fail/Skipped/Chưa kiểm tra và lệnh/env cần dùng, không tính skipped là đạt.
-- [ ] 8.2 Nghiệm thu qua UI và HTTP: Admin CRUD-access account, last Admin blocked, Sales only-own Orders/analytics 403, Warehouse price/users 403, lock/role/reset/logout làm token cũ 401 và refresh không replay; ghi expected/actual cho từng acceptance trong M3 Sprint 1.
+- [x] 8.2 Nghiệm thu qua UI và HTTP: Admin CRUD-access account, last Admin blocked, Sales only-own Orders/analytics 403, Warehouse price/users 403, lock/role/reset/logout làm token cũ 401 và refresh không replay; ghi expected/actual cho từng acceptance trong M3 Sprint 1.
 - [x] 8.3 Build frontend desktop và backend; kiểm tra runtime Skia và Windows native nếu có môi trường, ghi OS/target/build/ảnh-log; phần chưa chạy ghi rõ, kiểm tra hồi quy M2 và không tick các hạng mục Sprint 2–5.
 - [x] 8.4 Đối chiếu artifacts/specs/tài liệu/bảng quyền với behavior đã nghiệm thu, cập nhật checklist Sprint 1 trong docs/MILESTONE_3_PLAN.md chỉ theo bằng chứng và chạy `openspec validate identity-access-management --strict` trước bàn giao.
+
+## Chốt nghiệm thu 16/11/2026
+
+Hoàn tất 37/37 task. Hai thao tác tạo/reset mật khẩu trên UI được người dùng xác nhận sau bàn giao; các bước UI còn lại do agent kiểm tra. Nguồn bằng chứng, kết quả kiểm tra lại và giới hạn Windows native được ghi trong [báo cáo nghiệm thu](../../../../docs/IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md). Đã đồng bộ 7 delta specs vào main specs và archive tại `openspec/changes/archive/2026-11-16-identity-access-management/`.

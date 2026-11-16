@@ -36,14 +36,14 @@ Thực hiện ở Sprint 1. Bàn giao bảng quyền, actor từ token, lỗi 40
 - [x] Cấu hình fallback policy bắt đăng nhập trong `Program.cs`. Chỉ cho phép truy cập không token ở endpoint public đã xác định, như login; kiểm tra riêng quyền role của các API nghiệp vụ.
 - [x] Thêm HTTP tests: Orders thiếu token trả 401, role không được phép trả 403, claim người dùng thiếu/sai bị từ chối; endpoint không khai báo policy riêng vẫn yêu cầu đăng nhập, login vẫn truy cập được.
 - [x] Thống nhất lỗi 401 khi chưa xác thực và 403 khi thiếu quyền. Không trả stack trace hoặc thông tin bí mật.
-- [ ] Làm màn hình và API danh sách, tìm kiếm, tạo, sửa, khóa/mở khóa, gán role và đặt lại mật khẩu tài khoản. Chặn khóa hoặc hạ quyền Admin cuối cùng.
+- [x] Làm màn hình và API danh sách, tìm kiếm, tạo, sửa, khóa/mở khóa, gán role và đặt lại mật khẩu tài khoản. Chặn khóa hoặc hạ quyền Admin cuối cùng.
 - [x] Hoàn thiện login, logout và refresh token. Từ chối token hết hạn, giả mạo hoặc bị thu hồi; thay refresh token sau mỗi lần dùng. Khóa tài khoản hoặc đổi role phải làm mất quyền cũ.
 - [x] Bổ sung tài khoản Manager vào dữ liệu mẫu. Giữ tài khoản và mật khẩu người dùng đang có.
 - [x] Cập nhật spec và test cũ đang cho phép truy cập không token hoặc chỉ cho Admin; người sở hữu module cập nhật caller và test phần mình theo bảng quyền.
 
 Nghiệm thu: Quản lý tài khoản được qua UI; API trực tiếp vẫn chặn thiếu token hoặc sai quyền. Khóa tài khoản/đổi role làm mất quyền cũ; không khóa hoặc hạ quyền Admin cuối cùng.
 
-Bằng chứng ngày 12/11/2026: [báo cáo kiểm chứng Sprint 1](verification/identity-access-management-2026-11-12/README.md). API, headless và runtime theme đã đạt; role/focus và chặn Admin cuối cùng đã được nghiệm thu thêm trên UI; còn bước nhập/gửi mật khẩu mới đang bàn giao người dùng. Windows native chưa chạy trên máy macOS. Chưa đánh dấu hoàn tất Sprint 1.
+Sprint 1 của change `identity-access-management` hoàn tất 37/37 task, chốt ngày 16/11/2026: [báo cáo nghiệm thu](IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md). API/headless/runtime và UI role/focus/Admin guard đã đạt; người dùng xác nhận hoàn tất tạo/reset mật khẩu trên UI. Báo cáo phân biệt rõ xác nhận của người dùng với quan sát của agent. Windows native/HighContrast chưa chạy trên máy macOS; các hạng mục Sprint 2–5 giữ nguyên trạng thái. Change đã đồng bộ main specs và [archive](../openspec/changes/archive/2026-11-16-identity-access-management/tasks.md).
 
 ### Q. Vinh: Nhà cung cấp, phiếu nhập và nhận hàng
 

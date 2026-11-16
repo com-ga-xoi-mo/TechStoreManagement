@@ -75,7 +75,9 @@ the file fails, its contents remain on disk until filesystem access is restored.
 
 ## Sprint 1 verification
 
-See [the 2026-11-12 verification report](../../docs/verification/identity-access-management-2026-11-12/README.md)
-for commands, PostgreSQL/HTTP/runtime evidence and the remaining UI acceptance steps.
-Backend/frontend/live API suites pass without skips; full UI account acceptance remains open,
-pending the user-operated create/reset password UI steps required by the UI tool handoff policy. Windows native was not run on macOS.
+The change is complete at 37/37 tasks. See [the final acceptance report](../../docs/IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md)
+for commands, PostgreSQL/HTTP/runtime results and evidence provenance. The user confirmed the
+create/reset password UI handoff; the report distinguishes that confirmation from agent-observed
+checks. Backend/frontend suites pass without skips. Windows native and HighContrast were not run
+on macOS. All seven delta specs are synced to the main specs; the change is
+[archived](../../openspec/changes/archive/2026-11-16-identity-access-management/tasks.md).

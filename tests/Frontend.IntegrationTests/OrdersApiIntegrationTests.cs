@@ -265,6 +265,7 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
         public ShellDestination CurrentDestination => CurrentRoute.Destination;
         public event EventHandler<ShellDestination>? DestinationChanged { add { } remove { } }
         public event EventHandler<AppRoute>? RouteChanged { add { } remove { } }
+        public void Reset(AppRoute route) => CurrentRoute = route;
         public NavigationOutcome Navigate(ShellDestination destination) => Navigate(AppRoute.Root(destination));
 
         public NavigationOutcome Navigate(AppRoute route)

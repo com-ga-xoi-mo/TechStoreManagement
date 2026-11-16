@@ -115,16 +115,16 @@ Nghiệm thu: Sales tìm/chọn/tạo khách đúng quyền. Server tính đúng
 
 Triển khai ở Sprint 2. Bàn giao tìm sản phẩm/IMEI cho Đạt. Dùng session generation/cancellation của An để bảo vệ route, hủy request và chặn dữ liệu trả muộn của phiên trước; phối hợp Q. Vinh áp dụng cùng bảng quyền cho giá vốn.
 
-- [ ] Chọn trang mở đầu, menu và nút thao tác theo role. Kiểm tra cả trường hợp mở thẳng một trang bị hạn chế.
-- [ ] Tách cài đặt cá nhân như theme khỏi quyền sửa cấu hình cửa hàng.
+- [x] Chọn trang mở đầu, menu và nút thao tác theo role. Kiểm tra cả trường hợp mở thẳng một trang bị hạn chế.
+- [x] Tách cài đặt cá nhân như theme khỏi quyền sửa cấu hình cửa hàng.
 - [x] Xóa dữ liệu và hủy request cũ khi đăng xuất hoặc đổi tài khoản; không hiển thị kết quả trả về muộn của phiên trước.
 - [x] Hoàn thiện full-text và lọc kết hợp theo giá, thương hiệu, CPU, RAM và specs; giữ phân trang ổn định và tìm chính xác SKU/barcode/IMEI.
 - [x] Kiểm tra quyền trả về giá vốn trong DTO sản phẩm. Không chỉ ẩn giá trên giao diện.
-- [ ] Kiểm tra loading, dữ liệu rỗng, lỗi, retry, focus bàn phím, tiếng Việt, resize và đổi theme trên các trang đã sửa.
+- [x] Kiểm tra loading, dữ liệu rỗng, lỗi, retry, focus bàn phím, tiếng Việt, resize và đổi theme trên các trang đã sửa.
 
 Nghiệm thu: Bốn role vào đúng trang, dùng đúng chức năng; mở thẳng route trái quyền bị chặn. Tìm/lọc/phân trang qua API thật, không lẫn dữ liệu giữa các phiên; UI đọc được ở các theme và kích thước đã kiểm tra.
 
-Bằng chứng T. Vinh theo build `7240d3f`: [M3 UI/API verification](M3_UI_API_VERIFICATION.md). Mục 120–122 đạt qua client/API/PostgreSQL thật và tests; 118–119/123 còn chờ quan sát UI, không coi headless/startup log là nghiệm thu binding/theme. Các mục Sprint 5 và điều kiện hoàn thành toàn M3 chưa được suy ra từ kết quả này.
+Bằng chứng T. Vinh theo build `7240d3f`: [M3 UI/API verification](M3_UI_API_VERIFICATION.md). Mục 120–122 đạt qua client/API/PostgreSQL thật và tests; 118–119/123 đạt qua nghiệm thu UI Skia của T. Vinh (17/11/2026, kịch bản A–G) cùng ma trận quyền 46 endpoint × 4 role và kiểm tra đổi phiên trên API thật. Các mục Sprint 5 và điều kiện hoàn thành toàn M3 chưa được suy ra từ kết quả này.
 
 ## Tích hợp và kiểm tra toàn luồng
 
@@ -151,7 +151,7 @@ Mỗi người bàn giao kết quả test, dữ liệu demo và tài liệu ph�
 - [ ] **Bình:** Kiểm tra tồn, hàng giữ chỗ, serial, lịch sử kho và tiền sau commit/rollback. Không tính hai request chạy tuần tự là kiểm thử đồng thời.
 - [ ] **Đạt:** Đổi mô tả ca “race” hiện tại trong `OrdersApiIntegrationTests.cs` thành kiểm tra xung đột tuần tự. Thêm ca hai đơn tranh cùng IMEI bằng hai request/giao dịch độc lập có điểm đồng bộ để thực sự chạy đồng thời trên PostgreSQL; đúng một đơn hoàn tất, đơn còn lại nhận 409, tồn và lịch sử bán chỉ thay đổi một lần.
 - [ ] **Đạt:** Dùng hai giao dịch PostgreSQL chạy đồng thời để thử chuyển trạng thái cùng đơn và bán trong lúc đóng ca. Bình tổng hợp bằng chứng kết quả từng ca.
-- [ ] **T. Vinh:** Kiểm tra HTTP methods, JSON và mã lỗi 200/201/204/400/401/403/404/409/500 phù hợp; thử lỗi mạng và phục hồi giao diện.
+- [x] **T. Vinh:** Kiểm tra HTTP methods, JSON và mã lỗi 200/201/204/400/401/403/404/409/500 phù hợp; thử lỗi mạng và phục hồi giao diện.
 - [ ] **T. Vinh:** Chạy UI trên Windows native và Skia. Kiểm tra Light/Dark/System, resize, bàn phím và binding; ghi build, hệ điều hành, ảnh hoặc log kết quả.
 
 Dùng database test riêng. Mỗi test case cần có đầu vào, kết quả mong đợi, kết quả thực tế, trạng thái và ảnh/log nếu cần. Test bị bỏ qua hoặc chưa chạy không được tính là đạt.

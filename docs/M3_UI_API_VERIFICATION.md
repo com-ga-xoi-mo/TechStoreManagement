@@ -49,7 +49,7 @@ Build thành công, 0 warning/error (`/tmp/m3-final-build.log`). Không lấy c�
 | POST `/api/categories` | Sales | 403 | 403 | `application/problem+json`, JSON đọc được | Pass |
 | GET `/api/products/00000000-0000-0000-0000-000000000000` | Admin | 404 | 404 | `application/problem+json; charset=utf-8`, ProblemDetails | Pass |
 | DELETE `/api/categories/721bc4bf-dbd0-450c-b951-16ecc8d037f7` | Admin | 204 | 204 | Không Content-Type, không body | Pass |
-| Lỗi server 500 | — | JSON lỗi an toàn | Chưa chạy | Không tìm thấy test backend middleware tương ứng; không cố gây lỗi trên DB thật, theo design D2 | Chưa kiểm tra |
+| Lỗi server 500 (controller thử ném exception) | — | 500 JSON an toàn | 500 | `application/problem+json`, không stack trace (bổ sung 17/11, test HTTP) | Pass |
 
 Category thử đã DELETE 204. Các probe sai trước đó được giữ trong log từng change, không tính là request đạt.
 
@@ -136,3 +136,41 @@ Các phần ngoài phạm vi, **không sửa thay owner**:
 ## Dọn môi trường
 
 Đã khôi phục store settings, DELETE category thử 204, dọn user thử nêu trên. Runner tạm `/tmp/m3-live-runner` đã xóa sau khi chạy; API riêng 5201 không còn listener. API 5199 đã tắt, curl `/api/health` trả mã transport `000` sau dừng. Giữ DB test có sẵn, không xóa dữ liệu người dùng. Không push, archive hoặc mở PR.
+
+## Bổ sung 17/11/2026: nghiệm thu UI và kiểm tra lại quyền, đổi phiên
+
+Build: nhánh `feat/m3-role-ui-catalog-search` @ `7597418`. API `http://localhost:5199`, DB `techstore_m3_verify`, Skia trên Ubuntu.
+
+**Nghiệm thu UI (T. Vinh tự thao tác, kịch bản A–G): Pass.** Gồm landing/menu bốn role, nút thao tác theo role, ẩn giá vốn cho Sales/Warehouse, tìm theo nhiều từ/IMEI, Cài đặt cá nhân/cửa hàng, resize, Sáng/Tối và Tab. Ảnh chụp A1–B5 do T. Vinh giữ, không commit vào repo.
+
+**Ma trận quyền API: Pass.** 46 endpoint × (không token + 4 role), so với `API_PERMISSIONS.md`. Không token đều nhận 401. Role không có quyền đều nhận 403. Role có quyền chưa bao giờ nhận 401/403; body giả nhận 400/404 nên không ghi dữ liệu. `PUT /api/settings/store` gửi lại giá trị cũ. Upload ảnh kiểm tra bằng multipart: A/M 400, S/W 403, không token 401.
+
+**Sales chỉ thấy và sửa đơn của mình: Pass.** Admin tạo đơn thử (IMEI `67828a3d…`):
+
+| Kiểm tra | Kết quả |
+|---|---|
+| Danh sách đơn | Admin 21, Manager 21, Sales 20 (không thấy đơn thử) |
+| Chi tiết đơn thử | Sales 404, Manager 200 |
+| Hủy đơn thử | Sales 404, Manager 403 |
+| Dọn dẹp | Admin hủy 200, serial về lại `InStock` |
+
+**Giá vốn: Pass.** `costPrice`: A/M = 120000, S/W = null.
+
+**Đổi phiên (kịch bản F): Pass trên API thật.** Probe tạm dùng `InMemorySessionStore`, `BearerTokenHandler`, `ApiClient`, `NavigationService`, `RoleAccess` thật (đã xóa sau khi chạy):
+
+| Bước | Kết quả |
+|---|---|
+| F1: Admin (gen 1) ở Customers, đăng xuất, `cashier1` đăng nhập | gen 3, route mở là Orders; Customers bị guard chặn |
+| F2: response kho của Admin về muộn | Caller nhận "Phiên đăng nhập đã thay đổi", không nhận dữ liệu |
+| Token cũ của Admin sau logout | 401 |
+| Request của `cashier1` trong phiên của chính nó | 200 |
+
+Frontend unit: 975 Pass.
+
+**Còn mở:**
+
+- **154 (lỗi 500): đã sửa.** `Program.cs` thêm `AddProblemDetails()` + `UseExceptionHandler()`. Test `UnhandledException_Returns500ProblemDetailsWithoutStackTrace` chạy pipeline thật của `Program`: 500, `application/problem+json`, không lộ message/stack trace. Cùng với 8 mã đã kiểm và phục hồi lỗi mạng, mục 154 đạt.
+- **155:** Windows native chưa chạy.
+- **184:** cần chạy toàn luồng nhập hàng → ca → bán sau khi ghép phần của Đạt.
+
+**Ngoài phần T. Vinh:** `GET /api/inventory/serials` trả `unitCost` cho Sales (Q. Vinh).

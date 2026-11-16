@@ -6,6 +6,7 @@ public static class RoleAccess
     public static bool CanManageStock(string? role) => role is "Admin" or "WarehouseStaff";
     public static bool CanManageOrders(string? role) => role is "Admin" or "SalesStaff";
     public static bool CanManageCatalog(string? role) => role is "Admin" or "Manager";
+    public static bool CanEditStoreSettings(string? role) => role is "Admin" or "Manager";
 
     public static IReadOnlyList<ShellDestinationInfo> Destinations(string? role) =>
         ShellDestinations.All.Where(item => CanOpen(AppRoute.Root(item.Id), role)).ToArray();

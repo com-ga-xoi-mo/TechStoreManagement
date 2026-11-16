@@ -13,6 +13,7 @@ public sealed class ShellViewModelTests
     {
         var navigation = new NavigationService(new DestinationPreparer());
         var session = new InMemorySessionStore();
+        session.SetSession("token", "refresh", "admin", "Admin", "Admin");
         var viewModel = new ShellViewModel(navigation, session);
 
         viewModel.NavigateCommand.Execute(ShellDestination.Products);
@@ -29,6 +30,7 @@ public sealed class ShellViewModelTests
     {
         var navigation = new NavigationService(new DestinationPreparer(allow: false));
         var session = new InMemorySessionStore();
+        session.SetSession("token", "refresh", "admin", "Admin", "Admin");
         var viewModel = new ShellViewModel(navigation, session);
 
         viewModel.NavigateCommand.Execute(ShellDestination.Products);

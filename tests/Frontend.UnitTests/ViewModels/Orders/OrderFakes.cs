@@ -96,6 +96,7 @@ internal sealed class FakeNavigation : INavigationService
     public ShellDestination CurrentDestination => CurrentRoute.Destination;
     public event EventHandler<ShellDestination>? DestinationChanged;
     public event EventHandler<AppRoute>? RouteChanged;
+    public void Reset(AppRoute route) => CurrentRoute = route;
 
     public NavigationOutcome Navigate(ShellDestination destination) => Navigate(AppRoute.Root(destination));
 

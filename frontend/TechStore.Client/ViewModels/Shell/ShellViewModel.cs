@@ -20,9 +20,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string userAvatarInitials = "TS";
     [ObservableProperty] private bool isAuthenticated;
 
-    public IReadOnlyList<ShellDestinationInfo> Destinations { get; } = ShellDestinations.All;
-    public IReadOnlyList<ShellDestinationInfo> MainDestinations { get; } =
-        ShellDestinations.All.Where(item => !item.IsFooterItem).ToArray();
+    public IReadOnlyList<ShellDestinationInfo> Destinations { get; }
+    public IReadOnlyList<ShellDestinationInfo> MainDestinations { get; }
     public ShellDestinationInfo SettingsDestination { get; } = ShellDestinations.Get(ShellDestination.Settings);
     public bool HasNavigationError => !string.IsNullOrWhiteSpace(NavigationError);
 
@@ -31,6 +30,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _authRepository = authRepository;
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+        var session = _sessionStore.Current;
+        var role = session.Status == SessionStatus.Active ? session.Role : null;
+        Destinations = RoleAccess.Destinations(role);
+        MainDestinations = Destinations.Where(item => !item.IsFooterItem).ToArray();
+        _navigation.Reset(AppRoute.Root(RoleAccess.Landing(role)));
         selectedDestination = navigation.CurrentDestination;
         currentTitle = ShellDestinations.Get(selectedDestination).Title;
         _navigation.DestinationChanged += OnDestinationChanged;

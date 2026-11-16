@@ -29,7 +29,7 @@ Chốt quyền và contract cần dùng ở Sprint 1; các phần độc lập c
 
 ### An: Phân quyền, tài khoản và phiên đăng nhập
 
-Thực hiện ở Sprint 1. Bàn giao bảng quyền, actor từ token, lỗi 401/403 và contract phiên cho cả nhóm trước khi ghép API. Tiếp tục change `identity-access-management` đã có; không làm lại hoặc đánh dấu hoàn thành khi chưa có bằng chứng.
+Thực hiện ở Sprint 1. Bàn giao bảng quyền, actor từ token, lỗi 401/403 và contract phiên cho cả nhóm trước khi ghép API. Change `identity-access-management` đã hoàn tất và archive theo báo cáo bên dưới; không làm lại phần đã nghiệm thu. Phần kiểm chứng và bàn giao độc lập tiếp tục trong change `m3-security-verification-handoff`, không thay thế nghiệm thu bản tích hợp M3.
 
 - [x] Lập bảng quyền cho bốn role: `Admin`, `Manager`, `SalesStaff`, `WarehouseStaff`. Ghi rõ quyền xem, tạo, sửa, xóa và dữ liệu được đọc ở từng API.
 - [x] Thêm yêu cầu xác thực và quyền theo hành động trong `OrdersController.cs`. Bỏ `DefaultActingUserId`; lấy người thao tác từ token hợp lệ, từ chối claim người dùng thiếu hoặc sai.
@@ -44,6 +44,22 @@ Thực hiện ở Sprint 1. Bàn giao bảng quyền, actor từ token, lỗi 40
 Nghiệm thu: Quản lý tài khoản được qua UI; API trực tiếp vẫn chặn thiếu token hoặc sai quyền. Khóa tài khoản/đổi role làm mất quyền cũ; không khóa hoặc hạ quyền Admin cuối cùng.
 
 Sprint 1 của change `identity-access-management` hoàn tất 37/37 task, chốt ngày 16/11/2026: [báo cáo nghiệm thu](IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md). API/headless/runtime và UI role/focus/Admin guard đã đạt; người dùng xác nhận hoàn tất tạo/reset mật khẩu trên UI. Báo cáo phân biệt rõ xác nhận của người dùng với quan sát của agent. Windows native/HighContrast chưa chạy trên máy macOS; các hạng mục Sprint 2–5 giữ nguyên trạng thái. Change đã đồng bộ main specs và [archive](../openspec/changes/archive/2026-11-16-identity-access-management/tasks.md).
+
+#### Phần An làm độc lập sau Sprint 1
+
+Change [m3-security-verification-handoff](../openspec/changes/archive/2026-11-16-m3-security-verification-handoff/tasks.md)
+kiểm chứng baseline hiện có; kết quả theo build và contract bàn giao ở
+[báo cáo hiện trạng](M3_IDENTITY_INTEGRATION_HANDOFF.md).
+
+- [x] HTTP TestServer + PostgreSQL thật cho login/logout/refresh, JWT sai/hết hạn, khóa/đổi quyền/reset, no-op và Admin cuối cùng; fixture tự tạo/xóa database, không fake Identity persistence.
+- [x] Kiểm tra baseline 51 endpoint, policy bốn role, 47 ca 401 và 90 ca 403; test Orders ownership/actor persist từ token, không mở rộng nghiệp vụ của Đạt/Q. Vinh.
+- [x] README cách chạy và bản bàn giao hiện trạng có nguồn; backend 600/600, frontend 936/936 không skip, fresh Kestrel smoke đạt. Báo cáo ghi rõ TestServer/PostgreSQL, Kestrel smoke và UI chưa kiểm tra trong change này.
+
+Các bước con này không đánh dấu thay checkbox Sprint 5 hoặc điều kiện hoàn thành
+toàn M3 bên dưới. An cần kiểm lại khi owner merge contract mới: Q. Vinh nhập/kho/
+giá vốn; Bình dashboard/dataset/đối chiếu; Đạt POS/ca; Vy Customers/công thức;
+T. Vinh shell/tra cứu/UI. Chưa có endpoint trên baseline chỉ ghi chờ tích hợp,
+không kết luận chủ module chưa làm trên nhánh riêng hoặc có lỗi production.
 
 ### Q. Vinh: Nhà cung cấp, phiếu nhập và nhận hàng
 

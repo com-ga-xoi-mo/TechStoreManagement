@@ -27,6 +27,33 @@ Set TECHSTORE_TEST_CONNECTION to a local PostgreSQL connection with CREATE DATAB
 The fixture creates and drops a generated test database, never the application database.
 Do not count skipped PostgreSQL tests as passing.
 
+### Repeatable HTTP + PostgreSQL regression
+
+```sh
+export TECHSTORE_TEST_CONNECTION='<local PostgreSQL connection with CREATE DATABASE rights>'
+dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj \
+  --filter 'FullyQualifiedName~IdentityPostgresHttpTests|FullyQualifiedName~ApiAuthorizationCoverageTests'
+```
+
+Run from the repository root after `docker compose up -d`. `IdentityPostgresApi` creates a
+generated database, applies migrations and invokes the existing seeder. It uses production
+JWT validation, services, repositories and UnitOfWork; it does not call `AddTestIdentities`.
+The host and connections are disposed before dropping the generated database, including
+failure paths. The configured source/application database is never migrated or reset by
+this fixture. Signing settings and local image storage are isolated to the host test.
+
+The suite covers four-role login, invalid/expired JWTs, refresh rotation/reuse, account-wide
+logout, lock/unlock, role change, password reset, no-op preservation, last Admin, endpoint
+401/403 and persisted Orders ownership/actor. The endpoint-policy inventory test runs without
+PostgreSQL; the database tests skip when the variable is absent. A run with skips does not
+complete acceptance. Do not put credentials/tokens/connection strings into test output.
+
+These are HTTP requests through ASP.NET TestServer with real PostgreSQL persistence, not
+socket/Kestrel, desktop UI or final integrated M3 acceptance. Existing live Catalog/Orders
+tests use `TECHSTORE_API_BASE_URL` separately. See the
+[M3 handoff report](../../docs/M3_IDENTITY_INTEGRATION_HANDOFF.md) for build-specific evidence
+and owner-dependent integration conditions.
+
 ## Token lifecycle and account API
 
 POST api/auth/login and api/auth/refresh return LoginResponseDto. Refresh tokens rotate atomically,

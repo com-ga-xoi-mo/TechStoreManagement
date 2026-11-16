@@ -31,3 +31,21 @@ Account password/hash/token/version và order cost snapshots không xuất trong
 Sprint 2 tiếp tục: mở dashboard Manager và khách hàng Sales, kiểm tra trường giá vốn
 Catalog/Inventory theo role, landing page/menu và tách settings cá nhân.
 Hiện Manager gọi dashboard và Sales gọi Customers vẫn nhận 403.
+
+## Kiểm chứng và cập nhật khi tích hợp
+
+`tests/Backend.UnitTests/ApiAuthorizationCoverageTests.cs` giữ baseline method/route và
+public/roles độc lập với controller metadata. Test đối chiếu hai chiều toàn bộ controller
+endpoints đang đăng ký, kết hợp policy controller/action/default/fallback và kiểm cả bốn
+role. HTTP + PostgreSQL tests yêu cầu đúng 401 khi thiếu token, đúng 403 cho role bị cấm;
+400/404/500 không được tính là quyền đã đạt. Positive reads và test actor/ownership được
+ghi riêng; độ phủ policy không chứng nhận mọi nghiệp vụ đã hoạt động.
+
+Khi chủ module merge endpoint mới hoặc thay quyền, cập nhật bảng này, spec của change
+nghiệp vụ tương ứng, baseline và test/caller trong cùng thay đổi. Không tự sinh expected
+roles từ attributes, không đưa API tương lai chưa đăng ký vào baseline rồi kết luận lỗi.
+Mở Manager dashboard thuộc Bình; Customers cho Sales thuộc Vy; trường giá vốn và UI theo
+phân công Q. Vinh/T. Vinh. Change kiểm chứng của An giữ nguyên contract Sprint 1 ở trên.
+
+Lệnh chạy và giới hạn TestServer/Kestrel/UI: [Identity README](../backend/Identity/README.md#repeatable-http--postgresql-regression).
+Kết quả theo build và các điểm chờ tích hợp: [M3 handoff](M3_IDENTITY_INTEGRATION_HANDOFF.md).

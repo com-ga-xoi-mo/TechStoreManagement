@@ -16,7 +16,7 @@ Phân biệt nguồn bằng chứng: hai thao tác mật khẩu trên UI do **ng
 - Frontend headless: **936 passed / 0 failed / 0 skipped**. Log local: `docs/verification/identity-access-management-2026-11-16/frontend-tests.log`.
 - Backend, gồm PostgreSQL migration/seed/concurrency: **593 passed / 0 failed / 0 skipped**. Log local: `docs/verification/identity-access-management-2026-11-16/backend-tests.log`.
 - Desktop `net10.0-desktop`: build thành công, **0 warnings / 0 errors**. Log local: `docs/verification/identity-access-management-2026-11-16/desktop-build.log`.
-- `openspec validate identity-access-management --strict` và `git diff --check`: đạt.
+- `openspec validate --specs --strict` và `git diff --check`: đạt.
 - Live API 3 test, 69 HTTP checks và 14 runtime assertions dùng bằng chứng ngày 12/11 trên cùng phần triển khai; không ghi thành các lần chạy lại ngày 16/11.
 
 Lần khởi chạy backend tests đầu tiên gặp khóa `TechStore.Shared.deps.json` do chạy build song song với frontend. Đã chạy lại tuần tự và đạt; không sửa source để xử lý lỗi điều phối build này.
@@ -30,12 +30,12 @@ TECHSTORE_TEST_CONNECTION='<PostgreSQL connection có quyền CREATE DATABASE>' 
   dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --no-restore
 dotnet test tests/Frontend.UnitTests/TechStore.Client.UnitTests.csproj --no-restore
 dotnet build frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop --no-restore
-openspec validate identity-access-management --strict
+openspec validate --specs --strict
 git diff --check
 ```
 
 Chạy các lệnh build/test tuần tự vì cùng dùng output của `shared/`. `docs/verification/` được repository chủ động git-ignore; log/ảnh là artifacts local, không phải file đã commit. Báo cáo này lưu kết quả và nguồn bằng chứng để reviewer đọc được trong PR.
 
-PostgreSQL unit fixtures tự tạo/xóa database riêng; lần chốt không sửa database phát triển và không xóa database nghiệm thu cũ. Change đã hoàn tất triển khai, chưa archive hoặc sync delta specs vào main specs.
+PostgreSQL unit fixtures tự tạo/xóa database riêng; lần chốt không sửa database phát triển và không xóa database nghiệm thu cũ. Đã đồng bộ cả 7 delta specs vào main specs và [archive change ngày 16/11/2026](../openspec/changes/archive/2026-11-16-identity-access-management/tasks.md). Kiểm tra strict toàn bộ main specs đạt 32/32; giữ nguyên requirement/scenario ngoài phạm vi change.
 
 Các kiểm tra liên quan trong source: [Identity HTTP](../tests/Backend.UnitTests/IdentityHttpTests.cs), [concurrency PostgreSQL](../tests/Backend.UnitTests/IdentityConcurrencyPostgresTests.cs), [frontend account](../tests/Frontend.UnitTests/Identity/UserManagementTests.cs), [runtime theme/focus](../frontend/TechStore.Client/Testing/IdentityThemeProbe.cs). Bảng quyền: [API_PERMISSIONS.md](API_PERMISSIONS.md).

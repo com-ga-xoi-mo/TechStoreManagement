@@ -43,7 +43,7 @@ Thực hiện ở Sprint 1. Bàn giao bảng quyền, actor từ token, lỗi 40
 
 Nghiệm thu: Quản lý tài khoản được qua UI; API trực tiếp vẫn chặn thiếu token hoặc sai quyền. Khóa tài khoản/đổi role làm mất quyền cũ; không khóa hoặc hạ quyền Admin cuối cùng.
 
-Sprint 1 của change `identity-access-management` hoàn tất 37/37 task, chốt ngày 16/11/2026: [báo cáo nghiệm thu](IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md). API/headless/runtime và UI role/focus/Admin guard đã đạt; người dùng xác nhận hoàn tất tạo/reset mật khẩu trên UI. Báo cáo phân biệt rõ xác nhận của người dùng với quan sát của agent. Windows native/HighContrast chưa chạy trên máy macOS; các hạng mục Sprint 2–5 giữ nguyên trạng thái.
+Sprint 1 của change `identity-access-management` hoàn tất 37/37 task, chốt ngày 16/11/2026: [báo cáo nghiệm thu](IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md). API/headless/runtime và UI role/focus/Admin guard đã đạt; người dùng xác nhận hoàn tất tạo/reset mật khẩu trên UI. Báo cáo phân biệt rõ xác nhận của người dùng với quan sát của agent. Windows native/HighContrast chưa chạy trên máy macOS; các hạng mục Sprint 2–5 giữ nguyên trạng thái. Change đã đồng bộ main specs và [archive](../openspec/changes/archive/2026-11-16-identity-access-management/tasks.md).
 
 ### Q. Vinh: Nhà cung cấp, phiếu nhập và nhận hàng
 

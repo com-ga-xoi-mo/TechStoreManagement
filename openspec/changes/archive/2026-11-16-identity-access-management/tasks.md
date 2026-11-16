@@ -63,4 +63,4 @@
 
 ## Chốt nghiệm thu 16/11/2026
 
-Hoàn tất 37/37 task. Hai thao tác tạo/reset mật khẩu trên UI được người dùng xác nhận sau bàn giao; các bước UI còn lại do agent kiểm tra. Nguồn bằng chứng, kết quả kiểm tra lại và giới hạn Windows native được ghi trong [báo cáo nghiệm thu](../../../docs/IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md). Change chưa archive hoặc sync specs.
+Hoàn tất 37/37 task. Hai thao tác tạo/reset mật khẩu trên UI được người dùng xác nhận sau bàn giao; các bước UI còn lại do agent kiểm tra. Nguồn bằng chứng, kết quả kiểm tra lại và giới hạn Windows native được ghi trong [báo cáo nghiệm thu](../../../../docs/IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md). Đã đồng bộ 7 delta specs vào main specs và archive tại `openspec/changes/archive/2026-11-16-identity-access-management/`.

@@ -79,4 +79,5 @@ The change is complete at 37/37 tasks. See [the final acceptance report](../../d
 for commands, PostgreSQL/HTTP/runtime results and evidence provenance. The user confirmed the
 create/reset password UI handoff; the report distinguishes that confirmation from agent-observed
 checks. Backend/frontend suites pass without skips. Windows native and HighContrast were not run
-on macOS. Archival and delta-spec synchronization remain separate follow-up actions.
+on macOS. All seven delta specs are synced to the main specs; the change is
+[archived](../../openspec/changes/archive/2026-11-16-identity-access-management/tasks.md).

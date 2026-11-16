@@ -151,3 +151,14 @@ Trang chi tiết và bộ lọc thông số SHALL hiện tên của định ngh�
 #### Scenario: Filter choices
 - **WHEN** người dùng mở lọc thông số
 - **THEN** ô tên hiện `RAM (7)` và ô giá trị hiện `16 GB (1)`, còn request vẫn gửi `spec=ram_gb:16`
+
+### Requirement: Cost price only when the server sends it
+The product detail page SHALL show the cost price row only when the API returned a `costPrice`; a `null` value SHALL hide the row without showing `0` or an error.
+
+#### Scenario: Sales opens a product
+- **WHEN** a SalesStaff opens product detail and the API returns `costPrice: null`
+- **THEN** the page loads normally and shows no cost price row
+
+#### Scenario: Manager opens a product
+- **WHEN** a Manager opens the same product
+- **THEN** the cost price row shows the formatted value

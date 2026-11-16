@@ -103,7 +103,7 @@ Pages SHALL present Loading, Empty, Content, or Error from the current result an
 - **THEN** its data, error, or loading finalization does not modify the current page or expose data from the prior session
 
 ### Requirement: Session local settings
-Cài đặt SHALL cho chọn System/Light/Dark, xem thông tin ứng dụng không nhạy cảm, đồng thời cho phép Quản trị viên xem và chỉnh sửa thông tin cấu hình cửa hàng TechStore (tên cửa hàng, địa chỉ, hotline, mã số thuế) thông qua Uno C# Markup Fluent API (`Uno.Extensions.Markup`) kết hợp với CommunityToolkit SettingsControls. Toàn bộ form fields, thông báo lưu thành công và nút lưu SHALL sử dụng declarative two-way bindings. Theme SHALL áp dụng ngay trong Shell/dialog, giữ khi chuyển trang trong phiên và mặc định System ở phiên mới. Thao tác theme không cần backend; các thay đổi cấu hình cửa hàng phát sinh lưu trữ qua API cấu hình.
+Cài đặt SHALL chia nhóm Cá nhân và nhóm Cửa hàng. Nhóm Cá nhân SHALL cho mọi role chọn System/Light/Dark. Nhóm Cửa hàng SHALL hiển thị thông tin cấu hình cửa hàng TechStore (tên, địa chỉ, hotline, email, mã số thuế); chỉ `Admin` và `Manager` SHALL sửa và lưu được qua API cấu hình, các role khác chỉ đọc và không có nút lưu. Trang dùng Uno C# Markup Fluent API kết hợp CommunityToolkit SettingsControls và declarative bindings. Theme SHALL áp dụng ngay trong Shell/dialog, giữ khi chuyển trang trong phiên và mặc định System ở phiên mới; thao tác theme không cần backend.
 
 #### Scenario: Theme survives navigation
 - **WHEN** chọn Dark, chuyển Sản phẩm rồi trở lại Cài đặt
@@ -114,8 +114,12 @@ Cài đặt SHALL cho chọn System/Light/Dark, xem thông tin ứng dụng khô
 - **THEN** theme bắt đầu System, không tuyên bố đã lưu tùy chọn lâu dài
 
 #### Scenario: Store configuration view and update
-- **WHEN** Quản trị viên mở trang Cài đặt và cập nhật hotline cửa hàng
-- **THEN** Giao diện hiển thị form thông tin cửa hàng sử dụng SettingsCard/SettingsExpander, lưu dữ liệu thành công và thông báo kết quả
+- **WHEN** Quản trị viên hoặc Quản lý mở Cài đặt và cập nhật hotline cửa hàng
+- **THEN** form thông tin cửa hàng dùng SettingsCard/SettingsExpander, lưu thành công và thông báo kết quả
+
+#### Scenario: Sales changes theme only
+- **WHEN** SalesStaff hoặc WarehouseStaff mở Cài đặt
+- **THEN** đổi được theme, thấy thông tin cửa hàng ở dạng chỉ đọc, không có nút lưu và không gửi `PUT /api/settings/store`
 
 ### Requirement: Responsive reference shell
 Shell SHALL giữ hierarchy sidebar/thương hiệu/footer/header của mẫu Dashboard và tái sử dụng design system. UI SHALL dùng được từ 800×600 đến 1440×1000 DIP, có keyboard focus rõ, chữ tiếng Việt đầy đủ và hỗ trợ Light/Dark/System cùng Windows Contrast.
@@ -183,3 +187,43 @@ Mục Sản phẩm trên Shell SHALL chứa thêm route tạo sản phẩm và r
 #### Scenario: Existing routes unchanged
 - **WHEN** người dùng điều hướng danh sách, chi tiết, quay lại trong Sản phẩm hoặc dùng các route của Đơn hàng
 - **THEN** hành vi giữ nguyên như trước, kể cả ngữ cảnh truy vấn và trả focus về thẻ sản phẩm
+
+### Requirement: Role based menu and landing page
+Shell SHALL show only the destinations the signed-in role may use, following the client role table that mirrors `docs/API_PERMISSIONS.md`. Each new session SHALL open the role's landing page, the first allowed destination in the order Overview, Orders, Categories and Inventory, Products. Settings SHALL be shown for every role. The previous session's route SHALL NOT be reused.
+
+#### Scenario: Warehouse login
+- **WHEN** `warehouse1` signs in
+- **THEN** Shell opens Categories and Inventory and the menu shows Products, Categories and Inventory and Settings only
+
+#### Scenario: Sales login after Admin
+- **WHEN** Admin was on Customers, logs out, then `cashier1` signs in
+- **THEN** Shell opens Orders, not Customers, and no Customers or Overview item is shown while the server keeps them closed to Sales
+
+#### Scenario: Admin login
+- **WHEN** `admin` signs in
+- **THEN** Shell opens Overview and shows all six destinations
+
+### Requirement: Restricted routes are blocked before loading
+Navigating to a destination or child route that the role may not open SHALL be refused before the page is created or any API call is made; Shell SHALL keep the current page and show a safe error.
+
+#### Scenario: Sales opens product editor directly
+- **WHEN** a SalesStaff session navigates to `ProductCreate` or `ProductEdit`
+- **THEN** navigation returns unavailable, no editor page is created and no product write request is sent
+
+#### Scenario: Warehouse opens Orders directly
+- **WHEN** a WarehouseStaff session navigates to the Orders destination
+- **THEN** navigation is refused and the current page stays
+
+### Requirement: Action buttons follow the role
+Write actions SHALL be visible only to roles the server allows: category add/edit/delete for Admin; stock import/adjust/delete and serial import for Admin and WarehouseStaff; order create and status change for Admin and SalesStaff; product create/edit/status/delete for Admin and Manager.
+
+#### Scenario: Manager views inventory
+- **WHEN** a Manager opens Categories and Inventory
+- **THEN** stock and category data are shown without add, import, adjust or delete buttons
+
+### Requirement: M3 role and HTTP verification record
+The repository SHALL contain `docs/M3_UI_API_VERIFICATION.md` recording, for a named build and OS, the HTTP status checks (200/201/204/400/401/403/404/409 and 500 when testable), the four-role Shell landing/menu/route results, network failure recovery and theme/resize/keyboard results, each marked Pass, Fail or Not checked with the command or evidence used.
+
+#### Scenario: Not checked is not a pass
+- **WHEN** a check cannot run in the verification environment (for example Windows native on Linux)
+- **THEN** it is recorded as Not checked with the reason and is not counted as passed

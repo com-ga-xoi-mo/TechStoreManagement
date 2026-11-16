@@ -3,7 +3,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Keyword search
-The `q` parameter SHALL be trimmed and split on whitespace into at most 8 words. A product SHALL match when every word matches, case-insensitively and as a substring, at least one of the product name, product SKU, product brand, product barcode, product description, or the SKU, barcode or variant name of any of the product's variants. A product SHALL also match when the whole trimmed `q` equals, case-insensitively, the serial number of one of its Serial/IMEI records. An empty `q` applies no keyword filter. The keyword filter SHALL combine with every other filter, and paging SHALL stay stable.
+The `q` parameter SHALL be trimmed and split on whitespace into at most 8 words. A product SHALL match when every word matches, case-insensitively and as a substring, at least one of the product name, product SKU, product brand, product barcode, product description, or the SKU, barcode or variant name of any of the product's variants. A product SHALL also match when the whole trimmed `q` equals, case-insensitively, either the serial number or the IMEI of one of its Serial/IMEI records. An empty `q` applies no keyword filter. The keyword filter SHALL combine with every other filter, and paging SHALL stay stable.
 
 #### Scenario: Search by product name
 - **WHEN** a client calls `GET /api/products?q=iphone`
@@ -26,7 +26,7 @@ The `q` parameter SHALL be trimmed and split on whitespace into at most 8 words.
 - **THEN** a product that matches only "macbook" is not returned
 
 #### Scenario: Exact IMEI
-- **WHEN** a serial `356789012345678` belongs to product P and a client calls `GET /api/products?q=356789012345678`
+- **WHEN** a Serial/IMEI record with `imei = 356789012345678` and no serial number belongs to product P and a client calls `GET /api/products?q=356789012345678`
 - **THEN** P is returned once
 
 #### Scenario: Partial IMEI does not match
@@ -36,3 +36,7 @@ The `q` parameter SHALL be trimmed and split on whitespace into at most 8 words.
 #### Scenario: Combined filters
 - **WHEN** a client calls `GET /api/products?q=laptop&brand=Apple&minPrice=20000000&spec=ram_gb:16`
 - **THEN** only products matching all four conditions are returned and `totalCount` counts only them
+
+#### Scenario: Exact serial number
+- **WHEN** a record has `serial_number = Serial-AbC123` and a null IMEI and a client calls `GET /api/products?q=serial-abc123`
+- **THEN** its owning product is returned once, while a serial prefix alone does not match through that record

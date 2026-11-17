@@ -310,6 +310,8 @@ Table purchase_orders {
   status purchase_order_status [not null, default: 'Draft']
   total_cost "numeric(18, 2)" [not null, default: 0, note: 'CHECK total_cost >= 0: Total procurement value']
   notes text [null, note: 'Special delivery terms or shipment notes']
+  supplier_document_number text [null, note: 'Supplier invoice or delivery document reference number']
+  client_request_id uuid [null, unique, note: 'Idempotency key for receipt creation to prevent duplicate submission']
   ordered_at timestamptz [null, note: 'Order submission timestamp']
   received_at timestamptz [null, note: 'Warehouse intake timestamp when status becomes PartiallyReceived or Received']
   created_at timestamptz [not null, default: `now()`]
@@ -321,6 +323,7 @@ Table purchase_orders {
     received_by_user_id [name: 'idx_purchase_orders_received_by', note: 'FK index']
     po_number [unique, name: 'idx_purchase_orders_po_number']
     status [name: 'idx_purchase_orders_status']
+    client_request_id [unique, name: 'idx_purchase_orders_client_request_id']
   }
 
   Note: 'Inbound procurement orders from authorized hardware suppliers. Allows partial shipments via PartiallyReceived status.'

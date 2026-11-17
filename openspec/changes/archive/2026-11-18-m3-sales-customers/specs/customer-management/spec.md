@@ -1,16 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Customer API authorization
-Every `/api/customers` endpoint SHALL require an authenticated, active account. Requests without a valid token SHALL return 401. Permissions SHALL be checked per action on the server:
-
-| Action | Allowed roles |
-| --- | --- |
-| `GET /api/customers`, `GET /api/customers/{id}` | Admin, Manager, SalesStaff |
-| `POST /api/customers` | Admin, Manager, SalesStaff |
-| `PUT /api/customers/{id}`, `PATCH /api/customers/{id}/deactivate`, `PATCH /api/customers/{id}/activate` | Admin, Manager |
-| `GET /api/customers/{id}/orders`, `/purchased-items`, `/loyalty-points` | Admin, Manager |
-
-Authenticated roles absent from a row SHALL receive 403 and no customer data SHALL be changed or exposed. WarehouseStaff SHALL receive 403 on every customer endpoint. No fixed user or role fallback SHALL grant access.
+Every `/api/customers` endpoint SHALL require an authenticated, active account; a missing or invalid token SHALL return 401. Admin, Manager and SalesStaff MAY search, read and create customers. Only Admin and Manager MAY update, deactivate, reactivate, or read the order, purchased-item and loyalty history. Any other authenticated role SHALL receive 403 with no customer data changed or exposed. No fixed user or role fallback SHALL grant access.
 
 #### Scenario: Admin can list customers
 - **WHEN** an authenticated Admin calls `GET /api/customers`
@@ -33,7 +24,7 @@ Authenticated roles absent from a row SHALL receive 403 and no customer data SHA
 - **THEN** the response is 401 or 403 respectively and no customer data is changed or exposed
 
 ### Requirement: Paginated customer search
-`GET /api/customers` SHALL return paginated items and metadata. It SHALL filter name/phone by case-insensitive literal substring, combine tier/activity with AND, and include both activity states when `isActive` is omitted. Defaults are page 1/size 20, capped at 100; ordering is creation descending then ID. Each item SHALL include all-order count, completed-order spending, and latest completed time; no completed orders means zero spending and null time. For a SalesStaff caller the server SHALL return only active customers, whatever `isActive` value is sent, and the totals SHALL count only active customers.
+`GET /api/customers` SHALL return paginated items and metadata, matching name/phone by case-insensitive literal substring and combining tier/activity with AND; omitting `isActive` includes both states. Defaults: page 1, size 20, capped at 100, newest first then ID. Each item SHALL include all-order count, completed-order spending and latest completed time (zero and null without completed orders). For SalesStaff the server SHALL return only active customers whatever `isActive` is sent.
 
 #### Scenario: Search by Vietnamese name or phone
 - **WHEN** an Admin searches with a name fragment or a phone fragment
@@ -64,7 +55,7 @@ Authenticated roles absent from a row SHALL receive 403 and no customer data SHA
 - **THEN** `totalSpent` is zero and `lastPurchaseAt` is null
 
 ### Requirement: Customer profile and persisted loyalty history
-`GET /api/customers/{id}` SHALL return the profile, persisted point balance, tier, activity state, and timestamps, or 404 for an unknown ID. `GET /api/customers/{id}/loyalty-points` SHALL return a newest-first paginated audit history with point change, balance after, reason, order ID, and timestamp. This change SHALL NOT calculate, award, reverse, or mutate loyalty data through these read endpoints. An inactive customer remains readable to Admin and Manager; for a SalesStaff caller an inactive customer SHALL return 404, the same as an unknown ID.
+`GET /api/customers/{id}` SHALL return the profile, persisted points, tier, activity state and timestamps, or 404 for an unknown ID. `GET /api/customers/{id}/loyalty-points` SHALL return newest-first paginated history with point change, balance after, reason, order ID and timestamp. These reads SHALL NOT calculate or change loyalty data. Admin and Manager can read an inactive customer; for SalesStaff an inactive customer SHALL return 404 like an unknown ID.
 
 #### Scenario: Existing customer profile
 - **WHEN** an Admin requests an existing customer's ID

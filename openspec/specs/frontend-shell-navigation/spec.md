@@ -197,7 +197,7 @@ Shell SHALL show only the destinations the signed-in role may use, following the
 
 #### Scenario: Sales login after Admin
 - **WHEN** Admin was on Customers, logs out, then `cashier1` signs in
-- **THEN** Shell opens Orders, not Customers, and no Customers or Overview item is shown while the server keeps them closed to Sales
+- **THEN** Shell opens Orders, not Customers; the menu shows Customers (search and create only) and no Overview item while the server keeps the dashboard closed to Sales
 
 #### Scenario: Admin login
 - **WHEN** `admin` signs in
@@ -215,11 +215,15 @@ Navigating to a destination or child route that the role may not open SHALL be r
 - **THEN** navigation is refused and the current page stays
 
 ### Requirement: Action buttons follow the role
-Write actions SHALL be visible only to roles the server allows: category add/edit/delete for Admin; stock import/adjust/delete and serial import for Admin and WarehouseStaff; order create and status change for Admin and SalesStaff; product create/edit/status/delete for Admin and Manager.
+Write actions SHALL be visible only to roles the server allows: category add/edit/delete for Admin; stock import/adjust/delete and serial import for Admin and WarehouseStaff; order create and status change for Admin and SalesStaff; product create/edit/status/delete for Admin and Manager; customer create for Admin, Manager and SalesStaff; customer edit, deactivate/reactivate and history for Admin and Manager.
 
 #### Scenario: Manager views inventory
 - **WHEN** a Manager opens Categories and Inventory
 - **THEN** stock and category data are shown without add, import, adjust or delete buttons
+
+#### Scenario: Sales views customers
+- **WHEN** a SalesStaff opens Customers
+- **THEN** the add button is shown and edit, activity and history actions are not
 
 ### Requirement: M3 role and HTTP verification record
 The repository SHALL contain `docs/M3_UI_API_VERIFICATION.md` recording, for a named build and OS, the HTTP status checks (200/201/204/400/401/403/404/409 and 500 when testable), the four-role Shell landing/menu/route results, network failure recovery and theme/resize/keyboard results, each marked Pass, Fail or Not checked with the command or evidence used.

@@ -21,7 +21,7 @@
 
 - [x] 3.1 `dotnet build TechStore.sln`; backend và frontend unit tests; ghi Pass/Fail/Skipped.
 - [x] 3.2 API + PostgreSQL thật: đăng nhập admin/manager/sales/warehouse, gọi từng endpoint Customers, ghi mã trả về.
-- [ ] 3.3 Chạy UI Skia: Sales mở Khách hàng (không thấy nút sửa/lịch sử), tạo khách; trang tạo đơn chọn khách rồi lưu nháp. Ghi rõ phần nào chưa kiểm tra được.
+- [x] 3.3 Chạy UI Skia: Sales mở Khách hàng (không thấy nút sửa/lịch sử), tạo khách; trang tạo đơn chọn khách rồi lưu nháp. Ghi rõ phần nào chưa kiểm tra được.
 
 ## Kết quả kiểm thử (AI, 2026-11-17, Windows 11)
 
@@ -35,4 +35,6 @@
   - PUT, deactivate, activate, orders, loyalty-points, purchased-items: S 403, W 403, M 200/204, A 200/204.
   - W tìm/tạo 403; không token 401.
   - S tạo đơn `POST /api/orders` có `customerId` của khách vừa tạo: 201, `customerName` đúng; không gửi `customerId`: 201, khách lẻ; khách đã vô hiệu hóa: 400 dưới `customerId`.
-- 3.3 **Chưa kiểm tra.** Không điều khiển được cửa sổ Skia từ phiên agent (Windows chặn đưa cửa sổ lên trước), nên chưa xem trang Khách hàng với Sales, form tạo khách từ bộ chọn, binding và đổi theme. Cần Vy chạy tay trước khi archive.
+- 3.3 Agent không điều khiển được cửa sổ Skia (Windows chặn đưa cửa sổ lên trước). Vy chạy tay trên Windows và xác nhận đạt (18/11/2026): Sales mở Khách hàng, tạo khách, trang tạo đơn tìm/chọn khách và lưu nháp. Chưa ghi nhận kiểm tra đổi theme. **Pass (người dùng xác nhận)**
+- Sau review của An (18/11/2026): test tìm ký tự đặc biệt trước đây tự `return` (pass rỗng) khi thiếu biến `TECHSTORE_TEST_POSTGRES_CONNECTION_STRING`; chuyển sang `[PostgresFact]` + DB tạm như các test PostgreSQL khác, thêm tìm `%` và `_` trơn, và đã thử bỏ escape thì test fail (`'Percent%'` khớp 2). Thêm test HTTP + PostgreSQL: `orders`, `loyalty-points`, `purchased-items` trả 404 với khách không tồn tại, 200 trang rỗng với khách chưa có lịch sử. Phiên bản EF Core đã đồng bộ 10.0.12 từ trước (không còn MSB3277).
+- Kiểm lại trên nền `dev` mới (sau PR #26 POS): `dotnet build TechStore.sln` 0 error, 0 warning (sau khi sửa 2 CS8602 trong test); backend 702 Pass / 0 Fail / 0 Skipped có PostgreSQL; frontend 1051 Pass / 0 Fail. `Frontend.IntegrationTests` build sạch sau khi link picker và `Models/Sales`, chưa chạy (cần API live).

@@ -106,7 +106,7 @@ public sealed partial class DeviceStatusDialogViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(CanSubmit))]
-    public async Task ConfirmAsync()
+    public async Task ConfirmAsync(CancellationToken cancellationToken = default)
     {
         if (!CanSubmit || Device == null) return;
 
@@ -122,7 +122,7 @@ public sealed partial class DeviceStatusDialogViewModel : ObservableObject
                     Reason = Reason.Trim(),
                     Note = string.IsNullOrWhiteSpace(Note) ? null : Note.Trim()
                 };
-                result = await _repository.ReportDefectiveAsync(Device.Id, request);
+                result = await _repository.ReportDefectiveAsync(Device.Id, request, cancellationToken);
             }
             else
             {
@@ -130,7 +130,7 @@ public sealed partial class DeviceStatusDialogViewModel : ObservableObject
                 {
                     Note = string.IsNullOrWhiteSpace(Note) ? null : Note.Trim()
                 };
-                result = await _repository.RestoreAsync(Device.Id, request);
+                result = await _repository.RestoreAsync(Device.Id, request, cancellationToken);
             }
 
             if (result.Succeeded && result.Data != null)

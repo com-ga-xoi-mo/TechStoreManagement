@@ -124,7 +124,7 @@ public sealed partial class SupplierEditorDialogViewModel(ISupplierRepository su
     }
 
     [RelayCommand]
-    public async Task SaveAsync()
+    public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
         if (IsBusy) return;
         if (!ValidateInput()) return;
@@ -144,8 +144,8 @@ public sealed partial class SupplierEditorDialogViewModel(ISupplierRepository su
             };
 
             var result = IsEditing
-                ? await supplierRepository.UpdateAsync(Id!.Value, request)
-                : await supplierRepository.CreateAsync(request);
+                ? await supplierRepository.UpdateAsync(Id!.Value, request, cancellationToken)
+                : await supplierRepository.CreateAsync(request, cancellationToken);
 
             if (result.Succeeded)
             {

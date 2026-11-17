@@ -30,8 +30,11 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
             return Task.FromResult(new ProductPage(items, page, size, Products.Count, totalPages));
         }
 
+        public List<CancellationToken> DetailTokens { get; } = [];
+
         public Task<ProductDetail?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
+            DetailTokens.Add(cancellationToken);
             if (PendingDetails.TryGetValue(id, out var pending)) return pending.Task;
             Details.TryGetValue(id, out var detail);
             return Task.FromResult(detail);
@@ -451,5 +454,25 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
         // Assert
         vm.ValidationMessage.Should().Be("Giá nhập của mặt hàng \"Cáp\" không được vượt quá 1.000.000.000.000 ₫.");
         vm.CanSubmit.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SelectingAnotherProduct_CancelsThePreviousVariantRequest()
+    {
+        // Arrange
+        var (vm, products, _, _) = CreateFixture();
+        var phoneId = Guid.NewGuid();
+        products.PendingDetails[phoneId] = new TaskCompletionSource<ProductDetail?>();
+        var phone = new ImportStockProductOption(phoneId, "iPhone 16", "IP16", "Điện thoại", true);
+        var cable = new ImportStockProductOption(Guid.NewGuid(), "Cáp", "CAB", "Phụ kiện", false);
+
+        // Act
+        vm.SelectedProduct = phone;
+        vm.SelectedProduct = cable;
+
+        // Assert
+        products.DetailTokens.Should().HaveCount(2);
+        products.DetailTokens[0].IsCancellationRequested.Should().BeTrue();
+        products.DetailTokens[1].IsCancellationRequested.Should().BeFalse();
     }
 }

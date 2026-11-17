@@ -155,6 +155,7 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
     private readonly IPurchaseReceiptRepository _receiptRepository;
     private const int ListPageSize = 100;
     private int _variantLoadGeneration;
+    private CancellationTokenSource? _variantLoadCancellation;
 
     public Guid ClientRequestId { get; } = Guid.NewGuid();
 
@@ -356,14 +357,14 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
         }
     }
 
-    private async Task LoadVariantsAsync(Guid productId)
+    private async Task LoadVariantsAsync(Guid productId, CancellationToken cancellationToken)
     {
         if (productId == Guid.Empty) return;
         var generation = ++_variantLoadGeneration;
         IsLoadingVariants = true;
         try
         {
-            var detail = await _productRepository.GetByIdAsync(productId);
+            var detail = await _productRepository.GetByIdAsync(productId, cancellationToken);
             // The user may have picked another product while this one was loading.
             if (generation != _variantLoadGeneration || SelectedProduct?.Id != productId) return;
 
@@ -376,6 +377,10 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
                 }
             }
             OnPropertyChanged(nameof(HasVariants));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Another product was picked; its own load reports the result.
         }
         catch (Exception)
         {
@@ -397,9 +402,12 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
     {
         SelectedVariant = null;
         VariantOptions.Clear();
+        _variantLoadCancellation?.Cancel();
+        _variantLoadCancellation = null;
         if (value != null && !value.VariantId.HasValue)
         {
-            _ = LoadVariantsAsync(value.Id);
+            _variantLoadCancellation = new CancellationTokenSource();
+            _ = LoadVariantsAsync(value.Id, _variantLoadCancellation.Token);
         }
         else
         {
@@ -502,7 +510,7 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
     }
 
     [RelayCommand]
-    public async Task SubmitAsync()
+    public async Task SubmitAsync(CancellationToken cancellationToken = default)
     {
         if (!CanSubmit || IsBusy) return;
 
@@ -533,7 +541,7 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
                 }).ToList()
             };
 
-            var result = await _receiptRepository.CreateAsync(request);
+            var result = await _receiptRepository.CreateAsync(request, cancellationToken);
             if (result.Succeeded && result.Data != null)
             {
                 LastSubmitWasReplay = result.IsReplay;

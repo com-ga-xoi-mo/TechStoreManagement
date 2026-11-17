@@ -17,7 +17,7 @@ public sealed partial class PurchaseReceiptDetailDialogViewModel(IPurchaseReceip
     public event EventHandler? RequestClose;
 
     [RelayCommand]
-    public async Task LoadAsync(Guid receiptId)
+    public async Task LoadAsync(Guid receiptId, CancellationToken cancellationToken = default)
     {
         IsLoading = true;
         ErrorMessage = null;
@@ -25,7 +25,7 @@ public sealed partial class PurchaseReceiptDetailDialogViewModel(IPurchaseReceip
 
         try
         {
-            var result = await receiptRepository.GetByIdAsync(receiptId);
+            var result = await receiptRepository.GetByIdAsync(receiptId, cancellationToken);
             if (result.Succeeded && result.Data != null)
             {
                 Receipt = result.Data;

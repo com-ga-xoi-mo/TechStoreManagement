@@ -143,14 +143,13 @@ public sealed partial class CategoryManagementViewModel(
     }
 
     // A defect report or restore changes one device and its stock balance: reload both lists once.
-    public async Task OnDeviceStatusChangedAsync(SerialImeiDto device, DeviceStatusMode mode)
+    public async Task OnDeviceStatusChangedAsync(SerialDeviceItem device, DeviceStatusMode mode)
     {
         ArgumentNullException.ThrowIfNull(device);
         await Serials.LoadCommand.ExecuteAsync(null);
         await Inventory.LoadCommand.ExecuteAsync(null);
         var actionText = mode == DeviceStatusMode.ReportDefective ? "báo lỗi" : "đưa về kho";
-        var code = !string.IsNullOrWhiteSpace(device.Imei) ? device.Imei : device.SerialNumber;
-        _ = Inventory.ShowSuccessToastAsync($"Đã {actionText} thiết bị {code} thành công.");
+        _ = Inventory.ShowSuccessToastAsync($"Đã {actionText} thiết bị {device.Identifier} thành công.");
     }
     partial void OnTotalCountChanged(int value) => OnPropertyChanged(nameof(TotalLabel));
 

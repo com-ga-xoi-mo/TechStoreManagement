@@ -1,4 +1,5 @@
 using FluentAssertions;
+using TechStore.Client.Models.Inventory;
 using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.ViewModels.Inventory;
 using TechStore.Shared.DTOs;
@@ -101,7 +102,7 @@ public sealed class DeviceStatusDialogViewModelTests
             Note = "Khách làm rơi"
         };
 
-        SerialImeiDto? changedDevice = null;
+        SerialDeviceItem? changedDevice = null;
         var closed = false;
         vm.DeviceStatusChanged += d => changedDevice = d;
         vm.RequestClose += (_, _) => closed = true;
@@ -131,7 +132,7 @@ public sealed class DeviceStatusDialogViewModelTests
             Note = "Đã thay linh kiện"
         };
 
-        SerialImeiDto? changedDevice = null;
+        SerialDeviceItem? changedDevice = null;
         var closed = false;
         vm.DeviceStatusChanged += d => changedDevice = d;
         vm.RequestClose += (_, _) => closed = true;

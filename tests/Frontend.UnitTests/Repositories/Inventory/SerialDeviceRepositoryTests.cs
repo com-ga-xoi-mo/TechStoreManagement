@@ -1,3 +1,4 @@
+using TechStore.Client.Models.Inventory;
 using FluentAssertions;
 using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Services.Api;
@@ -62,6 +63,7 @@ public sealed class SerialDeviceRepositoryTests
         result.Succeeded.Should().BeTrue();
         result.Data.Should().NotBeNull();
         result.Data!.Status.Should().Be(SerialImeiStatus.Defective);
+        result.Data.Should().BeOfType<SerialDeviceItem>("the repository maps the DTO to a client model");
         api.LastPath.Should().Be($"api/inventory/serials/{deviceId:D}/defective");
         api.LastBody.Should().Be(req);
     }

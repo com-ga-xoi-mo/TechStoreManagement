@@ -675,7 +675,7 @@ public class CategoryWorkspaceTests
         var inventoryVm = new InventoryStockViewModel(stockApi);
         var serialsVm = new SerialImeiViewModel(stockApi);
         var vm = CreateVm(new FakeApi([]), inventory: inventoryVm, serials: serialsVm);
-        var device = new SerialImeiDto { Id = Guid.NewGuid(), Imei = "356789012345678", Status = SerialImeiStatus.Defective };
+        var device = new SerialDeviceItem(Guid.NewGuid(), "iPhone 16", null, null, "356789012345678", SerialImeiStatus.Defective);
 
         // Act
         await vm.OnDeviceStatusChangedAsync(device, DeviceStatusMode.ReportDefective);

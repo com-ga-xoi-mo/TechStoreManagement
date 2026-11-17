@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TechStore.Client.Models.Inventory;
 using TechStore.Client.Repositories.Inventory;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
@@ -45,7 +46,7 @@ public sealed partial class DeviceStatusDialogViewModel : ObservableObject
 
     public bool CanSubmit => !IsBusy && (!IsReportDefective || !string.IsNullOrWhiteSpace(Reason));
 
-    public event Action<SerialImeiDto>? DeviceStatusChanged;
+    public event Action<SerialDeviceItem>? DeviceStatusChanged;
     public event EventHandler? RequestClose;
 
     public DeviceStatusDialogViewModel(ISerialDeviceRepository repository)

@@ -1,3 +1,4 @@
+using TechStore.Client.Models.Inventory;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -16,13 +17,13 @@ public enum SerialDeviceFailureKind
 
 public sealed record SerialDeviceMutationResult(
     bool Succeeded,
-    SerialImeiDto? Data = null,
+    SerialDeviceItem? Data = null,
     SerialDeviceFailureKind Failure = SerialDeviceFailureKind.None,
     string? Message = null,
     IReadOnlyDictionary<string, IReadOnlyList<string>>? FieldErrors = null)
 {
     public static SerialDeviceMutationResult Success(SerialImeiDto data) =>
-        new(true, data);
+        new(true, SerialDeviceItem.FromDto(data));
 
     public static SerialDeviceMutationResult Failed(
         SerialDeviceFailureKind failure,

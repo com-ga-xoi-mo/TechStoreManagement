@@ -22,6 +22,11 @@
     <Compile Include="../../frontend/TechStore.Client/Models/Orders/**/*.cs" Link="Production/Models/Orders/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Repositories/Orders/**/*.cs" Link="Production/Repositories/Orders/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/ViewModels/Orders/**/*.cs" Link="Production/ViewModels/Orders/%(Filename)%(Extension)" />
+    <!-- Order creation hosts the shared customer picker (m3-sales-customers). -->
+    <Compile Include="../../frontend/TechStore.Client/Models/Customers/**/*.cs" Link="Production/Models/Customers/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Customers/**/*.cs" Link="Production/Repositories/Customers/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Customers/CustomerPickerViewModel.cs" Link="Production/ViewModels/Customers/CustomerPickerViewModel.cs" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Customers/CustomerFormViewModel.cs" Link="Production/ViewModels/Customers/CustomerFormViewModel.cs" />
     <Compile Include="../../frontend/TechStore.Client/ViewModels/Pages/**/*.cs" Link="Production/ViewModels/Pages/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Services/Navigation/**/*.cs" Link="Production/Services/Navigation/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Services/Dialog/**/*.cs" Link="Production/Services/Dialog/%(Filename)%(Extension)" />
@@ -37,10 +42,5 @@
     <Compile Include="../../frontend/TechStore.Client/Services/Authentication/**/*.cs" Link="Production/Services/Authentication/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Models/Inventory/**/*.cs" Link="Production/Models/Inventory/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Models/Sales/**/*.cs" Link="Production/Models/Sales/%(Filename)%(Extension)" />
-    <!-- Order creation hosts the shared customer picker (m3-sales-customers). -->
-    <Compile Include="../../frontend/TechStore.Client/Models/Customers/**/*.cs" Link="Production/Models/Customers/%(Filename)%(Extension)" />
-    <Compile Include="../../frontend/TechStore.Client/Repositories/Customers/**/*.cs" Link="Production/Repositories/Customers/%(Filename)%(Extension)" />
-    <Compile Include="../../frontend/TechStore.Client/ViewModels/Customers/CustomerPickerViewModel.cs" Link="Production/ViewModels/Customers/CustomerPickerViewModel.cs" />
-    <Compile Include="../../frontend/TechStore.Client/ViewModels/Customers/CustomerFormViewModel.cs" Link="Production/ViewModels/Customers/CustomerFormViewModel.cs" />
   </ItemGroup>
 </Project>

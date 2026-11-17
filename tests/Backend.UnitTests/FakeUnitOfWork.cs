@@ -20,6 +20,9 @@ public class FakeUnitOfWork : IUnitOfWork
 
     public Exception? ExceptionToThrowOnSave { get; set; }
 
+    // Lets a test undo what a fake repository staged, as a real rollback clears the change tracker.
+    public Action? OnRollback { get; set; }
+
     // Exceptions thrown by successive saves, one per call, before ExceptionToThrowOnSave applies.
     public Queue<Exception> SaveExceptionQueue { get; } = new();
 
@@ -65,6 +68,7 @@ public class FakeUnitOfWork : IUnitOfWork
     public Task RollbackAsync(CancellationToken cancellationToken = default)
     {
         RollbackCount++;
+        OnRollback?.Invoke();
         return Task.CompletedTask;
     }
 }

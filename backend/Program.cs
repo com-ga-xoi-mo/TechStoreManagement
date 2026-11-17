@@ -16,6 +16,8 @@ using TechStore.Api.Inventory.Repositories;
 using TechStore.Api.Inventory.Services;
 using TechStore.Api.Orders.Repositories;
 using TechStore.Api.Orders.Services;
+using TechStore.Api.Sales.Repositories;
+using TechStore.Api.Sales.Services;
 
 // Development only: backend/.env (git-ignored) can hold local settings such as R2 keys.
 if (string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase))
@@ -77,6 +79,11 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 // Orders Module services
 builder.Services.TryAddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IOrderService, OrderService>();
+
+// Sales Module (POS shifts and cash checkout)
+builder.Services.AddScoped<IPosSessionRepository, PosSessionRepository>();
+builder.Services.AddScoped<IPosShiftService, PosShiftService>();
+builder.Services.AddScoped<IPosCheckoutService, PosCheckoutService>();
 
 // Analytics Module
 builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();

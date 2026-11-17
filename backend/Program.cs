@@ -65,11 +65,13 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IInventoryStockRepository, InventoryStockRepository>();
 builder.Services.AddScoped<ISerialImeiRepository, SerialImeiRepository>();
 builder.Services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 
 // Inventory Module services
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ISerialImeiService, SerialImeiService>();
 builder.Services.AddScoped<IInventoryFulfillmentService, InventoryFulfillmentService>();
+builder.Services.AddScoped<ISupplierService, SupplierService>();
 
 // Customers Module repositories
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();

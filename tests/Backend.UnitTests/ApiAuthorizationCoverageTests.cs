@@ -24,6 +24,7 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
     private const string OrderWrite = "Admin,SalesStaff";
     private const string CustomerServe = "Admin,Manager,SalesStaff";
     private const string CustomerManage = "Admin,Manager";
+    private const string PurchaseRead = "Admin,Manager,WarehouseStaff";
 
     // Independent expectations from docs/API_PERMISSIONS.md, not generated from controller attributes.
     private static readonly EndpointCase[] Baseline =
@@ -47,6 +48,9 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
         new("POST", "api/inventory/stocks/{stockid:guid}/adjust", StockWrite),
         new("DELETE", "api/inventory/stocks/{stockid:guid}", StockWrite),
         new("POST", "api/inventory/serials/batch-import", StockWrite),
+        new("GET", "api/inventory/suppliers", PurchaseRead), new("GET", "api/inventory/suppliers/{id:guid}", PurchaseRead),
+        new("POST", "api/inventory/suppliers", StockWrite), new("PUT", "api/inventory/suppliers/{id:guid}", StockWrite),
+        new("PATCH", "api/inventory/suppliers/{id:guid}/status", StockWrite),
         new("GET", "api/orders", OrderRead), new("GET", "api/orders/{id:guid}", OrderRead),
         new("POST", "api/orders", OrderWrite), new("PATCH", "api/orders/{id:guid}/status", OrderWrite),
         new("GET", "api/customers", CustomerServe), new("GET", "api/customers/{id:guid}", CustomerServe),

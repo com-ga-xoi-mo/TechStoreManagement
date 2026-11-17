@@ -86,11 +86,11 @@
      - Tab **Cây danh mục (Category Tree)**: Hiển thị phân cấp cha-con nhiều cấp độ.
   2. Bấm nút hành động **"•••"** trên một dòng sản phẩm -> Mở **Lịch sử biến động kho (StockDetailHistoryDialog)**:
      - Cho thấy danh sách lịch sử biến động từ bảng `inventory_movements`: từng lần nhập hàng, bán hàng, điều chỉnh với số lượng trước/sau, mã tham chiếu và lý do cụ thể.
-  3. Bấm **"Nhập kho sản phẩm" (ImportStockDialog)**:
-     - Chọn sản phẩm có quản lý Serial/IMEI.
-     - Nhập số lượng và đơn giá nhập vốn.
-     - **Tình huống cố tình nhập lỗi:** Nhập thử 1 mã IMEI đã có sẵn trong cơ sở dữ liệu -> Bấm Lưu -> Hệ thống thông báo lỗi trùng lặp dữ liệu (`DuplicateKeyException` mã 23505 từ PostgreSQL).
-     - **Tình huống hợp lệ:** Nhập danh sách các mã IMEI mới hợp lệ -> Bấm Lưu thành công. Tồn kho tăng ngay lập tức.
+  3. Bấm **"Nhập kho mới"** (mở form **Tạo phiếu nhập hàng**, `CreatePurchaseReceiptDialog`):
+     - Chọn nhà cung cấp, thêm một sản phẩm có quản lý Serial/IMEI.
+     - Nhập số lượng, giá nhập và dán danh sách IMEI (form đếm số mã ngay khi dán).
+     - **Tình huống cố tình nhập lỗi:** Dán 1 mã IMEI đã có trong hệ thống -> Bấm "Xác nhận nhập" -> Form giữ nguyên dữ liệu và liệt kê mã bị trùng (HTTP 409).
+     - **Tình huống hợp lệ:** Dán các IMEI mới -> Bấm "Xác nhận nhập" -> Thông báo số phiếu `PN-...`, tồn kho và tab Serial/IMEI cập nhật ngay; phiếu hiện trong tab **Nhập hàng**.
   4. Chuyển sang trang **Tra cứu Serial/IMEI (SerialImeiPage)**:
      - Tìm kiếm các IMEI vừa nhập, thấy trạng thái hiện tại là `InStock`.
      - Giải thích sơ đồ vòng đời: `InStock` -> `Reserved` -> `Sold` -> `Returned` / `Defective`.

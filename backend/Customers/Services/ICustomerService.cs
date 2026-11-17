@@ -1,4 +1,5 @@
 using TechStore.Shared.DTOs;
+using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Api.Customers.Services;
@@ -18,8 +19,8 @@ public sealed record CustomerOperationResult<T>(
 
 public interface ICustomerService
 {
-    Task<CustomerOperationResult<PagedResultDto<CustomerSummaryDto>>> SearchAsync(CustomerSearchRequest request, CancellationToken cancellationToken = default);
-    Task<CustomerOperationResult<CustomerDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<CustomerOperationResult<PagedResultDto<CustomerSummaryDto>>> SearchAsync(CustomerSearchRequest request, RoleType role, CancellationToken cancellationToken = default);
+    Task<CustomerOperationResult<CustomerDto>> GetByIdAsync(Guid id, RoleType role, CancellationToken cancellationToken = default);
     Task<CustomerOperationResult<PagedResultDto<CustomerLoyaltyPointDto>>> GetLoyaltyPointsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default);
     Task<CustomerOperationResult<PagedResultDto<OrderSummaryDto>>> GetOrdersAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default);
     Task<CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>> GetPurchasedItemsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default);

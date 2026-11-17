@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Data;
 using TechStore.Client.Controls;
 using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Orders;
+using TechStore.Client.Views.Customers;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.Views.Shell;
 using Uno.Extensions.Markup;
@@ -48,7 +49,11 @@ public sealed class OrderCreatePage : Page, IRoutePage
                                             .Spacing(16)
                                             .Children(BuildFinder(), BuildEditor(), BuildLines())
                                             .Grid(column: 0),
-                                        BuildSummary().Grid(column: 1))
+                                        new StackPanel()
+                                            .Spacing(16)
+                                            .VerticalAlignment(VerticalAlignment.Top)
+                                            .Children(BuildCustomer(), BuildSummary())
+                                            .Grid(column: 1))
                                     .Grid(row: 1))));
     }
 
@@ -63,13 +68,18 @@ public sealed class OrderCreatePage : Page, IRoutePage
                     .Spacing(4)
                     .Children(
                         new TextBlock().Style(AppTypography.Styles.HeadingText).Text("Lập đơn hàng"),
-                        Caption("Khách lẻ. Giá lấy từ danh mục; số tiền dưới đây là tạm tính, hệ thống sẽ tính lại khi tạo đơn.")),
+                        Caption("Giá lấy từ danh mục; số tiền dưới đây là tạm tính, hệ thống sẽ tính lại khi tạo đơn.")),
                 new Button()
                     .Style(AppControlStyles.Styles.Button)
                     .Content("Quay lại danh sách")
                     .VerticalAlignment(VerticalAlignment.Top)
                     .Command(x => x.Binding(() => ViewModel.BackToListCommand))
                     .Grid(column: 1));
+
+    // ---------- customer (walk-in guest when none is picked) ----------
+
+    private UIElement BuildCustomer() =>
+        ViewModel.Customer is { } customer ? new CustomerPickerView(customer) : new Border();
 
     // ---------- 1. find a product ----------
 

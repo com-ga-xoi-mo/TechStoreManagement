@@ -15,8 +15,10 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | POST `/api/inventory/stocks/initialize`, POST `/api/inventory/stocks/{stockId}/adjust`, DELETE `/api/inventory/stocks/{stockId}`, POST `/api/inventory/serials/batch-import` | A W | Existing inventory writes, never catalog price writes |
 | GET `/api/orders`, `/api/orders/{id}` | A M S | A/M see all; S sees only orders whose cashier is that user |
 | POST `/api/orders`, PATCH `/api/orders/{id}/status` | A S | A writes all; S transitions only own orders; creator comes from token |
-| GET `/api/customers`, `/api/customers/{id}`, `/api/customers/{id}/loyalty-points`, `/api/customers/{id}/orders`, `/api/customers/{id}/purchased-items` | A | Existing customer and history DTOs; Sales access is Sprint 2 |
-| POST `/api/customers`, PUT `/api/customers/{id}`, PATCH `/api/customers/{id}/deactivate`, `/api/customers/{id}/activate` | A | Existing customer management |
+| GET `/api/customers`, `/api/customers/{id}` | A M S | S chỉ thấy khách đang hoạt động (server ép `isActive=true`); khách đã vô hiệu hóa trả 404 với S |
+| POST `/api/customers` | A M S | Tạo khách tại quầy; điểm, hạng và trạng thái do server quyết định |
+| GET `/api/customers/{id}/loyalty-points`, `/api/customers/{id}/orders`, `/api/customers/{id}/purchased-items` | A M | Lịch sử khách gồm đơn của thu ngân khác nên không mở cho S |
+| PUT `/api/customers/{id}`, PATCH `/api/customers/{id}/deactivate`, `/api/customers/{id}/activate` | A M | Sửa liên hệ và trạng thái khách |
 | POST `/api/pos/shifts`, GET `/api/pos/shifts/current`, POST `/api/pos/checkout` | A S | Open own shift, read own open shift, cash checkout into own open shift; actor from token |
 | GET `/api/pos/shifts`, `/api/pos/shifts/{id}` | A M S | A/M see all shifts; S sees only own (other users' shifts return 404) |
 | POST `/api/pos/shifts/{id}/close` | A M S | S closes own shift only; A/M close any shift; closing records `closedByUserId` |
@@ -31,9 +33,9 @@ Static product image files public; Swagger chỉ Development. Fallback policy b�
 cho endpoint không khai báo policy; không có quyền mặc định hoặc user fallback.
 Account password/hash/token/version và order cost snapshots không xuất trong business DTO.
 
-Sprint 2 tiếp tục: mở dashboard Manager và khách hàng Sales, kiểm tra trường giá vốn
+Sprint 2 tiếp tục: mở dashboard Manager, kiểm tra trường giá vốn
 Inventory theo role, landing page/menu và tách settings cá nhân. Giá vốn sản phẩm đã được che tại server theo `FieldAccess`.
-Hiện Manager gọi dashboard và Sales gọi Customers vẫn nhận 403.
+Hiện Manager gọi dashboard vẫn nhận 403. Customers theo bảng trên (change `m3-sales-customers`).
 
 ## Kiểm chứng và cập nhật khi tích hợp
 

@@ -61,9 +61,14 @@ public sealed class CustomerDetailDialogView : UserControl
         var scrollingBody = new StackPanel { Spacing = 0 };
         scrollingBody.Children.Add(BuildMetrics());
         scrollingBody.Children.Add(BuildActivityError());
-        scrollingBody.Children.Add(BuildHistoryTabs());
+        // History is Admin/Manager only (SalesStaff gets 403 from the server and the ViewModel never asks).
+        scrollingBody.Children.Add(BuildHistoryTabs()
+            .Visibility(x => x.Binding(() => ViewModel.CanManageCustomers)
+                .Convert((bool value) => value ? Visibility.Visible : Visibility.Collapsed)));
         scrollingBody.Children.Add(BuildLoadState());
-        scrollingBody.Children.Add(BuildHistoryTables());
+        scrollingBody.Children.Add(BuildHistoryTables()
+            .Visibility(x => x.Binding(() => ViewModel.CanManageCustomers)
+                .Convert((bool value) => value ? Visibility.Visible : Visibility.Collapsed)));
         var scrollViewer = new ScrollViewer
         {
             Content = scrollingBody,

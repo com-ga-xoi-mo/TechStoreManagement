@@ -1,3 +1,4 @@
+using TechStore.Client.Services.Session;
 using TechStore.Client.Models.Customers;
 using TechStore.Client.Repositories.Customers;
 using TechStore.Client.Services.Api;
@@ -23,6 +24,31 @@ public sealed class CustomerDetailViewModelTests
         Assert.Equal("ORD-1", Assert.Single(vm.OrderHistory!.Items).OrderCode);
         Assert.Equal("123456789012345", Assert.Single(vm.PurchasedItems!.Items).Imei);
         Assert.Equal(0, repository.WriteCount);
+    }
+
+    [Fact]
+    public async Task LoadAsync_SalesSession_LoadsProfileOnlyAndOffersNoManagement()
+    {
+        // Arrange
+        var repository = new FakeCustomers();
+        var session = new InMemorySessionStore();
+        session.SetSession("token", "refresh", "cashier1", "Thu ngân", "SalesStaff");
+        var vm = new CustomerDetailViewModel(repository, session);
+
+        // Act
+        await vm.LoadAsync(Id);
+
+        // Assert
+        Assert.Equal("Vy", vm.Profile!.FullName);
+        Assert.False(vm.CanManageCustomers);
+        Assert.False(vm.CanDeactivate);
+        Assert.False(vm.CanActivate);
+        Assert.Null(vm.PointHistory);
+        Assert.Null(vm.OrderHistory);
+        Assert.Null(vm.PurchasedItems);
+        Assert.Empty(repository.PointPages);
+        Assert.Empty(repository.OrderPages);
+        Assert.Empty(repository.DevicePages);
     }
 
     [Fact]

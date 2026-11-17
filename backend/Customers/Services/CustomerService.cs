@@ -17,7 +17,7 @@ public class CustomerService(
 {
     private const string CustomerPhoneConstraint = "idx_customers_phone";
 
-    public async Task<CustomerOperationResult<PagedResultDto<CustomerSummaryDto>>> SearchAsync(CustomerSearchRequest request, CancellationToken cancellationToken = default)
+    public async Task<CustomerOperationResult<PagedResultDto<CustomerSummaryDto>>> SearchAsync(CustomerSearchRequest request, RoleType role, CancellationToken cancellationToken = default)
     {
         CustomerTier? tier = null;
         if (!string.IsNullOrWhiteSpace(request.Tier))
@@ -29,16 +29,18 @@ public class CustomerService(
         }
 
         var (page, pageSize) = NormalizePaging(request.Page, request.PageSize);
-        var criteria = new CustomerSearchCriteria(string.IsNullOrWhiteSpace(request.Q) ? null : request.Q.Trim(), tier, request.IsActive, page, pageSize);
+        // SalesStaff serves customers at the counter: only active customers can be sold to, so only those are visible.
+        var isActive = CanSeeInactive(role) ? request.IsActive : true;
+        var criteria = new CustomerSearchCriteria(string.IsNullOrWhiteSpace(request.Q) ? null : request.Q.Trim(), tier, isActive, page, pageSize);
         var (items, count) = await customerRepository.SearchAsync(criteria, cancellationToken);
         var data = new PagedResultDto<CustomerSummaryDto>(items.Select(MapSummary).ToList(), page, pageSize, count, TotalPages(count, pageSize));
         return CustomerOperationResult<PagedResultDto<CustomerSummaryDto>>.Success(data);
     }
 
-    public async Task<CustomerOperationResult<CustomerDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<CustomerOperationResult<CustomerDto>> GetByIdAsync(Guid id, RoleType role, CancellationToken cancellationToken = default)
     {
         var customer = await customerRepository.GetByIdAsync(id, cancellationToken);
-        if (customer == null) return CustomerOperationResult<CustomerDto>.NotFound();
+        if (customer == null || (!customer.IsActive && !CanSeeInactive(role))) return CustomerOperationResult<CustomerDto>.NotFound();
         var metrics = await customerRepository.GetOrderMetricsAsync(id, cancellationToken);
         var profile = Map(customer);
         if (metrics is not null)
@@ -185,6 +187,8 @@ public class CustomerService(
         Address = c.Address, LoyaltyPoints = c.LoyaltyPoints, Tier = c.Tier.ToString(), IsActive = c.IsActive,
         CreatedAt = c.CreatedAt, UpdatedAt = c.UpdatedAt
     };
+
+    private static bool CanSeeInactive(RoleType role) => role is RoleType.Admin or RoleType.Manager;
 
     private static (int Page, int PageSize) NormalizePaging(int? page, int? pageSize) =>
         (page is > 0 ? page.Value : 1, pageSize is null ? 20 : Math.Clamp(pageSize.Value, 1, 100));

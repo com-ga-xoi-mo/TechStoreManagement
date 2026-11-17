@@ -16,6 +16,8 @@ public sealed partial class SettingsViewModel : PageViewModel, IDisposable
     private readonly INavigationService? _navigation;
     private readonly ISessionStore? _session;
     public bool CanManageAccounts => _session?.Current is { Status: SessionStatus.Active, Role: "Admin" };
+    public bool CanEditStore => _session is null || RoleAccess.CanEditStoreSettings(
+        _session.Current.Status == SessionStatus.Active ? _session.Current.Role : null);
 
     [RelayCommand]
     private void ManageAccounts()
@@ -93,6 +95,8 @@ public sealed partial class SettingsViewModel : PageViewModel, IDisposable
     [RelayCommand]
     public async Task SaveStoreSettingsAsync()
     {
+        if (!CanEditStore) return;
+
         if (_storeSettingsRepository == null)
         {
             ShowSaveSuccess = true;

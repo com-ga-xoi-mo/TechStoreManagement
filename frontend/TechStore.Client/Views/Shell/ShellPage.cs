@@ -88,11 +88,8 @@ public sealed class ShellPage : Page
                     .Foreground(ThemeResource.Get<Brush>(AppColors.SecondaryText)));
 
         // Menu Items
-        ShellNavigationView.MenuItems.Add(CreateNavItem("Tổng quan", "Dashboard", Symbol.Home));
-        ShellNavigationView.MenuItems.Add(CreateNavItem("Sản phẩm", "Products", Symbol.Shop));
-        ShellNavigationView.MenuItems.Add(CreateNavItem("Danh mục và Kho", "Inventory", Symbol.AllApps));
-        ShellNavigationView.MenuItems.Add(CreateNavItem("Đơn hàng", "Orders", Symbol.Document));
-        ShellNavigationView.MenuItems.Add(CreateNavItem("Khách hàng", "Customers", Symbol.Contact));
+        foreach (var destination in ViewModel.MainDestinations)
+            ShellNavigationView.MenuItems.Add(CreateNavItem(destination.Title, destination.Id.ToString(), Enum.Parse<Symbol>(destination.Symbol)));
 
         // Footer Items
         ShellNavigationView.FooterMenuItems.Add(CreateNavItem("Cài đặt", "Settings", Symbol.Setting));

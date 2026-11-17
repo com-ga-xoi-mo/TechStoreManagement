@@ -33,6 +33,37 @@ public sealed class SessionRefreshTests
     }
 
     [Theory]
+    [InlineData(HttpStatusCode.OK)]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    public async Task InFlightResponse_AfterSilentRenewal_IsReturnedWithoutExpiringNewToken(HttpStatusCode status)
+    {
+        var store = new InMemorySessionStore();
+        Assert.True(store.TrySetSession(0, Pair("one"), false));
+        var generation = store.Current.Generation;
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finish = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var client = new HttpClient(new BearerTokenHandler(store)
+        {
+            InnerHandler = new Handler(async (_, _) =>
+            {
+                started.SetResult();
+                return await finish.Task;
+            })
+        });
+        var pending = client.GetAsync("http://localhost:5176/api/inventory/stocks");
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.True(store.TrySetSession(generation, Pair("two"), false, renewal: true, expectedAccessToken: "one", expectedRefreshToken: "refresh-one"));
+        finish.SetResult(new HttpResponseMessage(status) { Content = new StringContent("response body") });
+
+        using var response = await pending;
+        Assert.Equal(status, response.StatusCode);
+        Assert.Equal("response body", await response.Content.ReadAsStringAsync());
+        Assert.Equal(generation, store.Current.Generation);
+        Assert.Equal(SessionStatus.Active, store.Current.Status);
+        Assert.Equal("two", store.Current.AccessToken);
+    }
+
+    [Theory]
     [InlineData("POST")]
     [InlineData("PATCH")]
     [InlineData("DELETE")]

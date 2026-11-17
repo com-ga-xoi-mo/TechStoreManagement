@@ -226,6 +226,7 @@ public sealed class StockDetailHistoryDialog : ContentDialog
             .Background(Theme(AppColors.Subtle)).BorderBrush(Theme(AppColors.Stroke));
         footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); footer.Children.Add(BoundText(nameof(ViewModel.LastUpdatedText), 13, AppColors.SecondaryText));
         var adjust = Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { Icon("tune", AppColors.Text, 18), Text("Điều chỉnh tồn kho", 14, AppColors.Text, 600) } }); adjust.Command(x => x.Binding(() => ViewModel.RequestAdjustmentCommand));
+        adjust.Visibility(x => x.Binding(() => ViewModel.CanManageStock).Convert(ShowIf));
         var close = Button(Text("Đóng", 14, AppColors.OnPrimary, 600), primary: true); close.Command(x => x.Binding(() => ViewModel.CloseCommand));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { adjust, close } }; Grid.SetColumn(buttons, 1); footer.Children.Add(buttons); return footer;
     }

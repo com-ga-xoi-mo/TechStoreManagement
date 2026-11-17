@@ -109,22 +109,27 @@ public sealed class SettingsPage : Page, IRoutePage
         // Form Fields
         var storeNameBox = new TextBox()
             .PlaceholderText("Nhập tên cửa hàng")
+            .IsReadOnly(x => x.Binding(() => ViewModel.CanEditStore).Convert((bool allowed) => !allowed))
             .Text(x => x.Binding(() => ViewModel.StoreName).Mode(BindingMode.TwoWay));
 
         var storeAddressBox = new TextBox()
             .PlaceholderText("Địa chỉ trụ sở kinh doanh chính")
+            .IsReadOnly(x => x.Binding(() => ViewModel.CanEditStore).Convert((bool allowed) => !allowed))
             .Text(x => x.Binding(() => ViewModel.StoreAddress).Mode(BindingMode.TwoWay));
 
         var storePhoneBox = new TextBox()
             .PlaceholderText("Số điện thoại hotline")
+            .IsReadOnly(x => x.Binding(() => ViewModel.CanEditStore).Convert((bool allowed) => !allowed))
             .Text(x => x.Binding(() => ViewModel.StorePhone).Mode(BindingMode.TwoWay));
 
         var storeEmailBox = new TextBox()
             .PlaceholderText("Email liên hệ chính thức")
+            .IsReadOnly(x => x.Binding(() => ViewModel.CanEditStore).Convert((bool allowed) => !allowed))
             .Text(x => x.Binding(() => ViewModel.StoreEmail).Mode(BindingMode.TwoWay));
 
         var storeTaxIdBox = new TextBox()
             .PlaceholderText("Mã số thuế doanh nghiệp")
+            .IsReadOnly(x => x.Binding(() => ViewModel.CanEditStore).Convert((bool allowed) => !allowed))
             .Text(x => x.Binding(() => ViewModel.StoreTaxId).Mode(BindingMode.TwoWay));
 
         var saveButton = new Button()
@@ -156,6 +161,7 @@ public sealed class SettingsPage : Page, IRoutePage
                 new SettingsCard { Header = "Email liên hệ", Description = "Hộp thư tiếp nhận phản hồi", Content = storeEmailBox, Padding = expanderItemPadding },
                 new SettingsCard { Header = "Mã số thuế", Description = "Mã số thuế đăng ký kinh doanh", Content = storeTaxIdBox, Padding = expanderItemPadding },
                 new SettingsCard { Content = saveButton, HorizontalContentAlignment = HorizontalAlignment.Right, Padding = expanderItemPadding }
+                    .Visibility(x => x.Binding(() => ViewModel.CanEditStore).Convert((bool allowed) => allowed ? Visibility.Visible : Visibility.Collapsed))
             }
         };
 
@@ -189,13 +195,17 @@ public sealed class SettingsPage : Page, IRoutePage
             .Spacing(16)
             .HorizontalAlignment(HorizontalAlignment.Stretch)
             .Children(
-                saveSuccessBanner,
-                saveErrorText,
-                new Button().Content("Quản lý tài khoản nhân viên").Command(ViewModel.ManageAccountsCommand)
-                    .Visibility(x => x.Binding(() => ViewModel.CanManageAccounts).Convert((bool allowed) => allowed ? Visibility.Visible : Visibility.Collapsed)),
-                storeSection,
+                new TextBlock().Text("Cá nhân").FontSize(18).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold).Foreground(AppColors.Brushes.Text),
                 themeCard,
-                appInfoExpander
+                new TextBlock().Text("Cửa hàng").FontSize(18).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold).Foreground(AppColors.Brushes.Text),
+                new StackPanel()
+                    .Spacing(8)
+                    .Visibility(x => x.Binding(() => ViewModel.CanEditStore).Convert((bool allowed) => allowed ? Visibility.Visible : Visibility.Collapsed))
+                    .Children(saveSuccessBanner, saveErrorText),
+                storeSection,
+                appInfoExpander,
+                new Button().Content("Quản lý tài khoản nhân viên").Command(x => x.Binding(() => ViewModel.ManageAccountsCommand))
+                    .Visibility(x => x.Binding(() => ViewModel.CanManageAccounts).Convert((bool allowed) => allowed ? Visibility.Visible : Visibility.Collapsed))
             );
     }
 }

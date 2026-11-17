@@ -262,7 +262,7 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
         RequireNullableString(json, "barcode");
         RequireString(json, "brand");
         RequireDecimal(json, "basePrice");
-        RequireDecimal(json, "costPrice");
+        RequireNullableDecimal(json, "costPrice");
         RequireNullableString(json, "description");
         RequireNullableString(json, "imageUrl");
         RequireSpecs(json, "specs");
@@ -311,7 +311,7 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
     {
         if (product.Id == Guid.Empty || product.CategoryId == Guid.Empty
             || string.IsNullOrWhiteSpace(product.Name) || string.IsNullOrWhiteSpace(product.Sku)
-            || string.IsNullOrWhiteSpace(product.Brand) || product.BasePrice < 0 || product.CostPrice < 0)
+            || string.IsNullOrWhiteSpace(product.Brand) || product.BasePrice < 0 || product.CostPrice is < 0)
             throw InvalidResponse("The product detail contains invalid values.");
 
         ValidateSpecs(product.Specs);
@@ -381,6 +381,13 @@ public sealed class ProductRepository(IApiClient apiClient) : IProductRepository
     {
         if (!Require(value, property, JsonValueKind.Number).TryGetDecimal(out _))
             throw InvalidResponse($"The API response has an invalid '{property}' field.");
+    }
+
+    private static void RequireNullableDecimal(JsonElement value, string property)
+    {
+        if (!value.TryGetProperty(property, out var result)
+            || !(result.ValueKind == JsonValueKind.Null || result.ValueKind == JsonValueKind.Number && result.TryGetDecimal(out _)))
+            throw InvalidResponse($"The API response is missing or has an invalid '{property}' field.");
     }
 
     private static void RequireDateTime(JsonElement value, string property)

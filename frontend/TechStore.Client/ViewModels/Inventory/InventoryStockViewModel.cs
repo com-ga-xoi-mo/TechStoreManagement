@@ -8,6 +8,8 @@ using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Services.Api;
 using TechStore.Client.Services.Files;
 using TechStore.Client.Services.Inventory;
+using TechStore.Client.Services.Navigation;
+using TechStore.Client.Services.Session;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Client.ViewModels.Inventory;
@@ -15,9 +17,11 @@ namespace TechStore.Client.ViewModels.Inventory;
 public sealed partial class InventoryStockViewModel(
     IInventoryRepository inventoryRepository,
     ICsvFileSaver? fileSaver = null,
-    ICategoryRepository? categoryRepository = null) : ObservableObject
+    ICategoryRepository? categoryRepository = null,
+    ISessionStore? sessionStore = null) : ObservableObject
 {
     public const int DefaultPageSize = 20;
+    public bool CanManageStock => sessionStore is null || (sessionStore.Current.Status == SessionStatus.Active && RoleAccess.CanManageStock(sessionStore.Current.Role));
     private const int ExportPageSize = 100;
     private const int MaxExportPages = 200;
     public static readonly CategoryOption AllCategories = new(Guid.Empty, null, "Danh mục: Tất cả", "Danh mục: Tất cả");

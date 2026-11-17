@@ -58,7 +58,7 @@ public record ProductCommandResult(
 
 public interface IProductService
 {
-    Task<ProductDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<ProductDetailResult> GetByIdAsync(Guid id, bool includeCost, CancellationToken cancellationToken = default);
     Task<ProductSearchResult> SearchAsync(ProductSearchRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ProductSpecKeyDto>> GetSpecKeysAsync(Guid? categoryId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SpecDefinitionDto>> GetSpecDefinitionsAsync(CancellationToken cancellationToken = default);

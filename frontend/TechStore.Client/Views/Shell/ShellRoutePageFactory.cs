@@ -31,8 +31,8 @@ public sealed class ShellRoutePageFactory(
         var scope = scopeFactory.CreateAsyncScope();
         try
         {
-            if (route.Kind == AppRouteKind.UserManagement && scope.ServiceProvider.GetRequiredService<ISessionStore>().Current is not { Status: SessionStatus.Active, Role: "Admin" })
-                throw new UnauthorizedAccessException("Bạn không có quyền quản lý tài khoản.");
+            var session = scope.ServiceProvider.GetRequiredService<ISessionStore>().Current;
+            RoleAccess.EnsureCanOpen(route, session.Status == SessionStatus.Active ? session.Role : null);
             var page = ResolvePage(route, scope.ServiceProvider);
             if (page is not IRoutePage routePage)
                 throw new InvalidOperationException($"The page for {route} does not expose its ViewModel.");
@@ -64,26 +64,16 @@ public sealed class ShellRoutePageFactory(
 
     public void VerifyAllRoutesResolve()
     {
-        foreach (var destination in ShellDestinations.All)
-        {
-            using var page = Create(destination.Id);
-        }
-
-        // Routes that are not a Shell root are only reached by navigation, so resolve them here too.
-        if (CanManageAccounts())
-        {
-            using var accounts = Create(AppRoute.UserManagement());
-        }
-        using var orderCreate = Create(AppRoute.OrderCreate());
-        using var pos = Create(AppRoute.Pos());
-        using var productCreate = Create(AppRoute.ProductCreate());
-        using var productEdit = Create(AppRoute.ProductEdit(Guid.NewGuid()));
-    }
-
-    private bool CanManageAccounts()
-    {
         using var scope = scopeFactory.CreateScope();
-        return scope.ServiceProvider.GetRequiredService<ISessionStore>().Current is { Status: SessionStatus.Active, Role: "Admin" };
+        foreach (var destination in ShellDestinations.All)
+            _ = ResolvePage(AppRoute.Root(destination.Id), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.Products(), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.ProductDetail(Guid.NewGuid()), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.UserManagement(), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.OrderCreate(), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.Pos(), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.ProductCreate(), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.ProductEdit(Guid.NewGuid()), scope.ServiceProvider);
     }
 
     private static Page ResolvePage(AppRoute route, IServiceProvider services) => route.Kind switch

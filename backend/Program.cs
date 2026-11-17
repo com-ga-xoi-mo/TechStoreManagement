@@ -27,6 +27,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+// Unhandled exceptions become RFC 7807 ProblemDetails without stack traces.
+builder.Services.AddProblemDetails();
 
 builder.Services.AddStoreAuthentication(builder.Configuration);
 
@@ -136,6 +138,7 @@ if (app.Environment.IsDevelopment())
     }
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseObjectStorageFiles();
 

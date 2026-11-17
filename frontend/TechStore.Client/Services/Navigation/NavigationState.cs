@@ -14,6 +14,8 @@ public sealed class NavigationState(ShellDestination initialDestination = ShellD
     public AppRoute CurrentRoute { get; private set; } = AppRoute.Root(ShellDestinations.Get(initialDestination).Id);
     public ShellDestination CurrentDestination => CurrentRoute.Destination;
 
+    public void Reset(AppRoute route) => CurrentRoute = route ?? throw new ArgumentNullException(nameof(route));
+
     public NavigationOutcome TryNavigate(
         AppRoute route,
         Func<AppRoute, bool> prepareDestination)

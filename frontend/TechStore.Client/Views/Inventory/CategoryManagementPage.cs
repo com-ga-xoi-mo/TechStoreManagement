@@ -129,7 +129,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         var actions = new Grid();
         var categoryAction = BuildPrimaryAction("add", "Thêm danh mục", "Thêm danh mục");
         categoryAction.Command(x => x.Binding(() => ViewModel.AddCategoryCommand));
-        categoryAction.Visibility(x => x.Binding(() => ViewModel.IsCategoryTab).Convert(ShowIf));
+        categoryAction.Visibility(x => x.Binding(() => ViewModel.ShowCategoryAction).Convert(ShowIf));
         actions.Children.Add(categoryAction);
         var inventoryActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         var exportReportText = Text(color: AppColors.SecondaryText);
@@ -139,12 +139,14 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         inventoryActions.Children.Add(exportReport);
         var importAction = BuildPrimaryAction("add", "Nhập kho mới", "Nhập kho mới");
         importAction.Command(x => x.Binding(() => ViewModel.Inventory.ImportStockCommand));
+        importAction.Visibility(x => x.Binding(() => ViewModel.Inventory.CanManageStock).Convert(ShowIf));
         inventoryActions.Children.Add(importAction);
         inventoryActions.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
         actions.Children.Add(inventoryActions);
         var serialActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         var serialImportAction = BuildPrimaryAction("add", "Nhập kho mới", "Nhập kho mới");
         serialImportAction.Command(x => x.Binding(() => ViewModel.Inventory.ImportStockCommand));
+        serialImportAction.Visibility(x => x.Binding(() => ViewModel.Inventory.CanManageStock).Convert(ShowIf));
         serialActions.Children.Add(serialImportAction);
         serialActions.Visibility(x => x.Binding(() => ViewModel.IsSerialTab).Convert(ShowIf));
         actions.Children.Add(serialActions);
@@ -422,7 +424,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 
     private async Task ShowStockDetailAsync(InventoryStockRow row)
     {
-        var vm = new StockDetailHistoryDialogViewModel(row, _inventoryRepository);
+        var vm = new StockDetailHistoryDialogViewModel(row, _inventoryRepository, ViewModel.Inventory.CanManageStock);
         var adjustmentRequested = false;
         var serialsRequested = false;
         vm.AdjustmentRequested += (_, _) => adjustmentRequested = true;

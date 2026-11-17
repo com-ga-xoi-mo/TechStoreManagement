@@ -156,13 +156,14 @@ public sealed class ProductDetailPage : Page, IRoutePage
                 new StackPanel()
                     .Orientation(Orientation.Horizontal)
                     .Spacing(6)
+                    .Visibility(x => x.Binding(() => ViewModel.Product).Convert((ProductDetail? p) => p?.CostPrice is null ? Visibility.Collapsed : Visibility.Visible))
                     .Children(
                         new TextBlock()
                             .Text("Giá vốn dự kiến:")
                             .Style(AppResources.GetStyle(AppTypography.CaptionText))
                             .Foreground(AppColors.Brushes.SecondaryText),
                         new TextBlock()
-                            .Text(x => x.Binding(() => ViewModel.Product!.CostPrice).Convert((decimal cp) => CatalogPresentation.FormatMoney(cp)))
+                            .Text(x => x.Binding(() => ViewModel.Product).Convert((ProductDetail? p) => p?.CostPrice is { } cp ? CatalogPresentation.FormatMoney(cp) : string.Empty))
                             .Style(AppResources.GetStyle(AppTypography.CaptionText))
                             .Foreground(AppColors.Brushes.SecondaryText)));
 

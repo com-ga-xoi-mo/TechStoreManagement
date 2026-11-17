@@ -6,6 +6,8 @@ using TechStore.Client.Services.Inventory;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.ViewModels.Pages;
+using TechStore.Client.Services.Navigation;
+using TechStore.Client.Services.Session;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Client.ViewModels.Inventory;
@@ -14,7 +16,8 @@ public sealed partial class CategoryManagementViewModel(
     ICategoryWorkspaceRepository categories,
     ICategoryDialogRequests dialogs,
     InventoryStockViewModel inventory,
-    SerialImeiViewModel serials) : PageViewModel
+    SerialImeiViewModel serials,
+    ISessionStore? sessionStore = null) : PageViewModel
 {
     private readonly List<CategoryRow> _allRows = [];
     private readonly Dictionary<Guid, CategoryRow> _byId = [];
@@ -23,6 +26,8 @@ public sealed partial class CategoryManagementViewModel(
     private int _currentPage = 1;
 
     public const int PageSize = 15;
+    public bool CanManageCategories => sessionStore is null || (sessionStore.Current.Status == SessionStatus.Active && RoleAccess.CanManageCategories(sessionStore.Current.Role));
+    public bool ShowCategoryAction => IsCategoryTab && CanManageCategories;
     public ICategoryWorkspaceRepository Categories => categories;
     public InventoryStockViewModel Inventory { get; } = inventory;
     public SerialImeiViewModel Serials { get; } = serials;
@@ -74,6 +79,7 @@ public sealed partial class CategoryManagementViewModel(
     partial void OnSelectedTabChanged(CategoryWorkspaceTab value)
     {
         OnPropertyChanged(nameof(IsCategoryTab));
+        OnPropertyChanged(nameof(ShowCategoryAction));
         OnPropertyChanged(nameof(IsInventoryTab));
         OnPropertyChanged(nameof(IsSerialTab));
     }

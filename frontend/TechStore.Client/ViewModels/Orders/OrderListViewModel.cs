@@ -6,6 +6,7 @@ using TechStore.Client.Repositories.Orders;
 using TechStore.Client.Services.Api;
 using TechStore.Client.Services.Dialog;
 using TechStore.Client.Services.Navigation;
+using TechStore.Client.Services.Session;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Shared.Enums;
 
@@ -40,14 +41,17 @@ public sealed partial class OrderListViewModel : PageViewModel
         IOrderRepository orders,
         INavigationService navigation,
         IDialogService dialogs,
-        IOrderDetailPresenter detailPresenter)
+        IOrderDetailPresenter detailPresenter,
+        ISessionStore? sessionStore = null)
     {
         _orders = orders ?? throw new ArgumentNullException(nameof(orders));
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
         _detailPresenter = detailPresenter ?? throw new ArgumentNullException(nameof(detailPresenter));
+        CanManageOrders = sessionStore is null || (sessionStore.Current.Status == SessionStatus.Active && RoleAccess.CanManageOrders(sessionStore.Current.Role));
     }
 
+    public bool CanManageOrders { get; }
     public IReadOnlyList<OrderStatusFilter> StatusFilters => OrderStatusFilter.All;
     public IReadOnlyList<OrderSortOption> SortOptions => OrderSortOption.All;
     public IReadOnlyList<int> PageSizes => AllowedPageSizes;

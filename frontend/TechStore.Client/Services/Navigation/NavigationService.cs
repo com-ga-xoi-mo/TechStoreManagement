@@ -14,6 +14,8 @@ public sealed class NavigationService : INavigationService
     public event EventHandler<ShellDestination>? DestinationChanged;
     public event EventHandler<AppRoute>? RouteChanged;
 
+    public void Reset(AppRoute route) => _state.Reset(route);
+
     public NavigationOutcome Navigate(ShellDestination destination) =>
         Enum.IsDefined(destination) ? Navigate(AppRoute.Root(destination)) : NavigationOutcome.UnknownDestination;
 

@@ -26,7 +26,7 @@ Lets staff and client applications find products, inspect a product with its har
 - **THEN** every matching product appears exactly once across all pages
 
 ### Requirement: Keyword search
-The `q` parameter SHALL match, case-insensitively and as a substring, the product name, product SKU, product brand, product barcode, and the SKU, barcode or variant name of any of the product's variants. Leading and trailing whitespace is ignored and an empty `q` applies no keyword filter.
+The `q` parameter SHALL be trimmed and split on whitespace into at most 8 words. A product SHALL match when every word matches, case-insensitively and as a substring, at least one of the product name, product SKU, product brand, product barcode, product description, or the SKU, barcode or variant name of any of the product's variants. A product SHALL also match when the whole trimmed `q` equals, case-insensitively, either the serial number or the IMEI of one of its Serial/IMEI records. An empty `q` applies no keyword filter. The keyword filter SHALL combine with every other filter, and paging SHALL stay stable.
 
 #### Scenario: Search by product name
 - **WHEN** a client calls `GET /api/products?q=iphone`
@@ -39,6 +39,30 @@ The `q` parameter SHALL match, case-insensitively and as a substring, the produc
 #### Scenario: Search by brand
 - **WHEN** a client calls `GET /api/products?q=logi`
 - **THEN** products whose brand contains "Logi" in any letter case are returned, even when their name does not contain it
+
+#### Scenario: Words in any position
+- **WHEN** a product is named "MacBook Air M3" and a client calls `GET /api/products?q=macbook m3`
+- **THEN** that product is returned
+
+#### Scenario: Every word must match
+- **WHEN** a client calls `GET /api/products?q=macbook samsung`
+- **THEN** a product that matches only "macbook" is not returned
+
+#### Scenario: Exact IMEI
+- **WHEN** a Serial/IMEI record with `imei = 356789012345678` and no serial number belongs to product P and a client calls `GET /api/products?q=356789012345678`
+- **THEN** P is returned once
+
+#### Scenario: Partial IMEI does not match
+- **WHEN** a client calls `GET /api/products?q=35678901`
+- **THEN** P is not returned because of its serial
+
+#### Scenario: Combined filters
+- **WHEN** a client calls `GET /api/products?q=laptop&brand=Apple&minPrice=20000000&spec=ram_gb:16`
+- **THEN** only products matching all four conditions are returned and `totalCount` counts only them
+
+#### Scenario: Exact serial number
+- **WHEN** a record has `serial_number = Serial-AbC123` and a null IMEI and a client calls `GET /api/products?q=serial-abc123`
+- **THEN** its owning product is returned once, while a serial prefix alone does not match through that record
 
 ### Requirement: Attribute filters
 The listing SHALL support filtering by `brand` (case-insensitive exact match), `categoryId` (products directly assigned to that category only, excluding subcategories) and `isActive`. When `isActive` is omitted, both active and inactive products are returned. Filters combine with AND.
@@ -112,7 +136,7 @@ Each listing item SHALL contain `id`, `name`, `sku`, `brand`, `categoryId`, `cat
 - **THEN** its listing item has `imageUrl` `U`
 
 ### Requirement: Product detail
-`GET /api/products/{id}` SHALL return the product's full data (including `barcode`, `costPrice`, `description`, `imageUrl`, `images`, `specs`, `isSerialTracked`, `isActive`, category id and name) and its variants, each with `id`, `variantName`, `sku`, `barcode`, `price`, `specs`, `effectiveSpecs` and `isActive`. `images` SHALL list every image of the product in sort order, each with `id`, `variantId`, `url`, `contentType`, `sizeBytes` and `sortOrder`. An unknown id SHALL return 404.
+`GET /api/products/{id}` SHALL return the product's full data (including `barcode`, `costPrice`, `description`, `imageUrl`, `images`, `specs`, `isSerialTracked`, `isActive`, category id and name) and its variants, each with `id`, `variantName`, `sku`, `barcode`, `price`, `specs`, `effectiveSpecs` and `isActive`. `images` SHALL list every image of the product in sort order, each with `id`, `variantId`, `url`, `contentType`, `sizeBytes` and `sortOrder`. `costPrice` SHALL be filled only when the caller's role is `Admin` or `Manager`; for `SalesStaff` and `WarehouseStaff` it SHALL be `null`. An unknown id SHALL return 404.
 
 #### Scenario: Detail with effective specs
 - **WHEN** a product has specs `{"cpu": "Apple M3", "color": "Silver"}` and a variant with specs `{"color": "Space Gray"}`
@@ -125,6 +149,14 @@ Each listing item SHALL contain `id`, `name`, `sku`, `brand`, `categoryId`, `cat
 #### Scenario: Images in order
 - **WHEN** a product has a shared image and a "Đen" image at sort orders 0 and 1
 - **THEN** `images` lists them in that order with `variantId` null and the "Đen" variant id
+
+#### Scenario: Manager sees cost price
+- **WHEN** a `Manager` calls `GET /api/products/{id}` for a product with cost 17,000,000
+- **THEN** `costPrice` is 17000000
+
+#### Scenario: Sales and warehouse do not receive cost price
+- **WHEN** a `SalesStaff` or `WarehouseStaff` calls `GET /api/products/{id}` directly
+- **THEN** the response is 200 with `costPrice` null and every other field unchanged
 
 ### Requirement: Specification values keep their JSON types
 Every API response and request SHALL represent `specs` and `effectiveSpecs` as JSON objects whose values keep their original JSON type (number, string or boolean).

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using TechStore.Api.Catalog.Services;
+using TechStore.Api.Identity.Services;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -47,7 +48,8 @@ public class ProductsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _productService.GetByIdAsync(id, cancellationToken);
+        if (!AuthenticatedUser.TryRead(User, out var caller)) return Unauthorized();
+        var result = await _productService.GetByIdAsync(id, FieldAccess.CanViewProductCost(caller.Role), cancellationToken);
         if (!result.Found)
         {
             return NotFound();

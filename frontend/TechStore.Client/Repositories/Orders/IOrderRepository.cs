@@ -1,4 +1,5 @@
 using TechStore.Client.Models.Orders;
+using TechStore.Client.Models.Sales;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
 
@@ -22,4 +23,7 @@ public interface IOrderDeviceRepository
 {
     /// <summary>InStock devices of a product (and variant). Only identifiers are returned, never cost.</summary>
     Task<AvailableDevicePage> GetInStockAsync(Guid productId, Guid? variantId, CancellationToken cancellationToken = default);
+
+    /// <summary>The InStock device whose IMEI or serial number equals <paramref name="code"/> (ignoring case), or <c>null</c>.</summary>
+    Task<ScannedDevice?> FindInStockByCodeAsync(string code, CancellationToken cancellationToken = default);
 }

@@ -18,6 +18,9 @@ public sealed record DraftLineItem(OrderDraftLine Line, string? Error = null)
 {
     public bool HasError => !string.IsNullOrWhiteSpace(Error);
 
+    /// <summary>Only goods counted by quantity can change it; a device is always exactly one.</summary>
+    public bool CanChangeQuantity => !Line.IsSerialTracked;
+
     public string Title => string.IsNullOrWhiteSpace(Line.VariantName)
         ? Line.ProductName
         : $"{Line.ProductName} · {Line.VariantName}";

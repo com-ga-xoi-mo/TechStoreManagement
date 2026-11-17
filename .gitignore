@@ -73,3 +73,6 @@ backend/uploads/
 
 docs/interview
 docs/verification
+
+## Codex local config and computer-use cache
+.codex/

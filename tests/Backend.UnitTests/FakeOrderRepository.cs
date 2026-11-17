@@ -68,6 +68,12 @@ public class FakeOrderRepository : IOrderRepository
         return Task.FromResult(existing);
     }
 
+    public Task<Guid?> FindIdByCheckoutKeyAsync(Guid cashierUserId, Guid checkoutKey, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Orders.Values
+            .Where(o => o.CashierUserId == cashierUserId && o.CheckoutKey == checkoutKey)
+            .Select(o => (Guid?)o.Id)
+            .FirstOrDefault());
+
     public void Add(Order order)
     {
         AddedOrders.Add(order);

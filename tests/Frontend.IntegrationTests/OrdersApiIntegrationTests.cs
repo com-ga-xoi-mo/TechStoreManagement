@@ -68,7 +68,7 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
         Assert.DoesNotContain(remaining.Items, d => d.Id == soldDevice.Id);
         output.WriteLine($"sale {saleCode}: Completed via VietQr, device {soldDevice.Display} left InStock");
 
-        // ---- 3. race: two drafts hold the same device; the second completion is refused by the server ----
+        // ---- 3. sequential conflict: two drafts hold the same device; the second completion is refused by the server ----
         var raceA = await rig.DraftFor(IphoneKeyword, devices[2].Id);
         var raceB = await rig.DraftFor(IphoneKeyword, devices[2].Id);
         var list = rig.NewList();
@@ -83,7 +83,7 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
         Assert.True(list.HasActionMessage);
         Assert.DoesNotContain("đã chuyển sang", list.ActionMessage);
         Assert.Equal(OrderStatus.Pending, (await rig.FindByCode(raceB)).Status);
-        output.WriteLine($"race: {raceA} Completed; {raceB} refused -> \"{list.ActionMessage}\"");
+        output.WriteLine($"sequential conflict: {raceA} Completed; {raceB} refused -> \"{list.ActionMessage}\"");
 
         await rig.Find(list, raceB);
         await list.ChangeStatusCommand.ExecuteAsync(list.Rows.Single().CancelAction);
@@ -135,7 +135,7 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
 
         // ---- 8. a missing order is a clean 404 ----
         Assert.Null(await rig.OrderRepository.GetByIdAsync(Guid.NewGuid()));
-        output.WriteLine("checks: estimate==server total (serial and no-IMEI), VietQr, device leaves InStock, 409 race, 400 on line, detail IMEI, filters, 404");
+        output.WriteLine("checks: estimate==server total (serial and no-IMEI), VietQr, device leaves InStock, 409 sequential conflict, 400 on line, detail IMEI, filters, 404");
     }
 
     private static async Task Eventually(Func<bool> condition, string failure, int seconds = 15)

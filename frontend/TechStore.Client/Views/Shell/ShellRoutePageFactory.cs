@@ -11,6 +11,7 @@ using TechStore.Client.Views.Catalog;
 using TechStore.Client.Views.Customers;
 using TechStore.Client.Views.Dashboard;
 using TechStore.Client.Views.Orders;
+using TechStore.Client.Views.Sales;
 using TechStore.Client.Views.Settings;
 
 namespace TechStore.Client.Views.Shell;
@@ -70,6 +71,7 @@ public sealed class ShellRoutePageFactory(
         _ = ResolvePage(AppRoute.ProductDetail(Guid.NewGuid()), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.UserManagement(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.OrderCreate(), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.Pos(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.ProductCreate(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.ProductEdit(Guid.NewGuid()), scope.ServiceProvider);
     }
@@ -81,6 +83,7 @@ public sealed class ShellRoutePageFactory(
         AppRouteKind.ProductDetail => services.GetRequiredService<ProductDetailPage>(),
         AppRouteKind.UserManagement => services.GetRequiredService<UserManagementPage>(),
         AppRouteKind.OrderCreate => services.GetRequiredService<OrderCreatePage>(),
+        AppRouteKind.Pos => services.GetRequiredService<PosPage>(),
         AppRouteKind.ProductCreate or AppRouteKind.ProductEdit => services.GetRequiredService<ProductEditorPage>(),
         _ => throw new ArgumentOutOfRangeException(nameof(route), route.Kind, "Unknown route kind.")
     };

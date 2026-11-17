@@ -58,7 +58,10 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
         new("GET", "api/users", "Admin"), new("GET", "api/users/{id:guid}", "Admin"),
         new("POST", "api/users", "Admin"), new("PUT", "api/users/{id:guid}", "Admin"),
         new("PATCH", "api/users/{id:guid}/status", "Admin"), new("PUT", "api/users/{id:guid}/role", "Admin"),
-        new("POST", "api/users/{id:guid}/reset-password", "Admin")
+        new("POST", "api/users/{id:guid}/reset-password", "Admin"),
+        new("POST", "api/pos/shifts", OrderWrite), new("GET", "api/pos/shifts/current", OrderWrite),
+        new("GET", "api/pos/shifts", OrderRead), new("GET", "api/pos/shifts/{id:guid}", OrderRead),
+        new("POST", "api/pos/shifts/{id:guid}/close", OrderRead), new("POST", "api/pos/checkout", OrderWrite)
     ];
 
     [Fact]

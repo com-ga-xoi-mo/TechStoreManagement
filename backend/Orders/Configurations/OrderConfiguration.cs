@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TechStore.Api.Orders.Entities;
+using TechStore.Api.Sales.Entities;
 using TechStore.Shared.Enums;
 
 namespace TechStore.Api.Orders.Configurations;
@@ -15,6 +16,8 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             t.HasCheckConstraint("ck_orders_discount_amount_ge_zero", "discount_amount >= 0");
             t.HasCheckConstraint("ck_orders_tax_amount_ge_zero", "tax_amount >= 0");
             t.HasCheckConstraint("ck_orders_total_amount_ge_zero", "total_amount >= 0");
+            t.HasCheckConstraint("ck_orders_cash_tendered_ge_zero", "cash_tendered IS NULL OR cash_tendered >= 0");
+            t.HasCheckConstraint("ck_orders_change_given_ge_zero", "change_given IS NULL OR change_given >= 0");
         });
 
         builder.HasKey(x => x.Id);
@@ -30,6 +33,9 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(x => x.TaxAmount).HasColumnName("tax_amount").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.TotalAmount).HasColumnName("total_amount").HasPrecision(18, 2).IsRequired();
         builder.Property(x => x.VoucherId).HasColumnName("voucher_id");
+        builder.Property(x => x.CashTendered).HasColumnName("cash_tendered").HasPrecision(18, 2);
+        builder.Property(x => x.ChangeGiven).HasColumnName("change_given").HasPrecision(18, 2);
+        builder.Property(x => x.CheckoutKey).HasColumnName("checkout_key");
         builder.Property(x => x.Notes).HasColumnName("notes");
         builder.Property(x => x.PaidAt).HasColumnName("paid_at").HasColumnType("timestamptz");
         builder.Property(x => x.CompletedAt).HasColumnName("completed_at").HasColumnType("timestamptz");
@@ -41,6 +47,10 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasIndex(x => x.CashierUserId).HasDatabaseName("idx_orders_cashier_id");
         builder.HasIndex(x => x.PosSessionId).HasDatabaseName("idx_orders_session_id");
         builder.HasIndex(x => x.VoucherId).HasDatabaseName("idx_orders_voucher_id");
+        builder.HasIndex(x => new { x.CashierUserId, x.CheckoutKey })
+            .IsUnique()
+            .HasFilter("checkout_key IS NOT NULL")
+            .HasDatabaseName("uq_orders_cashier_checkout_key");
         builder.HasIndex(x => x.OrderCode).IsUnique().HasDatabaseName("idx_orders_code");
         builder.HasIndex(x => x.Status).HasDatabaseName("idx_orders_status");
         builder.HasIndex(x => x.CreatedAt).HasDatabaseName("idx_orders_created_at");
@@ -54,6 +64,11 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasOne(x => x.CashierUser)
             .WithMany()
             .HasForeignKey(x => x.CashierUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<PosSession>()
+            .WithMany()
+            .HasForeignKey(x => x.PosSessionId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.Voucher)

@@ -108,6 +108,16 @@ public class OrderRepository(AppDbContext dbContext) : IOrderRepository
         return order;
     }
 
+    public async Task<Guid?> FindIdByCheckoutKeyAsync(
+        Guid cashierUserId,
+        Guid checkoutKey,
+        CancellationToken cancellationToken = default) =>
+        await dbContext.Orders
+            .AsNoTracking()
+            .Where(o => o.CashierUserId == cashierUserId && o.CheckoutKey == checkoutKey)
+            .Select(o => (Guid?)o.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public async Task<string?> GetLastOrderCodeAsync(
         string prefix,
         CancellationToken cancellationToken = default)

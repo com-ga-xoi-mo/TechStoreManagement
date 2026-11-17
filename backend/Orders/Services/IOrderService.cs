@@ -1,4 +1,5 @@
 using TechStore.Api.Identity.Services;
+using TechStore.Api.Orders.Entities;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
@@ -19,6 +20,18 @@ public record CreateOrderResult(
 
     public static CreateOrderResult Conflict(string reason) =>
         new(false, null, null, reason, true);
+}
+
+public record PrepareOrderResult(
+    bool IsSuccess,
+    Func<DateTime, Order>? Build,
+    Dictionary<string, string[]>? ValidationErrors)
+{
+    public static PrepareOrderResult Success(Func<DateTime, Order> build) =>
+        new(true, build, null);
+
+    public static PrepareOrderResult ValidationFailed(Dictionary<string, string[]> errors) =>
+        new(false, null, errors);
 }
 
 public record OrderDetailResult(bool Found, OrderDto? Data)
@@ -66,6 +79,13 @@ public interface IOrderService
     Task<CreateOrderResult> CreateAsync(
         CreateOrderRequest request,
         Guid cashierUserId,
+        CancellationToken cancellationToken = default);
+
+    // Validates and prices a request without storing anything (shared by order creation and POS checkout).
+    Task<PrepareOrderResult> PrepareAsync(
+        CreateOrderRequest request,
+        Guid cashierUserId,
+        bool checkAvailability = true,
         CancellationToken cancellationToken = default);
 
     // UC-ORD-03

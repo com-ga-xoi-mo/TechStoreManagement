@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TechStore.Api.Identity.Entities;
 using TechStore.Api.Sales.Entities;
 using TechStore.Shared.Enums;
 
@@ -15,6 +16,7 @@ public class PosSessionConfiguration : IEntityTypeConfiguration<PosSession>
             t.HasCheckConstraint("ck_pos_sessions_cash_sales_ge_zero", "cash_sales_total >= 0");
             t.HasCheckConstraint("ck_pos_sessions_vietqr_sales_ge_zero", "vietqr_sales_total >= 0");
             t.HasCheckConstraint("ck_pos_sessions_card_sales_ge_zero", "card_sales_total >= 0");
+            t.HasCheckConstraint("ck_pos_sessions_closing_ge_zero", "closing_balance IS NULL OR closing_balance >= 0");
         });
 
         builder.HasKey(x => x.Id);
@@ -22,6 +24,9 @@ public class PosSessionConfiguration : IEntityTypeConfiguration<PosSession>
         builder.Property(x => x.CashierUserId).HasColumnName("cashier_user_id").IsRequired();
         builder.Property(x => x.OpeningBalance).HasColumnName("opening_balance").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.ClosingBalance).HasColumnName("closing_balance").HasPrecision(18, 2);
+        builder.Property(x => x.ExpectedClosingBalance).HasColumnName("expected_closing_balance").HasPrecision(18, 2);
+        builder.Property(x => x.ClosingNote).HasColumnName("closing_note").HasMaxLength(500);
+        builder.Property(x => x.ClosedByUserId).HasColumnName("closed_by_user_id");
         builder.Property(x => x.CashSalesTotal).HasColumnName("cash_sales_total").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.VietQrSalesTotal).HasColumnName("vietqr_sales_total").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.CardSalesTotal).HasColumnName("card_sales_total").HasPrecision(18, 2).HasDefaultValue(0);
@@ -34,6 +39,7 @@ public class PosSessionConfiguration : IEntityTypeConfiguration<PosSession>
         // Indexes
         builder.HasIndex(x => x.CashierUserId).HasDatabaseName("idx_pos_sessions_cashier_id");
         builder.HasIndex(x => x.Status).HasDatabaseName("idx_pos_sessions_status");
+        builder.HasIndex(x => x.ClosedByUserId).HasDatabaseName("idx_pos_sessions_closed_by_user_id");
         builder.HasIndex(x => x.OpenedAt).HasDatabaseName("idx_pos_sessions_opened_at");
         builder.HasIndex(x => x.CashierUserId)
             .IsUnique()
@@ -44,6 +50,11 @@ public class PosSessionConfiguration : IEntityTypeConfiguration<PosSession>
         builder.HasOne(x => x.CashierUser)
             .WithMany()
             .HasForeignKey(x => x.CashierUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(x => x.ClosedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

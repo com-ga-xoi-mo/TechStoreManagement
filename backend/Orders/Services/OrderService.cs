@@ -39,9 +39,13 @@ public class OrderService(
     // UC-ORD-01: create a Pending order
     // ------------------------------------------------------------------
 
-    public async Task<CreateOrderResult> CreateAsync(
+    // Validates the request and prices it on the server; nothing is stored. The returned builder creates a fresh
+    // unsaved Pending order (without order code) for a given timestamp. Callers own the transaction and the save.
+    // checkAvailability=false skips the advisory stock check for callers that reserve stock under locks right after.
+    public async Task<PrepareOrderResult> PrepareAsync(
         CreateOrderRequest request,
         Guid cashierUserId,
+        bool checkAvailability = true,
         CancellationToken cancellationToken = default)
     {
         var errors = new Dictionary<string, List<string>>();
@@ -65,7 +69,7 @@ public class OrderService(
         // Without usable lines nothing else can be checked.
         if (request?.Items == null || request.Items.Count == 0 || request.Items.Count > CreateOrderValidator.MaxLines)
         {
-            return CreateOrderResult.ValidationFailed(Snapshot());
+            return PrepareOrderResult.ValidationFailed(Snapshot());
         }
 
         // Customer (optional)
@@ -195,14 +199,16 @@ public class OrderService(
 
         if (errors.Count > 0)
         {
-            return CreateOrderResult.ValidationFailed(Snapshot());
+            return PrepareOrderResult.ValidationFailed(Snapshot());
         }
 
         // Availability (unlocked, advisory: transitions re-check under locks)
         var fulfillmentLines = built
             .Select(b => new FulfillmentLine(null, b.Product.Id, b.Variant?.Id, b.SerialImeiId, b.Quantity))
             .ToList();
-        var check = await fulfillmentService.CheckAvailabilityAsync(fulfillmentLines, cancellationToken);
+        var check = checkAvailability
+            ? await fulfillmentService.CheckAvailabilityAsync(fulfillmentLines, cancellationToken)
+            : new FulfillmentCheckResult([]);
         if (!check.IsAvailable)
         {
             foreach (var problem in check.Problems)
@@ -217,7 +223,7 @@ public class OrderService(
                 AddError($"items[{line.Index}].{field}", problem.Message);
             }
 
-            return CreateOrderResult.ValidationFailed(Snapshot());
+            return PrepareOrderResult.ValidationFailed(Snapshot());
         }
 
         // Price and persist
@@ -270,10 +276,24 @@ public class OrderService(
             return order;
         }
 
+        return PrepareOrderResult.Success(BuildOrder);
+    }
+
+    public async Task<CreateOrderResult> CreateAsync(
+        CreateOrderRequest request,
+        Guid cashierUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var prepared = await PrepareAsync(request, cashierUserId, checkAvailability: true, cancellationToken);
+        if (!prepared.IsSuccess)
+        {
+            return CreateOrderResult.ValidationFailed(prepared.ValidationErrors!);
+        }
+
         for (var attempt = 1; attempt <= MaxCodeAttempts; attempt++)
         {
             var now = timeProvider.GetUtcNow().UtcDateTime;
-            var order = BuildOrder(now);
+            var order = prepared.Build!(now);
 
             await unitOfWork.BeginTransactionAsync(cancellationToken);
             try
@@ -519,7 +539,7 @@ public class OrderService(
     // Helpers
     // ------------------------------------------------------------------
 
-    private static string Describe(IReadOnlyList<OrderItem> items, FulfillmentProblem problem)
+    internal static string Describe(IReadOnlyList<OrderItem> items, FulfillmentProblem problem)
     {
         var item = items[problem.LineIndex];
         return $"Line {problem.LineIndex + 1} ({item.Sku}): {problem.Message}";
@@ -613,6 +633,9 @@ public class OrderService(
         DiscountAmount = order.DiscountAmount,
         TaxAmount = order.TaxAmount,
         TotalAmount = order.TotalAmount,
+        PosSessionId = order.PosSessionId,
+        CashTendered = order.CashTendered,
+        ChangeGiven = order.ChangeGiven,
         Notes = order.Notes,
         CreatedAt = order.CreatedAt,
         PaidAt = order.PaidAt,

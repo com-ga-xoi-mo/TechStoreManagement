@@ -25,6 +25,29 @@
 
 ## 4. Cấu trúc Thành phần Module
 - **`Configurations/`**: `PosSessionConfiguration.cs`, `VietQrTransactionConfiguration.cs`.
-- **`Repositories/`** (dự kiến): `IPosSessionRepository`, `IVietQrTransactionRepository`.
-- **`Services/`**: `IPosService.cs`, `VietQrService.cs` (Sinh chuỗi EMVCo VietQR, đối soát webhook).
-- **Controller** (đặt tại thư mục gốc của module): `SalesController.cs` (Mở/đóng ca thu ngân, sinh mã thanh toán, kiểm tra trạng thái thanh toán đơn hàng).
+- **`Repositories/`**: `IPosSessionRepository` / `PosSessionRepository` (ca Open của người bán, khóa dòng `FOR UPDATE`, tìm kiếm phân trang).
+- **`Services/`**: `IPosShiftService` / `PosShiftService` (mở, đọc, đóng ca có đối soát), `IPosCheckoutService` / `PosCheckoutService` (checkout tiền mặt), `PosResult<T>`. `VietQrService` thuộc M4.
+- **Controller** (`PosController.cs`, đặt tại thư mục gốc của module): `/api/pos/*`.
+
+## 5. API POS tiền mặt (M3)
+|Endpoint|Quyền|Ghi chú|
+|:---|:---|:---|
+|`POST /api/pos/shifts`|Admin, SalesStaff|Mở ca với `openingBalance` (≥ 0, 2 chữ số thập phân). Mỗi người một ca `Open` (index `uq_pos_sessions_cashier_open`); mở lần hai trả 409.|
+|`GET /api/pos/shifts/current`|Admin, SalesStaff|Ca `Open` của chính mình hoặc 404.|
+|`GET /api/pos/shifts`, `GET /api/pos/shifts/{id}`|Admin, Manager, SalesStaff|Admin/Manager xem mọi ca; SalesStaff chỉ ca của mình (ca người khác trả 404).|
+|`POST /api/pos/shifts/{id}/close`|Admin, Manager, SalesStaff|Đóng ca với `closingBalance` (tiền thực đếm) và `note`. Tiền dự kiến = `openingBalance + cashSalesTotal` (M4 trừ thêm hoàn tiền mặt); `note` bắt buộc khi chênh lệch khác 0. SalesStaff chỉ đóng ca của mình; Manager/Admin đóng được mọi ca và `closedByUserId` ghi người đóng.|
+|`POST /api/pos/checkout`|Admin, SalesStaff|Bán tiền mặt vào ca `Open` của chính người gọi. 201 khi tạo mới, 200 khi `checkoutKey` đã được lưu.|
+
+### Luồng checkout (một transaction)
+1. Kiểm tra đầu vào (`checkoutKey`, `posSessionId`, `cashTendered`), tra `checkoutKey` đã lưu (trả lại đơn cũ, `Replayed`).
+2. `IOrderService.PrepareAsync`: validate và định giá phía server qua `OrderPricingHelper` (giá client không được nhận); `cashTendered` phải ≥ tổng đơn.
+3. `BeginTransaction`, khóa dòng ca (`FOR UPDATE`); sai chủ → 404, ca không `Open` → 409; tra lại `checkoutKey` dưới khóa.
+4. Sinh mã đơn, `ReserveAsync` rồi `ConfirmSaleAsync` (Inventory, Q. Vinh): giữ hàng, trừ kho, ghi lịch sử, lưu giá vốn, kích hoạt bảo hành.
+5. Đơn sang `Completed` (`PaidAt = CompletedAt`), lưu `cashTendered`, `changeGiven = cashTendered - total`, `posSessionId`, `checkoutKey`; `cash_sales_total += total` (không cộng tiền thừa).
+6. `SaveChanges` + `Commit`. Bất kỳ lỗi nào: rollback toàn bộ (đơn, giữ hàng, lịch sử, tiền ca, khóa).
+
+**Thứ tự khóa:** dòng ca → thiết bị (id tăng dần) → tồn kho (product, variant). Đóng ca chỉ khóa dòng ca nên bán và đóng ca không thể chờ vòng nhau; sau khi đóng, checkout vào ca đó trả 409, bán trước đó được tính vào tiền dự kiến.
+
+**Idempotency:** `checkoutKey` (GUID do client sinh khi bấm Thanh toán, giữ khi thử lại) + unique index một phần `uq_orders_cashier_checkout_key (cashier_user_id, checkout_key)`. Server không so khớp nội dung với lần gửi trước; client đổi giỏ phải sinh khóa mới.
+
+Đơn đã thanh toán (`Completed`) không thể hủy hay sửa qua `/api/orders`; hoàn tiền đi theo quy trình M4. Đơn nháp `POST /api/orders` vẫn dùng như cũ cho Admin.

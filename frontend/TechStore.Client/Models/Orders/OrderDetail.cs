@@ -34,4 +34,7 @@ public sealed record OrderDetail(
     DateTime CreatedAt,
     DateTime? PaidAt,
     DateTime? CompletedAt,
-    IReadOnlyList<OrderLine> Lines);
+    IReadOnlyList<OrderLine> Lines,
+    Guid? PosSessionId = null,
+    decimal? CashTendered = null,
+    decimal? ChangeGiven = null);

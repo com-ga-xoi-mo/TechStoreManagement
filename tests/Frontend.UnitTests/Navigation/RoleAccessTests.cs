@@ -35,6 +35,7 @@ public sealed class RoleAccessTests(ITestOutputHelper output)
         Assert.Equal(catalog, RoleAccess.CanOpen(AppRoute.ProductCreate(), role));
         Assert.Equal(catalog, RoleAccess.CanOpen(AppRoute.ProductEdit(Guid.NewGuid()), role));
         Assert.Equal(orders, RoleAccess.CanOpen(AppRoute.OrderCreate(), role));
+        Assert.Equal(orders, RoleAccess.CanOpen(AppRoute.Pos(), role));
         Assert.Equal(categories, RoleAccess.CanOpen(AppRoute.UserManagement(), role));
 
         var store = new InMemorySessionStore();

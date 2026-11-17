@@ -28,7 +28,7 @@ public static class RoleAccess
         },
         AppRouteKind.ProductList or AppRouteKind.ProductDetail => CanOpen(AppRoute.Root(ShellDestination.Products), role),
         AppRouteKind.ProductCreate or AppRouteKind.ProductEdit => CanManageCatalog(role),
-        AppRouteKind.OrderCreate => CanManageOrders(role),
+        AppRouteKind.OrderCreate or AppRouteKind.Pos => CanManageOrders(role),
         AppRouteKind.UserManagement => role == "Admin",
         _ => false
     };

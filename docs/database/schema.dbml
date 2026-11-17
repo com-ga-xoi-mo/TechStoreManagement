@@ -405,6 +405,9 @@ Table orders {
   tax_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK tax_amount >= 0: VAT amount']
   total_amount "numeric(18, 2)" [not null, note: 'CHECK total_amount >= 0: subtotal - discount_amount + tax_amount; backend calculates all totals']
   voucher_id uuid [null, note: 'FK -> vouchers.id: Applied coupon discount']
+  cash_tendered "numeric(18, 2)" [null, note: 'CHECK cash_tendered IS NULL OR cash_tendered >= 0: Cash handed over at POS checkout; null for orders without a cash checkout']
+  change_given "numeric(18, 2)" [null, note: 'CHECK change_given IS NULL OR change_given >= 0: cash_tendered - total_amount returned to the customer']
+  checkout_key uuid [null, note: 'Client-generated idempotency key of one POS checkout; unique per cashier']
   notes text [null, note: 'Customer requests or cashier notes']
   paid_at timestamptz [null, note: 'Time full payment was verified; set once when entering Processing or directly Completed']
   completed_at timestamptz [null, note: 'Time goods were fulfilled and warranty activated; may be later than paid_at']
@@ -417,6 +420,7 @@ Table orders {
     pos_session_id [name: 'idx_orders_session_id', note: 'FK index: shift reconciliation']
     voucher_id [name: 'idx_orders_voucher_id', note: 'FK index']
     order_code [unique, name: 'idx_orders_code']
+    (cashier_user_id, checkout_key) [unique, name: 'uq_orders_cashier_checkout_key', note: 'Partial: WHERE checkout_key IS NOT NULL. A repeated key returns the stored order']
     status [name: 'idx_orders_status', note: 'Accelerates dashboard status filters']
     created_at [name: 'idx_orders_created_at', note: 'Accelerates sales date range reports']
   }
@@ -571,7 +575,10 @@ Table pos_sessions {
   id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   cashier_user_id uuid [not null, note: 'FK -> users.id: Cashier who operated shift']
   opening_balance "numeric(18, 2)" [not null, default: 0, note: 'CHECK opening_balance >= 0: Drawer initial cash']
-  closing_balance "numeric(18, 2)" [null, note: 'Counted physical cash at shift close']
+  closing_balance "numeric(18, 2)" [null, note: 'CHECK closing_balance IS NULL OR closing_balance >= 0: Counted physical cash at shift close']
+  expected_closing_balance "numeric(18, 2)" [null, note: 'Expected drawer cash computed and stored at close']
+  closing_note text [null, note: 'Reason for a cash discrepancy (max 500 chars, required when closing_balance <> expected_closing_balance)']
+  closed_by_user_id uuid [null, note: 'FK -> users.id: User who closed the shift (cashier, Manager or Admin)']
   cash_sales_total "numeric(18, 2)" [not null, default: 0, note: 'Sum of fully paid Cash order totals credited to this shift, before refunds; excludes customer cash tendered then returned as change']
   vietqr_sales_total "numeric(18, 2)" [not null, default: 0, note: 'Sum of fully paid VietQr order totals credited to this shift, before refunds']
   card_sales_total "numeric(18, 2)" [not null, default: 0, note: 'Sum of fully paid Card order totals credited to this shift, before refunds']
@@ -583,6 +590,7 @@ Table pos_sessions {
 
   indexes {
     cashier_user_id [name: 'idx_pos_sessions_cashier_id', note: 'FK index']
+    closed_by_user_id [name: 'idx_pos_sessions_closed_by_user_id', note: 'FK index']
     status [name: 'idx_pos_sessions_status']
     opened_at [name: 'idx_pos_sessions_opened_at']
   }

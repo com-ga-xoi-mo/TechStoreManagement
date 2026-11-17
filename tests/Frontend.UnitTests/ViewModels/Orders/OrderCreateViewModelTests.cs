@@ -567,7 +567,7 @@ public sealed class OrderCreateViewModelTests
         var (rig, _, _) = await RigWithOneDevice();
         var customer = new CustomerSummary(Guid.NewGuid(), "Nguyễn Văn A", "0901234567", 0, "Silver", true, DateTime.UtcNow, 0, 0m, null);
         rig.Orders.OnCreate = (_, _) => Task.FromResult(Orders.Detail(Guid.NewGuid(), code: "ORD-202611-0007"));
-        rig.ViewModel.Customer.SelectCommand.Execute(customer);
+        rig.Picker.SelectCommand.Execute(customer);
 
         // Act
         await rig.ViewModel.SaveDraftCommand.ExecuteAsync(null);
@@ -582,8 +582,8 @@ public sealed class OrderCreateViewModelTests
         // Arrange
         var (rig, _, _) = await RigWithOneDevice();
         rig.Orders.OnCreate = (_, _) => Task.FromResult(Orders.Detail(Guid.NewGuid()));
-        rig.ViewModel.Customer.SelectCommand.Execute(new CustomerSummary(Guid.NewGuid(), "B", "0902", 0, "Standard", true, DateTime.UtcNow, 0, 0m, null));
-        rig.ViewModel.Customer.ClearCommand.Execute(null);
+        rig.Picker.SelectCommand.Execute(new CustomerSummary(Guid.NewGuid(), "B", "0902", 0, "Standard", true, DateTime.UtcNow, 0, 0m, null));
+        rig.Picker.ClearCommand.Execute(null);
 
         // Act
         await rig.ViewModel.SaveDraftCommand.ExecuteAsync(null);

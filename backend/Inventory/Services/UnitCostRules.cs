@@ -10,9 +10,9 @@ internal static class UnitCostRules
 
     public static string? Check(decimal? cost) => cost switch
     {
-        null => "Unit cost is required.",
-        < 0 => "Unit cost must be greater than or equal to zero.",
-        > Max => $"Unit cost must not exceed {Max:N0}.",
+        null => "Giá nhập là bắt buộc.",
+        < 0 => "Giá nhập không được âm.",
+        > Max => "Giá nhập không được vượt quá 1.000.000.000.000 ₫.",
         _ => null
     };
 }

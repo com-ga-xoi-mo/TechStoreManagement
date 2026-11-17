@@ -41,9 +41,9 @@ public sealed class CustomerPickerView : UserControl
         AutomationProperties.SetName(clear, "Bỏ chọn khách, bán cho khách lẻ");
 
         var create = new Button()
-            .Style(AppControlStyles.Styles.Button)
+            .Style(AppControlStyles.Styles.PrimaryButton)
             .Content("＋  Khách mới")
-            .HorizontalAlignment(HorizontalAlignment.Left)
+            .HorizontalAlignment(HorizontalAlignment.Right)
             .Command(ShowCreateFormCommand);
         AutomationProperties.SetName(create, "Tạo khách hàng mới cho đơn này");
 
@@ -53,8 +53,35 @@ public sealed class CustomerPickerView : UserControl
                 new StackPanel()
                     .Spacing(12)
                     .Children(
-                        new TextBlock().Style(AppTypography.Styles.SectionText).Text("Khách hàng"),
                         new Grid()
+                            .ColumnSpacing(12)
+                            .ColumnDefinitions("*, Auto")
+                            .Children(
+                                new TextBlock()
+                                    .Style(AppTypography.Styles.SectionText)
+                                    .Text("Khách hàng")
+                                    .VerticalAlignment(VerticalAlignment.Center),
+                                create.Grid(column: 1)),
+                        new SearchBoxControl()
+                            .Label("Tìm khách")
+                            .PlaceholderText("Tên hoặc số điện thoại")
+                            .Text(x => x.Binding(() => ViewModel.SearchText).Mode(BindingMode.TwoWay))
+                            .SearchCommand(x => x.Binding(() => ViewModel.SearchCommand))
+                            .ClearCommand(x => x.Binding(() => ViewModel.ClearSearchCommand)),
+                        new ProgressBar()
+                            .IsIndeterminate(true)
+                            .Visibility(x => x.Binding(() => ViewModel.IsSearching).Convert((bool v) => ShowIf(v))),
+                        new TextBlock()
+                            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+                            .Foreground(AppColors.Brushes.SecondaryText)
+                            .TextWrapping(TextWrapping.Wrap)
+                            .Text(x => x.Binding(() => ViewModel.Message))
+                            .Visibility(x => x.Binding(() => ViewModel.HasMessage).Convert((bool v) => ShowIf(v))),
+                        new ItemsControl()
+                            .ItemsSource(x => x.Binding(() => ViewModel.Results))
+                            .ItemTemplate<CustomerSummary>(BuildResult),
+                        new Grid()
+                            .Visibility(x => x.Binding(() => ViewModel.HasSelection).Convert((bool v) => ShowIf(v)))
                             .ColumnSpacing(12)
                             .ColumnDefinitions(
                                 new ColumnDefinition().Width(new GridLength(1, GridUnitType.Star)),
@@ -74,26 +101,7 @@ public sealed class CustomerPickerView : UserControl
                                             .Foreground(AppColors.Brushes.SecondaryText)
                                             .Text(x => x.Binding(() => ViewModel.SelectionTierLabel)))
                                     .Grid(column: 0),
-                                clear.Grid(column: 1)),
-                        new SearchBoxControl()
-                            .Label("Tìm khách")
-                            .PlaceholderText("Tên hoặc số điện thoại")
-                            .Text(x => x.Binding(() => ViewModel.SearchText).Mode(BindingMode.TwoWay))
-                            .SearchCommand(x => x.Binding(() => ViewModel.SearchCommand))
-                            .ClearCommand(x => x.Binding(() => ViewModel.ClearSearchCommand)),
-                        new ProgressBar()
-                            .IsIndeterminate(true)
-                            .Visibility(x => x.Binding(() => ViewModel.IsSearching).Convert((bool v) => ShowIf(v))),
-                        new TextBlock()
-                            .Style(AppResources.GetStyle(AppTypography.CaptionText))
-                            .Foreground(AppColors.Brushes.SecondaryText)
-                            .TextWrapping(TextWrapping.Wrap)
-                            .Text(x => x.Binding(() => ViewModel.Message))
-                            .Visibility(x => x.Binding(() => ViewModel.HasMessage).Convert((bool v) => ShowIf(v))),
-                        new ItemsControl()
-                            .ItemsSource(x => x.Binding(() => ViewModel.Results))
-                            .ItemTemplate<CustomerSummary>(BuildResult),
-                        create));
+                                clear.Grid(column: 1))));
     }
 
     private UIElement BuildResult(CustomerSummary customer)

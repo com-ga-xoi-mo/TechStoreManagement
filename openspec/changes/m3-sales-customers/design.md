@@ -30,6 +30,8 @@
 
 **D5. Bộ chọn khách.** `ViewModels/Customers/CustomerPickerViewModel` (ObservableObject, không phải PageViewModel vì nằm trong trang khác) dùng `ICustomerRepository.SearchAsync` với `IsActive = true`, `PageSize = 8`, debounce 300 ms và bỏ kết quả cũ bằng số thứ tự request. Tạo khách dùng lại `CustomerFormViewModel`; khi lưu xong picker chọn khách mới. 409 → thông báo và tìm theo số đó. `Views/Customers/CustomerPickerView` là `UserControl` C# Markup. Trang tạo đơn nhận picker qua DI (tham số tùy chọn để test cũ không đổi) và đưa `SelectedCustomerId` vào `CreateOrderRequest.CustomerId`. Đạt dùng cùng hai lớp này cho POS.
 
+**D6. Thứ tự tìm và chọn khách.** Theo yêu cầu Vy, nút Khách mới nằm ở góc phải cùng hàng với tiêu đề Khách hàng; ô tìm nằm ngay bên dưới. Trạng thái và kết quả tìm nằm dưới ô tìm. Chỉ khi đã chọn khách mới hiện thông tin khách và nút Bỏ chọn bên dưới kết quả; chưa chọn hoặc đã bỏ chọn thì ẩn cả phần thông tin, không hiện Khách lẻ/Không tích điểm. Không chọn khách vẫn gửi đơn không có customerId.
+
 ## Risks / Trade-offs
 
 - [Đạt và Bình cùng sửa bảng quyền/spec `api-role-authorization`, `frontend-shell-navigation`] → mỗi người chỉ sửa dòng của mình; An merge theo thứ tự, người merge sau rebase lại bảng.

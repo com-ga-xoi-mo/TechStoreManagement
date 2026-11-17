@@ -16,7 +16,7 @@ The Customers destination SHALL open for Admin, Manager and SalesStaff. Admin an
 - **THEN** the same actions as Admin are available
 
 ### Requirement: Shared customer picker
-The client SHALL provide one customer picker for sales screens. It SHALL search active customers by name or phone, show name, phone and tier, let the user pick one or clear back to a walk-in guest, and create a customer that is then selected. It SHALL show loading, no-result and error states, and a stale search response SHALL NOT replace a newer one.
+The client SHALL provide one customer picker for sales screens. It SHALL search active customers by name or phone, show name, phone and tier, let the user pick one or clear back to a walk-in guest, and create a customer that is then selected. The create button SHALL appear at the top right beside the heading, with search beneath it. Selected customer information SHALL appear below search only while a customer is selected. It SHALL show loading, no-result and error states, and a stale search response SHALL NOT replace a newer one.
 
 #### Scenario: Pick an existing customer
 - **WHEN** the user types `0901` and picks "Nguyễn Văn A" from the results
@@ -24,7 +24,7 @@ The client SHALL provide one customer picker for sales screens. It SHALL search 
 
 #### Scenario: Walk-in guest
 - **WHEN** the user clears the selection
-- **THEN** the picker shows "Khách lẻ" and exposes no customer ID
+- **THEN** the picker hides the selected customer information, shows no "Khách lẻ" or "Không tích điểm" label, and exposes no customer ID
 
 #### Scenario: Create and select a new customer
 - **WHEN** the user creates a customer with a new phone from the picker

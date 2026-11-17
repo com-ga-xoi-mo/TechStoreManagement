@@ -15,6 +15,7 @@
 - [x] 2.3 `CustomerListPage`/`CustomerDetailDialogView`: ẩn nút sửa, bộ lọc trạng thái, activity và tab lịch sử theo `CanManageCustomers`.
 - [x] 2.4 `CustomerPickerViewModel` (tìm, chọn, bỏ chọn, tạo nhanh, 409, bỏ kết quả cũ) với test headless.
 - [x] 2.5 `CustomerPickerView` C# Markup; đăng ký DI; gắn vào `OrderCreatePage` và gửi `customerId`; test `OrderCreateViewModel`.
+- [x] 2.6 Đưa ô tìm lên trước; đặt Khách mới ở góc phải tiêu đề; chỉ hiện thông tin bên dưới khi đã chọn khách, ẩn Khách lẻ/Không tích điểm; build client desktop.
 
 ## 3. Kiểm thử (AI tự chạy, ghi lệnh và kết quả thật)
 
@@ -23,6 +24,8 @@
 - [ ] 3.3 Chạy UI Skia: Sales mở Khách hàng (không thấy nút sửa/lịch sử), tạo khách; trang tạo đơn chọn khách rồi lưu nháp. Ghi rõ phần nào chưa kiểm tra được.
 
 ## Kết quả kiểm thử (AI, 2026-11-17, Windows 11)
+
+- Bổ sung bố cục theo Vy (ô tìm trước, Khách mới góc phải, thông tin chỉ hiện khi đã chọn): `dotnet build frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop --no-restore -v minimal` thành công, 0 warning/error. Mở lại app Skia để Vy kiểm tra tìm/chọn khách; không đánh dấu hoàn tất nghiệm thu UI 3.3 từ kết quả build.
 
 - 3.1 `dotnet build frontend/TechStore.Client -f net10.0-desktop`: 0 warning, 0 error. Backend unit: 617 Pass / 0 Fail / 27 Skipped khi chưa có PostgreSQL; chạy lại với `TECHSTORE_TEST_CONNECTION` trỏ PostgreSQL 16 Docker (fixture tự tạo/xóa DB): 645 Pass / 0 Fail / 0 Skipped. Frontend unit: 996 Pass / 0 Fail / 0 Skipped. Build target `net10.0-windows10.0.26100` lỗi sẵn trên `dev` ở `Testing/IdentityThemeProbe.cs` (`ProbeReportItem`), không do change này. **Pass**
 - 3.2 API `http://localhost:5287`, PostgreSQL 16 Docker, DB riêng `techstore_vy_verify` (migrate + seed mới), đăng nhập `admin`, `manager1`, `cashier1`, `warehouse1`. **Pass**

@@ -55,32 +55,6 @@ public sealed class InventoryRepository(IApiClient apiClient) : IInventoryReposi
         return AdjustStockCoreAsync(stockId, request, cancellationToken);
     }
 
-    public Task<InventoryStockInitializeResult> InitializeStockAsync(
-        InitializeStockRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!request.ProductId.HasValue || request.ProductId == Guid.Empty)
-            throw new ArgumentException("Product ID is required.", nameof(request));
-        if (request.Quantity is not > 0)
-            throw new ArgumentOutOfRangeException(nameof(request), "Opening quantity must be greater than zero.");
-        return InitializeStockCoreAsync(request, cancellationToken);
-    }
-
-    public Task<InventorySerialImportResult> BatchImportSerialsAsync(
-        BatchImportSerialImeiRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!request.ProductId.HasValue || request.ProductId == Guid.Empty)
-            throw new ArgumentException("Product ID is required.", nameof(request));
-        if (request.Items is null || request.Items.Count == 0)
-            throw new ArgumentException("At least one serial or IMEI is required.", nameof(request));
-        return BatchImportSerialsCoreAsync(request, cancellationToken);
-    }
-
     private async Task<InventoryStockDetailResult> GetStockDetailCoreAsync(
         Guid stockId,
         CancellationToken cancellationToken)
@@ -94,38 +68,6 @@ public sealed class InventoryRepository(IApiClient apiClient) : IInventoryReposi
         catch (ApiException exception)
         {
             return new InventoryStockDetailResult(false, Failure: MapFailure(exception), Message: exception.Detail ?? exception.Message);
-        }
-    }
-
-    private async Task<InventoryStockInitializeResult> InitializeStockCoreAsync(
-        InitializeStockRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var data = await apiClient.PostAsync<InitializeStockRequest, InventoryStockDto>(
-                "api/inventory/stocks/initialize", request, cancellationToken);
-            return InventoryStockInitializeResult.Success(data);
-        }
-        catch (ApiException exception)
-        {
-            return new InventoryStockInitializeResult(false, Failure: MapFailure(exception), Message: exception.Detail ?? exception.Message);
-        }
-    }
-
-    private async Task<InventorySerialImportResult> BatchImportSerialsCoreAsync(
-        BatchImportSerialImeiRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var data = await apiClient.PostAsync<BatchImportSerialImeiRequest, BatchImportSerialResponse>(
-                "api/inventory/serials/batch-import", request, cancellationToken);
-            return InventorySerialImportResult.Success(data.ImportedCount);
-        }
-        catch (ApiException exception)
-        {
-            return new InventorySerialImportResult(false, Failure: MapFailure(exception), Message: exception.Detail ?? exception.Message);
         }
     }
 

@@ -12,7 +12,7 @@ using TechStore.Api.Common.Data;
 namespace TechStore.Api.Common.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261117135426_AddOrderPricingAllocation")]
+    [Migration("20261117142806_AddOrderPricingAllocation")]
     partial class AddOrderPricingAllocation
     {
         /// <inheritdoc />
@@ -1472,9 +1472,23 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
+                    b.Property<decimal?>("CashTendered")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("cash_tendered");
+
                     b.Property<Guid>("CashierUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("cashier_user_id");
+
+                    b.Property<decimal?>("ChangeGiven")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("change_given");
+
+                    b.Property<Guid?>("CheckoutKey")
+                        .HasColumnType("uuid")
+                        .HasColumnName("checkout_key");
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamptz")
@@ -1584,8 +1598,17 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.HasIndex("VoucherId")
                         .HasDatabaseName("idx_orders_voucher_id");
 
+                    b.HasIndex("CashierUserId", "CheckoutKey")
+                        .IsUnique()
+                        .HasDatabaseName("uq_orders_cashier_checkout_key")
+                        .HasFilter("checkout_key IS NOT NULL");
+
                     b.ToTable("orders", null, t =>
                         {
+                            t.HasCheckConstraint("ck_orders_cash_tendered_ge_zero", "cash_tendered IS NULL OR cash_tendered >= 0");
+
+                            t.HasCheckConstraint("ck_orders_change_given_ge_zero", "change_given IS NULL OR change_given >= 0");
+
                             t.HasCheckConstraint("ck_orders_discount_amount_ge_zero", "discount_amount >= 0");
 
                             t.HasCheckConstraint("ck_orders_subtotal_ge_zero", "subtotal >= 0");
@@ -1854,16 +1877,30 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnType("timestamptz")
                         .HasColumnName("closed_at");
 
+                    b.Property<Guid?>("ClosedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("closed_by_user_id");
+
                     b.Property<decimal?>("ClosingBalance")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("closing_balance");
+
+                    b.Property<string>("ClosingNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("closing_note");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamptz")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
+
+                    b.Property<decimal?>("ExpectedClosingBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("expected_closing_balance");
 
                     b.Property<DateTime>("OpenedAt")
                         .ValueGeneratedOnAdd()
@@ -1903,6 +1940,9 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasDatabaseName("uq_pos_sessions_cashier_open")
                         .HasFilter("status = 'Open'");
 
+                    b.HasIndex("ClosedByUserId")
+                        .HasDatabaseName("idx_pos_sessions_closed_by_user_id");
+
                     b.HasIndex("OpenedAt")
                         .HasDatabaseName("idx_pos_sessions_opened_at");
 
@@ -1914,6 +1954,8 @@ namespace TechStore.Api.Common.Data.Migrations
                             t.HasCheckConstraint("ck_pos_sessions_card_sales_ge_zero", "card_sales_total >= 0");
 
                             t.HasCheckConstraint("ck_pos_sessions_cash_sales_ge_zero", "cash_sales_total >= 0");
+
+                            t.HasCheckConstraint("ck_pos_sessions_closing_ge_zero", "closing_balance IS NULL OR closing_balance >= 0");
 
                             t.HasCheckConstraint("ck_pos_sessions_opening_ge_zero", "opening_balance >= 0");
 
@@ -2267,6 +2309,11 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("TechStore.Api.Sales.Entities.PosSession", null)
+                        .WithMany()
+                        .HasForeignKey("PosSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TechStore.Api.Customers.Entities.Voucher", "Voucher")
                         .WithMany()
                         .HasForeignKey("VoucherId")
@@ -2349,6 +2396,11 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasForeignKey("CashierUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ClosedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("CashierUser");
                 });

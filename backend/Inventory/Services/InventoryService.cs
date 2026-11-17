@@ -93,6 +93,10 @@ public class InventoryService(
             {
                 errors["productId"] = [$"Product with ID '{request.ProductId.Value}' does not exist."];
             }
+            else if (validatedProduct.IsSerialTracked)
+            {
+                errors["productId"] = ["Hàng có Serial/IMEI: nhập máy qua phiếu nhập hoặc nhập theo lô Serial/IMEI, không khởi tạo số dư trực tiếp."];
+            }
             else if (request.VariantId.HasValue && request.VariantId.Value != Guid.Empty)
             {
                 if (validatedProduct.Variants == null || validatedProduct.Variants.All(v => v.Id != request.VariantId.Value))
@@ -334,6 +338,14 @@ public class InventoryService(
             {
                 await unitOfWork.RollbackAsync(cancellationToken);
                 return AdjustInventoryStockResult.NotFound();
+            }
+
+            var product = await productRepository.GetDetailAsync(stock.ProductId, cancellationToken);
+            if (product != null && product.IsSerialTracked)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return AdjustInventoryStockResult.Conflict(
+                    "Hàng có Serial/IMEI: nhập máy qua phiếu nhập, bớt máy bằng Báo lỗi máy theo từng IMEI.");
             }
 
             var newQuantityLong = (long)stock.Quantity + request.QuantityChange;

@@ -40,4 +40,4 @@
 ## 7. Kiểm chứng
 
 - [x] 7.1 `dotnet test` backend và frontend không tăng số fail/skipped; build `net10.0-desktop`
-- [ ] 7.2 Chạy luồng thật mở ca → bán → đóng ca → xem đơn: phần API/PostgreSQL đã đạt qua `PosCheckoutPostgresHttpTests` (8 test, gồm đồng thời); phần UI desktop chưa chạy được (Codex bị lỗi sandbox, chưa kiểm Light/Dark và binding) nên cần chạy tay trước khi đóng change
+- [x] 7.2 Chạy luồng thật mở ca → bán → đóng ca → xem đơn: API/PostgreSQL đạt qua `PosCheckoutPostgresHttpTests`; UI desktop được người dùng chạy bằng Codex ngày 17/11/2026 (mở/đóng ca, quét, thanh toán, tiền thừa, Sáng/Tối, quyền warehouse1). Ba lỗi phát hiện (giỏ trắng cửa sổ nhỏ, mất giỏ khi rời trang, điều hướng hỏng sau đổi tài khoản) đã sửa và test lại; lỗi chữ ô quét ở theme Tối đã sửa nhưng chưa test lại trên UI

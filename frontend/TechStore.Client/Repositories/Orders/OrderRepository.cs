@@ -70,7 +70,7 @@ public sealed class OrderRepository(IApiClient apiClient) : IOrderRepository
         return ParseDetail(json, id);
     }
 
-    private static OrderDetail ParseDetail(JsonElement json, Guid? expectedId)
+    internal static OrderDetail ParseDetail(JsonElement json, Guid? expectedId)
     {
         ValidateDetailShape(json);
         OrderDto dto;
@@ -127,7 +127,10 @@ public sealed class OrderRepository(IApiClient apiClient) : IOrderRepository
         dto.CreatedAt,
         dto.PaidAt,
         dto.CompletedAt,
-        dto.Items.Select(MapLine).ToArray());
+        dto.Items.Select(MapLine).ToArray(),
+        dto.PosSessionId,
+        dto.CashTendered,
+        dto.ChangeGiven);
 
     private static OrderLine MapLine(OrderItemDto dto) => new(
         dto.Id,
@@ -184,6 +187,9 @@ public sealed class OrderRepository(IApiClient apiClient) : IOrderRepository
         RequireDecimal(json, "taxAmount");
         RequireDecimal(json, "totalAmount");
         RequireNullableString(json, "notes");
+        OptionalNullableGuid(json, "posSessionId");
+        OptionalNullableDecimal(json, "cashTendered");
+        OptionalNullableDecimal(json, "changeGiven");
         RequireDateTime(json, "createdAt");
         RequireNullableDateTime(json, "paidAt");
         RequireNullableDateTime(json, "completedAt");
@@ -221,6 +227,7 @@ public sealed class OrderRepository(IApiClient apiClient) : IOrderRepository
     private static void ValidateDetail(OrderDto order)
     {
         if (order.Id == Guid.Empty || string.IsNullOrWhiteSpace(order.OrderCode)
+            || order.CashTendered < 0 || order.ChangeGiven < 0
             || order.Subtotal < 0 || order.DiscountAmount < 0 || order.TaxAmount < 0 || order.TotalAmount < 0)
             throw InvalidResponse("The order contains invalid values.");
 

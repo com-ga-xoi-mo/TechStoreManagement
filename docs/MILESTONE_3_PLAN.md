@@ -89,12 +89,12 @@ Nghiệm thu: Manager xem được số liệu thật, Sales/Warehouse bị ch�
 
 Triển khai ở Sprint 4. Nhận tìm sản phẩm/IMEI từ T. Vinh, chọn/tạo khách và công thức tiền từ Vy, thao tác kho từ Q. Vinh. Lưu giá và phân bổ tiền tại thời điểm bán, trả DTO cho UI và dữ liệu đơn/ca cho Bình; không viết lại công thức hoặc logic kho.
 
-- [ ] Chốt ý nghĩa trạng thái đơn và thời điểm ghi nhận tiền. Hiện `Pending` không giữ hàng, `Processing` đã ghi `PaidAt`; cập nhật cả code, spec và test nếu thay đổi.
+- [x] Chốt ý nghĩa trạng thái đơn và thời điểm ghi nhận tiền: đơn POS tiền mặt đi thẳng `Pending → Completed` trong checkout, `PaidAt = CompletedAt`; đơn nháp vẫn dùng `Pending`/`Processing` như cũ ([backend/Sales/README.md](../backend/Sales/README.md)).
 - [ ] Làm màn bán hàng: quét barcode/Serial/IMEI, thêm/xóa dòng, đổi số lượng, chọn khách hoặc khách lẻ. Chặn IMEI trùng trong giỏ và máy đã bán.
-- [ ] Mở ca với tiền đầu ca; gắn đơn với người bán và ca. Chặn bán vào ca đã đóng hoặc ca của người khác nếu không được phép.
+- [x] Mở ca với tiền đầu ca; gắn đơn với người bán và ca. Chặn bán vào ca đã đóng hoặc ca của người khác (checkout trả 409/404).
 - [ ] Thu tiền mặt và tính tiền thừa. Gọi công thức của Vy và service kho do Q. Vinh phụ trách; hoàn tất đơn, ghi tiền ca, trừ kho, ghi lịch sử, lưu giá vốn và kích hoạt bảo hành trong cùng giao dịch.
-- [ ] Chặn ghi nhận thanh toán lặp khi nhấn hai lần hoặc thử lại sau lỗi mạng.
-- [ ] Đóng ca với tiền dự kiến, tiền thực đếm và lý do chênh lệch.
+- [x] Chặn ghi nhận thanh toán lặp khi nhấn hai lần hoặc thử lại sau lỗi mạng (`checkoutKey` + unique index; test hai request đồng thời trên PostgreSQL).
+- [x] Đóng ca với tiền dự kiến, tiền thực đếm và lý do chênh lệch.
 - [ ] Giữ hủy đơn nháp và các bước chuyển trạng thái hợp lệ. Đơn đã thanh toán phải theo quy trình hoàn tiền M4; không cho đánh dấu QR đã trả tiền khi chưa có xác nhận.
 - [ ] Hiển thị đủ chi tiết đơn: mã, ngày, khách, mặt hàng, số lượng, đơn giá, giảm giá, thuế, tổng tiền, phương thức và trạng thái.
 - [ ] Test đơn rỗng, số lượng 0/âm/quá tồn, giả giá từ client, giảm giá vượt giá trị, thuế sai, làm tròn, tiền nhận thiếu và ca đã đóng.

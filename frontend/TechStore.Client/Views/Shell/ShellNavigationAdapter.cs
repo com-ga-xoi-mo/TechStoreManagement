@@ -29,6 +29,9 @@ public sealed class ShellNavigationAdapter(
         _navigationView.ItemInvoked += OnItemInvoked;
         navigation.RouteChanged += OnRouteChanged;
 
+        // Login navigates to the Dashboard before this Shell exists, so a page can be waiting here with nobody to take it.
+        // Left alone it makes every Prepare fail and the new Shell shows nothing.
+        preparer.TakePrepared()?.Dispose();
         if (preparer.Prepare(navigation.CurrentRoute) && preparer.TakePrepared() is { } initial)
         {
             _current = initial;

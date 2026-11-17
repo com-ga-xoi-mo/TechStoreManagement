@@ -73,7 +73,12 @@ public sealed class SearchBoxControl : UserControl
         return this;
     }
 
-    private void ApplyThemeColors() => _label.Foreground(AppColors.Brushes.Text);
+    // The typed text kept the template's dark default in the Dark theme (hard to read), so give the box its own theme color.
+    private void ApplyThemeColors()
+    {
+        _label.Foreground(AppColors.Brushes.Text);
+        _query.Foreground(AppColors.Brushes.Text);
+    }
 
     private void OnQuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {

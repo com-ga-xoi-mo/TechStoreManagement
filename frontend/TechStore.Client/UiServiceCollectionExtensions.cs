@@ -8,6 +8,7 @@ using TechStore.Client.Repositories.Customers;
 using TechStore.Client.Repositories.Identity;
 using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.Repositories.Orders;
+using TechStore.Client.Repositories.Sales;
 using TechStore.Client.Services.Development;
 using TechStore.Client.Services.Dialog;
 using TechStore.Client.Services.Files;
@@ -20,6 +21,7 @@ using TechStore.Client.ViewModels.Dashboard;
 using TechStore.Client.ViewModels.Development;
 using TechStore.Client.ViewModels.Identity;
 using TechStore.Client.ViewModels.Orders;
+using TechStore.Client.ViewModels.Sales;
 using TechStore.Client.ViewModels.Settings;
 using TechStore.Client.ViewModels.Shell;
 using TechStore.Client.Views.Catalog;
@@ -28,6 +30,7 @@ using TechStore.Client.Views.Dashboard;
 using TechStore.Client.Views.Development;
 using TechStore.Client.Views.Identity;
 using TechStore.Client.Views.Orders;
+using TechStore.Client.Views.Sales;
 using TechStore.Client.Views.Settings;
 using TechStore.Client.Views.Shell;
 
@@ -61,6 +64,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ProductEditorViewModel>();
         services.AddTransient<OrderListViewModel>();
         services.AddTransient<OrderCreateViewModel>();
+        services.AddTransient<PosViewModel>();
         services.AddTransient<CustomerListViewModel>();
         services.AddTransient<CustomerFormViewModel>();
         services.AddTransient<CustomerDetailViewModel>();
@@ -85,6 +89,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ProductEditorPage>();
         services.AddTransient<OrderListPage>();
         services.AddTransient<OrderCreatePage>();
+        services.AddTransient<PosPage>();
         services.AddSingleton<IOrderDetailPresenter, OrderDetailDialogPresenter>();
         services.AddTransient<CustomerListPage>();
         services.AddTransient<SettingsPage>();
@@ -116,6 +121,8 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ICustomerRepository, CustomerRepository>();
         services.AddTransient<IOrderRepository, OrderRepository>();
         services.AddTransient<IOrderDeviceRepository, OrderDeviceRepository>();
+        services.AddTransient<IPosRepository, PosRepository>();
+        services.AddSingleton<IPosDraftStore, PosDraftStore>();
         services.AddTransient<IAuthRepository, AuthRepository>();
         services.AddTransient<IStoreSettingsRepository, StoreSettingsRepository>();
         return services;

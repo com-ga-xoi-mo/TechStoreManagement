@@ -14,6 +14,9 @@ public class OrderDto
     public decimal DiscountAmount { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
+    public Guid? PosSessionId { get; set; }
+    public decimal? CashTendered { get; set; }
+    public decimal? ChangeGiven { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? PaidAt { get; set; }

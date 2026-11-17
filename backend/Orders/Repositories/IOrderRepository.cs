@@ -25,5 +25,11 @@ public interface IOrderRepository
         string prefix,
         CancellationToken cancellationToken = default);
 
+    // Id of the order a cashier stored with this POS checkout key, or null.
+    Task<Guid?> FindIdByCheckoutKeyAsync(
+        Guid cashierUserId,
+        Guid checkoutKey,
+        CancellationToken cancellationToken = default);
+
     void Add(Order order);
 }

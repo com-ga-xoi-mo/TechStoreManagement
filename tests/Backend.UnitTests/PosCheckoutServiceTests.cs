@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Customers.Entities;
@@ -25,13 +26,16 @@ public class PosCheckoutServiceTests
     private readonly FakePosSessionRepository _sessions = new();
     private readonly FakeInventoryFulfillmentService _fulfillment = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
+    // These tests check the cash flow with round amounts, so VAT is 0 here; the formula itself is covered by
+    // OrderPricingHelperTests and the VAT path through checkout by CheckoutAsync_WithVat_ChargesAndCreditsTheTaxedTotal.
+    private readonly PricingOptions _pricing = new() { VatRatePercent = 0m };
     private readonly PosCheckoutService _service;
     private readonly PosSession _shift;
 
     public PosCheckoutServiceTests()
     {
         var time = new FixedTimeProvider(new DateTimeOffset(Now));
-        var orderService = new OrderService(_orders, _products, _customers, _fulfillment, _unitOfWork, time);
+        var orderService = new OrderService(_orders, _products, _customers, _fulfillment, _unitOfWork, time, Options.Create(_pricing));
         _service = new PosCheckoutService(orderService, _orders, _sessions, _fulfillment, _unitOfWork, time);
         _shift = _sessions.AddSession(SalesA.Id, opening: 1_000_000m);
     }
@@ -81,6 +85,45 @@ public class PosCheckoutServiceTests
         // Assert
         result.Data!.Order.ChangeGiven.Should().Be(500_000m);
         _shift.CashSalesTotal.Should().Be(9_500_000m);
+    }
+
+    [Fact]
+    public async Task CheckoutAsync_WithVat_ChargesAndCreditsTheTaxedTotal()
+    {
+        // Arrange: 10% VAT on a 10,000,000 catalog price (prices exclude VAT).
+        _pricing.VatRatePercent = 10m;
+        var product = AddProduct(price: 10_000_000m);
+
+        // Act
+        var short_ = await _service.CheckoutAsync(RequestFor(product, tendered: 10_999_999m), SalesA);
+        var paid = await _service.CheckoutAsync(RequestFor(product, tendered: 11_000_000m), SalesA);
+
+        // Assert
+        short_.ValidationErrors.Should().ContainKey("cashTendered");
+        var order = paid.Data!.Order;
+        order.Subtotal.Should().Be(10_000_000m);
+        order.TaxRate.Should().Be(10m);
+        order.TaxAmount.Should().Be(1_000_000m);
+        order.TotalAmount.Should().Be(11_000_000m);
+        order.ChangeGiven.Should().Be(0m);
+        order.Items.Single().TaxAmount.Should().Be(1_000_000m);
+        _shift.CashSalesTotal.Should().Be(11_000_000m);
+    }
+
+    [Fact]
+    public async Task CheckoutAsync_SalesLineDiscountAboveLimit_IsRejected()
+    {
+        // Arrange: the Sales discount limit also applies at the counter.
+        var product = AddProduct(serialTracked: false, price: 1_000_000m, sku: "CASE");
+        var request = RequestFor(product, tendered: 1_000_000m);
+        request.Items![0].DiscountAmount = 100_001m;
+
+        // Act
+        var result = await _service.CheckoutAsync(request, SalesA);
+
+        // Assert
+        result.ValidationErrors.Should().ContainKey("discount");
+        AssertNothingStored();
     }
 
     [Fact]

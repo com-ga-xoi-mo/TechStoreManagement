@@ -18,6 +18,10 @@ public class OrderItem : BaseEntity
     public int Quantity { get; set; } = 1;
     public decimal DiscountAmount { get; set; } = 0;
     public decimal TotalPrice { get; set; }
+    /// <summary>This line's share of the order-level discount (whole đồng).</summary>
+    public decimal OrderDiscountAmount { get; set; } = 0;
+    /// <summary>This line's share of the order VAT (whole đồng).</summary>
+    public decimal TaxAmount { get; set; } = 0;
 
     // Navigation properties
     public virtual Order Order { get; set; } = null!;

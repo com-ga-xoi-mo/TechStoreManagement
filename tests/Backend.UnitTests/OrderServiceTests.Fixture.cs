@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Customers.Entities;
 using TechStore.Api.Orders.Entities;
@@ -20,6 +21,8 @@ public partial class OrderServiceTests
     private readonly FakeCustomerRepository _customers = new();
     private readonly FakeInventoryFulfillmentService _fulfillment = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
+    // Production defaults (VAT 10%, Sales discount limit 10%); a test may change them before acting.
+    private readonly PricingOptions _pricing = new();
     private readonly OrderService _service;
 
     public OrderServiceTests()
@@ -30,7 +33,8 @@ public partial class OrderServiceTests
             _customers,
             _fulfillment,
             _unitOfWork,
-            new FixedTimeProvider(new DateTimeOffset(Now)));
+            new FixedTimeProvider(new DateTimeOffset(Now)),
+            Options.Create(_pricing));
     }
 
     private Product AddProduct(

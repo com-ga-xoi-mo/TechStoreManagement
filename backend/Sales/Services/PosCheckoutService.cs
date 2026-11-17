@@ -75,7 +75,7 @@ public class PosCheckoutService(
                 Notes = request.Notes,
                 Items = request.Items
             },
-            actor.Id,
+            actor,
             checkAvailability: false,
             cancellationToken);
 

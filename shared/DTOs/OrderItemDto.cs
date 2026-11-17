@@ -15,4 +15,6 @@ public class OrderItemDto
     public int Quantity { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal TotalPrice { get; set; }
+    public decimal OrderDiscountAmount { get; set; }
+    public decimal TaxAmount { get; set; }
 }

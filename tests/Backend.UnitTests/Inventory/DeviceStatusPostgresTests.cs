@@ -106,8 +106,9 @@ public class DeviceStatusPostgresTests
     }
 
     [PostgresFact]
-    public async Task DefectiveDevice_CannotBeReserved_WhenOrderIsReserved()
+    public async Task ReserveAsync_DefectiveDevice_ReturnsConflict()
     {
+        // Arrange
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);
         await using var seedContext = database.CreateContext();
         var (_, product, _, device) = await SeedSingleDeviceAsync(seedContext, SerialImeiStatus.Defective);
@@ -118,11 +119,13 @@ public class DeviceStatusPostgresTests
             new SerialImeiRepository(actContext),
             new InventoryStockRepository(actContext));
 
+        // Act
         await uow.BeginTransactionAsync();
         var result = await fulfillmentService.ReserveAsync([
             new FulfillmentLine(null, product.Id, null, device.Id, 1)
         ]);
 
+        // Assert
         result.IsSuccess.Should().BeFalse();
         result.Conflict.Should().NotBeNull();
         await uow.RollbackAsync();
@@ -132,7 +135,7 @@ public class DeviceStatusPostgresTests
     }
 
     [PostgresFact]
-    public async Task ReportDefective_And_Restore_Keeps_Quantity_Equal_To_InStock_Plus_Reserved()
+    public async Task ReportDefectiveAndRestoreAsync_KeepQuantityEqualToInStockPlusReserved()
     {
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);
         await using var seedContext = database.CreateContext();
@@ -224,14 +227,16 @@ public class DeviceStatusPostgresTests
     }
 
     [PostgresFact]
-    public async Task Concurrent_ReportDefective_And_OrderReserve_ExactlyOneSucceeds()
+    public async Task ReportDefectiveAsync_ConcurrentWithOrderReserve_ExactlyOneSucceeds()
     {
+        // Arrange
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);
         await using var seedContext = database.CreateContext();
         var (user, product, stock, device) = await SeedSingleDeviceAsync(seedContext, SerialImeiStatus.InStock);
 
         var barrier = new LockBarrier();
 
+        // Act: report the defect and reserve the same device in parallel
         var task1 = Task.Run(async () =>
         {
             await using var ctx1 = database.CreateContext(new SerialLockInterceptor(barrier));
@@ -276,7 +281,7 @@ public class DeviceStatusPostgresTests
 
         var (reportRes, reserveRes) = (await task1, await task2);
 
-        // Exactly one must succeed
+        // Assert: exactly one must succeed
         (reportRes.IsSuccess ^ reserveRes.IsSuccess).Should().BeTrue();
 
         await using var verifyContext = database.CreateContext();
@@ -300,7 +305,7 @@ public class DeviceStatusPostgresTests
     }
 
     [PostgresFact]
-    public async Task SerialStockReconciliation_WhenTamperedBySql_ThrowsWithExactDiscrepancy()
+    public async Task AssertSerialStockReconciledAsync_BalanceTamperedBySql_ThrowsWithExactDiscrepancy()
     {
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);
         await using var seedContext = database.CreateContext();

@@ -46,6 +46,7 @@ public sealed class SerialDeviceRepositoryTests
     [Fact]
     public async Task ReportDefectiveAsync_WhenOk_ReturnsSuccessWithData()
     {
+        // Arrange
         var api = new MockApiClient();
         var repo = new SerialDeviceRepository(api);
         var deviceId = Guid.NewGuid();
@@ -57,9 +58,11 @@ public sealed class SerialDeviceRepositoryTests
         };
         api.ResponseOrException = returnedDto;
 
+        // Act
         var req = new ReportDefectiveDeviceRequest { Reason = "Hư màn hình", Note = "Rơi vỡ" };
         var result = await repo.ReportDefectiveAsync(deviceId, req);
 
+        // Assert
         result.Succeeded.Should().BeTrue();
         result.Data.Should().NotBeNull();
         result.Data!.Status.Should().Be(SerialImeiStatus.Defective);
@@ -71,14 +74,18 @@ public sealed class SerialDeviceRepositoryTests
     [Fact]
     public async Task ReportDefectiveAsync_WhenHttpError_MapsFailureKinds()
     {
+        // Arrange
         var api = new MockApiClient();
         var repo = new SerialDeviceRepository(api);
         var deviceId = Guid.NewGuid();
         var req = new ReportDefectiveDeviceRequest { Reason = "Hư hỏng" };
 
+        // Act
         // 400
         api.ResponseOrException = new ApiException(ApiErrorKind.Http, "Validation failed", statusCode: 400, detail: "Lý do không hợp lệ.");
         var r400 = await repo.ReportDefectiveAsync(deviceId, req);
+
+        // Assert
         r400.Succeeded.Should().BeFalse();
         r400.Failure.Should().Be(SerialDeviceFailureKind.BadRequest);
         r400.Message.Should().Be("Lý do không hợp lệ.");
@@ -112,6 +119,7 @@ public sealed class SerialDeviceRepositoryTests
     [Fact]
     public async Task RestoreAsync_WhenOk_ReturnsSuccessWithData()
     {
+        // Arrange
         var api = new MockApiClient();
         var repo = new SerialDeviceRepository(api);
         var deviceId = Guid.NewGuid();
@@ -123,9 +131,11 @@ public sealed class SerialDeviceRepositoryTests
         };
         api.ResponseOrException = returnedDto;
 
+        // Act
         var req = new RestoreDeviceRequest { Note = "Đã thay màn hình" };
         var result = await repo.RestoreAsync(deviceId, req);
 
+        // Assert
         result.Succeeded.Should().BeTrue();
         result.Data.Should().NotBeNull();
         result.Data!.Status.Should().Be(SerialImeiStatus.InStock);
@@ -136,13 +146,16 @@ public sealed class SerialDeviceRepositoryTests
     [Fact]
     public async Task RestoreAsync_WhenConflict_MapsConflictFailure()
     {
+        // Arrange
         var api = new MockApiClient();
         var repo = new SerialDeviceRepository(api);
         var deviceId = Guid.NewGuid();
 
+        // Act
         api.ResponseOrException = new ApiException(ApiErrorKind.Http, "Conflict", statusCode: 409, detail: "Thiết bị không ở trạng thái Lỗi.");
         var result = await repo.RestoreAsync(deviceId, new RestoreDeviceRequest());
 
+        // Assert
         result.Succeeded.Should().BeFalse();
         result.Failure.Should().Be(SerialDeviceFailureKind.Conflict);
         result.Message.Should().Be("Thiết bị không ở trạng thái Lỗi.");

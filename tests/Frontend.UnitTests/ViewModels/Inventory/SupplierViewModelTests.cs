@@ -121,10 +121,11 @@ public sealed class SupplierViewModelTests
     [Fact]
     public async Task SupplierListViewModel_Loading_Empty_And_Content_States()
     {
+        // Arrange
         var repo = new FakeClientSupplierRepository();
         var vm = new SupplierListViewModel(repo);
 
-        // Initial state before load
+        // Assert: initial state before load
         vm.HasLoaded.Should().BeFalse();
         vm.IsEmpty.Should().BeFalse();
 
@@ -150,14 +151,17 @@ public sealed class SupplierViewModelTests
     [Fact]
     public async Task SupplierListViewModel_Error_State()
     {
+        // Arrange
         var repo = new FakeClientSupplierRepository
         {
             CustomSearchResult = SupplierSearchResult.Failed(SupplierFailureKind.Network, "Connection failed")
         };
         var vm = new SupplierListViewModel(repo);
 
+        // Act
         await vm.LoadAsync();
 
+        // Assert
         vm.HasError.Should().BeTrue();
         vm.ErrorMessage.Should().Be("Không thể tải danh sách nhà cung cấp. Vui lòng thử lại.");
         vm.IsForbidden.Should().BeFalse("a network failure can be retried");
@@ -168,6 +172,7 @@ public sealed class SupplierViewModelTests
     [Fact]
     public async Task SupplierListViewModel_Filter_And_Pagination()
     {
+        // Arrange
         var repo = new FakeClientSupplierRepository();
         for (var i = 1; i <= 25; i++)
         {
@@ -184,9 +189,11 @@ public sealed class SupplierViewModelTests
                 null));
         }
 
+        // Act
         var vm = new SupplierListViewModel(repo);
         await vm.LoadAsync();
 
+        // Assert
         vm.TotalCount.Should().Be(25);
         vm.TotalPages.Should().Be(2);
         vm.Page.Should().Be(1);
@@ -215,6 +222,7 @@ public sealed class SupplierViewModelTests
     [Fact]
     public void SupplierListViewModel_Action_Events()
     {
+        // Arrange
         var repo = new FakeClientSupplierRepository();
         var vm = new SupplierListViewModel(repo) { CanWrite = true };
 
@@ -234,8 +242,11 @@ public sealed class SupplierViewModelTests
             statusRequestedItem = item;
         };
 
+        // Act
         // Create
         vm.CreateSupplierCommand.Execute(null);
+
+        // Assert
         editorFired.Should().BeTrue();
         editorRequestedItem.Should().BeNull();
 
@@ -255,13 +266,17 @@ public sealed class SupplierViewModelTests
     [Fact]
     public async Task SupplierEditorDialogViewModel_In_Memory_Validation()
     {
+        // Arrange
         var repo = new FakeClientSupplierRepository();
         var vm = new SupplierEditorDialogViewModel(repo);
 
+        // Act
         // Empty Name
         vm.Name = "";
         vm.Phone = "0987654321";
         await vm.SaveAsync();
+
+        // Assert
         vm.NameError.Should().NotBeNullOrWhiteSpace();
 
         // Name too long (>200)
@@ -285,6 +300,7 @@ public sealed class SupplierViewModelTests
     [Fact]
     public async Task SupplierEditorDialogViewModel_Save_409_Conflict_Sets_NameError()
     {
+        // Arrange
         var repo = new FakeClientSupplierRepository
         {
             CustomMutationResult = SupplierMutationResult.Failed(SupplierFailureKind.Conflict, "Tên nhà cung cấp đã tồn tại.")
@@ -295,14 +311,17 @@ public sealed class SupplierViewModelTests
             Phone = "0987654321"
         };
 
+        // Act
         await vm.SaveAsync();
 
+        // Assert
         vm.NameError.Should().Be("Tên nhà cung cấp đã tồn tại.");
     }
 
     [Fact]
     public async Task SupplierEditorDialogViewModel_Save_400_BadRequest_Sets_FieldErrors()
     {
+        // Arrange
         var fieldErrors = new Dictionary<string, IReadOnlyList<string>>
         {
             ["name"] = ["Tên không hợp lệ."],
@@ -318,8 +337,10 @@ public sealed class SupplierViewModelTests
             Phone = "0987654321"
         };
 
+        // Act
         await vm.SaveAsync();
 
+        // Assert
         vm.NameError.Should().Be("Tên không hợp lệ.");
         vm.PhoneError.Should().Be("Số điện thoại không đúng định dạng.");
     }
@@ -327,6 +348,7 @@ public sealed class SupplierViewModelTests
     [Fact]
     public async Task SupplierEditorDialogViewModel_Save_Success_Fires_Events_And_List_Reloads()
     {
+        // Arrange
         var repo = new FakeClientSupplierRepository();
         var listVm = new SupplierListViewModel(repo);
         var editorVm = new SupplierEditorDialogViewModel(repo)
@@ -344,8 +366,10 @@ public sealed class SupplierViewModelTests
         };
         editorVm.RequestClose += (_, _) => closeFired = true;
 
+        // Act
         await editorVm.SaveAsync();
 
+        // Assert
         savedItem.Should().NotBeNull();
         savedItem!.Name.Should().Be("New Supplier");
         closeFired.Should().BeTrue();

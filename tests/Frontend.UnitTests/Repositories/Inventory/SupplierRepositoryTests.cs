@@ -66,6 +66,7 @@ public sealed class SupplierRepositoryTests
     [Fact]
     public async Task GetSuppliersAsync_BuildsCorrectQueryString_And_MapsDtoToModel()
     {
+        // Arrange
         var supplierId = Guid.NewGuid();
         var now = DateTime.UtcNow;
         var paged = new PagedResultDto<SupplierDto>
@@ -95,6 +96,7 @@ public sealed class SupplierRepositoryTests
         var api = new MockApiClient { ResponseOrException = paged };
         var repo = new SupplierRepository(api);
 
+        // Act
         var result = await repo.GetSuppliersAsync(new SupplierFilterRequest
         {
             Search = "Apple",
@@ -103,6 +105,7 @@ public sealed class SupplierRepositoryTests
             PageSize = 10
         });
 
+        // Assert
         api.LastPath.Should().Be("api/inventory/suppliers?search=Apple&isActive=true&page=2&pageSize=10");
         result.Succeeded.Should().BeTrue();
         result.TotalCount.Should().Be(15);
@@ -127,6 +130,7 @@ public sealed class SupplierRepositoryTests
     [Fact]
     public async Task GetByIdAsync_BuildsCorrectPath_And_MapsDto()
     {
+        // Arrange
         var id = Guid.NewGuid();
         var dto = new SupplierDto
         {
@@ -139,8 +143,10 @@ public sealed class SupplierRepositoryTests
         var api = new MockApiClient { ResponseOrException = dto };
         var repo = new SupplierRepository(api);
 
+        // Act
         var result = await repo.GetByIdAsync(id);
 
+        // Assert
         api.LastPath.Should().Be($"api/inventory/suppliers/{id:D}");
         result.Succeeded.Should().BeTrue();
         result.Data.Should().NotBeNull();
@@ -151,6 +157,7 @@ public sealed class SupplierRepositoryTests
     [Fact]
     public async Task CreateAsync_ForwardsRequest_And_MapsDto()
     {
+        // Arrange
         var id = Guid.NewGuid();
         var request = new SaveSupplierRequest
         {
@@ -168,8 +175,10 @@ public sealed class SupplierRepositoryTests
         var api = new MockApiClient { ResponseOrException = dto };
         var repo = new SupplierRepository(api);
 
+        // Act
         var result = await repo.CreateAsync(request);
 
+        // Assert
         api.LastPath.Should().Be("api/inventory/suppliers");
         api.LastMethod.Should().Be("POST");
         api.LastBody.Should().Be(request);
@@ -180,6 +189,7 @@ public sealed class SupplierRepositoryTests
     [Fact]
     public async Task UpdateAsync_ForwardsRequest_And_MapsDto()
     {
+        // Arrange
         var id = Guid.NewGuid();
         var request = new SaveSupplierRequest
         {
@@ -197,8 +207,10 @@ public sealed class SupplierRepositoryTests
         var api = new MockApiClient { ResponseOrException = dto };
         var repo = new SupplierRepository(api);
 
+        // Act
         var result = await repo.UpdateAsync(id, request);
 
+        // Assert
         api.LastPath.Should().Be($"api/inventory/suppliers/{id:D}");
         api.LastMethod.Should().Be("PUT");
         api.LastBody.Should().Be(request);
@@ -209,6 +221,7 @@ public sealed class SupplierRepositoryTests
     [Fact]
     public async Task SetStatusAsync_ForwardsRequest_And_MapsDto()
     {
+        // Arrange
         var id = Guid.NewGuid();
         var dto = new SupplierDto
         {
@@ -221,8 +234,10 @@ public sealed class SupplierRepositoryTests
         var api = new MockApiClient { ResponseOrException = dto };
         var repo = new SupplierRepository(api);
 
+        // Act
         var result = await repo.SetStatusAsync(id, false);
 
+        // Assert
         api.LastPath.Should().Be($"api/inventory/suppliers/{id:D}/status");
         api.LastMethod.Should().Be("PATCH");
         var req = (SetSupplierStatusRequest)api.LastBody!;
@@ -239,6 +254,7 @@ public sealed class SupplierRepositoryTests
     [InlineData(409, SupplierFailureKind.Conflict)]
     public async Task Repository_MapsHttpStatusesCorrectly(int statusCode, SupplierFailureKind expectedFailure)
     {
+        // Arrange
         var fieldErrors = new Dictionary<string, IReadOnlyList<string>>
         {
             ["name"] = ["Tên nhà cung cấp đã tồn tại."]
@@ -253,7 +269,10 @@ public sealed class SupplierRepositoryTests
         var api = new MockApiClient { ResponseOrException = apiEx };
         var repo = new SupplierRepository(api);
 
+        // Act
         var getRes = await repo.GetSuppliersAsync(new SupplierFilterRequest());
+
+        // Assert
         getRes.Succeeded.Should().BeFalse();
         getRes.Failure.Should().Be(expectedFailure);
 
@@ -272,11 +291,15 @@ public sealed class SupplierRepositoryTests
     [Fact]
     public async Task Repository_MapsNetworkErrorCorrectly()
     {
+        // Arrange
         var apiEx = new ApiException(ApiErrorKind.Network, "Connection failed");
         var api = new MockApiClient { ResponseOrException = apiEx };
         var repo = new SupplierRepository(api);
 
+        // Act
         var result = await repo.GetSuppliersAsync(new SupplierFilterRequest());
+
+        // Assert
         result.Succeeded.Should().BeFalse();
         result.Failure.Should().Be(SupplierFailureKind.Network);
     }

@@ -78,6 +78,7 @@ public sealed class PurchaseReceiptsControllerTests
     [Fact]
     public async Task Receipts_Should_Enforce_Authentication_And_Role_Permissions()
     {
+        // Arrange
         var service = new FakePurchaseReceiptService();
         await using var host = new InventoryApiHost(services =>
         {
@@ -93,7 +94,7 @@ public sealed class PurchaseReceiptsControllerTests
             Lines = [new PurchaseReceiptLineRequest { ProductId = Guid.NewGuid(), Quantity = 1, UnitCost = 1000m }]
         };
 
-        // 1. Unauthenticated -> 401
+        // Act + Assert: 1. Unauthenticated -> 401
         (await host.Client.GetAsync("/api/inventory/purchase-receipts")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await host.Client.GetAsync($"/api/inventory/purchase-receipts/{receiptId}")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await host.Client.PostAsJsonAsync("/api/inventory/purchase-receipts", createRequest)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -124,6 +125,7 @@ public sealed class PurchaseReceiptsControllerTests
     [Fact]
     public async Task CreateReceipt_Should_Return_201_With_Location_Header_Or_200_On_Replay()
     {
+        // Arrange
         var service = new FakePurchaseReceiptService();
         await using var host = new InventoryApiHost(services =>
         {
@@ -132,12 +134,15 @@ public sealed class PurchaseReceiptsControllerTests
         await host.StartAsync();
         host.Authenticate(host.Token("WarehouseStaff"));
 
+        // Act
         // Normal create -> 201 Created with Location
         var response201 = await host.Client.PostAsJsonAsync("/api/inventory/purchase-receipts", new CreatePurchaseReceiptRequest
         {
             ClientRequestId = Guid.NewGuid(),
             SupplierId = Guid.NewGuid()
         });
+
+        // Assert
         response201.StatusCode.Should().Be(HttpStatusCode.Created);
         var created = await response201.Content.ReadFromJsonAsync<PurchaseReceiptDto>();
         created.Should().NotBeNull();
@@ -156,6 +161,7 @@ public sealed class PurchaseReceiptsControllerTests
     [Fact]
     public async Task CreateReceipt_Should_Handle_400_404_409()
     {
+        // Arrange
         var service = new FakePurchaseReceiptService();
         await using var host = new InventoryApiHost(services =>
         {
@@ -164,8 +170,11 @@ public sealed class PurchaseReceiptsControllerTests
         await host.StartAsync();
         host.Authenticate(host.Token("Admin"));
 
+        // Act
         // 400 Bad Request
         var badPost = await host.Client.PostAsJsonAsync("/api/inventory/purchase-receipts", new CreatePurchaseReceiptRequest());
+
+        // Assert
         badPost.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // 404 Not Found on detail

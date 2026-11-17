@@ -106,6 +106,7 @@ public sealed class SuppliersControllerTests
     [Fact]
     public async Task Suppliers_Should_Enforce_Authentication_And_Role_Permissions()
     {
+        // Arrange
         var service = new FakeSupplierService();
         await using var host = new InventoryApiHost(services =>
         {
@@ -117,7 +118,7 @@ public sealed class SuppliersControllerTests
         var saveRequest = new SaveSupplierRequest { Name = "New Supplier", Phone = "0123456789" };
         var statusRequest = new SetSupplierStatusRequest { IsActive = false };
 
-        // 1. Unauthenticated -> 401 on all endpoints
+        // Act + Assert: 1. Unauthenticated -> 401 on all endpoints
         (await host.Client.GetAsync("/api/inventory/suppliers")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await host.Client.GetAsync($"/api/inventory/suppliers/{supplierId}")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await host.Client.PostAsJsonAsync("/api/inventory/suppliers", saveRequest)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -155,6 +156,7 @@ public sealed class SuppliersControllerTests
     [Fact]
     public async Task CreateSupplier_Should_Return_201_With_Location_Header()
     {
+        // Arrange
         var service = new FakeSupplierService();
         await using var host = new InventoryApiHost(services =>
         {
@@ -163,12 +165,14 @@ public sealed class SuppliersControllerTests
         await host.StartAsync();
         host.Authenticate(host.Token("WarehouseStaff"));
 
+        // Act
         var response = await host.Client.PostAsJsonAsync("/api/inventory/suppliers", new SaveSupplierRequest
         {
             Name = "New Partner",
             Phone = "0987654321"
         });
 
+        // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var created = await response.Content.ReadFromJsonAsync<SupplierDto>();
         created.Should().NotBeNull();
@@ -179,6 +183,7 @@ public sealed class SuppliersControllerTests
     [Fact]
     public async Task Suppliers_Should_Handle_400_404_409()
     {
+        // Arrange
         var service = new FakeSupplierService();
         await using var host = new InventoryApiHost(services =>
         {
@@ -190,8 +195,11 @@ public sealed class SuppliersControllerTests
         var unknownId = Guid.NewGuid();
         var existingId = service.ExistingSupplier!.Id;
 
+        // Act
         // 400 Bad Request
         var badCreate = await host.Client.PostAsJsonAsync("/api/inventory/suppliers", new SaveSupplierRequest { Name = "" });
+
+        // Assert
         badCreate.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         var badUpdate = await host.Client.PutAsJsonAsync($"/api/inventory/suppliers/{existingId}", new SaveSupplierRequest { Name = "" });

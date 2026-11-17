@@ -90,6 +90,7 @@ public sealed class PurchaseReceiptViewModelTests
     [Fact]
     public async Task LoadAsync_PopulatesReceipts_And_UpdatesPagination()
     {
+        // Arrange
         var repo = new FakeReceiptRepository();
         var supplierRepo = new FakeSupplierRepository();
 
@@ -109,9 +110,11 @@ public sealed class PurchaseReceiptViewModelTests
                 10_000_000m));
         }
 
+        // Act
         var vm = new PurchaseReceiptListViewModel(repo, supplierRepo) { PageSize = 10 };
         await vm.LoadAsync();
 
+        // Assert
         vm.Items.Should().HaveCount(10);
         vm.TotalCount.Should().Be(25);
         vm.TotalPages.Should().Be(3);
@@ -136,15 +139,18 @@ public sealed class PurchaseReceiptViewModelTests
     [Fact]
     public async Task LoadAsync_WhenForbidden403_SetsIsForbidden_And_SpecificErrorMessage_WithoutRetryLoop()
     {
+        // Arrange
         var repo = new FakeReceiptRepository
         {
             CustomSearchResult = PurchaseReceiptSearchResult.Failed(ReceiptFailureKind.Forbidden, "Forbidden")
         };
         var supplierRepo = new FakeSupplierRepository();
 
+        // Act
         var vm = new PurchaseReceiptListViewModel(repo, supplierRepo);
         await vm.LoadAsync();
 
+        // Assert
         vm.IsForbidden.Should().BeTrue();
         vm.ErrorMessage.Should().Be("Bạn không có quyền xem phiếu nhập.");
         vm.HasError.Should().BeTrue();
@@ -155,6 +161,7 @@ public sealed class PurchaseReceiptViewModelTests
     [Fact]
     public async Task SearchText_And_SupplierFilter_ReloadsListFromPage1()
     {
+        // Arrange
         var supplier1 = Guid.NewGuid();
         var supplier2 = Guid.NewGuid();
         var repo = new FakeReceiptRepository();
@@ -165,8 +172,11 @@ public sealed class PurchaseReceiptViewModelTests
         repo.Items.Add(new PurchaseReceiptSummary(
             Guid.NewGuid(), "PO-0002", supplier2, "Supplier 2", "HD-02", DateTime.UtcNow, null, null, 1, 1, 100m));
 
+        // Act
         var vm = new PurchaseReceiptListViewModel(repo, supplierRepo);
         await vm.LoadAsync();
+
+        // Assert
         vm.Items.Should().HaveCount(2);
 
         vm.SearchText = "HD-01";
@@ -187,6 +197,7 @@ public sealed class PurchaseReceiptViewModelTests
     [Fact]
     public void ViewDetail_And_CreateReceipt_FireCorrespondingEvents()
     {
+        // Arrange
         var repo = new FakeReceiptRepository();
         var supplierRepo = new FakeSupplierRepository();
         var vm = new PurchaseReceiptListViewModel(repo, supplierRepo) { CanWrite = true };
@@ -200,7 +211,10 @@ public sealed class PurchaseReceiptViewModelTests
         var targetSummary = new PurchaseReceiptSummary(
             Guid.NewGuid(), "PO-0001", Guid.NewGuid(), "Supplier", null, null, null, null, 1, 1, 100m);
 
+        // Act
         vm.ViewDetailCommand.Execute(targetSummary);
+
+        // Assert
         detailRequested.Should().Be(targetSummary);
 
         vm.CreateReceiptCommand.Execute(null);
@@ -210,6 +224,7 @@ public sealed class PurchaseReceiptViewModelTests
     [Fact]
     public async Task PurchaseReceiptDetailDialogViewModel_LoadAsync_PopulatesReceiptAndStatusLabels()
     {
+        // Arrange
         var receiptId = Guid.NewGuid();
         var detail = new PurchaseReceiptDetail(
             receiptId,
@@ -246,8 +261,10 @@ public sealed class PurchaseReceiptViewModelTests
         var repo = new FakeReceiptRepository { DetailItem = detail };
         var vm = new PurchaseReceiptDetailDialogViewModel(repo);
 
+        // Act
         await vm.LoadAsync(receiptId);
 
+        // Assert
         vm.HasError.Should().BeFalse();
         vm.Receipt.Should().NotBeNull();
         vm.Title.Should().Be("Chi tiết phiếu nhập PO-202611-0099");

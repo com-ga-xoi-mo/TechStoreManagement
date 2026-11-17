@@ -106,8 +106,10 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
     [Fact]
     public void Validation_NoSupplier_And_NoLines()
     {
+        // Act
         var (vm, _, _, _) = CreateFixture();
 
+        // Assert
         vm.ValidationMessage.Should().Be("Vui lòng chọn nhà cung cấp.");
         vm.CanSubmit.Should().BeFalse();
 
@@ -119,14 +121,18 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
     [Fact]
     public void Validation_LineChecks_Quantity_UnitCost_And_PreviewTotal()
     {
+        // Arrange
         var (vm, _, _, _) = CreateFixture();
         vm.SelectedSupplier = new SupplierItem(Guid.NewGuid(), "FPT", null, "0900", null, null, true, 0, DateTime.UtcNow, null);
 
         var draft = new ReceiptLineDraft(Guid.NewGuid(), "Cáp USB-C", "CAB-01", null, null, null, false);
         vm.Lines.Add(draft);
 
+        // Act
         // Quantity < 1
         draft.Quantity = 0;
+
+        // Assert
         vm.ValidationMessage.Should().Contain("phải lớn hơn hoặc bằng 1");
         vm.CanSubmit.Should().BeFalse();
 
@@ -148,6 +154,7 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
     [Fact]
     public void Validation_SerialTrackedLine_DeviceCountMismatch_And_Duplicates()
     {
+        // Arrange
         var (vm, _, _, _) = CreateFixture();
         vm.SelectedSupplier = new SupplierItem(Guid.NewGuid(), "FPT", null, "0900", null, null, true, 0, DateTime.UtcNow, null);
 
@@ -158,7 +165,7 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
         };
         vm.Lines.Add(draft);
 
-        // 0 codes entered vs 3 expected
+        // Assert: 0 codes entered vs 3 expected
         vm.ValidationMessage.Should().Be("Số mã Serial/IMEI (0) phải bằng số lượng nhập (3).");
         vm.CanSubmit.Should().BeFalse();
 
@@ -189,6 +196,7 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
     [Fact]
     public async Task SubmitAsync_KeepsSameClientRequestIdAcrossRetries_WhenNetworkFails()
     {
+        // Arrange
         var (vm, _, _, receipts) = CreateFixture();
         var clientRequestId = vm.ClientRequestId;
 
@@ -200,10 +208,12 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
         };
         vm.Lines.Add(draft);
 
+        // Act
         // First attempt: network error
         receipts.CustomCreateResult = PurchaseReceiptCreateResult.Failed(ReceiptFailureKind.Network, "Connection timeout");
         await vm.SubmitAsync();
 
+        // Assert
         vm.HasError.Should().BeTrue();
         vm.ErrorMessage.Should().Be(CreatePurchaseReceiptDialogViewModel.NetworkFailureMessage);
         vm.ClientRequestId.Should().Be(clientRequestId);
@@ -228,6 +238,7 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
     [Fact]
     public async Task SubmitAsync_When409Conflict_KeepsFormOpenWithDuplicateIdentifiers()
     {
+        // Arrange
         var (vm, _, _, receipts) = CreateFixture();
         vm.SelectedSupplier = new SupplierItem(Guid.NewGuid(), "FPT", null, "0900", null, null, true, 0, DateTime.UtcNow, null);
         var draft = new ReceiptLineDraft(Guid.NewGuid(), "iPhone 15", "IP15", null, null, null, true)
@@ -247,8 +258,10 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
         var closed = false;
         vm.RequestClose += (_, _) => closed = true;
 
+        // Act
         await vm.SubmitAsync();
 
+        // Assert
         closed.Should().BeFalse(); // Dialog stays open!
         vm.HasError.Should().BeTrue();
         vm.ErrorMessage.Should().Be("Mã Serial/IMEI đã tồn tại trong hệ thống.");
@@ -260,12 +273,15 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
     [Fact]
     public void CancelCommand_ClosesFormWithoutSendingRequest()
     {
+        // Arrange
         var (vm, _, _, receipts) = CreateFixture();
         var closed = false;
         vm.RequestClose += (_, _) => closed = true;
 
+        // Act
         vm.CancelCommand.Execute(null);
 
+        // Assert
         closed.Should().BeTrue();
         receipts.SubmitCallCount.Should().Be(0);
         receipts.LastRequest.Should().BeNull();

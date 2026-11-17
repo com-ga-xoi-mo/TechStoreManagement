@@ -111,7 +111,7 @@ public class PurchaseReceiptPostgresTests
     }
 
     [PostgresFact]
-    public async Task Receive_With_And_Without_Serial_And_Check_Stock_Ledger_Devices_And_Average_Cost()
+    public async Task CreateAsync_SerialAndNonSerialLines_UpdatesStockLedgerDevicesAndAverageCost()
     {
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);
         await using var seedContext = database.CreateContext();
@@ -225,8 +225,9 @@ public class PurchaseReceiptPostgresTests
     }
 
     [PostgresFact]
-    public async Task Save_Failure_Rolls_Back_Completely()
+    public async Task CreateAsync_SaveFails_RollsBackEverything()
     {
+        // Arrange
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);
         await using var seedContext = database.CreateContext();
         var (user, supplier, category) = await SeedCommonAsync(seedContext);
@@ -244,6 +245,7 @@ public class PurchaseReceiptPostgresTests
         seedContext.Products.Add(product);
         await seedContext.SaveChangesAsync();
 
+        // Act
         var (failingService, context) = CreateService(database, failOnSave: true);
         await using (context)
         {
@@ -254,6 +256,7 @@ public class PurchaseReceiptPostgresTests
                 Lines = [new PurchaseReceiptLineRequest { ProductId = product.Id, Quantity = 5, UnitCost = 100_000m }]
             }, user.Id);
 
+            // Assert
             await act.Should().ThrowAsync<InvalidOperationException>();
 
             // Verify nothing remained in database
@@ -267,8 +270,9 @@ public class PurchaseReceiptPostgresTests
     }
 
     [PostgresFact]
-    public async Task Same_ClientRequestId_Sequential_And_Concurrent_Recorded_Once()
+    public async Task CreateAsync_SameClientRequestIdSequentialAndConcurrent_RecordsOnce()
     {
+        // Arrange
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);
         await using var seedContext = database.CreateContext();
         var (user, supplier, category) = await SeedCommonAsync(seedContext);
@@ -307,7 +311,10 @@ public class PurchaseReceiptPostgresTests
                 ]
             };
 
+            // Act
             var first = await seqService.CreateAsync(req, user.Id);
+
+            // Assert
             first.IsSuccess.Should().BeTrue();
             first.IsReplay.Should().BeFalse();
 
@@ -356,10 +363,12 @@ public class PurchaseReceiptPostgresTests
         await using (ctx1)
         await using (ctx2)
         {
+            // Act: the same request twice in parallel
             var task1 = svc1.CreateAsync(concurrentReq, user.Id);
             var task2 = svc2.CreateAsync(concurrentReq, user.Id);
 
             var results = await Task.WhenAll(task1, task2);
+            // Assert
             results.Should().AllSatisfy(r => r.IsSuccess.Should().BeTrue());
             results.Count(r => !r.IsReplay).Should().Be(1);
             results.Count(r => r.IsReplay).Should().Be(1);
@@ -381,8 +390,9 @@ public class PurchaseReceiptPostgresTests
     }
 
     [PostgresFact]
-    public async Task Concurrent_Two_Receipts_Same_Product_Sums_Quantity()
+    public async Task CreateAsync_TwoConcurrentReceiptsForOneProduct_SumsQuantity()
     {
+        // Arrange
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);
         await using var seedContext = database.CreateContext();
         var (user, supplier, category) = await SeedCommonAsync(seedContext);
@@ -414,6 +424,7 @@ public class PurchaseReceiptPostgresTests
         await using (ctx1)
         await using (ctx2)
         {
+            // Act: both receipts start before either commits
             var task1 = svc1.CreateAsync(new CreatePurchaseReceiptRequest
             {
                 ClientRequestId = Guid.NewGuid(),
@@ -429,6 +440,8 @@ public class PurchaseReceiptPostgresTests
             }, user.Id);
 
             var results = await Task.WhenAll(task1, task2);
+
+            // Assert
             results.Should().AllSatisfy(r => r.IsSuccess.Should().BeTrue());
 
             await using var verifyContext = database.CreateContext();
@@ -441,8 +454,9 @@ public class PurchaseReceiptPostgresTests
     }
 
     [PostgresFact]
-    public async Task Concurrent_Two_Receipts_Same_Imei_One_Succeeds_One_Conflicts()
+    public async Task CreateAsync_TwoConcurrentReceiptsWithSameImei_OneSucceedsOneConflicts()
     {
+        // Arrange
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);
         await using var seedContext = database.CreateContext();
         var (user, supplier, category) = await SeedCommonAsync(seedContext);
@@ -469,6 +483,7 @@ public class PurchaseReceiptPostgresTests
         await using (ctx1)
         await using (ctx2)
         {
+            // Act: both receipts start before either commits
             var task1 = svc1.CreateAsync(new CreatePurchaseReceiptRequest
             {
                 ClientRequestId = Guid.NewGuid(),
@@ -502,6 +517,8 @@ public class PurchaseReceiptPostgresTests
             }, user.Id);
 
             var results = await Task.WhenAll(task1, task2);
+
+            // Assert
             results.Count(r => r.IsSuccess).Should().Be(1);
             results.Count(r => r.IsConflict).Should().Be(1);
 

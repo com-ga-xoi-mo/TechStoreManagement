@@ -57,6 +57,7 @@ public sealed class PurchaseReceiptRepositoryTests
     [Fact]
     public async Task GetReceiptsAsync_BuildsCorrectQueryString_And_MapsDtoToModel()
     {
+        // Arrange
         var supplierId = Guid.NewGuid();
         var receiptId = Guid.NewGuid();
         var now = DateTime.UtcNow;
@@ -87,6 +88,7 @@ public sealed class PurchaseReceiptRepositoryTests
         var mockApi = new MockApiClient { ResponseOrException = paged };
         var repository = new PurchaseReceiptRepository(mockApi);
 
+        // Act
         var result = await repository.GetReceiptsAsync(new PurchaseReceiptFilterRequest
         {
             Search = "PO-2026",
@@ -95,6 +97,7 @@ public sealed class PurchaseReceiptRepositoryTests
             PageSize = 10
         });
 
+        // Assert
         mockApi.LastMethod.Should().Be("GET");
         mockApi.LastPath.Should().Be($"api/inventory/purchase-receipts?search=PO-2026&supplierId={supplierId:D}&page=2&pageSize=10");
 
@@ -118,6 +121,7 @@ public sealed class PurchaseReceiptRepositoryTests
     [Fact]
     public async Task GetByIdAsync_CallsCorrectPath_And_MapsDetailWithLinesAndDevices()
     {
+        // Arrange
         var receiptId = Guid.NewGuid();
         var dto = new PurchaseReceiptDto
         {
@@ -160,8 +164,10 @@ public sealed class PurchaseReceiptRepositoryTests
         var mockApi = new MockApiClient { ResponseOrException = dto };
         var repository = new PurchaseReceiptRepository(mockApi);
 
+        // Act
         var result = await repository.GetByIdAsync(receiptId);
 
+        // Assert
         mockApi.LastPath.Should().Be($"api/inventory/purchase-receipts/{receiptId:D}");
         result.Succeeded.Should().BeTrue();
         result.Data.Should().NotBeNull();
@@ -175,6 +181,7 @@ public sealed class PurchaseReceiptRepositoryTests
     [Fact]
     public async Task CreateAsync_When201Created_ReturnsSuccessWithIsReplayFalse()
     {
+        // Arrange
         var dto = new PurchaseReceiptDto
         {
             Id = Guid.NewGuid(),
@@ -197,8 +204,10 @@ public sealed class PurchaseReceiptRepositoryTests
             Lines = []
         };
 
+        // Act
         var result = await repository.CreateAsync(request);
 
+        // Assert
         result.Succeeded.Should().BeTrue();
         result.IsReplay.Should().BeFalse();
         result.Data.Should().NotBeNull();
@@ -208,6 +217,7 @@ public sealed class PurchaseReceiptRepositoryTests
     [Fact]
     public async Task CreateAsync_When200Ok_ReturnsSuccessWithIsReplayTrue()
     {
+        // Arrange
         var dto = new PurchaseReceiptDto
         {
             Id = Guid.NewGuid(),
@@ -230,8 +240,10 @@ public sealed class PurchaseReceiptRepositoryTests
             Lines = []
         };
 
+        // Act
         var result = await repository.CreateAsync(request);
 
+        // Assert
         result.Succeeded.Should().BeTrue();
         result.IsReplay.Should().BeTrue();
         result.Data.Should().NotBeNull();
@@ -241,6 +253,7 @@ public sealed class PurchaseReceiptRepositoryTests
     [Fact]
     public async Task CreateAsync_When409ConflictWithDuplicateIdentifiers_ReturnsConflictFailureWithDuplicates()
     {
+        // Arrange
         var duplicates = new List<string> { "351234567890123", "351234567890124" };
         var exception = new ApiException(
             ApiErrorKind.Http,
@@ -252,6 +265,7 @@ public sealed class PurchaseReceiptRepositoryTests
         var mockApi = new MockApiClient { ResponseOrException = exception };
         var repository = new PurchaseReceiptRepository(mockApi);
 
+        // Act
         var result = await repository.CreateAsync(new CreatePurchaseReceiptRequest
         {
             SupplierId = Guid.NewGuid(),
@@ -259,6 +273,7 @@ public sealed class PurchaseReceiptRepositoryTests
             Lines = []
         });
 
+        // Assert
         result.Succeeded.Should().BeFalse();
         result.Failure.Should().Be(ReceiptFailureKind.Conflict);
         result.Message.Should().Be("Mã Serial/IMEI đã tồn tại trong hệ thống.");
@@ -268,6 +283,7 @@ public sealed class PurchaseReceiptRepositoryTests
     [Fact]
     public async Task CreateAsync_When400BadRequestWithFieldErrors_ReturnsBadRequestWithFieldErrors()
     {
+        // Arrange
         var fieldErrors = new Dictionary<string, IReadOnlyList<string>>
         {
             ["Lines"] = new List<string> { "Phiếu nhập phải có ít nhất một mặt hàng." }
@@ -282,6 +298,7 @@ public sealed class PurchaseReceiptRepositoryTests
         var mockApi = new MockApiClient { ResponseOrException = exception };
         var repository = new PurchaseReceiptRepository(mockApi);
 
+        // Act
         var result = await repository.CreateAsync(new CreatePurchaseReceiptRequest
         {
             SupplierId = Guid.NewGuid(),
@@ -289,6 +306,7 @@ public sealed class PurchaseReceiptRepositoryTests
             Lines = []
         });
 
+        // Assert
         result.Succeeded.Should().BeFalse();
         result.Failure.Should().Be(ReceiptFailureKind.BadRequest);
         result.FieldErrors.Should().ContainKey("Lines");
@@ -300,12 +318,15 @@ public sealed class PurchaseReceiptRepositoryTests
     [InlineData(404, ReceiptFailureKind.NotFound)]
     public async Task GetReceiptsAsync_MapsHttpStatusToExpectedFailureKind(int statusCode, ReceiptFailureKind expectedKind)
     {
+        // Arrange
         var exception = new ApiException(ApiErrorKind.Http, "Error", statusCode: statusCode);
         var mockApi = new MockApiClient { ResponseOrException = exception };
         var repository = new PurchaseReceiptRepository(mockApi);
 
+        // Act
         var result = await repository.GetReceiptsAsync(new PurchaseReceiptFilterRequest());
 
+        // Assert
         result.Succeeded.Should().BeFalse();
         result.Failure.Should().Be(expectedKind);
     }
@@ -313,9 +334,11 @@ public sealed class PurchaseReceiptRepositoryTests
     [Fact]
     public async Task CreateAsync_WhenNetworkException_ReturnsNetworkFailure()
     {
+        // Arrange
         var mockApi = new MockApiClient { ResponseOrException = new HttpRequestException("Connection refused") };
         var repository = new PurchaseReceiptRepository(mockApi);
 
+        // Act
         var result = await repository.CreateAsync(new CreatePurchaseReceiptRequest
         {
             SupplierId = Guid.NewGuid(),
@@ -323,6 +346,7 @@ public sealed class PurchaseReceiptRepositoryTests
             Lines = []
         });
 
+        // Assert
         result.Succeeded.Should().BeFalse();
         result.Failure.Should().Be(ReceiptFailureKind.Network);
         result.Message.Should().BeNull("raw transport text is never shown; the ViewModel picks the Vietnamese message");

@@ -59,10 +59,12 @@ public sealed class DeviceStatusDialogViewModelTests
     [Fact]
     public void CanSubmit_ReportDefective_DisabledWhenReasonEmpty_AndEnabledWhenReasonFilled()
     {
+        // Act
         var repo = new FakeSerialDeviceRepository();
         var device = new SerialImeiDto { Id = Guid.NewGuid(), Status = SerialImeiStatus.InStock, Imei = "35111" };
         var vm = new DeviceStatusDialogViewModel(repo, device, DeviceStatusMode.ReportDefective);
 
+        // Assert
         vm.CanSubmit.Should().BeFalse();
         vm.ConfirmCommand.CanExecute(null).Should().BeFalse();
 
@@ -82,10 +84,12 @@ public sealed class DeviceStatusDialogViewModelTests
     [Fact]
     public void CanSubmit_Restore_EnabledEvenWhenReasonEmpty()
     {
+        // Act
         var repo = new FakeSerialDeviceRepository();
         var device = new SerialImeiDto { Id = Guid.NewGuid(), Status = SerialImeiStatus.Defective, Imei = "35111" };
         var vm = new DeviceStatusDialogViewModel(repo, device, DeviceStatusMode.Restore);
 
+        // Assert
         vm.CanSubmit.Should().BeTrue();
         vm.ConfirmCommand.CanExecute(null).Should().BeTrue();
     }
@@ -93,6 +97,7 @@ public sealed class DeviceStatusDialogViewModelTests
     [Fact]
     public async Task ConfirmAsync_ReportDefective_WhenSuccess_FiresDeviceStatusChanged_AndRequestsClose()
     {
+        // Arrange
         var repo = new FakeSerialDeviceRepository();
         var deviceId = Guid.NewGuid();
         var device = new SerialImeiDto { Id = deviceId, Status = SerialImeiStatus.InStock, Imei = "35111", ProductName = "iPhone" };
@@ -107,8 +112,10 @@ public sealed class DeviceStatusDialogViewModelTests
         vm.DeviceStatusChanged += d => changedDevice = d;
         vm.RequestClose += (_, _) => closed = true;
 
+        // Act
         await vm.ConfirmAsync();
 
+        // Assert
         repo.ReportDefectiveCalls.Should().Be(1);
         repo.LastDeviceId.Should().Be(deviceId);
         repo.LastReportRequest.Should().NotBeNull();
@@ -124,6 +131,7 @@ public sealed class DeviceStatusDialogViewModelTests
     [Fact]
     public async Task ConfirmAsync_Restore_WhenSuccess_FiresDeviceStatusChanged_AndRequestsClose()
     {
+        // Arrange
         var repo = new FakeSerialDeviceRepository();
         var deviceId = Guid.NewGuid();
         var device = new SerialImeiDto { Id = deviceId, Status = SerialImeiStatus.Defective, Imei = "35111", ProductName = "iPhone" };
@@ -137,8 +145,10 @@ public sealed class DeviceStatusDialogViewModelTests
         vm.DeviceStatusChanged += d => changedDevice = d;
         vm.RequestClose += (_, _) => closed = true;
 
+        // Act
         await vm.ConfirmAsync();
 
+        // Assert
         repo.RestoreCalls.Should().Be(1);
         repo.LastDeviceId.Should().Be(deviceId);
         repo.LastRestoreRequest.Should().NotBeNull();
@@ -162,6 +172,7 @@ public sealed class DeviceStatusDialogViewModelTests
         string? failureMsg,
         string expectedError)
     {
+        // Arrange
         var repo = new FakeSerialDeviceRepository
         {
             NextResult = SerialDeviceMutationResult.Failed(failureKind, failureMsg)
@@ -176,8 +187,10 @@ public sealed class DeviceStatusDialogViewModelTests
         var closed = false;
         vm.RequestClose += (_, _) => closed = true;
 
+        // Act
         await vm.ConfirmAsync();
 
+        // Assert
         closed.Should().BeFalse();
         vm.HasError.Should().BeTrue();
         vm.ErrorMessage.Should().Be(expectedError);
@@ -189,6 +202,7 @@ public sealed class DeviceStatusDialogViewModelTests
     [Fact]
     public async Task DeviceStatusChanged_ReloadsSerialImeiViewModelCurrentPageExactlyOnce()
     {
+        // Arrange
         var page = new PagedResultDto<SerialImeiDto>
         {
             Items = [new SerialImeiDto { Id = Guid.NewGuid(), Status = SerialImeiStatus.InStock }],
@@ -213,8 +227,10 @@ public sealed class DeviceStatusDialogViewModelTests
             await serialVm.LoadCommand.ExecuteAsync(null);
         };
 
+        // Act
         await dialogVm.ConfirmAsync();
 
+        // Assert
         inventoryRepo.LoadCalls.Should().Be(1);
         serialVm.Page.Should().Be(2);
     }
@@ -222,6 +238,7 @@ public sealed class DeviceStatusDialogViewModelTests
     [Fact]
     public void CancelCommand_ClosesDialogWithoutCallingRepository()
     {
+        // Arrange
         var repo = new FakeSerialDeviceRepository();
         var device = new SerialImeiDto { Id = Guid.NewGuid(), Status = SerialImeiStatus.InStock };
         var vm = new DeviceStatusDialogViewModel(repo, device, DeviceStatusMode.ReportDefective);
@@ -229,8 +246,10 @@ public sealed class DeviceStatusDialogViewModelTests
         var closed = false;
         vm.RequestClose += (_, _) => closed = true;
 
+        // Act
         vm.CancelCommand.Execute(null);
 
+        // Assert
         closed.Should().BeTrue();
         repo.ReportDefectiveCalls.Should().Be(0);
         repo.RestoreCalls.Should().Be(0);

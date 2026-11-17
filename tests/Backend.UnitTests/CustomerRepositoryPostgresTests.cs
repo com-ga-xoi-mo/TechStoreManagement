@@ -23,49 +23,46 @@ public class CustomerRepositoryPostgresTests
         sql.Should().Contain("ESCAPE '!'");
     }
 
-    [Fact]
-    [Trait("Category", "PostgreSQLIntegration")]
+    // PostgreSQL LIKE/ILIKE treats % and _ as wildcards and uses backslash as the default escape character.
+    // The repository passes ESCAPE '!' and doubles '!', so %, _, \ and ! in a search are all matched literally.
+    [PostgresFact]
     public async Task SearchAsync_PostgreSql_Should_TreatSpecialCharactersAsLiteralText()
     {
-        // Point this at a migrated test database. The transaction keeps its existing data unchanged.
-        var connectionString = Environment.GetEnvironmentVariable("TECHSTORE_TEST_POSTGRES_CONNECTION_STRING");
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
-
-        var options = new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(connectionString).Options;
-        await using var dbContext = new AppDbContext(options);
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-
-        var prefix = $"Escape-{Guid.NewGuid():N}-";
-        var phonePrefix = Random.Shared.Next(100_000_000, 1_000_000_000).ToString();
+        // Arrange: a disposable migrated database, like the other PostgreSQL tests (TECHSTORE_TEST_CONNECTION).
+        await using var database = await PostgresDatabase.CreateAsync(migrate: true);
+        await using var dbContext = database.CreateContext();
+        var prefix = "Escape-";
         var customers = new[]
         {
-            NewCustomer(prefix + "Percent%Mark", phonePrefix + "0"),
-            NewCustomer(prefix + "Underscore_Mark", phonePrefix + "1"),
-            NewCustomer(prefix + "Backslash\\Mark", phonePrefix + "2"),
-            NewCustomer(prefix + "Bang!Mark", phonePrefix + "3"),
-            NewCustomer(prefix + "PercentXMark", phonePrefix + "4"),
-            NewCustomer(prefix + "UnderscoreXMark", phonePrefix + "5")
+            NewCustomer(prefix + "Percent%Mark", "0910000000"),
+            NewCustomer(prefix + "Underscore_Mark", "0910000001"),
+            NewCustomer(prefix + "Backslash\\Mark", "0910000002"),
+            NewCustomer(prefix + "Bang!Mark", "0910000003"),
+            NewCustomer(prefix + "PercentXMark", "0910000004"),
+            NewCustomer(prefix + "UnderscoreXMark", "0910000005"),
+            NewCustomer(prefix + "BackslashMark", "0910000006")
         };
         dbContext.Customers.AddRange(customers);
         await dbContext.SaveChangesAsync();
-
         var repository = new CustomerRepository(dbContext);
+
         foreach (var (fragment, expected) in new[]
         {
             ("Percent%", customers[0]),
             ("Underscore_", customers[1]),
             ("Backslash\\", customers[2]),
-            ("Bang!", customers[3])
+            ("Bang!", customers[3]),
+            ("%", customers[0]),
+            ("_", customers[1])
         })
         {
-            var (items, count) = await repository.SearchAsync(new CustomerSearchCriteria(
-                (prefix + fragment).ToLowerInvariant(), null, true, 1, 20));
+            // Act
+            var (items, count) = await repository.SearchAsync(new CustomerSearchCriteria(fragment.ToLowerInvariant(), null, true, 1, 20));
 
-            count.Should().Be(1, $"{fragment} must be matched literally by PostgreSQL ILIKE");
+            // Assert: only the customer that really contains the character, never the X / no-backslash look-alikes.
+            count.Should().Be(1, $"'{fragment}' must be matched literally by PostgreSQL ILIKE");
             items.Should().ContainSingle().Which.Customer.Id.Should().Be(expected.Id);
         }
-
-        await transaction.RollbackAsync();
     }
 
     private static Customer NewCustomer(string name, string phone) => new()

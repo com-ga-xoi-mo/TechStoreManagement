@@ -24,7 +24,7 @@
 
 ## Kết quả kiểm thử (AI, 2026-11-17, Windows 11)
 
-- 3.1 `dotnet build frontend/TechStore.Client -f net10.0-desktop`: 0 warning, 0 error. Backend unit: 617 Pass / 0 Fail / 27 Skipped (PostgreSQL tests cần `TECHSTORE_TEST_CONNECTION`, không tính là đạt). Frontend unit: 996 Pass / 0 Fail / 0 Skipped. Build target `net10.0-windows10.0.26100` lỗi sẵn trên `dev` ở `Testing/IdentityThemeProbe.cs` (`ProbeReportItem`), không do change này. **Pass**
+- 3.1 `dotnet build frontend/TechStore.Client -f net10.0-desktop`: 0 warning, 0 error. Backend unit: 617 Pass / 0 Fail / 27 Skipped khi chưa có PostgreSQL; chạy lại với `TECHSTORE_TEST_CONNECTION` trỏ PostgreSQL 16 Docker (fixture tự tạo/xóa DB): 645 Pass / 0 Fail / 0 Skipped. Frontend unit: 996 Pass / 0 Fail / 0 Skipped. Build target `net10.0-windows10.0.26100` lỗi sẵn trên `dev` ở `Testing/IdentityThemeProbe.cs` (`ProbeReportItem`), không do change này. **Pass**
 - 3.2 API `http://localhost:5287`, PostgreSQL 16 Docker, DB riêng `techstore_vy_verify` (migrate + seed mới), đăng nhập `admin`, `manager1`, `cashier1`, `warehouse1`. **Pass**
   - S tạo khách 201 (Standard, active, 0 điểm); tạo lại cùng số 409.
   - Tìm `q=0977&isActive=false`: S nhận 1 khách đang hoạt động; A nhận 1 khách đã vô hiệu hóa.

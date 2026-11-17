@@ -14,12 +14,10 @@ public class InventoryService(
     IProductRepository productRepository,
     ISerialImeiRepository serialRepository,
     IPurchaseOrderRepository purchaseOrderRepository,
+    ISupplierRepository supplierRepository,
     IUnitOfWork unitOfWork,
     TimeProvider? timeProvider = null) : IInventoryService
 {
-    // System supplier that owns the purchase orders created for opening balances.
-    private const string OpeningSupplierName = "Số dư đầu kỳ";
-
     private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     public async Task<InventoryStockSearchResult> GetStocksAsync(
         InventoryStockFilterRequest request,
@@ -193,11 +191,11 @@ public class InventoryService(
         Guid performedByUserId,
         CancellationToken cancellationToken)
     {
-        var supplier = await purchaseOrderRepository.FindSupplierByNameAsync(OpeningSupplierName, cancellationToken);
+        var supplier = await supplierRepository.FindByNameAsync(SystemSuppliers.OpeningBalanceName, cancellationToken);
         if (supplier == null)
         {
-            supplier = new Supplier { Name = OpeningSupplierName, Phone = "N/A", IsActive = false };
-            purchaseOrderRepository.AddSupplier(supplier);
+            supplier = new Supplier { Name = SystemSuppliers.OpeningBalanceName, Phone = "N/A", IsActive = false };
+            supplierRepository.Add(supplier);
         }
 
         var now = _time.GetUtcNow().UtcDateTime;

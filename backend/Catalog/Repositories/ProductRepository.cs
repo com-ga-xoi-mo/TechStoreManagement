@@ -115,6 +115,19 @@ public class ProductRepository(AppDbContext dbContext) : IProductRepository
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Product>> GetManyWithVariantsAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var idList = ids.Distinct().ToList();
+        return await dbContext.Products
+            .AsNoTracking()
+            .Include(p => p.Category)
+            .Include(p => p.Variants)
+            .Where(p => idList.Contains(p.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<string>> FindExistingSkusAsync(
         IEnumerable<string> skus,
         CancellationToken cancellationToken = default)

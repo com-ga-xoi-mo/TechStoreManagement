@@ -14,13 +14,14 @@ public class InventoryServiceTests
     private readonly FakeProductRepository _productRepository = new();
     private readonly FakeSerialImeiRepository _serialRepository = new();
     private readonly FakePurchaseOrderRepository _purchaseOrders = new();
+    private readonly FakeSupplierRepository _supplierRepository = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly InventoryService _service;
     private readonly Guid _userId = Guid.NewGuid();
 
     public InventoryServiceTests()
     {
-        _service = new InventoryService(_stockRepository, _productRepository, _serialRepository, _purchaseOrders, _unitOfWork);
+        _service = new InventoryService(_stockRepository, _productRepository, _serialRepository, _purchaseOrders, _supplierRepository, _unitOfWork);
     }
 
     [Fact]
@@ -582,7 +583,7 @@ public class InventoryServiceTests
 
         // Assert: one purchase line "5 x 200,000", received, on the system supplier
         result.IsSuccess.Should().BeTrue();
-        var supplier = _purchaseOrders.Suppliers.Should().ContainSingle().Subject;
+        var supplier = _supplierRepository.Suppliers.Should().ContainSingle().Subject;
         supplier.IsActive.Should().BeFalse();
         var order = _purchaseOrders.PurchaseOrders.Should().ContainSingle().Subject;
         order.Supplier.Should().BeSameAs(supplier);
@@ -616,7 +617,7 @@ public class InventoryServiceTests
         await _service.InitializeStockAsync(new InitializeStockRequest { ProductId = second, Quantity = 9, UnitCost = 30_000m }, _userId);
 
         // Assert
-        _purchaseOrders.Suppliers.Should().ContainSingle();
+        _supplierRepository.Suppliers.Should().ContainSingle();
         _purchaseOrders.PurchaseOrders.Should().HaveCount(2);
         _purchaseOrders.PurchaseOrders.Select(p => p.PoNumber).Distinct().Should().HaveCount(2);
     }
@@ -634,7 +635,7 @@ public class InventoryServiceTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         _purchaseOrders.PurchaseOrders.Should().BeEmpty();
-        _purchaseOrders.Suppliers.Should().BeEmpty();
+        _supplierRepository.Suppliers.Should().BeEmpty();
         _stockRepository.Movements.Should().ContainSingle().Which.PurchaseOrderItem.Should().BeNull();
     }
 }

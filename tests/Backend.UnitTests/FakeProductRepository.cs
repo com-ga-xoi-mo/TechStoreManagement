@@ -48,6 +48,15 @@ public class FakeProductRepository : IProductRepository
         return Task.FromResult(product);
     }
 
+    public Task<IReadOnlyList<Product>> GetManyWithVariantsAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        var idSet = ids.ToHashSet();
+        var result = Products.Values.Where(p => idSet.Contains(p.Id)).ToList();
+        return Task.FromResult<IReadOnlyList<Product>>(result);
+    }
+
     public Task<IReadOnlyList<string>> FindExistingSkusAsync(
         IEnumerable<string> skus,
         CancellationToken cancellationToken = default)

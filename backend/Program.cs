@@ -72,6 +72,7 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ISerialImeiService, SerialImeiService>();
 builder.Services.AddScoped<IInventoryFulfillmentService, InventoryFulfillmentService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
+builder.Services.AddScoped<IPurchaseReceiptService, PurchaseReceiptService>();
 
 // Customers Module repositories
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();

@@ -69,11 +69,14 @@ public class FakeInventoryStockRepository : IInventoryStockRepository
         return Task.FromResult(stock);
     }
 
+    public Action? BeforeGetForUpdate { get; set; }
+
     public Task<InventoryStock?> GetForUpdateAsync(
         Guid productId,
         Guid? variantId,
         CancellationToken cancellationToken = default)
     {
+        BeforeGetForUpdate?.Invoke();
         LockedKeys.Add((productId, variantId));
         var stock = Stocks.FirstOrDefault(s => s.ProductId == productId && s.VariantId == variantId);
         return Task.FromResult(stock);

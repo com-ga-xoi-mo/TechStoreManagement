@@ -123,6 +123,24 @@ public sealed class ProductRepositoryTests
     }
 
     [Theory]
+    [InlineData("null", null)]
+    [InlineData("5", "5")]
+    public async Task GetByIdAsync_CostPriceHiddenByServer_MapsToNull(string costJson, string? expected)
+    {
+        // Arrange
+        var json = $$"""
+            {"id":"11111111-1111-1111-1111-111111111111","categoryId":"22222222-2222-2222-2222-222222222222","categoryName":"A","name":"A","sku":"A","barcode":null,"brand":"A","basePrice":10,"costPrice":{{costJson}},"description":null,"imageUrl":null,"specs":{},"isSerialTracked":false,"isActive":true,"createdAt":"2026-01-01T00:00:00Z","updatedAt":null,"images":[],"variants":[]}
+            """;
+        var repository = new ProductRepository(new StubApiClient(_ => json));
+
+        // Act
+        var product = await repository.GetByIdAsync(ProductId);
+
+        // Assert
+        Assert.Equal(expected is null ? null : decimal.Parse(expected), product!.CostPrice);
+    }
+
+    [Theory]
     [InlineData("{\"id\":\"11111111-1111-1111-1111-111111111111\"}")]
     [InlineData("null")]
     public async Task GetByIdAsync_RejectsInvalidOrMissingFields(string json)

@@ -6,6 +6,7 @@ public interface INavigationService
     ShellDestination CurrentDestination { get; }
     event EventHandler<ShellDestination>? DestinationChanged;
     event EventHandler<AppRoute>? RouteChanged;
+    void Reset(AppRoute route);
     NavigationOutcome Navigate(ShellDestination destination);
     NavigationOutcome Navigate(AppRoute route);
 }

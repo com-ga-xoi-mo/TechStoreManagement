@@ -277,7 +277,7 @@ public sealed partial class ProductEditorViewModel : PageViewModel
                 Sku = product.Sku;
                 Brand = product.Brand;
                 BasePriceText = product.BasePrice.ToString("0.##", CultureInfo.InvariantCulture);
-                CostPriceText = product.CostPrice.ToString("0.##", CultureInfo.InvariantCulture);
+                CostPriceText = product.CostPrice?.ToString("0.##", CultureInfo.InvariantCulture) ?? string.Empty;
                 Barcode = product.Barcode ?? string.Empty;
                 Description = product.Description ?? string.Empty;
                 IsSerialTracked = product.IsSerialTracked;

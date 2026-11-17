@@ -131,14 +131,21 @@ internal sealed class CategoryTableRows(CategoryManagementViewModel viewModel) :
             DataContext = viewModel
         }.Style(AppControlStyles.Styles.QuietButton);
         statusButton.Command(x => x.Binding(() => viewModel.ToggleStatusCommand));
+        statusButton.Visibility(x => x.Binding(() => viewModel.CanManageCategories).Convert(ShowIf));
         ToolTipService.SetToolTip(statusButton, $"Đổi trạng thái {row.Name}");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(statusButton, $"Đổi trạng thái {row.Name}");
         AddCell(grid, statusButton, 3, row);
+        var readOnlyStatus = Text(row.StatusText, color: AppColors.SecondaryText);
+        readOnlyStatus.DataContext = viewModel;
+        readOnlyStatus.Visibility(x => x.Binding(() => viewModel.CanManageCategories).Convert((bool canManage) => ShowIf(!canManage)));
+        AddCell(grid, readOnlyStatus, 3, row);
         var edit = RowAction("Sửa danh mục", row, viewModel);
         edit.Command(x => x.Binding(() => viewModel.EditCategoryCommand));
         var delete = RowAction("Xóa danh mục", row, viewModel, danger: true);
         delete.Command(x => x.Binding(() => viewModel.DeleteCategoryCommand));
         var actions = RowActionsButton($"Thao tác cho {row.Name}", edit, delete);
+        actions.DataContext = viewModel;
+        actions.Visibility(x => x.Binding(() => viewModel.CanManageCategories).Convert(ShowIf));
         actions.HorizontalAlignment = HorizontalAlignment.Right;
         AddCell(grid, actions, 4, row);
         return new Border { Child = grid, BorderThickness = new Thickness(0, 0, 0, 1) }.BorderBrush(Theme(AppColors.Stroke));

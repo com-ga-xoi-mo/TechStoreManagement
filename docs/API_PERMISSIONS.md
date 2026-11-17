@@ -6,7 +6,7 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 
 | API/action | Allowed roles | Read/write scope |
 | --- | --- | --- |
-| GET `/api/products`, `/api/products/{id}`, `/api/products/spec-keys`, `/api/products/brands`, `/api/products/spec-definitions` | A M S W | Current catalog DTOs, including current product detail costPrice; field redaction is Sprint 2 |
+| GET `/api/products`, `/api/products/{id}`, `/api/products/spec-keys`, `/api/products/brands`, `/api/products/spec-definitions` | A M S W | Product detail `costPrice` is populated only for A/M; S/W receive `null`. Other catalog fields unchanged |
 | POST `/api/products`, PUT `/api/products/{id}`, PATCH `/api/products/{id}/status`, DELETE `/api/products/{id}` | A M | Existing product and price management |
 | POST `/api/products/{productId}/images`, DELETE `/api/products/{productId}/images/{imageId}`, PUT `/api/products/{productId}/images/layout` | A M | Existing image management |
 | GET `/api/categories/tree` | A M S W | Existing category tree |
@@ -29,7 +29,7 @@ cho endpoint không khai báo policy; không có quyền mặc định hoặc us
 Account password/hash/token/version và order cost snapshots không xuất trong business DTO.
 
 Sprint 2 tiếp tục: mở dashboard Manager và khách hàng Sales, kiểm tra trường giá vốn
-Catalog/Inventory theo role, landing page/menu và tách settings cá nhân.
+Inventory theo role, landing page/menu và tách settings cá nhân. Giá vốn sản phẩm đã được che tại server theo `FieldAccess`.
 Hiện Manager gọi dashboard và Sales gọi Customers vẫn nhận 403.
 
 ## Kiểm chứng và cập nhật khi tích hợp

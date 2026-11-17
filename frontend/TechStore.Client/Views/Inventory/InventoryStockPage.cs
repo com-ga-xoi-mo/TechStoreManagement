@@ -267,8 +267,10 @@ internal sealed class InventoryStockTableRows(InventoryStockViewModel viewModel)
         detail.Command(x => x.Binding(() => viewModel.ViewSerialsCommand));
         var adjust = RowAction("Điều chỉnh tồn", row, viewModel);
         adjust.Command(x => x.Binding(() => viewModel.AdjustStockCommand));
+        adjust.Visibility(x => x.Binding(() => viewModel.CanManageStock).Convert(ShowIf));
         var delete = RowAction("Xóa tồn", row, viewModel, danger: true);
         delete.Command(x => x.Binding(() => viewModel.DeleteStockCommand));
+        delete.Visibility(x => x.Binding(() => viewModel.CanManageStock).Convert(ShowIf));
         var actions = RowActionsButton($"Thao tác cho {row.ProductName}", detail, adjust, delete);
         actions.HorizontalAlignment = HorizontalAlignment.Right;
         Grid.SetColumn(actions, 6);

@@ -76,7 +76,7 @@ public sealed class ProductListPage : Page, IRoutePage
 
         var searchBox = new SearchBoxControl()
             .Label("Tìm kiếm sản phẩm")
-            .PlaceholderText("Tên, SKU, hãng hoặc barcode")
+            .PlaceholderText("Tìm theo tên, SKU, barcode hoặc IMEI")
             .Text(x => x.Binding(() => ViewModel.SearchText).Mode(BindingMode.TwoWay))
             .SearchCommand(x => x.Binding(() => ViewModel.SearchCommand))
             .ClearCommand(x => x.Binding(() => ViewModel.ClearSearchCommand))

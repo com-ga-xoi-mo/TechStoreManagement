@@ -28,6 +28,12 @@ public sealed class BearerTokenHandler(ISessionStore sessionStore, SessionRefres
         }
 
         var response = await base.SendAsync(request, cancellationToken);
+        if (!isAuthentication && sessionStore.Current.Generation != generation)
+        {
+            response.Dispose();
+            throw new InvalidOperationException("Phiên đăng nhập đã thay đổi. Vui lòng thử lại.");
+        }
+
         if (response.StatusCode == HttpStatusCode.Unauthorized
             && !isAuthentication && snapshot.Status == SessionStatus.Active)
         {

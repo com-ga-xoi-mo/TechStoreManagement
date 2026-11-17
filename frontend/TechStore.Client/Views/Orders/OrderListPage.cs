@@ -62,6 +62,7 @@ public sealed class OrderListPage : Page, IRoutePage
                     .Foreground(AppColors.Brushes.OnPrimary)
                     .VerticalAlignment(VerticalAlignment.Center)
                     .Command(x => x.Binding(() => ViewModel.NewOrderCommand))
+                    .Visibility(x => x.Binding(() => ViewModel.CanManageOrders).Convert((bool v) => ShowIf(v)))
                     .Grid(column: 1));
 
     private UIElement BuildToolbar() =>
@@ -180,7 +181,7 @@ public sealed class OrderListPage : Page, IRoutePage
         new EmptyStateControl()
             .Title("Chưa có đơn hàng")
             .Description("Không có đơn nào khớp bộ lọc hiện tại. Hãy đổi bộ lọc hoặc lập đơn mới.")
-            .ActionText("Lập đơn mới")
+            .ActionText(ViewModel.CanManageOrders ? "Lập đơn mới" : "")
             .ActionCommand(x => x.Binding(() => ViewModel.NewOrderCommand))
             .Visibility(x => x.Binding(() => ViewModel.ShowEmptyState).Convert((bool v) => ShowIf(v)));
 
@@ -302,19 +303,19 @@ public sealed class OrderListPage : Page, IRoutePage
                 new Button()
                     .Style(AppControlStyles.Styles.Button)
                     .Content("Xác nhận TT")
-                    .Visibility(x => x.Binding(() => row.HasPayAction).Convert((bool v) => ShowIf(v)))
+                    .Visibility(x => x.Binding(() => row.HasPayAction).Convert((bool v) => ShowIf(v && ViewModel.CanManageOrders)))
                     .Command(ViewModel.ChangeStatusCommand)
                     .CommandParameter(x => x.Binding(() => row.PayAction)),
                 new Button()
                     .Style(AppControlStyles.Styles.PrimaryButton)
                     .Content("Hoàn tất")
-                    .Visibility(x => x.Binding(() => row.HasCompleteAction).Convert((bool v) => ShowIf(v)))
+                    .Visibility(x => x.Binding(() => row.HasCompleteAction).Convert((bool v) => ShowIf(v && ViewModel.CanManageOrders)))
                     .Command(ViewModel.ChangeStatusCommand)
                     .CommandParameter(x => x.Binding(() => row.CompleteAction)),
                 new Button()
                     .Style(AppControlStyles.Styles.DangerButton)
                     .Content("Hủy")
-                    .Visibility(x => x.Binding(() => row.HasCancelAction).Convert((bool v) => ShowIf(v)))
+                    .Visibility(x => x.Binding(() => row.HasCancelAction).Convert((bool v) => ShowIf(v && ViewModel.CanManageOrders)))
                     .Command(ViewModel.ChangeStatusCommand)
                     .CommandParameter(x => x.Binding(() => row.CancelAction)));
 

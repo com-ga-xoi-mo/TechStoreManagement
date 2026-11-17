@@ -9,11 +9,13 @@ namespace TechStore.Client.ViewModels.Inventory;
 
 public sealed partial class StockDetailHistoryDialogViewModel(
     InventoryStockRow row,
-    IInventoryRepository inventoryRepository) : ObservableObject
+    IInventoryRepository inventoryRepository,
+    bool canManageStock = true) : ObservableObject
 {
     private readonly IInventoryRepository _inventoryRepository = inventoryRepository ?? throw new ArgumentNullException(nameof(inventoryRepository));
 
     public InventoryStockRow Row { get; } = row ?? throw new ArgumentNullException(nameof(row));
+    public bool CanManageStock { get; } = canManageStock;
     public string ProductName => Row.ProductName;
     public string Sku => Row.Sku;
     public string CategoryName => Row.CategoryName;

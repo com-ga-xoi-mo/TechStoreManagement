@@ -31,24 +31,30 @@ public class ProductRepository(AppDbContext dbContext) : IProductRepository
 
         if (!string.IsNullOrWhiteSpace(criteria.Keyword))
         {
-            var escaped = EscapeLikePattern(criteria.Keyword);
-            var pattern = $"%{escaped}%";
-
-            query = query.Where(p =>
-                EF.Functions.ILike(p.Name, pattern) ||
-                EF.Functions.ILike(p.Sku, pattern) ||
-                EF.Functions.ILike(p.Brand, pattern) ||
-                (p.Barcode != null && EF.Functions.ILike(p.Barcode, pattern)) ||
-                p.Variants.Any(v =>
-                    EF.Functions.ILike(v.Sku, pattern) ||
-                    (v.Barcode != null && EF.Functions.ILike(v.Barcode, pattern)) ||
-                    EF.Functions.ILike(v.VariantName, pattern)));
+            var serial = criteria.Keyword.Trim().ToLower();
+            foreach (var word in criteria.Keyword.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Take(8))
+            {
+                var pattern = $"%{EscapeLikePattern(word)}%";
+                query = query.Where(p =>
+                    EF.Functions.ILike(p.Name, pattern, @"\") ||
+                    EF.Functions.ILike(p.Sku, pattern, @"\") ||
+                    EF.Functions.ILike(p.Brand, pattern, @"\") ||
+                    (p.Barcode != null && EF.Functions.ILike(p.Barcode, pattern, @"\")) ||
+                    (p.Description != null && EF.Functions.ILike(p.Description, pattern, @"\")) ||
+                    p.Variants.Any(v =>
+                        EF.Functions.ILike(v.Sku, pattern, @"\") ||
+                        (v.Barcode != null && EF.Functions.ILike(v.Barcode, pattern, @"\")) ||
+                        EF.Functions.ILike(v.VariantName, pattern, @"\")) ||
+                    dbContext.SerialImeis.Any(s => s.ProductId == p.Id &&
+                        ((s.SerialNumber != null && s.SerialNumber.ToLower() == serial) ||
+                         (s.Imei != null && s.Imei.ToLower() == serial))));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(criteria.Brand))
         {
             var brandEscaped = EscapeLikePattern(criteria.Brand);
-            query = query.Where(p => EF.Functions.ILike(p.Brand, brandEscaped));
+            query = query.Where(p => EF.Functions.ILike(p.Brand, brandEscaped, @"\"));
         }
 
         if (criteria.CategoryId.HasValue && criteria.CategoryId.Value != Guid.Empty)
@@ -201,7 +207,7 @@ public class ProductRepository(AppDbContext dbContext) : IProductRepository
         var pattern = EscapeLikePattern(brand);
         return await dbContext.Products
             .AsNoTracking()
-            .Where(p => EF.Functions.ILike(p.Brand, pattern) && (excludeProductId == null || p.Id != excludeProductId))
+            .Where(p => EF.Functions.ILike(p.Brand, pattern, @"\") && (excludeProductId == null || p.Id != excludeProductId))
             .GroupBy(p => p.Brand)
             .Select(g => new BrandCount(g.Key, g.Count()))
             .ToListAsync(cancellationToken);

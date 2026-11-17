@@ -8,6 +8,8 @@ TechStore Management System is an enterprise retail POS (Point of Sale) and inve
 - Strict concurrency control preventing overselling via database row locks (`FOR UPDATE`) in ACID transactions.
 - Customer VIP tier points accrual, discount vouchers, and sales/profit analytics dashboards.
 - Server-enforced Role-Based Access Control (RBAC) across 4 roles: `Admin`, `Manager`, `SalesStaff`, `WarehouseStaff`.
+  - Server table: `docs/API_PERMISSIONS.md`; sensitive DTO fields (cost) by role in `backend/Identity/Services/FieldAccess.cs`.
+  - Client mirror for menu, landing page, route guard and action buttons: `frontend/TechStore.Client/Services/Navigation/RoleAccess.cs` (UI hint only; the server still returns 403).
 - Grounded Gemini AI assistant leveraging tool/function calling strictly constrained by caller RBAC and real-time inventory.
 
 ---

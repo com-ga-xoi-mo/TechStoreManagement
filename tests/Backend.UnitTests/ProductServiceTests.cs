@@ -22,7 +22,7 @@ public class ProductServiceTests
         products.Products[product.Id] = product;
         var service = new ProductService(products, new FakeCategoryRepository(), new FakeUnitOfWork(), new FakeSpecDefinitionRepository(), new FakeObjectStorage());
         // Act
-        var result = await service.GetByIdAsync(product.Id);
+        var result = await service.GetByIdAsync(product.Id, includeCost: true);
         // Assert
         result.Data!.Images.Select(i => i.Url).Should().Equal("first", "second");
     }
@@ -539,7 +539,7 @@ public class ProductServiceTests
         var service = new ProductService(productRepo, categoryRepo, unitOfWork, new FakeSpecDefinitionRepository(), new FakeObjectStorage());
 
         // Act
-        var result = await service.GetByIdAsync(Guid.NewGuid());
+        var result = await service.GetByIdAsync(Guid.NewGuid(), includeCost: true);
 
         // Assert
         result.Found.Should().BeFalse();
@@ -590,7 +590,7 @@ public class ProductServiceTests
         productRepo.Add(product);
 
         // Act
-        var result = await service.GetByIdAsync(productId);
+        var result = await service.GetByIdAsync(productId, includeCost: true);
 
         // Assert
         result.Found.Should().BeTrue();

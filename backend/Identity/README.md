@@ -91,7 +91,8 @@ customer access are enabled in Sprint 2, not by this identity change.
 ## Desktop sessions
 
 The client shares one pre-request refresh per current token pair and never replays business
-writes. Account Generation survives token renewal; a late 401 checks the sent access token
+writes. Account Generation survives token renewal. Business responses are discarded and disposed
+if Generation changed before or after sending; login/refresh are exempt. A late 401 checks the sent access token
 as well, so it cannot expire the replacement. Login/logout/account replacement changes Generation.
 RememberMe controls FileSessionStorage persistence; remembered startup validates /api/auth/me
 (or refreshes first) before opening protected data. Network-uncertain refresh requires login.

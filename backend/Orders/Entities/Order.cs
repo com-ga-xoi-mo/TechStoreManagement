@@ -18,6 +18,9 @@ public class Order : BaseEntity
     public decimal TaxAmount { get; set; } = 0;
     public decimal TotalAmount { get; set; }
     public Guid? VoucherId { get; set; }
+    public decimal? CashTendered { get; set; }
+    public decimal? ChangeGiven { get; set; }
+    public Guid? CheckoutKey { get; set; }
     public string? Notes { get; set; }
     public DateTime? PaidAt { get; set; }
     public DateTime? CompletedAt { get; set; }

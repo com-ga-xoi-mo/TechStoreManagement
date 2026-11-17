@@ -9,6 +9,9 @@ public class PosSession : BaseEntity
     public Guid CashierUserId { get; set; }
     public decimal OpeningBalance { get; set; } = 0;
     public decimal? ClosingBalance { get; set; }
+    public decimal? ExpectedClosingBalance { get; set; }
+    public string? ClosingNote { get; set; }
+    public Guid? ClosedByUserId { get; set; }
     public decimal CashSalesTotal { get; set; } = 0;
     public decimal VietQrSalesTotal { get; set; } = 0;
     public decimal CardSalesTotal { get; set; } = 0;

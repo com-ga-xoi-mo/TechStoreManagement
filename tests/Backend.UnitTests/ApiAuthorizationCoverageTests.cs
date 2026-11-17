@@ -54,6 +54,8 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
         new("GET", "api/inventory/purchase-receipts", PurchaseRead),
         new("GET", "api/inventory/purchase-receipts/{id:guid}", PurchaseRead),
         new("POST", "api/inventory/purchase-receipts", StockWrite),
+        new("POST", "api/inventory/serials/{id:guid}/defective", StockWrite),
+        new("POST", "api/inventory/serials/{id:guid}/restore", StockWrite),
         new("GET", "api/orders", OrderRead), new("GET", "api/orders/{id:guid}", OrderRead),
         new("POST", "api/orders", OrderWrite), new("PATCH", "api/orders/{id:guid}/status", OrderWrite),
         new("GET", "api/customers", CustomerServe), new("GET", "api/customers/{id:guid}", CustomerServe),

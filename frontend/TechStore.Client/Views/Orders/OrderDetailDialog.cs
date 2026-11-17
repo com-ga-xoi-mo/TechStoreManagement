@@ -127,12 +127,14 @@ public sealed class OrderDetailDialog : ContentDialog
 
     private static UIElement BuildTotals(OrderDetail order)
     {
-        var rows = new List<(string Label, decimal Value, bool Strong)>
+        var rows = new List<(string Label, string Value, bool Strong)>
         {
-            ("Tạm tính", order.Subtotal, false),
-            ("Giảm giá", order.DiscountAmount, false),
-            ("Thuế", order.TaxAmount, false),
-            ("Tổng cộng", order.TotalAmount, true)
+            ("Tạm tính", OrderPresentation.FormatMoney(order.Subtotal), false),
+            ("Giảm giá", OrderPresentation.FormatMoney(order.DiscountAmount), false),
+            ("Thuế", OrderPresentation.FormatMoney(order.TaxAmount), false),
+            ("Tổng cộng", OrderPresentation.FormatMoney(order.TotalAmount), true),
+            ("Khách đưa", order.CashTendered is { } tendered ? OrderPresentation.FormatMoney(tendered) : "—", false),
+            ("Tiền thừa", order.ChangeGiven is { } change ? OrderPresentation.FormatMoney(change) : "—", false)
         };
 
         // Same two-column layout as the facts above. Text placed in a right-hand column of this dialog was laid
@@ -147,7 +149,7 @@ public sealed class OrderDetailDialog : ContentDialog
         {
             totals.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             var label = rows[i].Strong ? Body(rows[i].Label).FontWeight(Microsoft.UI.Text.FontWeights.SemiBold) : Caption(rows[i].Label);
-            var value = Body(OrderPresentation.FormatMoney(rows[i].Value));
+            var value = Body(rows[i].Value);
             if (rows[i].Strong) value.FontWeight(Microsoft.UI.Text.FontWeights.Bold);
             totals.Children.Add(label.Grid(row: i, column: 0));
             totals.Children.Add(value.Grid(row: i, column: 1));

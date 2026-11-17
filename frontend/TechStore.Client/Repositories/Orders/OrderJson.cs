@@ -48,6 +48,21 @@ internal static class OrderJson
             throw InvalidResponse($"The API response has an invalid '{property}' field.");
     }
 
+    /// <summary>A field newer than the first API version: absent is fine, present must be null or a valid id.</summary>
+    public static void OptionalNullableGuid(JsonElement value, string property)
+    {
+        if (value.TryGetProperty(property, out var field) && field.ValueKind != JsonValueKind.Null
+            && (field.ValueKind != JsonValueKind.String || !Guid.TryParse(field.GetString(), out var id) || id == Guid.Empty))
+            throw InvalidResponse($"The API response has an invalid '{property}' field.");
+    }
+
+    public static void OptionalNullableDecimal(JsonElement value, string property)
+    {
+        if (value.TryGetProperty(property, out var field) && field.ValueKind != JsonValueKind.Null
+            && (field.ValueKind != JsonValueKind.Number || !field.TryGetDecimal(out _)))
+            throw InvalidResponse($"The API response has an invalid '{property}' field.");
+    }
+
     public static void RequireInt(JsonElement value, string property)
     {
         if (!Require(value, property, JsonValueKind.Number).TryGetInt32(out _))

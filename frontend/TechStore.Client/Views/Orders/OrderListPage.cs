@@ -52,16 +52,25 @@ public sealed class OrderListPage : Page, IRoutePage
                         new TextBlock().Style(AppResources.GetStyle(AppTypography.HeadingText))
                             .Foreground(AppColors.Brushes.Text).Text("Danh sách đơn hàng"),
                         Caption("Tìm, lọc và xử lý đơn bán tại quầy. Máy có IMEI chỉ chốt khi hoàn tất đơn.")),
-                new Button()
-                    .Content("＋  Lập đơn mới")
-                    .FontSize(13)
-                    .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
-                    .Padding(new Thickness(16, 10, 16, 10))
-                    .CornerRadius(new CornerRadius(7))
-                    .Background(AppColors.Brushes.Primary)
-                    .Foreground(AppColors.Brushes.OnPrimary)
+                new StackPanel()
+                    .Orientation(Orientation.Horizontal)
+                    .Spacing(8)
                     .VerticalAlignment(VerticalAlignment.Center)
-                    .Command(x => x.Binding(() => ViewModel.NewOrderCommand))
+                    .Children(
+                        new Button()
+                            .Style(AppControlStyles.Styles.Button)
+                            .Padding(new Thickness(16, 10, 16, 10))
+                            .Content("Bán hàng tại quầy")
+                            .Command(x => x.Binding(() => ViewModel.OpenPosCommand)),
+                        new Button()
+                            .Content("＋  Lập đơn mới")
+                            .FontSize(13)
+                            .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
+                            .Padding(new Thickness(16, 10, 16, 10))
+                            .CornerRadius(new CornerRadius(7))
+                            .Background(AppColors.Brushes.Primary)
+                            .Foreground(AppColors.Brushes.OnPrimary)
+                            .Command(x => x.Binding(() => ViewModel.NewOrderCommand)))
                     .Grid(column: 1));
 
     private UIElement BuildToolbar() =>

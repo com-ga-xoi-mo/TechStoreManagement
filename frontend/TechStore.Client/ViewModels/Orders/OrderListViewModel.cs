@@ -139,6 +139,9 @@ public sealed partial class OrderListViewModel : PageViewModel
     [RelayCommand]
     private void NewOrder() => _navigation.Navigate(AppRoute.OrderCreate());
 
+    [RelayCommand]
+    private void OpenPos() => _navigation.Navigate(AppRoute.Pos());
+
     [RelayCommand(CanExecute = nameof(CanChangeStatus))]
     private async Task ChangeStatus(OrderRowAction? rowAction)
     {

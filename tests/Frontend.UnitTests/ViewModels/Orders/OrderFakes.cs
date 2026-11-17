@@ -1,6 +1,7 @@
 using System.Text.Json;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Models.Orders;
+using TechStore.Client.Models.Sales;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Repositories.Orders;
 using TechStore.Client.Services.Api;
@@ -170,6 +171,15 @@ internal sealed class FakeDeviceRepository : IOrderDeviceRepository
     public Dictionary<(Guid Product, Guid? Variant), AvailableDevicePage> Pages { get; } = [];
     public List<(Guid Product, Guid? Variant)> Calls { get; } = [];
     public Exception? Throw { get; set; }
+    public Dictionary<string, ScannedDevice> Scans { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public List<string> ScanCalls { get; } = [];
+
+    public Task<ScannedDevice?> FindInStockByCodeAsync(string code, CancellationToken cancellationToken = default)
+    {
+        ScanCalls.Add(code);
+        if (Throw is not null) return Task.FromException<ScannedDevice?>(Throw);
+        return Task.FromResult(Scans.TryGetValue(code.Trim(), out var scanned) ? scanned : null);
+    }
 
     public Task<AvailableDevicePage> GetInStockAsync(Guid productId, Guid? variantId, CancellationToken cancellationToken = default)
     {

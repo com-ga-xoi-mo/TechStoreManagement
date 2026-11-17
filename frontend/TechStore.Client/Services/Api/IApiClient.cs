@@ -11,6 +11,11 @@ public interface IApiClient
         TRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
+        string relativePath,
+        TRequest request,
+        CancellationToken cancellationToken = default);
+
     Task PostAsync<TRequest>(
         string relativePath,
         TRequest request,

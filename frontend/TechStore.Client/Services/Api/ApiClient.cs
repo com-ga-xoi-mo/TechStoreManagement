@@ -47,6 +47,19 @@ public sealed class ApiClient : IApiClient
             cancellationToken);
     }
 
+    public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
+        string relativePath,
+        TRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return SendForResponseWithStatusAsync<TResponse>(
+            HttpMethod.Post,
+            relativePath,
+            JsonContent.Create(request, options: JsonOptions),
+            cancellationToken);
+    }
+
     public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file,
         IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default)
     {
@@ -163,6 +176,20 @@ public sealed class ApiClient : IApiClient
         HttpContent? content,
         CancellationToken cancellationToken)
     {
+        var response = await SendForResponseWithStatusAsync<TResponse>(
+            method,
+            relativePath,
+            content,
+            cancellationToken);
+        return response.Data;
+    }
+
+    private async Task<ApiResponse<TResponse>> SendForResponseWithStatusAsync<TResponse>(
+        HttpMethod method,
+        string relativePath,
+        HttpContent? content,
+        CancellationToken cancellationToken)
+    {
         using (content)
         using (var request = CreateRequest(method, relativePath, content))
         using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(_options.TimeoutSeconds)))
@@ -188,7 +215,7 @@ public sealed class ApiClient : IApiClient
                     throw InvalidResponse(response.StatusCode);
                 }
 
-                return result;
+                return new ApiResponse<TResponse>(response.StatusCode, result);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

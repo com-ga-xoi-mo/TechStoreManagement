@@ -67,6 +67,12 @@ public sealed class DashboardPreviewOptionsTests
 
     private sealed class ThrowingApiClient : IApiClient
     {
+        public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
+            string relativePath,
+            TRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<TResponse> GetAsync<TResponse>(string relativePath, CancellationToken cancellationToken = default) =>
             throw new ApiException(ApiErrorKind.Network, "api unavailable");

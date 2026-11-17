@@ -123,7 +123,7 @@ public sealed class SerialImeiPage : Page
 
     private FrameworkElement BuildCard()
     {
-        var table = new SerialRows();
+        var table = new SerialRows(ViewModel);
         table.ItemsSource(x => x.Binding(() => ViewModel.Items));
         var body = new Grid();
         body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -183,7 +183,7 @@ public sealed class SerialImeiPage : Page
     private static Border BuildHeader()
     {
         var grid = SerialRows.Columns();
-        foreach (var (label, index) in new[] { ("SERIAL / IMEI", 0), ("SẢN PHẨM", 1), ("SKU", 2), ("TRẠNG THÁI", 3), ("NGÀY NHẬP", 4) })
+        foreach (var (label, index) in new[] { ("SERIAL / IMEI", 0), ("SẢN PHẨM", 1), ("SKU", 2), ("TRẠNG THÁI", 3), ("NGÀY NHẬP", 4), ("", 5) })
         {
             var text = Text(label, 11, AppColors.SecondaryText, 600);
             text.CharacterSpacing = 45;
@@ -199,12 +199,12 @@ public sealed class SerialImeiPage : Page
     }
 }
 
-internal sealed class SerialRows : ItemsControl
+internal sealed class SerialRows(SerialImeiViewModel viewModel) : ItemsControl
 {
     internal static Grid Columns()
     {
         var grid = new Grid();
-        foreach (var star in new[] { 1.4, 1.4, 1.0, 1.0, 1.0 })
+        foreach (var star in new[] { 1.4, 1.4, 1.0, 1.0, 1.0, 0.4 })
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(star, GridUnitType.Star) });
         return grid;
     }
@@ -220,7 +220,7 @@ internal sealed class SerialRows : ItemsControl
         if (element is ContentControl container) container.Content = null;
         base.ClearContainerForItemOverride(element, item);
     }
-    private static UIElement BuildRow(SerialImeiDto row)
+    private UIElement BuildRow(SerialImeiDto row)
     {
         var grid = Columns();
         Add(grid, Text(row.SerialNumber ?? row.Imei ?? "—", 13, AppColors.Text, 600), 0);
@@ -230,6 +230,22 @@ internal sealed class SerialRows : ItemsControl
         var toneKeys = StatusBadgePresentation.GetKeys(tone);
         Add(grid, TableStatusBadge(Text(SerialImeiViewModel.StatusText(row.Status), 12, toneKeys.Text, 600), tone), 3);
         Add(grid, Text(row.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"), 12, AppColors.SecondaryText), 4);
+
+        var reportDefective = RowAction("Báo lỗi máy", row, viewModel, danger: true);
+        reportDefective.Command(x => x.Binding(() => viewModel.ReportDefectiveCommand));
+        reportDefective.IsEnabled = SerialImeiViewModel.CanReportDefective(row);
+
+        var restore = RowAction("Sửa xong, đưa về kho", row, viewModel);
+        restore.Command(x => x.Binding(() => viewModel.RestoreCommand));
+        restore.IsEnabled = SerialImeiViewModel.CanRestore(row);
+
+        var actions = RowActionsButton($"Thao tác cho {row.SerialNumber ?? row.Imei}", reportDefective, restore);
+        actions.HorizontalAlignment = HorizontalAlignment.Right;
+        // Inside a row the DataContext is the row, so the button gets the page ViewModel to bind CanWrite.
+        actions.DataContext = viewModel;
+        actions.Visibility(x => x.Binding(() => viewModel.CanWrite).Convert(ShowIf));
+        Add(grid, actions, 5);
+
         return new Border { Child = grid, BorderThickness = new Thickness(0, 0, 0, 1) }.BorderBrush(Theme(AppColors.Stroke));
     }
     private static void Add(Grid grid, UIElement content, int column)

@@ -53,7 +53,7 @@ Sau 409, đọc DB bằng context mới và chụp lại Dashboard cùng kỳ. K
 
 ### D4. Bằng chứng và chuyển lỗi
 
-Tạo `docs/M3_DASHBOARD_LIVE_FLOW.md` và liên kết từ handoff M3. Mỗi ca có build SHA API/client (hoặc SHA nền kèm diff/hash artifact nếu build có sửa đổi cục bộ), mốc UTC/UTC+07, mã fixture hoặc số chứng từ, SKU/IMEI test, ID đơn/ca, endpoint, đầu vào, Expected/Actual, status và đường dẫn log đã lọc thông tin xác thực. Ghi Pass/Fail/Skipped/Chưa kiểm tra theo từng mục. Mục đang chờ bàn giao ghi bước cụ thể, owner, phụ thuộc và điều kiện chạy lại.
+Tạo [`docs/M3_TEST_SUMMARY.md`](../../../../docs/M3_TEST_SUMMARY.md#đối-soát-giao-dịch-pos-live) và liên kết từ handoff M3. Mỗi ca có build SHA API/client (hoặc SHA nền kèm diff/hash artifact nếu build có sửa đổi cục bộ), mốc UTC/UTC+07, mã fixture hoặc số chứng từ, SKU/IMEI test, ID đơn/ca, endpoint, đầu vào, Expected/Actual, status và đường dẫn log đã lọc thông tin xác thực. Ghi Pass/Fail/Skipped/Chưa kiểm tra theo từng mục. Mục đang chờ bàn giao ghi bước cụ thể, owner, phụ thuộc và điều kiện chạy lại.
 
 API lưu mã HTTP và dữ liệu đối chiếu read-back. Desktop chạy với preview tắt trên build ghép, ghi nền tảng/target, thao tác nhận hàng nếu UI đã bàn giao, mở ca, quét máy, chọn khách, thu tiền, đóng ca và chuyển sang Manager mở lại đúng kỳ. Ghi ảnh hoặc log thao tác và số liệu hiển thị, gắn mã đơn để đối chiếu với API/DB. Các bước UI chưa có ghi riêng theo owner. Bằng chứng API vẫn được lưu cho bước đó. Ca 409 xác định được chạy qua HTTP, vì UI có thể chặn IMEI Sold ở bước scan.
 

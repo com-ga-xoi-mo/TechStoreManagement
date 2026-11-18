@@ -30,7 +30,7 @@ Chạy các project backend unit, backend integration và frontend headless hi�
 
 ### D2. Dùng lại bằng chứng và chọn đúng contract cho regression
 
-Gắn trực tiếp nguồn vào các checkbox đã có bằng chứng. Dashboard Manager dùng [bàn giao Dashboard Manager](../../../docs/M3_DASHBOARD_DATA_TEST_HANDOFF.md#dashboard-manager) và [đối soát bốn kỳ API](../../../docs/M3_DEMO_DATA_RECONCILIATION.md#actual-qua-http-ở-mốc-cố-định). Dữ liệu demo và chạy lại seed dùng [bảng fixture và kiểm thử PostgreSQL](../../../docs/M3_DEMO_DATA_RECONCILIATION.md), gồm ảnh Local qua HTTP, số lượng, giá vốn, bốn tài khoản, bảo toàn mật khẩu/dữ liệu và ngày fixture. Ghi SHA và giới hạn theo từng nguồn.
+Gắn trực tiếp nguồn vào các checkbox đã có bằng chứng. Dashboard Manager dùng [bàn giao Dashboard Manager](../../../docs/M3_TEST_SUMMARY.md#dashboard-manager) và [đối soát bốn kỳ API](../../../docs/M3_TEST_SUMMARY.md#actual-qua-http-ở-mốc-cố-định). Dữ liệu demo và chạy lại seed dùng [bảng fixture và kiểm thử PostgreSQL](../../../docs/M3_TEST_SUMMARY.md#dữ-liệu-demo-và-đối-soát-kpi), gồm ảnh Local qua HTTP, số lượng, giá vốn, bốn tài khoản, bảo toàn mật khẩu/dữ liệu và ngày fixture. Ghi SHA và giới hạn theo từng nguồn.
 
 Với dòng regression Admin, lập bảng đối chiếu từng ca bắt buộc với test và assertion đã có, sau đó chạy lại test phù hợp trên build bàn giao. Các nguồn sau xác định phần có thể dùng lại và phần cần xác nhận thêm:
 
@@ -44,7 +44,7 @@ Bổ sung một lớp test riêng của Bình, dự kiến `M3AcceptancePostgres
 
 ### D3. Hậu giao dịch thành công, 409 và 400
 
-Xuất phát từ [bằng chứng m3-dashboard-live-flow](../../../docs/M3_DASHBOARD_LIVE_FLOW.md#kiểm-chứng-http-trên-postgresql) và chạy lại `DashboardLiveFlowPostgresHttpTests` trên build bàn giao. Dùng ca 201 để kiểm tồn, lượng giữ, serial Sold, dòng Sale, bảo hành, tiền ca và Dashboard. Dùng ca IMEI Sold với khóa mới, ca Open và tiền đủ để kiểm 409 và snapshot không đổi.
+Xuất phát từ [bằng chứng m3-dashboard-live-flow](../../../docs/M3_TEST_SUMMARY.md#kiểm-chứng-http-trên-postgresql) và chạy lại `DashboardLiveFlowPostgresHttpTests` trên build bàn giao. Dùng ca 201 để kiểm tồn, lượng giữ, serial Sold, dòng Sale, bảo hành, tiền ca và Dashboard. Dùng ca IMEI Sold với khóa mới, ca Open và tiền đủ để kiểm 409 và snapshot không đổi.
 
 Ca tiền nhận thiếu hiện có trong `PosCheckoutServiceTests` dùng fake. Bù chứng cứ HTTP/PostgreSQL trong lớp riêng của Bình ở D2 nếu build chưa có ca 400 tương đương. Với một IMEI InStock, ca Open và payload hợp lệ ở các trường còn lại, gửi tiền nhận thấp hơn tổng, kiểm tra 400 theo trường `cashTendered`, khóa checkout chưa lưu và tồn/giữ chỗ, serial/bảo hành, ledger, đơn/dòng và tiền/trạng thái ca không đổi. Đọc sau request bằng context mới. Ghi 400 là từ chối đầu vào. Ghi 409 Sold là ca tuần tự. Tick dòng commit/rollback khi có bằng chứng cho cả thành công và lỗi theo phạm vi này.
 

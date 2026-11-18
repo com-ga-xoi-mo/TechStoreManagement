@@ -88,10 +88,10 @@ Các lượt suite đã công bố trước Sprint 5 gồm 600 backend opt-in v�
 | CASH-01 | Cash/ca · Đạt | HTTP/PostgreSQL mở ca, bán, đọc đơn, đóng ca. POS UI do người dùng chạy tay | Số tiền thu/thừa và ca khớp, thiết bị chuyển Sold | Nguồn bàn giao ca 7.2 đạt trên build POS của ngày 17/11, SHA chính xác của lượt UI chưa ghi kèm. Phần checkout/ca HTTP cũng có test chạy đạt trong backend build Sprint 5 | [POS Cash/ca](../openspec/changes/archive/2026-11-17-m3-pos-cash-shift/tasks.md#7-kiểm-chứng) | Pass |
 | PRICE-01 | Công thức tiền · Vy | HTTP tạo đơn Admin hai dòng, giảm đơn 200.000 ₫, VAT 10%, đọc lại đơn | Subtotal 31.980.000 ₫, VAT 3.178.000 ₫, total 34.958.000 ₫, phân bổ khớp | POST 201 và GET trả đúng phân bổ. Sales vượt 10% trả 400. SHA chính xác chưa ghi trong phần kết quả của archive. Bằng chứng này thuộc Orders | [Order pricing](../openspec/changes/archive/2026-11-17-m3-order-pricing/tasks.md#kết-quả-kiểm-thử-ai-2026-11-17-windows-11) | Pass |
 | CUST-01 | Khách hàng · Vy | Sales dùng HTTP tìm/tạo khách và tạo đơn nháp có `customerId`. Vy chạy kiểm tra UI chọn khách trên trang tạo đơn | API trả 201 và đơn giữ đúng liên kết. Sales không sửa hoặc xem lịch sử | API khớp. UI do Vy xác nhận. Archive ghi ngày 18/11, SHA lượt UI chưa ghi rõ. Lượt Bình chạy trên baseline hiện tại kiểm lại thao tác tìm khách và lưu liên kết qua checkout HTTP | [Sales customers](../openspec/changes/archive/2026-11-18-m3-sales-customers/tasks.md#kết-quả-kiểm-thử-ai-2026-11-17-windows-11) | Pass |
-| DASH-01 | Dashboard Manager · Bình | HTTP JWT bốn role, desktop Manager chọn 12–18/10/2026 | A/M 200, S/W 403. Manager đọc live khi preview tắt | Khớp, 20 đơn và 136.080.000 ₫. Bản chạy `4a1f095` + working tree, binary hash ở bàn giao | [Dashboard Manager](M3_DASHBOARD_DATA_TEST_HANDOFF.md#dashboard-manager) | Pass |
-| SEED-01 | Dữ liệu demo · Bình | PostgreSQL mới, Local storage, đọc ảnh qua API | 20 sản phẩm có giá vốn/ảnh, 5 danh mục, 10 khách, 20 đơn nhiều trạng thái, 4 tài khoản | Đạt, 20 URL ảnh trả được HTTP. Fixture hiện có 50 IMEI. Đã chạy lại trên baseline Sprint 5, 3 ca seed pass | [Seed PostgreSQL và Expected](M3_DEMO_DATA_RECONCILIATION.md#expected-tính-từ-manifest) · Lượt backend integration ở trên | Pass |
-| SEED-02 | Seed lại và KPI · Bình | Seed fresh/rerun/legacy/partial/conflict, API bốn kỳ với mốc 18/10 | Bảo toàn credential/ID/thời gian, giữ ngày zero và tổng kỳ khớp | PostgreSQL rerun đạt. 18/10 Today 27.980.000 ₫ và 2 đơn. Các kỳ còn lại 136.080.000 ₫ và 20 đơn; zero-fill giữ đúng ngày | [Actual cố định](M3_DEMO_DATA_RECONCILIATION.md#actual-qua-http-ở-mốc-cố-định) · Lượt backend integration trên baseline Sprint 5 | Pass |
-| LIVE-01 | POS → Dashboard · Bình | Skia/Kestrel với IMEI fixture, khách lẻ, mở ca/quét/bán/đóng ca, Manager đổi kỳ | Live nhận đúng mã đơn và delta trên UI | Baseline `e587ee7` + probe tạm, Dashboard ngày 18/11 cộng 1 đơn và 18.689.000 ₫, mã `ORD-202611-0001` | [Desktop với Kestrel](M3_DASHBOARD_LIVE_FLOW.md#kiểm-chứng-desktop-với-kestrel) | Pass |
+| DASH-01 | Dashboard Manager · Bình | HTTP JWT bốn role, desktop Manager chọn 12–18/10/2026 | A/M 200, S/W 403. Manager đọc live khi preview tắt | Khớp, 20 đơn và 136.080.000 ₫. Bản chạy `4a1f095` + working tree, binary hash ở bàn giao | [Dashboard Manager](#dashboard-manager) | Pass |
+| SEED-01 | Dữ liệu demo · Bình | PostgreSQL mới, Local storage, đọc ảnh qua API | 20 sản phẩm có giá vốn/ảnh, 5 danh mục, 10 khách, 20 đơn nhiều trạng thái, 4 tài khoản | Đạt, 20 URL ảnh trả được HTTP. Fixture hiện có 50 IMEI. Đã chạy lại trên baseline Sprint 5, 3 ca seed pass | [Seed PostgreSQL và Expected](#expected-tính-từ-manifest) · Lượt backend integration ở trên | Pass |
+| SEED-02 | Seed lại và KPI · Bình | Seed fresh/rerun/legacy/partial/conflict, API bốn kỳ với mốc 18/10 | Bảo toàn credential/ID/thời gian, giữ ngày zero và tổng kỳ khớp | PostgreSQL rerun đạt. 18/10 Today 27.980.000 ₫ và 2 đơn. Các kỳ còn lại 136.080.000 ₫ và 20 đơn; zero-fill giữ đúng ngày | [Actual cố định](#actual-qua-http-ở-mốc-cố-định) · Lượt backend integration trên baseline Sprint 5 | Pass |
+| LIVE-01 | POS → Dashboard · Bình | Skia/Kestrel với IMEI fixture, khách lẻ, mở ca/quét/bán/đóng ca, Manager đổi kỳ | Live nhận đúng mã đơn và delta trên UI | Baseline `e587ee7` + probe tạm, Dashboard ngày 18/11 cộng 1 đơn và 18.689.000 ₫, mã `ORD-202611-0001` | [Desktop với Kestrel](#kiểm-chứng-desktop-với-kestrel) | Pass |
 
 ## Lỗi và lượt chạy lại
 
@@ -109,7 +109,7 @@ Các lượt suite đã công bố trước Sprint 5 gồm 600 backend opt-in v�
 | Mã | Owner | Đầu vào / Expected | Actual và build | Bằng chứng hoặc điều kiện chạy lại | Trạng thái |
 | --- | --- | --- | --- | --- | --- |
 | REC-01 | Q. Vinh | Nhận phiếu có/không IMEI, khớp phiếu/giá vốn/tồn/ledger. Lỗi không ghi dở, gửi lại không cộng hai lần | `dev` mới fetch thiếu controller, chưa chạy trên build ghép | Merge receiving và migration. Chạy test PostgreSQL và trả phiếu, serial, ledger, SHA và truy vấn read-back | Chưa kiểm tra |
-| REC-02 | Q. Vinh, Đạt, Bình | Bán đúng IMEI từ phiếu nhận, đóng ca, Dashboard phản ánh đơn và tiền | Chỉ có lượt fixture. Trạng thái được chốt bàn giao trong change live flow với phần receiving chưa chạy | Sau REC-01, chạy cùng build, lặp ca 409, đối chiếu ID phiếu/IMEI/đơn/ca và KPI. [Điều kiện live flow](M3_DASHBOARD_LIVE_FLOW.md#phụ-thuộc-bàn-giao) | Chưa kiểm tra |
+| REC-02 | Q. Vinh, Đạt, Bình | Bán đúng IMEI từ phiếu nhận, đóng ca, Dashboard phản ánh đơn và tiền | Chỉ có lượt fixture. Trạng thái được chốt bàn giao trong change live flow với phần receiving chưa chạy | Sau REC-01, chạy cùng build, lặp ca 409, đối chiếu ID phiếu/IMEI/đơn/ca và KPI. [Điều kiện live flow](#phụ-thuộc-bàn-giao) | Chưa kiểm tra |
 | CON-01 | Đạt, Q. Vinh | Hai giao dịch tranh cùng IMEI cuối, một 201 và một 409, chỉ trừ kho và cộng ca một lần | Test POS trên baseline Sprint 5 pass mã HTTP/tổng. Gate client chưa chứng minh giao dịch chồng nhau | `Checkout_TwoCashiersRaceForTheLastDevice_ExactlyOneSucceeds`. Bổ sung bằng chứng hai transaction cùng vào đoạn lock/ghi hoặc lock wait, snapshot cuối và SHA | Chưa kiểm tra |
 | CON-02 | Q. Vinh | Hai giao dịch tranh phụ kiện cuối hoặc cùng nhận một phiếu, không âm kho hoặc cộng lần hai | Chưa có bằng chứng giao dịch thực sự chồng trên build bàn giao | Chờ receiving và fixture tranh tài nguyên qua hai connection độc lập, log đồng bộ/lock wait và read-back | Chưa kiểm tra |
 | CON-03 | Đạt | Hai transaction chuyển trạng thái cùng đơn, hoặc checkout trong lúc đóng ca, ca chỉ nhận tiền đã commit | Test checkout/đóng ca trên baseline Sprint 5 pass kết quả cuối. Gate trước request chưa chứng minh chồng transaction. Ca `OrdersApiIntegrationTests` ghi tuần tự | Bàn giao trace transaction của cả hai luồng, kết quả đơn/ca/ledger và SHA | Chưa kiểm tra |
@@ -121,3 +121,313 @@ Các lượt suite đã công bố trước Sprint 5 gồm 600 backend opt-in v�
 ## Mẫu số nghiệm thu
 
 Ma trận trên có **32 mã duy nhất** gồm **23 Pass, 0 Fail, 0 Skipped, 9 Chưa kiểm tra**. Đây là số mục nghiệm thu trong ba bảng kết quả và bảng còn mở. Dòng lịch sử lỗi ADM-CAT01 được tính theo kết quả rerun cuối, còn lượt runner fail đầu tiên vẫn nằm trong bảng suite. Các kết quả suite ở những build khác không cộng vào 32 mã này.
+
+## Dashboard Manager
+
+Kiểm chứng ngày 18/11/2026 trên Windows `10.0.26200.0` với .NET SDK `10.0.404`. Source là commit nền `4a1f095a4b8f7143e4868bb4d3d84998da0e6fb6` cộng các thay đổi cục bộ của `m3-manager-dashboard-access`. Kestrel dùng `http://127.0.0.1:5297` và database `techstore_m3_dashboard_live_test` đã migrate/seed trong container PostgreSQL 16 cô lập. Các test repository và seed dùng database test riêng.
+
+Giao diện được kiểm trên cửa sổ Uno Skia `net10.0-desktop` với bộ điều khiển kiểm thử tạm dùng cùng login, Shell, Dashboard và API của bản build. Probe dùng tệp phiên theo process để giữ dữ liệu phiên đang có trên máy. SHA-256 bản probe là `776864c0de73e28e2e93140e8cd83b6592fb33ed32275ba3faf897b239361591`. Mã probe đã được gỡ khỏi source bàn giao.
+
+- SHA-256 `TechStore.Api.dll` dùng với Kestrel test — `4deb2a47a7e0ca83f246174dcb5ac9726453baa88888fc7cc0ec3496e305954a`.
+- SHA-256 `TechStore.Client.dll` từ build desktop sau khi gỡ probe — `54493960ad655a5c35a56c0bd18a67d2090d7e2aeeb483bd476330d6c3a38d45`. Build 0 warning, 0 error.
+
+| Ca | Mong đợi | Kết quả thực tế | Trạng thái |
+| --- | --- | --- | --- |
+| JWT từ đăng nhập thật, gọi `last7Days` và `custom` | Admin/Manager 200, SalesStaff/WarehouseStaff 403 | Cả hai kỳ trả 200/200/403/403. Body của 403 không có dữ liệu Dashboard | Pass |
+| Thiếu JWT và JWT sai, gọi `custom` | HTTP 401 | Cả hai trả 401 | Pass |
+| Manager gửi kỳ sai, khoảng trên 31 ngày hoặc khoảng trong tương lai | HTTP 400 và chỉ rõ trường lỗi | Cả ba trả 400 với trường validation | Pass |
+| Manager gửi `custom` từ `2026-10-12` đến `2026-10-18` | Bảy điểm theo UTC+07, doanh thu dương, có đơn demo thật | `asOf=2026-11-18T03:35:57.775208Z`, 7 ngày, 20 đơn, doanh thu quan sát được `136080000.00`, có `DEMO-202610-0011` | Pass |
+| Swagger của endpoint Dashboard | Hiện `period`, `from`, `to` và giới hạn 31 ngày | Đã kiểm tra JSON tại `/swagger/v1/swagger.json` | Pass |
+| Backend Analytics và kiểm kê phân quyền (chạy có lọc) | Các test đã chọn chạy đạt | 35 pass, 0 fail, 0 skipped, gồm ca quyền dùng PostgreSQL | Pass |
+| Toàn bộ suite `Backend.UnitTests` | Chạy lại sau khi sửa `IdentityHttpTests` theo quyền Dashboard mới | 649 pass, 0 fail, 39 skipped | Pass |
+| PostgreSQL Analytics và seed regression | Biên UTC+07, ngày trống, số đơn/doanh thu theo đúng trường, seed tiếp tục chạy ổn định | 1 ca Analytics và 3 ca seed pass. Repository giữ snapshot tồn kho/sản phẩm tại thời điểm đọc | Pass |
+| Đăng nhập `manager1` trong app, chọn 12–18/10/2026 | Vào Tổng quan, có dữ liệu live, nhãn kỳ/as-of và đơn seed | Tổng quan được mở, menu không có Khách hàng, `asOf=2026-11-18T03:45:28.4485200Z`, quan sát 20 đơn và doanh thu 136.080.000 đ | Pass |
+| Khoảng ngày trên desktop | Ô ngày và Áp dụng hiển thị, Tab đi từ Từ ngày đến Đến ngày, lỗi ngày giữ báo cáo cũ | Gửi Tab vào chính cửa sổ probe và xác nhận focus. `31/02/2026` hiện lỗi đúng ô, snapshot giữ nguyên | Pass |
+| Làm mới sau khi sửa nháp | Giữ khoảng 12–18/10 và đọc snapshot live mới | Sửa nháp thành 13/10, bấm Làm mới vẫn nhận ngày đầu 12/10 và snapshot mới | Pass |
+| Đổi Sáng/Tối, resize và kỳ qua tháng | Màu form cập nhật khi trang đang mở, form vừa cửa sổ, bảng ngày đầy đủ và phạm vi rõ | Shell viewport 994×698 và 610×474 DIP ở raster scale 1,25. Đổi theme giữ snapshot. Kỳ 28/09–18/10 có 21 ngày, chart hiện nhãn `18/10`, tiêu đề đơn/tồn nêu đúng phạm vi | Pass |
+| Preview với `TECHSTORE_DASHBOARD_DEMO=1` | Dùng fixture và chỉ hiện ba kỳ sẵn có | Snapshot mang `SourceKind=Preview`, nút Khoảng ngày ẩn và VM có đúng ba kỳ | Pass |
+| Frontend headless | Test điều hướng, repository, preview, VM và các test khác | 1.042 pass khi lọc riêng ca DI bên dưới | Pass |
+| Frontend DI `AddFrontendFoundation_ResolvesSharedSessionAndTransientTypedClient` | Test hoàn thành với tệp phiên test | Lần chạy đầy đủ có 1 fail do sandbox từ chối xóa `AppData/Local/TechStore/session.json`. Tệp phiên người dùng được giữ nguyên | Fail môi trường |
+
+Đã sửa [`IdentityHttpTests`](../tests/Backend.UnitTests/IdentityHttpTests.cs) để giữ kiểm tra Dashboard trả `403` cho SalesStaff và WarehouseStaff. `AnalyticsControllerTests` kiểm tra Manager nhận `200`. Lần chạy toàn bộ `Backend.UnitTests` chưa bật `TECHSTORE_TEST_CONNECTION`, nên 39 ca PostgreSQL opt-in được ghi là skipped.
+
+Trích bằng chứng HTTP đã lọc, không chứa JWT hoặc thông tin kết nối:
+
+```text
+Admin           last7Days=200 custom=200
+Manager         last7Days=200 custom=200
+SalesStaff      last7Days=403 custom=403
+WarehouseStaff  last7Days=403 custom=403
+Anonymous=401; invalid JWT=401
+Manager invalid period=400, oversized range=400, future range=400
+```
+
+Trích log cửa sổ Skia từ phiên live:
+
+```text
+[UI PASS] Tab moves from start date to end date
+[UI PASS] Invalid date shows a bound field error
+[UI PASS] Live custom range reached database
+[UI PASS] Rendered report interval and as-of info
+[UI PASS] Refresh uses applied interval after draft edit
+[UI PASS] Dark theme updates form surface while Dashboard remains open
+[UI PASS] Narrow Dashboard keeps date fields and Apply visible
+[UI PASS] Cross-month chart and complete daily-date values
+[UI PASS] Preview fixture and exactly three periods (lần chạy preview riêng)
+```
+
+Kiểm tra UI lần này chạy trên Skia/Win32. Windows native và các nền tảng Skia khác chưa kiểm tra. Các số của luồng live là output quan sát khi nghiệm thu truy cập. Bằng chứng đối soát riêng của `m3-demo-data-reconciliation` nằm trong phần [Dữ liệu demo và đối soát KPI](#dữ-liệu-demo-và-đối-soát-kpi).
+
+[bảng Expected/Actual, bằng chứng kiểm thử và hướng dẫn chạy lại demo Local/R2](#dữ-liệu-demo-và-đối-soát-kpi) · [bằng chứng API/PostgreSQL và desktop sau checkout](#đối-soát-giao-dịch-pos-live)
+
+## Dữ liệu demo và đối soát KPI
+
+Bốn kỳ API ở mốc seed đều khớp bảng tính tay. Luồng live ghi `asOf` riêng theo ngày demo.
+
+Mốc cố định là `2026-10-18T05:00:00Z`, tức 12:00 ngày 18/10/2026 (UTC+07). Các bảng Expected áp dụng cho PostgreSQL mới, chỉ có dữ liệu seed. Dashboard đếm đơn theo `CreatedAt` ở mọi trạng thái và cộng `TotalAmount` của đơn Completed theo ngày `CompletedAt`. Hai biên dùng ngày Việt Nam, với thời điểm cuối kỳ giới hạn theo `asOf` nếu kỳ còn đang diễn ra.
+
+### Expected tính từ manifest
+
+Mỗi dòng dưới đây là một đơn, một mặt hàng, số lượng 1. Tiền đơn bằng đơn giá trong fixture, thuế và giảm giá đều bằng 0. Seeder gán trực tiếp các số này. Kiểm chứng công thức của Vy trên đơn POS thật thuộc `m3-dashboard-live-flow`. Cột mã lấy tiền tố chung `DEMO-202610-`. Giờ và ngày đều là giờ Việt Nam tháng 10/2026.
+
+| Mã | SKU | Trạng thái | Tạo lúc | Hoàn tất lúc | Tiền đơn (₫) |
+| --- | --- | --- | --- | --- | ---: |
+| 0001 | DEMO-TAB-IPAD-AIR | Completed | 17/10 11:39 | 17/10 11:59 | 16.990.000 |
+| 0002 | DEMO-TAB-GALAXY-S9 | Completed | 16/10 11:39 | 16/10 11:59 | 19.990.000 |
+| 0003 | DEMO-TAB-LENOVO-P12 | Completed | 15/10 11:39 | 15/10 11:59 | 8.990.000 |
+| 0004 | DEMO-MON-DELL-U2723 | Completed | 13/10 11:39 | 13/10 11:59 | 15.990.000 |
+| 0005 | DEMO-MON-LG-27GP | Completed | 12/10 11:39 | 12/10 11:59 | 11.990.000 |
+| 0006 | DEMO-MON-ASUS-PROART | Completed | 18/10 11:39 | 18/10 11:59 | 10.990.000 |
+| 0007 | DEMO-SSD-SAMSUNG-T7 | Completed | 17/10 11:39 | 17/10 11:59 | 2.690.000 |
+| 0008 | DEMO-SSD-SANDISK-EXT | Completed | 16/10 11:39 | 16/10 11:59 | 2.990.000 |
+| 0009 | DEMO-DOCK-ANKER-777 | Completed | 15/10 11:39 | 15/10 11:59 | 5.990.000 |
+| 0010 | DEMO-KEY-LOGI-MX | Completed | 12/10 11:39 | 12/10 11:59 | 2.490.000 |
+| 0011 | DEMO-TAB-IPAD-AIR | Completed | 18/10 11:39 | 18/10 11:59 | 16.990.000 |
+| 0012 | DEMO-TAB-GALAXY-S9 | Completed | 13/10 11:39 | 13/10 11:59 | 19.990.000 |
+| 0013 | DEMO-TAB-IPAD-AIR | Processing | 16/10 23:00 | — | 16.990.000 |
+| 0014 | DEMO-TAB-GALAXY-S9 | Processing | 16/10 22:00 | — | 19.990.000 |
+| 0015 | DEMO-MOUSE-LOGI-MX3 | Pending | 16/10 21:00 | — | 1.690.000 |
+| 0016 | DEMO-WEBCAM-LOGI-BRIO | Pending | 16/10 20:00 | — | 4.290.000 |
+| 0017 | DEMO-HEADSET-JABRA-EVOLVE | Pending | 16/10 19:00 | — | 6.290.000 |
+| 0018 | DEMO-HEADSET-JABRA-EVOLVE | Cancelled | 15/10 18:00 | — | 6.290.000 |
+| 0019 | DEMO-CHARGER-ANKER-735 | Cancelled | 15/10 17:00 | — | 1.190.000 |
+| 0020 | DEMO-CABLE-USB-C | Cancelled | 15/10 16:00 | — | 290.000 |
+
+| Ngày | Mã đơn cộng vào doanh thu | Cộng tiền (₫) | Đơn tạo trong ngày |
+| --- | --- | ---: | ---: |
+| 01–11/10, mỗi ngày | — | 0 | 0 |
+| 12/10 | 0005 + 0010 | 14.480.000 | 2 |
+| 13/10 | 0004 + 0012 | 35.980.000 | 2 |
+| 14/10 | — | 0 | 0 |
+| 15/10 | 0003 + 0009 | 14.980.000 | 5 |
+| 16/10 | 0002 + 0008 | 22.980.000 | 7 |
+| 17/10 | 0001 + 0007 | 19.680.000 | 2 |
+| 18/10 đến 12:00 | 0006 + 0011 | 27.980.000 | 2 |
+| **Cộng 01–18/10** | **12 đơn Completed** | **136.080.000** | **20** |
+
+| Kỳ | Ngày UTC+07 | Điểm theo ngày | Doanh thu (₫) | Số đơn | Đơn mới nhất theo thứ tự |
+| --- | --- | ---: | ---: | ---: | --- |
+| `today` | 18/10 | 1 | 27.980.000 | 2 | 0011, 0006 |
+| `last7Days` | 12–18/10 | 7 | 136.080.000 | 20 | 0011, 0006, 0001, 0007, 0013 |
+| `thisMonth` | 01–18/10 | 18 | 136.080.000 | 20 | 0011, 0006, 0001, 0007, 0013 |
+| `custom&from=2026-10-12&to=2026-10-18` | 12–18/10 | 7 | 136.080.000 | 20 | 0011, 0006, 0001, 0007, 0013 |
+
+Tổng ngày của từng kỳ bằng doanh thu kỳ. Ngày 14/10 được trả về với giá trị 0 trong cả ba kỳ chứa ngày đó. `thisMonth` còn có 11 điểm 0 đầu tháng. Đơn mới nhất sắp theo `CreatedAt DESC, id DESC`, dùng ID fixture để phân thứ tự khi giờ tạo trùng.
+
+**Snapshot tồn kho.** Cả 20 sản phẩm fixture đều hoạt động. Mười SKU có IMEI nhập 5 chiếc mỗi SKU. iPad Air và Galaxy Tab S9 bán 2 chiếc, giữ 1 chiếc mỗi SKU nên tồn 3, khả dụng 2. Tám SKU theo dõi IMEI còn lại bán 1 chiếc mỗi SKU nên tồn 4. Năm SKU không theo dõi IMEI có dòng tồn bằng 0. Ngưỡng là 3 và điều kiện Dashboard là tồn vật lý ≤ 3, nên có **7** dòng tồn thấp.
+
+| Thứ tự | Sản phẩm trong nhóm tồn thấp | Tồn | Đang giữ | Khả dụng | Ngưỡng | API trả trong danh sách |
+| ---: | --- | ---: | ---: | ---: | ---: | --- |
+| 1 | Anker 735 Charger 65W | 0 | 0 | 0 | 3 | Có |
+| 2 | Jabra Evolve2 65 Flex | 0 | 0 | 0 | 3 | Có |
+| 3 | Logitech Brio 4K Webcam | 0 | 0 | 0 | 3 | Có |
+| 4 | Logitech MX Master 3S | 0 | 0 | 0 | 3 | Có |
+| 5 | USB-C 100W Braided Cable | 0 | 0 | 0 | 3 | Có |
+| 6 | Galaxy Tab S9 256GB | 3 | 1 | 2 | 3 | — |
+| 7 | iPad Air 11 M2 128GB | 3 | 1 | 2 | 3 | — |
+
+Fixture hiện có 5 danh mục, 20 sản phẩm có giá vốn, 3 biến thể, 10 khách, 20 đơn (12 Completed, 2 Processing, 3 Pending, 3 Cancelled), 4 tài khoản và 50 IMEI. Các mục tối thiểu của M3 gồm 5 danh mục, 20 sản phẩm có giá vốn và ảnh trên DB mới, 10 khách, 20 đơn nhiều trạng thái và 4 tài khoản. 50 IMEI là số hồi quy của fixture hiện tại.
+
+### Actual qua HTTP ở mốc cố định
+
+Chạy ngày 18/11/2026 với .NET SDK `10.0.404`, Debug, commit nền `4a1f095` và thay đổi cục bộ của hai change Dashboard Manager và dữ liệu demo. `WebApplicationFactory<Program>` dùng PostgreSQL schema riêng và storage Local. Manager lấy JWT qua login thật. Host test cố định riêng thời điểm snapshot mà Analytics đọc, để controller, truy vấn, phân quyền và JSON chạy theo đường API thực tế.
+
+| Kỳ | Biên ngày Actual | Expected doanh thu / đơn | Actual doanh thu / đơn | Sản phẩm / tồn thấp Actual | Điểm ngày Actual | HTTP |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| `today` | 18/10 | 27.980.000 / 2 | 27.980.000 / 2 | 20 / 7 | 1 | 200 · Pass |
+| `last7Days` | 12–18/10 | 136.080.000 / 20 | 136.080.000 / 20 | 20 / 7 | 7 | 200 · Pass |
+| `thisMonth` | 01–18/10 | 136.080.000 / 20 | 136.080.000 / 20 | 20 / 7 | 18 | 200 · Pass |
+| `custom` | 12–18/10 | 136.080.000 / 20 | 136.080.000 / 20 | 20 / 7 | 7 | 200 · Pass |
+
+Cả bốn response có `asOf=2026-10-18T05:00:00Z` và `timeZone=UTC+07:00`. Actual khớp từng dòng Expected về ngày, doanh thu, tổng kỳ, danh sách tồn thấp và thứ tự đơn mới. Hai chỉ số phần trăm thay đổi đều trả null. Các ngày zero gồm 14/10 cho ba kỳ chứa ngày đó và thêm 01–11/10 cho `thisMonth`.
+
+#### Chạy lại kiểm thử
+
+Đặt biến `TECHSTORE_SEED_TEST_POSTGRES` thành chuỗi kết nối PostgreSQL test có tên database chứa `test`. Fixture tạo và xóa schema riêng, dùng storage tạm trong mỗi ca. Lệnh PowerShell dưới đây in Actual của từng kỳ khi chạy với logger chi tiết.
+
+```powershell
+$env:TECHSTORE_SEED_TEST_ALLOW_SCHEMA = 'YES'
+dotnet test tests/Backend.IntegrationTests/TechStore.Backend.IntegrationTests.csproj --filter 'FullyQualifiedName~DataSeederPostgresIntegrationTests' --logger 'console;verbosity=detailed'
+dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter 'FullyQualifiedName~DemoSeed|FullyQualifiedName~DataSeederTests'
+```
+
+| Bộ kiểm thử | Pass | Fail | Skipped | Bằng chứng |
+| --- | ---: | ---: | ---: | --- |
+| Seed PostgreSQL opt-in | 3 | 0 | 0 | Fresh, rerun, DB Sprint 1, thiếu một phần và conflict. Kiểm chứng 20 URL ảnh qua HTTP, tài khoản theo role, liên kết đơn/ca/VietQR/IMEI/kho và bốn kỳ Dashboard. |
+| Seed unit tests có lọc | 15 | 0 | 0 | Manifest, ảnh nhúng, idempotency và lỗi asset, storage, save, phản hồi commit. |
+| Toàn bộ Backend.UnitTests | 654 | 0 | 39 | 39 ca PostgreSQL opt-in của suite này được skip. Trong sandbox Windows, chạy lại với `Logging__EventLog__LogLevel__Default=None` và Local storage trong workspace để tránh lỗi quyền Windows Event Log. |
+| Toàn bộ Backend.UnitTests bật PostgreSQL | 694 | 0 | 0 | Lần cuối bật `TECHSTORE_TEST_CONNECTION` trỏ PostgreSQL test, gồm ca giữ credential của tài khoản demo qua rerun. |
+
+SHA-256 bản chạy HTTP cố định cuối là `839ED352E99706B9036EBCE36D596B4E2EBAC5830A8D0CE2A43B85DCF1BBF10E` cho `TechStore.Api.dll` và `5B3E29B1A39487866092A2A192BA4DA990541DB4F56985AA94C284E24282BDB9` cho `TechStore.Backend.IntegrationTests.dll`.
+
+### Chạy demo Local
+
+1. Khởi động PostgreSQL bằng `docker compose up -d`. Tạo một database demo trống và dùng chuỗi kết nối của database đó cho `ConnectionStrings__DefaultConnection`. API tự chạy migrations và seed ở môi trường Development.
+2. Mở PowerShell ở gốc repo và chạy API. `ObjectStorage__Local__RootPath` phải là thư mục demo có quyền ghi. Giữ cùng database và thư mục qua các lần seed lại.
+
+   ```powershell
+   $env:ObjectStorage__Provider = 'Local'
+   $env:ObjectStorage__Local__RootPath = Join-Path (Get-Location) 'backend/uploads/m3-demo'
+   $env:ObjectStorage__Local__RequestPath = '/uploads'
+   dotnet run --project backend/TechStore.Api.csproj --launch-profile http
+   ```
+
+3. Ở cửa sổ PowerShell khác, chạy client và đăng nhập `manager1` với mật khẩu demo `Manager@123`. Mở **Tổng quan → Khoảng ngày**, nhập **12/10/2026** đến **18/10/2026** rồi bấm **Áp dụng**.
+
+   ```powershell
+   $env:TECHSTORE_API_BASE_URL = 'http://127.0.0.1:5176/'
+   $env:TECHSTORE_DASHBOARD_DEMO = '0'
+   dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop
+   ```
+
+4. Mở chi tiết sản phẩm trong Catalog. Có thể xác nhận trực tiếp bằng HTTP với đoạn dưới đây. Dùng cùng địa chỉ gốc nếu API chạy trên cổng khác. Kiểm tra `imageUrl` trùng URL ảnh bìa trong gallery và URL trả HTTP 200, `image/png`.
+
+   ```powershell
+   $baseUri = [uri]'http://127.0.0.1:5176/'
+   $auth = Invoke-RestMethod ([uri]::new($baseUri, 'api/auth/login')) -Method Post -ContentType 'application/json' -Body '{"username":"manager1","password":"Manager@123"}'
+   $headers = @{ Authorization = "Bearer $($auth.accessToken)" }
+   $catalog = Invoke-RestMethod ([uri]::new($baseUri, 'api/products?page=1&pageSize=20')) -Headers $headers
+   $product = Invoke-RestMethod ([uri]::new($baseUri, "api/products/$($catalog.items[0].id)")) -Headers $headers
+   $image = Invoke-WebRequest ([uri]::new($baseUri, $product.imageUrl)) -UseBasicParsing
+   [pscustomobject]@{
+       CoverMatches = $product.imageUrl -eq $product.images[0].url
+       Status = $image.StatusCode
+       ContentType = $image.Headers['Content-Type']
+   }
+   Invoke-RestMethod ([uri]::new($baseUri, 'api/analytics/dashboard?period=custom&from=2026-10-12&to=2026-10-18')) -Headers $headers
+   ```
+
+### Chạy demo R2
+
+Dùng một database demo trống khác, bucket R2 test có quyền ghi/xóa và public base URL đã bật cho bucket đó. Đặt cấu hình qua biến môi trường, user-secrets nếu đã cấu hình, hoặc `backend/.env` đã được git ignore trong Development.
+
+| Tên biến | Giá trị |
+| --- | --- |
+| `ObjectStorage__Provider` | `R2` |
+| `ObjectStorage__R2__AccountId` | Account ID Cloudflare của môi trường test |
+| `ObjectStorage__R2__AccessKeyId` | Access key của bucket test |
+| `ObjectStorage__R2__SecretAccessKey` | Secret key của bucket test |
+| `ObjectStorage__R2__BucketName` | Tên bucket test |
+| `ObjectStorage__R2__PublicBaseUrl` | URL HTTPS public của bucket test hoặc domain public đã nối tới bucket |
+
+Chạy API/client như với Local sau khi chọn provider R2. Lấy `imageUrl` từ product detail và mở nguyên URL HTTPS bằng trình duyệt hoặc `Invoke-WebRequest`. Kiểm tra MIME, hình hiển thị và số object sau khi seed lại. Credential chỉ nằm trong cấu hình cục bộ. Nếu file biến mất nhưng DB còn tham chiếu, khôi phục object theo key cũ từ bản sao, hoặc thay ảnh qua Catalog đối với gallery hiện hữu. Nếu commit báo kết quả chưa xác định, kiểm tra tham chiếu `product_images.object_key` với database tương ứng trước khi dọn object của lần chạy.
+
+**Trạng thái R2:** chưa chạy với bucket thật do thiếu môi trường R2 test. Unit test đã xác nhận URL HTTPS do provider trả về được giữ nguyên trong gallery và cover.
+
+### Actual live trên database demo mới
+
+Chạy ngày **18/11/2026** bằng Kestrel trên cổng 5297, với PostgreSQL demo mới đã migrate và seed, Local storage và JWT của `manager1`. SHA-256 của API dùng cho phiên live là `C8D1E6F87B3DA2D3A2771BF1C291CEC7A7B21A1E6FC46FCE25D85BEF545C8899`. Kỳ custom đọc từ `2026-10-11T17:00:00Z` đến trước `2026-10-18T17:00:00Z` theo UTC+07, tức hết ngày 18/10. Lần cố định kết thúc ở 12:00 ngày 18/10 theo giờ Việt Nam. Fixture không có đơn sau 12:00 hôm đó nên hai lần đối soát cho cùng doanh thu và số đơn kỳ custom.
+
+| Kỳ | Biên ngày UTC+07 | `asOf` API (UTC) | Expected doanh thu / đơn | Actual doanh thu / đơn | Điểm ngày |
+| --- | --- | --- | ---: | ---: | ---: |
+| `today` | 18/11/2026 | `2026-11-18T05:55:47.920706Z` | 0 / 0 | 0 / 0 | 1 |
+| `last7Days` | 12–18/11/2026 | `2026-11-18T05:55:48.119261Z` | 0 / 0 | 0 / 0 | 7 |
+| `thisMonth` | 01–18/11/2026 | `2026-11-18T05:55:48.210231Z` | 0 / 0 | 0 / 0 | 18 |
+| `custom` | 12–18/10/2026 | `2026-11-18T05:55:48.246998Z` | 136.080.000 / 20 | 136.080.000 / 20 | 7 |
+
+Cả bốn response HTTP thành công và có snapshot gồm 20 sản phẩm hoạt động, 7 dòng tồn thấp. Ba kỳ tháng 11 có doanh thu từng ngày bằng 0 và danh sách đơn rỗng. Kỳ custom có đủ bảy điểm theo bảng tay, 14/10 bằng 0, đơn đầu tiên `DEMO-202610-0011`. Catalog có 20 file Local, ảnh mở thử trả **HTTP 200, image/png, 4.543 byte** và URL trùng ảnh bìa trong gallery.
+
+**Dashboard desktop.** Cửa sổ Uno Skia/Win32 chạy với preview tắt. Bộ kiểm tra tạm đăng nhập `manager1`, mở Dashboard qua Shell, điền hai ô ngày và dùng lệnh gắn trên nút **Áp dụng**. Kết quả có `source=Live`, `asOf=2026-11-18T06:00:48.9676630+00:00`, doanh thu 136.080.000 ₫, 20 đơn, 20 sản phẩm hoạt động, 7 tồn thấp và 7 điểm ngày. Đã kiểm nội dung doanh thu và nhãn kỳ hiển thị trong cây giao diện. Sau khi ghi kết quả Pass, probe gặp exception ở luồng render OpenGL khi gọi thoát. SHA-256 bản probe là `1373524CB277ED8617A1C8FD4A31B5A53C0E0655A434E80D6648CBB6E1DF36C9`. Sau khi dỡ probe, build desktop có 0 warning, 0 error và SHA-256 `54493960AD655A5C35A56C0BD18A67D2090D7E2AEEB483BD476330D6C3A38D45`.
+
+## Đối soát giao dịch POS live
+
+Trên build chứa POS/ca và API tìm khách cho Sales, hai ca HTTP kiểm chứng doanh thu ngày Việt Nam sau commit và dữ liệu giữ nguyên sau 409. Lượt desktop trên Kestrel kiểm chứng bán khách lẻ, đóng ca và Manager thấy đúng đơn mới. Luồng từ phiếu nhập đến Dashboard còn chờ receiving của Q. Vinh vào `dev`.
+
+### Build và phạm vi
+
+Lượt kiểm chứng ngày 18/11/2026 dùng .NET SDK `10.0.404`. SHA nền `e587ee787a42a719dc72ff4d4efdf5f99b086036` đã chứa hai commit Dashboard Manager và demo data, cùng `dev` mới nhất tại thời điểm fetch (`6c5d8c567bc69deebeb41e9c99bbce9814cec9bc`). Lớp test mới của Bình được build cục bộ trên SHA này. SHA-256 bản Debug tham gia chạy HTTP:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `TechStore.Api.dll` | `828DC01839695C137A2920E0702381A47F534A458446D6459C1E23E9E81AAC2B` |
+| `TechStore.UnitTests.dll` | `37052B1A80B46BBDDE9530EC76D3B0E40DC01D76130B6B693884B92DADFE5B00` |
+
+Endpoint đã chạy gồm login, tìm sản phẩm qua `GET /api/products`, dò IMEI qua `GET /api/inventory/serials`, tìm khách qua `GET /api/customers` bằng Sales, mở và đóng ca qua `/api/pos/shifts`, checkout qua `/api/pos/checkout`, đọc lại đơn qua `GET /api/orders/{id}` và Dashboard qua `GET /api/analytics/dashboard` bằng Manager. Phân quyền Dashboard có bằng chứng trong [bàn giao Dashboard Manager](#dashboard-manager).
+
+### Kiểm chứng HTTP trên PostgreSQL
+
+`IdentityPostgresApi` tạo database riêng cho từng ca, áp migrations và seed qua API host. Login dùng JWT thật. Test chỉ cố định đồng hồ ca, checkout và thời điểm snapshot Analytics. Lượt này dùng thiết bị `InStock` từ fixture. DB được đọc lại bằng context độc lập để kiểm tra dữ liệu đã lưu.
+
+Đặt `TECHSTORE_TEST_CONNECTION` thành chuỗi kết nối PostgreSQL test có quyền tạo database riêng. Từ gốc repo, có thể ghi lại log kết quả bằng PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Path backend/obj/m3-live-flow -Force | Out-Null
+dotnet test tests/Backend.UnitTests/TechStore.UnitTests.csproj --filter FullyQualifiedName~DashboardLiveFlowPostgresHttpTests --logger 'console;verbosity=detailed' *> backend/obj/m3-live-flow/api-postgres.log
+```
+
+Lượt ghi nhận đạt **2 Pass, 0 Fail, 0 Skipped**. Log cục bộ tại `backend/obj/m3-live-flow/api-postgres.log` ghi HTTP, dữ liệu read-back và snapshot. Các trích đoạn bên dưới giữ ID thử nghiệm và không in JWT, mật khẩu hay chuỗi kết nối.
+
+#### Cash thành công, ghi doanh thu vào ngày Việt Nam
+
+Đầu vào gồm một iPad `DEMO-TAB-IPAD-AIR`, IMEI fixture `490000000000004`, khách `Demo Customer 01` tra bằng `cashier1`, tiền đầu ca 2.000.000 ₫ và tiền nhận 20.000.000 ₫. Đơn `ORD-202610-0001` có ID `be903d21-5824-45a2-a92d-aa946d96cfdd`; ca `836ed425-a916-4823-8401-99166abe9f61`. Kỳ tùy chọn là 20–21/10/2026 theo UTC+07.
+
+| Hạng mục | Expected | Actual |
+| --- | --- | --- |
+| Mở ca, checkout, đọc đơn và đóng ca | Ca Open, checkout 201, đơn lưu Completed/Cash, ca Closed | Đạt. Đơn liên kết đúng Sales, khách, ca và IMEI. Đóng ca trả 200. |
+| Thời điểm | PaidAt và CompletedAt bằng nhau. UTC và UTC+07 khác ngày | Cả hai cùng `2026-10-20T17:01:00Z`, tức 00:01 ngày 21/10 giờ Việt Nam. |
+| Giá, giảm và VAT | Giá 16.990.000 ₫, giảm dòng 90.000 ₫, giảm đơn 0 ₫, subtotal 16.900.000 ₫, VAT 10% là 1.690.000 ₫ | Các trường đã lưu khớp. Tổng **18.590.000 ₫**, tiền thừa **1.410.000 ₫**. |
+| Tồn và serial | Tồn 3 → 2, giữ chỗ 1 → 1, IMEI Sold | Khớp. Bảo hành từ lúc hoàn tất đến `2027-10-20T17:01:00Z`. Snapshot giá vốn 14.500.000 ₫. |
+| Lịch sử kho | Một dòng Sale, lượng −1, tồn sau 2 và đúng actor/khóa nguồn | Khớp. Movement ID `8ff4539a-6eb7-47e0-a7c1-2f9efd8a5bfb`. |
+| Tiền ca | Cash tăng bằng tổng lưu. Tiền dự kiến và thực đếm 20.590.000 ₫, chênh lệch 0 | Khớp. Ca đóng lúc `2026-10-20T17:02:00Z`. |
+| Dashboard | Thêm 1 đơn và 18.590.000 ₫. Đơn mới nằm trong 5 đơn gần nhất | 0 → 1 đơn, 0 → 18.590.000 ₫. Danh sách có đúng một dòng cho mã đơn mới. Sản phẩm hoạt động 20, tồn thấp 7. |
+| Doanh thu ngày | 20/10 giữ 0, 21/10 tăng 18.590.000 ₫. Tổng các ngày bằng summary | Khớp ở cả hai snapshot. `asOf` trước `2026-10-20T17:00:30Z`, sau `2026-10-20T17:03:00Z`. |
+
+#### IMEI đã Sold, khóa checkout mới
+
+Ca độc lập tạo một đơn thành công để bán đúng IMEI fixture trên. Sau đó giữ ca `4858f89c-2e60-4cc9-9495-645bbbfb34d2` ở trạng thái Open và thử lại với khóa mới, cùng khách và cùng số tiền đủ. Đơn gốc ID `4dd08d53-e14c-42cf-b528-632c84b26ead`.
+
+| Expected | Actual |
+| --- | --- |
+| HTTP 409 vì thiết bị Sold | 409. Log: `Line 1 (DEMO-TAB-IPAD-AIR): Device is Sold; expected InStock.` |
+| Khóa lỗi không lưu, đơn/dòng/movement giữ nguyên | Không tìm thấy khóa lỗi. 21 order, 21 line và cùng các ID movement trước/sau. |
+| Stock, bảo hành và ca giữ nguyên | Tồn 2, giữ chỗ 1, Sold, bảo hành giữ nguyên, ca Open và Cash 18.590.000 ₫. |
+| Summary, daily, recent và low stock giữ nguyên | 1 đơn, 18.590.000 ₫, daily 0 / 18.590.000 ₫, cùng đơn và các dòng tồn thấp. `asOf` tiến từ 17:02 đến 17:03 UTC. |
+
+Đây là ca xung đột tuần tự.
+
+### Kiểm chứng desktop với Kestrel
+
+Lượt ngày 18/11/2026 dùng Windows Uno Skia (`net10.0-desktop`), preview tắt, Kestrel `127.0.0.1:5298` và một PostgreSQL demo mới do API migrate/seed. Probe tạm được đưa vào bản build desktop qua MSBuild target trong thư mục build. Probe dùng màn hình, binding và command hiện có, và tệp phiên riêng. SHA-256 của `TechStore.Client.dll` bản probe là `E91621F9077A0F5B0E5B595091D9CF31C4E1E673C4ED97F4788CD1DFC71E0B86`. API dùng artifact ở bảng build phía trên.
+
+Đầu vào gồm IMEI fixture `490000000000004`, khách lẻ, tiền đầu ca 2.000.000 ₫ và tiền nhận 20.000.000 ₫. Phiên desktop không nhập giảm dòng. Với giá 16.990.000 ₫ và VAT 10%, tổng mong đợi là 18.689.000 ₫. Đơn `ORD-202611-0001` có ID `5d5414da-d168-48c1-ab3d-45f29f25a3c7`, ca `064aaba5-0173-43d5-80e9-8ccf1d989e49`.
+
+| Bước | Expected | Actual | Trạng thái |
+| --- | --- | --- | --- |
+| Manager mở kỳ 18/11 trên Dashboard | Nguồn Live, 0 đơn, 0 ₫ | Khớp tại `asOf=2026-11-18T07:44:43.5929460Z`. | Pass |
+| Sales mở ca, quét IMEI, thanh toán Cash | Ca Open, giỏ có một dòng đúng IMEI, có biên nhận | Khớp. Completed lúc `2026-11-18T07:44:46.479016Z`, VAT 1.699.000 ₫, tổng 18.689.000 ₫ và tiền thừa 1.311.000 ₫. | Pass |
+| Đóng ca với tiền thực đếm | Tiền dự kiến và đếm 20.689.000 ₫, chênh lệch 0 | Khớp. UI trở về trạng thái chưa mở ca. HTTP read-back riêng xác nhận Closed và số tiền. | Pass |
+| Manager đọc lại cùng kỳ | Nguồn Live, thêm 1 đơn và 18.689.000 ₫ ngày 18/11, có mã đơn vừa bán | Khớp, đã xác nhận doanh thu và nhãn kỳ của UI tại `asOf=2026-11-18T07:45:17.0802100Z`. | Pass |
+| UI receiving | Nhận IMEI trước bán | Build chưa có receiving. Lượt này dùng IMEI đã có từ seeder trên DB demo. | Chưa kiểm tra, Q. Vinh |
+| Chọn khách trên POS desktop | Chọn khách đã tìm và lưu liên kết đơn | Build chưa nối bộ chọn vào POS. Lượt này bán khách lẻ. | Chưa kiểm tra, Đạt nối bộ chọn của Vy |
+
+Log công cụ desktop nằm tại `backend/obj/m3-live-flow/desktop-evidence.log`. HTTP read-back của ca, đơn và Dashboard nằm riêng ở `backend/obj/m3-live-flow/desktop-read-back.json`. Probe kết thúc mã 0 sau khi ghi Pass. Chưa kiểm tra Windows native hoặc desktop nền tảng khác.
+
+### Phụ thuộc bàn giao
+
+| Mục | Trạng thái | Owner và điều kiện chạy lại |
+| --- | --- | --- |
+| Nhà cung cấp → phiếu nhận IMEI → POS → Dashboard | Chưa kiểm tra đầu-cuối. `dev` đã fetch chưa có controller receiving. | Q. Vinh merge receiving và migration vào `dev`. Bình chạy cùng build, bán đúng IMEI từ phiếu nhận qua API và lặp ca 409 trên SHA đó. |
+| Đối chiếu tiền và ca 409 trên build có receiving (task 2.2) | Đã quan sát VAT 10% và tổng lưu 18.590.000 ₫ trong ca HTTP dùng IMEI fixture. Chưa chạy lại ca 409 và ca giảm cấp đơn khác 0 trên build có receiving. | Chờ Q. Vinh merge receiving rồi chạy lại ca 409 trên build mới. Ca giảm cấp đơn còn chờ Đạt nối POS với contract của Vy. Khi đủ phụ thuộc, đối chiếu tổng lưu, tiền ca và delta Dashboard theo cấu hình bàn giao. |
+| Khách hàng qua Sales HTTP | Pass | API của Vy đã được gọi bằng `cashier1`. |
+
+Tổng hợp baseline gồm **2/2 ca HTTP/PostgreSQL** và **1/1 lượt desktop** đạt trong phạm vi đã chạy. Không có ca fail hoặc skipped trong lượt HTTP có lọc. Checklist 2.1 và 2.2 đã chốt để archive với trạng thái **Chưa kiểm tra** cho các lượt cần build có receiving. Chạy bổ sung theo mục Risks / Trade-offs của design sau khi owner bàn giao.

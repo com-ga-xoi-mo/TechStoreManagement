@@ -81,7 +81,7 @@ Nghiệm thu: Nhận được hàng có và không có serial; phiếu, giá v�
 
 Triển khai dashboard ở Sprint 2. Dựng bộ dữ liệu tính tay trước, sau đó thay bằng giao dịch thật. Chốt với Đạt trạng thái đơn, thời điểm ghi nhận doanh thu, dữ liệu đơn/ca và quy tắc ngày Việt Nam; đọc số tiền đã lưu do Vy tính để đối chiếu.
 
-- [x] Cho Manager xem dashboard thật; giữ chặn Sales và Warehouse. Đối chiếu doanh thu theo ngày Việt Nam, kể cả ngày không có đơn. [Quyền và Dashboard Manager](M3_DASHBOARD_DATA_TEST_HANDOFF.md#dashboard-manager) · [Đối soát bốn kỳ theo UTC+07](M3_DEMO_DATA_RECONCILIATION.md#actual-qua-http-ở-mốc-cố-định).
+- [x] Cho Manager xem dashboard thật; giữ chặn Sales và Warehouse. Đối chiếu doanh thu theo ngày Việt Nam, kể cả ngày không có đơn. [Quyền và Dashboard Manager](M3_TEST_SUMMARY.md#dashboard-manager) · [Đối soát bốn kỳ theo UTC+07](M3_TEST_SUMMARY.md#actual-qua-http-ở-mốc-cố-định).
 
 Nghiệm thu: Manager xem được số liệu thật, Sales/Warehouse bị chặn; doanh thu khớp bộ dữ liệu tính tay, đúng ngày Việt Nam và cả ngày không có đơn.
 
@@ -162,8 +162,8 @@ Dùng database test riêng. Mỗi test case cần có đầu vào, kết quả m
 
 ### Dữ liệu demo
 
-- [x] **Bình:** Chuẩn bị ít nhất 20 sản phẩm, 5 danh mục, 10 khách, 20 đơn nhiều trạng thái và bốn tài khoản demo. Sản phẩm có ảnh và giá vốn; đơn có đủ chi tiết và dữ liệu để vẽ biểu đồ. [Bằng chứng fixture và HTTP trên PostgreSQL](M3_DEMO_DATA_RECONCILIATION.md).
-- [x] **Bình:** Kiểm tra seed chạy lại không đổi mật khẩu hoặc phá dữ liệu. Chọn kỳ báo cáo có dữ liệu, giữ các ngày cố định mà test hiện tại đang dùng. [Kiểm thử seed lại](M3_DEMO_DATA_RECONCILIATION.md#chạy-lại-kiểm-thử) · [Đối soát tại mốc cố định](M3_DEMO_DATA_RECONCILIATION.md#actual-qua-http-ở-mốc-cố-định).
+- [x] **Bình:** Chuẩn bị ít nhất 20 sản phẩm, 5 danh mục, 10 khách, 20 đơn nhiều trạng thái và bốn tài khoản demo. Sản phẩm có ảnh và giá vốn; đơn có đủ chi tiết và dữ liệu để vẽ biểu đồ. [Bằng chứng fixture và HTTP trên PostgreSQL](M3_TEST_SUMMARY.md#dữ-liệu-demo-và-đối-soát-kpi).
+- [x] **Bình:** Kiểm tra seed chạy lại không đổi mật khẩu hoặc phá dữ liệu. Chọn kỳ báo cáo có dữ liệu, giữ các ngày cố định mà test hiện tại đang dùng. [Kiểm thử seed lại](M3_TEST_SUMMARY.md#chạy-lại-kiểm-thử) · [Đối soát tại mốc cố định](M3_TEST_SUMMARY.md#actual-qua-http-ở-mốc-cố-định).
 
 ### Tài liệu và kết quả kiểm thử
 

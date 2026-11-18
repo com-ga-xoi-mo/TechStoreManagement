@@ -24,7 +24,7 @@ Không có thay đổi contract. Tiêu chí kiểm chứng lấy từ `admin-ana
 
 ## Impact
 
-- Thêm lớp test riêng của Bình `tests/Backend.UnitTests/DashboardLiveFlowPostgresHttpTests.cs` để đối chiếu Dashboard sau giao dịch POS, dùng database riêng và JWT từ login thật. Tổng hợp bằng chứng trong `docs/M3_DASHBOARD_LIVE_FLOW.md`, liên kết từ `docs/M3_DASHBOARD_DATA_TEST_HANDOFF.md`.
+- Thêm lớp test riêng của Bình `tests/Backend.UnitTests/DashboardLiveFlowPostgresHttpTests.cs` để đối chiếu Dashboard sau giao dịch POS, dùng database riêng và JWT từ login thật. Tổng hợp bằng chứng trong [`docs/M3_TEST_SUMMARY.md`](../../../../docs/M3_TEST_SUMMARY.md#đối-soát-giao-dịch-pos-live), liên kết từ [`docs/M3_TEST_SUMMARY.md`](../../../../docs/M3_TEST_SUMMARY.md#dashboard-manager).
 - Chỉ thêm hoặc sửa file thuộc phạm vi Bình: lớp test mới, helper test riêng nếu cần và hai tài liệu trên. Không sửa file của owner khác, gồm `PosCheckoutPostgresHttpTests` và code POS/ca của Đạt, receiving/kho của Q. Vinh, Customers/công thức tiền của Vy, Catalog search của T. Vinh và helper Identity/test của An như `IdentityPostgresApi`. Các file đó chỉ được gọi lại.
 - Build chạy đầu-cuối cần ghép Dashboard Manager đã apply, POS/ca của Đạt, receiving của Q. Vinh và API tìm khách của Vy. Kiểm chứng giảm cấp đơn trên POS còn phụ thuộc Đạt nối checkout với contract của Vy.
 - Phạm vi của Bình là test và bàn giao. Receiving, nghiệp vụ kho, checkout, công thức tiền và tính năng desktop của các owner được kiểm chứng qua các đường hiện có.

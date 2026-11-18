@@ -4,7 +4,7 @@
 
 `feat/m3-manager-dashboard-access` đã ghép `origin/dev` và chứa ba change đã archive: `m3-manager-dashboard-access`, `m3-demo-data-reconciliation`, `m3-dashboard-live-flow`. Ref `origin/dev` hiện có trong workspace chưa có API receiving của Q. Vinh. Kiểm tra lại sau fetch trong lượt apply và ghi build thực chạy trong báo cáo.
 
-[Kế hoạch M3](../../../docs/MILESTONE_3_PLAN.md) hiện ghi Dashboard Manager ở dòng 84 trong mục Bình, regression Admin và commit/rollback ở 154–155, dữ liệu demo ở 165–166 và tổng hợp ở 171. Dùng đề mục, tên Bình và nội dung checkbox để nhận diện nếu số dòng thay đổi sau merge.
+[Kế hoạch M3](../../../../docs/MILESTONE_3_PLAN.md) hiện ghi Dashboard Manager ở dòng 84 trong mục Bình, regression Admin và commit/rollback ở 154–155, dữ liệu demo ở 165–166 và tổng hợp ở 171. Dùng đề mục, tên Bình và nội dung checkbox để nhận diện nếu số dòng thay đổi sau merge.
 
 ## Goals / Non-Goals
 
@@ -30,7 +30,7 @@ Chạy các project backend unit, backend integration và frontend headless hi�
 
 ### D2. Dùng lại bằng chứng và chọn đúng contract cho regression
 
-Gắn trực tiếp nguồn vào các checkbox đã có bằng chứng. Dashboard Manager dùng [bàn giao Dashboard Manager](../../../docs/M3_TEST_SUMMARY.md#dashboard-manager) và [đối soát bốn kỳ API](../../../docs/M3_TEST_SUMMARY.md#actual-qua-http-ở-mốc-cố-định). Dữ liệu demo và chạy lại seed dùng [bảng fixture và kiểm thử PostgreSQL](../../../docs/M3_TEST_SUMMARY.md#dữ-liệu-demo-và-đối-soát-kpi), gồm ảnh Local qua HTTP, số lượng, giá vốn, bốn tài khoản, bảo toàn mật khẩu/dữ liệu và ngày fixture. Ghi SHA và giới hạn theo từng nguồn.
+Gắn trực tiếp nguồn vào các checkbox đã có bằng chứng. Dashboard Manager dùng [bàn giao Dashboard Manager](../../../../docs/M3_TEST_SUMMARY.md#dashboard-manager) và [đối soát bốn kỳ API](../../../../docs/M3_TEST_SUMMARY.md#actual-qua-http-ở-mốc-cố-định). Dữ liệu demo và chạy lại seed dùng [bảng fixture và kiểm thử PostgreSQL](../../../../docs/M3_TEST_SUMMARY.md#dữ-liệu-demo-và-đối-soát-kpi), gồm ảnh Local qua HTTP, số lượng, giá vốn, bốn tài khoản, bảo toàn mật khẩu/dữ liệu và ngày fixture. Ghi SHA và giới hạn theo từng nguồn.
 
 Với dòng regression Admin, lập bảng đối chiếu từng ca bắt buộc với test và assertion đã có, sau đó chạy lại test phù hợp trên build bàn giao. Các nguồn sau xác định phần có thể dùng lại và phần cần xác nhận thêm:
 
@@ -44,7 +44,7 @@ Bổ sung một lớp test riêng của Bình, dự kiến `M3AcceptancePostgres
 
 ### D3. Hậu giao dịch thành công, 409 và 400
 
-Xuất phát từ [bằng chứng m3-dashboard-live-flow](../../../docs/M3_TEST_SUMMARY.md#kiểm-chứng-http-trên-postgresql) và chạy lại `DashboardLiveFlowPostgresHttpTests` trên build bàn giao. Dùng ca 201 để kiểm tồn, lượng giữ, serial Sold, dòng Sale, bảo hành, tiền ca và Dashboard. Dùng ca IMEI Sold với khóa mới, ca Open và tiền đủ để kiểm 409 và snapshot không đổi.
+Xuất phát từ [bằng chứng m3-dashboard-live-flow](../../../../docs/M3_TEST_SUMMARY.md#kiểm-chứng-http-trên-postgresql) và chạy lại `DashboardLiveFlowPostgresHttpTests` trên build bàn giao. Dùng ca 201 để kiểm tồn, lượng giữ, serial Sold, dòng Sale, bảo hành, tiền ca và Dashboard. Dùng ca IMEI Sold với khóa mới, ca Open và tiền đủ để kiểm 409 và snapshot không đổi.
 
 Ca tiền nhận thiếu hiện có trong `PosCheckoutServiceTests` dùng fake. Bù chứng cứ HTTP/PostgreSQL trong lớp riêng của Bình ở D2 nếu build chưa có ca 400 tương đương. Với một IMEI InStock, ca Open và payload hợp lệ ở các trường còn lại, gửi tiền nhận thấp hơn tổng, kiểm tra 400 theo trường `cashTendered`, khóa checkout chưa lưu và tồn/giữ chỗ, serial/bảo hành, ledger, đơn/dòng và tiền/trạng thái ca không đổi. Đọc sau request bằng context mới. Ghi 400 là từ chối đầu vào. Ghi 409 Sold là ca tuần tự. Tick dòng commit/rollback khi có bằng chứng cho cả thành công và lỗi theo phạm vi này.
 
@@ -53,9 +53,9 @@ Ca tiền nhận thiếu hiện có trong `PosCheckoutServiceTests` dùng fake. 
 | Nhóm | Owner / nguồn |
 | --- | --- |
 | Backend unit, PostgreSQL/HTTP, frontend headless | Bình ghi lượt chạy mới theo project/lệnh và môi trường. Trích kết quả lịch sử của từng owner theo build ghi trong tài liệu. |
-| RBAC và Identity | An. [Identity acceptance](../../../docs/IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md) và [Identity integration handoff](../../../docs/M3_IDENTITY_INTEGRATION_HANDOFF.md). Ghi rõ bằng chứng token, role, actor và ma trận quyền đến từ nguồn nào. |
-| POS Cash, ca, công thức và khách | Đạt/Vy. Các archive [m3-pos-cash-shift](../archive/2026-11-17-m3-pos-cash-shift/tasks.md), [m3-order-pricing](../archive/2026-11-17-m3-order-pricing/tasks.md), [m3-sales-customers](../archive/2026-11-18-m3-sales-customers/tasks.md). Phân biệt API khách/đơn nháp với chọn khách trên POS desktop, và pricing có VAT/giảm dòng với giảm cấp đơn qua POS. |
-| UI, HTTP methods và khôi phục | T. Vinh. [M3 UI/API verification](../../../docs/M3_UI_API_VERIFICATION.md). Giữ nền tảng, phạm vi, cách xác nhận UI và mã HTTP đã quan sát. Windows native chờ lượt nghiệm thu của T. Vinh. |
+| RBAC và Identity | An. [Identity acceptance](../../../../docs/IDENTITY_ACCESS_MANAGEMENT_ACCEPTANCE.md) và [Identity integration handoff](../../../../docs/M3_IDENTITY_INTEGRATION_HANDOFF.md). Ghi rõ bằng chứng token, role, actor và ma trận quyền đến từ nguồn nào. |
+| POS Cash, ca, công thức và khách | Đạt/Vy. Các archive [m3-pos-cash-shift](../2026-11-17-m3-pos-cash-shift/tasks.md), [m3-order-pricing](../2026-11-17-m3-order-pricing/tasks.md), [m3-sales-customers](../2026-11-18-m3-sales-customers/tasks.md). Phân biệt API khách/đơn nháp với chọn khách trên POS desktop, và pricing có VAT/giảm dòng với giảm cấp đơn qua POS. |
+| UI, HTTP methods và khôi phục | T. Vinh. [M3 UI/API verification](../../../../docs/M3_UI_API_VERIFICATION.md). Giữ nền tảng, phạm vi, cách xác nhận UI và mã HTTP đã quan sát. Windows native chờ lượt nghiệm thu của T. Vinh. |
 | Dashboard, seed, live flow | Bình. Ba archive trên baseline và các bằng chứng D2–D3, gồm UTC+07, dữ liệu demo, ca HTTP và desktop Skia. |
 | Concurrency và receiving | Q. Vinh, Đạt. Đối chiếu bài kiểm thử tranh IMEI/phụ kiện, nhận trùng, chuyển trạng thái cùng đơn và bán trong lúc đóng ca theo phân công plan. Test POS hiện có dùng gate phát hai HTTP request. Chỉ ghi Pass concurrency khi chính bằng chứng của lượt chạy xác nhận hai giao dịch PostgreSQL độc lập thực sự chồng thời gian, ví dụ đồng bộ tại bước giao dịch/khóa hoặc log lock wait. Một ca 409 tuần tự hoặc gate phía client đứng riêng chỉ ghi đúng hành vi đã chứng minh. |
 

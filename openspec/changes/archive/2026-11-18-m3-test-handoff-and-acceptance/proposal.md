@@ -23,5 +23,5 @@ Không có. Change chỉ kiểm thử và bàn giao theo hợp đồng hiện c�
 
 ## Impact
 
-- Trong lượt apply, phạm vi file gồm `docs/M3_TEST_SUMMARY.md` với các mục [Dashboard Manager](../../../docs/M3_TEST_SUMMARY.md#dashboard-manager), [Dữ liệu demo và đối soát KPI](../../../docs/M3_TEST_SUMMARY.md#dữ-liệu-demo-và-đối-soát-kpi) và [Đối soát giao dịch POS live](../../../docs/M3_TEST_SUMMARY.md#đối-soát-giao-dịch-pos-live), các checkbox thuộc Bình trong `docs/MILESTONE_3_PLAN.md` và lớp test mới của Bình nếu cần.
+- Trong lượt apply, phạm vi file gồm `docs/M3_TEST_SUMMARY.md` với các mục [Dashboard Manager](../../../../docs/M3_TEST_SUMMARY.md#dashboard-manager), [Dữ liệu demo và đối soát KPI](../../../../docs/M3_TEST_SUMMARY.md#dữ-liệu-demo-và-đối-soát-kpi) và [Đối soát giao dịch POS live](../../../../docs/M3_TEST_SUMMARY.md#đối-soát-giao-dịch-pos-live), các checkbox thuộc Bình trong `docs/MILESTONE_3_PLAN.md` và lớp test mới của Bình nếu cần.
 - Giữ nguyên code, test, helper và tài liệu của các owner khác. Khi phát hiện sai lệch, báo cáo lỗi, bằng chứng và owner xử lý. Kết quả chạy lại phải gắn với build đã sửa.

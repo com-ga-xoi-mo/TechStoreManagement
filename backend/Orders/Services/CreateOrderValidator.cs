@@ -45,6 +45,12 @@ public static class CreateOrderValidator
             AddError("notes", $"Notes cannot exceed {MaxNotesLength} characters.");
         }
 
+        if (request.OrderDiscountAmount.HasValue
+            && (request.OrderDiscountAmount.Value < 0 || request.OrderDiscountAmount.Value != decimal.Truncate(request.OrderDiscountAmount.Value)))
+        {
+            AddError("orderDiscountAmount", "Order discount must be a whole, non-negative number of đồng.");
+        }
+
         if (request.Items == null || request.Items.Count == 0)
         {
             AddError("items", "At least one item is required.");

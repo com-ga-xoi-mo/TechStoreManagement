@@ -113,7 +113,7 @@ public partial class OrderServiceTests
         // Act
         var unitPrice = OrderPricingHelper.GetUnitPrice(product, variant);
         var line = OrderPricingHelper.PriceLine(unitPrice, 1, 0m);
-        var totals = OrderPricingHelper.Calculate([line]);
+        var totals = OrderPricingHelper.Calculate([line], 0m, 0m).Totals;
 
         // Assert
         unitPrice.Should().Be(29_990_000m);
@@ -138,7 +138,7 @@ public partial class OrderServiceTests
     }
 
     [Fact]
-    public void Pricing_MultipleLines_SumsSubtotalWithZeroDiscountAndTax()
+    public void Pricing_MultipleLines_WithoutOrderDiscountOrTax_TotalEqualsSubtotal()
     {
         // Arrange
         var lines = new[]
@@ -149,7 +149,7 @@ public partial class OrderServiceTests
         };
 
         // Act
-        var totals = OrderPricingHelper.Calculate(lines);
+        var totals = OrderPricingHelper.Calculate(lines, 0m, 0m).Totals;
 
         // Assert
         totals.Subtotal.Should().Be(30_992_000m);

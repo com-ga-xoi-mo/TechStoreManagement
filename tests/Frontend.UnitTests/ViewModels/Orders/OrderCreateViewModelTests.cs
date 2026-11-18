@@ -1,4 +1,8 @@
 using TechStore.Client.Models.Catalog;
+using TechStore.Client.Models.Customers;
+using TechStore.Client.Repositories.Customers;
+using TechStore.Client.ViewModels.Customers;
+using TechStore.Shared.Requests;
 using TechStore.Client.Models.Orders;
 using TechStore.Client.Services.Api;
 using TechStore.Client.Services.Dialog;
@@ -17,10 +21,15 @@ public sealed class OrderCreateViewModelTests
         public FakeProductRepository Products { get; } = new();
         public FakeNavigation Navigation { get; } = new();
         public FakeDialogService Dialogs { get; } = new();
+        public StubCustomers Customers { get; } = new();
+        public CustomerPickerViewModel Picker { get; }
         public OrderCreateViewModel ViewModel { get; }
 
-        public Rig() =>
-            ViewModel = new OrderCreateViewModel(Orders, Devices, Products, Navigation, Dialogs);
+        public Rig()
+        {
+            Picker = new CustomerPickerViewModel(Customers, new CustomerFormViewModel(Customers));
+            ViewModel = new OrderCreateViewModel(Orders, Devices, Products, Navigation, Dialogs, Picker);
+        }
 
         public async Task Select(ProductDetail product) =>
             await ViewModel.SelectProductCommand.ExecuteAsync(Catalog.Summary(product));
@@ -552,6 +561,38 @@ public sealed class OrderCreateViewModelTests
     }
 
     [Fact]
+    public async Task SaveDraft_WithPickedCustomer_SendsThatCustomerId()
+    {
+        // Arrange
+        var (rig, _, _) = await RigWithOneDevice();
+        var customer = new CustomerSummary(Guid.NewGuid(), "Nguyễn Văn A", "0901234567", 0, "Silver", true, DateTime.UtcNow, 0, 0m, null);
+        rig.Orders.OnCreate = (_, _) => Task.FromResult(Orders.Detail(Guid.NewGuid(), code: "ORD-202611-0007"));
+        rig.Picker.SelectCommand.Execute(customer);
+
+        // Act
+        await rig.ViewModel.SaveDraftCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal(customer.Id, Assert.Single(rig.Orders.Created).CustomerId);
+    }
+
+    [Fact]
+    public async Task SaveDraft_AfterClearingTheCustomer_SendsWalkInOrder()
+    {
+        // Arrange
+        var (rig, _, _) = await RigWithOneDevice();
+        rig.Orders.OnCreate = (_, _) => Task.FromResult(Orders.Detail(Guid.NewGuid()));
+        rig.Picker.SelectCommand.Execute(new CustomerSummary(Guid.NewGuid(), "B", "0902", 0, "Standard", true, DateTime.UtcNow, 0, 0m, null));
+        rig.Picker.ClearCommand.Execute(null);
+
+        // Act
+        await rig.ViewModel.SaveDraftCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Null(Assert.Single(rig.Orders.Created).CustomerId);
+    }
+
+    [Fact]
     public async Task SaveDraft_PostsTheRequestThenReturnsToTheListAndTellsTheUser()
     {
         // Arrange
@@ -821,5 +862,19 @@ public sealed class OrderCreateViewModelTests
         Assert.Single(rig.Orders.Created);
         Assert.Single(rig.Navigation.Routes);
         Assert.False(rig.ViewModel.HasGeneralError);
+    }
+
+    internal sealed class StubCustomers : ICustomerRepository
+    {
+        public Task<CustomerPage<CustomerSummary>> SearchAsync(CustomerQuery query, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new CustomerPage<CustomerSummary>([], 1, query.PageSize, 0, 0));
+        public Task<CustomerProfile?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<CustomerPage<CustomerLoyaltyTransaction>> GetLoyaltyHistoryAsync(Guid customerId, int page, int pageSize, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<CustomerPage<CustomerOrder>> GetOrderHistoryAsync(Guid customerId, int page, int pageSize, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<CustomerPage<CustomerPurchasedItem>> GetPurchasedItemsAsync(Guid customerId, int page, int pageSize, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<CustomerProfile> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<CustomerProfile> UpdateAsync(Guid customerId, UpdateCustomerRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task DeactivateAsync(Guid customerId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task ActivateAsync(Guid customerId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

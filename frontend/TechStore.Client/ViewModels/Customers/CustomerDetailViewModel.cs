@@ -4,6 +4,8 @@ using System.Globalization;
 using TechStore.Client.Models.Customers;
 using TechStore.Client.Repositories.Customers;
 using TechStore.Client.Services.Api;
+using TechStore.Client.Services.Navigation;
+using TechStore.Client.Services.Session;
 using TechStore.Client.ViewModels.Pages;
 
 namespace TechStore.Client.ViewModels.Customers;
@@ -12,6 +14,7 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
 {
     private const int PageSize = 10;
     private readonly ICustomerRepository _customers;
+    private readonly ISessionStore? _session;
     private Guid _customerId;
     private long _loadVersion;
 
@@ -31,8 +34,10 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
     [ObservableProperty] private string activityErrorMessage = string.Empty;
 
     public bool HasProfile => Profile is not null;
-    public bool CanDeactivate => Profile?.IsActive == true && !IsChangingActivity;
-    public bool CanActivate => Profile?.IsActive == false && !IsChangingActivity;
+    /// <summary>Edit, activity and history are Admin/Manager only; the server answers 403 to anyone else.</summary>
+    public bool CanManageCustomers => _session is null || (_session.Current.Status == SessionStatus.Active && RoleAccess.CanManageCustomers(_session.Current.Role));
+    public bool CanDeactivate => CanManageCustomers && Profile?.IsActive == true && !IsChangingActivity;
+    public bool CanActivate => CanManageCustomers && Profile?.IsActive == false && !IsChangingActivity;
     public bool HasActivityError => !string.IsNullOrWhiteSpace(ActivityErrorMessage);
     public string FullName => Profile?.FullName ?? string.Empty;
     public string Phone => Profile?.Phone ?? string.Empty;
@@ -94,8 +99,11 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
     public bool CanPreviousPointsPage => !IsPointsLoading && PointsPage > 1;
     public bool CanNextPointsPage => !IsPointsLoading && PointHistory is { } points && PointsPage < points.TotalPages;
 
-    public CustomerDetailViewModel(ICustomerRepository customers) =>
+    public CustomerDetailViewModel(ICustomerRepository customers, ISessionStore? session = null)
+    {
         _customers = customers ?? throw new ArgumentNullException(nameof(customers));
+        _session = session;
+    }
 
     partial void OnProfileChanged(CustomerProfile? value)
     {
@@ -228,10 +236,12 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
         try
         {
             var profileTask = _customers.GetByIdAsync(customerId, cancellationToken);
-            var pointsTask = _customers.GetLoyaltyHistoryAsync(customerId, 1, PageSize, cancellationToken);
-            var ordersTask = _customers.GetOrderHistoryAsync(customerId, 1, PageSize, cancellationToken);
-            var devicesTask = _customers.GetPurchasedItemsAsync(customerId, 1, PageSize, cancellationToken);
-            await Task.WhenAll(profileTask, pointsTask, ordersTask, devicesTask);
+            // History is not requested for roles the server refuses (SalesStaff).
+            var withHistory = CanManageCustomers;
+            var pointsTask = withHistory ? _customers.GetLoyaltyHistoryAsync(customerId, 1, PageSize, cancellationToken) : null;
+            var ordersTask = withHistory ? _customers.GetOrderHistoryAsync(customerId, 1, PageSize, cancellationToken) : null;
+            var devicesTask = withHistory ? _customers.GetPurchasedItemsAsync(customerId, 1, PageSize, cancellationToken) : null;
+            await Task.WhenAll(new Task?[] { profileTask, pointsTask, ordersTask, devicesTask }.OfType<Task>());
             if (version != Volatile.Read(ref _loadVersion)) return;
             Profile = await profileTask;
             if (Profile is null)
@@ -240,9 +250,12 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
                 ErrorMessage = "Không tìm thấy khách hàng.";
                 return;
             }
-            PointHistory = await pointsTask;
-            OrderHistory = await ordersTask;
-            PurchasedItems = await devicesTask;
+            if (withHistory)
+            {
+                PointHistory = await pointsTask!;
+                OrderHistory = await ordersTask!;
+                PurchasedItems = await devicesTask!;
+            }
             PointsPage = OrdersPage = DevicesPage = 1;
             ContentState = PageContentState.Content;
         }

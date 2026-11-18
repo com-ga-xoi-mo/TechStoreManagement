@@ -31,8 +31,10 @@ The server SHALL enforce the following authorization matrix. `A`, `M`, `S`, `W` 
 | POST `/api/inventory/stocks/initialize`, POST `/api/inventory/stocks/{stockId}/adjust`, DELETE `/api/inventory/stocks/{stockId}`, POST `/api/inventory/serials/batch-import` | A W | Existing inventory writes, never catalog price writes |
 | GET `/api/orders`, `/api/orders/{id}` | A M S | A/M see all; S sees only orders whose cashier is that user |
 | POST `/api/orders`, PATCH `/api/orders/{id}/status` | A S | A writes all; S transitions only own orders; creator comes from token |
-| GET `/api/customers`, `/api/customers/{id}`, `/api/customers/{id}/loyalty-points`, `/api/customers/{id}/orders`, `/api/customers/{id}/purchased-items` | A | Existing customer and history DTOs; Sales access is Sprint 2 |
-| POST `/api/customers`, PUT `/api/customers/{id}`, PATCH `/api/customers/{id}/deactivate`, `/api/customers/{id}/activate` | A | Existing customer management |
+| GET `/api/customers`, `/api/customers/{id}` | A M S | S reads only active customers; an inactive customer is 404 for S |
+| POST `/api/customers` | A M S | Create a customer at the counter; points, tier and activity stay server-controlled |
+| GET `/api/customers/{id}/loyalty-points`, `/api/customers/{id}/orders`, `/api/customers/{id}/purchased-items` | A M | Existing customer history DTOs |
+| PUT `/api/customers/{id}`, PATCH `/api/customers/{id}/deactivate`, `/api/customers/{id}/activate` | A M | Existing customer management |
 | GET `/api/analytics/dashboard` | A M | Read-only store-wide dashboard |
 | PUT `/api/settings/store` | A M | Existing store configuration fields |
 | GET `/api/auth/me`, POST `/api/auth/logout` | A M S W | Own identity and account-wide logout |
@@ -59,6 +61,14 @@ The server SHALL enforce the following authorization matrix. `A`, `M`, `S`, `W` 
 
 - **WHEN** WarehouseStaff with a current valid JWT requests the Dashboard
 - **THEN** the API returns 403 without analytics data
+
+#### Scenario: Sales serves customers without managing them
+- **WHEN** SalesStaff searches, opens and creates a customer, then calls customer update, deactivation or history endpoints
+- **THEN** search, profile and creation succeed for active customers, and every update, activity and history call returns 403
+
+#### Scenario: Warehouse cannot read customers
+- **WHEN** WarehouseStaff calls any customer endpoint
+- **THEN** the response is 403 and no customer data is returned
 
 ### Requirement: Identity and authorization failures have safe semantics
 A missing, expired, forged or revoked token, missing/malformed/empty user identifier, unknown/inactive user, missing token version, obsolete token version or inconsistent role SHALL result in 401. A currently valid identity without the required action role SHALL receive 403. Failure bodies SHALL use safe ProblemDetails with the actual HTTP status and SHALL NOT contain stack traces, password/hash/token values, connection strings or signing keys. Challenges SHALL retain the Bearer authentication header.

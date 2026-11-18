@@ -25,7 +25,7 @@ public class OrdersController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateOrderRequest request, CancellationToken cancellationToken)
     {
         if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
-        var result = await _orderService.CreateAsync(request, actor.Id, cancellationToken);
+        var result = await _orderService.CreateAsync(request, actor, cancellationToken);
         if (!result.IsSuccess)
         {
             if (result.IsConflict)

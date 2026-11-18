@@ -1,3 +1,4 @@
+using TechStore.Client.Services.Session;
 using TechStore.Client.Models.Customers;
 using TechStore.Client.Repositories.Customers;
 using TechStore.Client.Services.Api;
@@ -31,6 +32,29 @@ public sealed class CustomerListViewModelTests
         Assert.Equal(PageContentState.Empty, viewModel.ContentState);
         Assert.True(viewModel.ShowEmptyState);
         Assert.Empty(viewModel.Customers);
+    }
+
+    [Theory]
+    [InlineData("Admin", true)]
+    [InlineData("Manager", true)]
+    [InlineData("SalesStaff", false)]
+    public async Task SalesSession_HidesManagementAndAlwaysAsksForActiveCustomers(string role, bool manage)
+    {
+        // Arrange
+        var repository = new FakeCustomerRepository((query, _) => Task.FromResult(Page(query, 1)));
+        var session = new InMemorySessionStore();
+        session.SetSession("token", "refresh", "user", "User", role);
+        var viewModel = new CustomerListViewModel(repository, session);
+        await viewModel.ActivateAsync();
+
+        // Act
+        viewModel.SelectedActivityIndex = 1; // "Đã vô hiệu hóa"
+        await viewModel.SearchCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal(manage, viewModel.CanManageCustomers);
+        Assert.True(viewModel.CanCreateCustomers);
+        Assert.Equal(manage ? false : true, repository.Queries.Last().IsActive);
     }
 
     [Fact]

@@ -10,8 +10,8 @@ public sealed class RoleAccessTests(ITestOutputHelper output)
     public static IEnumerable<object[]> Cases =>
     [
         ["Admin", "Dashboard,Products,Inventory,Orders,Customers,Settings", ShellDestination.Dashboard, true, true, true, true],
-        ["Manager", "Dashboard,Products,Inventory,Orders,Settings", ShellDestination.Dashboard, false, false, false, true],
-        ["SalesStaff", "Products,Orders,Settings", ShellDestination.Orders, false, false, true, false],
+        ["Manager", "Dashboard,Products,Inventory,Orders,Customers,Settings", ShellDestination.Dashboard, false, false, false, true],
+        ["SalesStaff", "Products,Orders,Customers,Settings", ShellDestination.Orders, false, false, true, false],
         ["WarehouseStaff", "Products,Inventory,Settings", ShellDestination.Inventory, false, true, false, false],
         ["Unknown", "Settings", ShellDestination.Settings, false, false, false, false],
         [null!, "Settings", ShellDestination.Settings, false, false, false, false]
@@ -48,6 +48,20 @@ public sealed class RoleAccessTests(ITestOutputHelper output)
         Assert.Equal(expected.Where(x => x != ShellDestination.Settings), shell.MainDestinations.Select(x => x.Id));
     }
 
+    [Theory]
+    [InlineData("Admin", true, true)]
+    [InlineData("Manager", true, true)]
+    [InlineData("SalesStaff", true, false)]
+    [InlineData("WarehouseStaff", false, false)]
+    [InlineData(null, false, false)]
+    public void CustomerActions_FollowServerTable(string? role, bool create, bool manage)
+    {
+        // Act and Assert
+        Assert.Equal(create, RoleAccess.CanCreateCustomers(role));
+        Assert.Equal(manage, RoleAccess.CanManageCustomers(role));
+        Assert.Equal(create, RoleAccess.CanOpen(AppRoute.Root(ShellDestination.Customers), role));
+    }
+
     [Fact]
     public void NewSession_ResetsPreviousRouteWithoutPreparingOrEvents()
     {
@@ -66,7 +80,7 @@ public sealed class RoleAccessTests(ITestOutputHelper output)
         Assert.Equal(ShellDestination.Orders, navigation.CurrentDestination);
         Assert.Equal(prepared, preparer.Created);
         Assert.Equal(0, events);
-        Assert.DoesNotContain(sales.MainDestinations, x => x.Id == ShellDestination.Customers);
+        Assert.Contains(sales.MainDestinations, x => x.Id == ShellDestination.Customers);
     }
 
     [Theory]
@@ -87,10 +101,9 @@ public sealed class RoleAccessTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("Manager", ShellDestination.Customers)]
     [InlineData("SalesStaff", ShellDestination.Dashboard)]
     [InlineData("WarehouseStaff", ShellDestination.Dashboard)]
-    [InlineData("SalesStaff", ShellDestination.Customers)]
+    [InlineData("WarehouseStaff", ShellDestination.Customers)]
     [InlineData("SalesStaff", ShellDestination.Inventory)]
     [InlineData("WarehouseStaff", ShellDestination.Orders)]
     [InlineData("Unknown", ShellDestination.Products)]

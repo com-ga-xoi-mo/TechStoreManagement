@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using TechStore.Api.Identity.Services;
 using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Catalog.Repositories;
@@ -20,7 +21,8 @@ public class OrderService(
     ICustomerRepository customerRepository,
     IInventoryFulfillmentService fulfillmentService,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider) : IOrderService
+    TimeProvider timeProvider,
+    IOptions<PricingOptions> pricingOptions) : IOrderService
 {
     private const int MaxCodeAttempts = 5;
     private const string OrderCodeConstraint = "idx_orders_code";
@@ -44,10 +46,12 @@ public class OrderService(
     // checkAvailability=false skips the advisory stock check for callers that reserve stock under locks right after.
     public async Task<PrepareOrderResult> PrepareAsync(
         CreateOrderRequest request,
-        Guid cashierUserId,
+        AuthenticatedUser actor,
         bool checkAvailability = true,
         CancellationToken cancellationToken = default)
     {
+        var cashierUserId = actor.Id;
+        var pricing = pricingOptions.Value;
         var errors = new Dictionary<string, List<string>>();
         foreach (var (field, messages) in CreateOrderValidator.Validate(request))
         {
@@ -202,6 +206,30 @@ public class OrderService(
             return PrepareOrderResult.ValidationFailed(Snapshot());
         }
 
+        // Order-level amounts (M3 pricing): order discount within the subtotal, total discount within the role's limit.
+        var pricedLines = built
+            .Select(b => OrderPricingHelper.PriceLine(b.UnitPrice, b.Quantity, b.Discount))
+            .ToList();
+        var orderDiscount = request.OrderDiscountAmount ?? 0m;
+        var subtotal = pricedLines.Sum(l => l.TotalPrice);
+        if (orderDiscount > subtotal)
+        {
+            AddError("orderDiscountAmount", "Order discount cannot exceed the subtotal after line discounts.");
+        }
+
+        var maxDiscountPercent = MaxDiscountPercent(actor.Role, pricing);
+        var grossAmount = pricedLines.Sum(l => l.UnitPrice * l.Quantity);
+        if (maxDiscountPercent.HasValue
+            && !OrderPricingHelper.IsWithinDiscountLimit(grossAmount, pricedLines.Sum(l => l.DiscountAmount) + orderDiscount, maxDiscountPercent.Value))
+        {
+            AddError("discount", $"Total discount (line and order) cannot exceed {maxDiscountPercent.Value:0.##}% of the amount before discounts for this role.");
+        }
+
+        if (errors.Count > 0)
+        {
+            return PrepareOrderResult.ValidationFailed(Snapshot());
+        }
+
         // Availability (unlocked, advisory: transitions re-check under locks)
         var fulfillmentLines = built
             .Select(b => new FulfillmentLine(null, b.Product.Id, b.Variant?.Id, b.SerialImeiId, b.Quantity))
@@ -231,10 +259,8 @@ public class OrderService(
         var paymentMethod = string.IsNullOrWhiteSpace(request.PaymentMethod) ? PaymentMethod.Cash : parsedMethod;
         var notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
 
-        var pricedLines = built
-            .Select(b => OrderPricingHelper.PriceLine(b.UnitPrice, b.Quantity, b.Discount))
-            .ToList();
-        var totals = OrderPricingHelper.Calculate(pricedLines);
+        var priced = OrderPricingHelper.Calculate(pricedLines, orderDiscount, pricing.VatRatePercent);
+        var totals = priced.Totals;
 
         Order BuildOrder(DateTime now)
         {
@@ -247,6 +273,7 @@ public class OrderService(
                 Subtotal = totals.Subtotal,
                 DiscountAmount = totals.DiscountAmount,
                 TaxAmount = totals.TaxAmount,
+                TaxRate = pricing.VatRatePercent,
                 TotalAmount = totals.TotalAmount,
                 Notes = notes,
                 CreatedAt = now
@@ -269,6 +296,8 @@ public class OrderService(
                     Quantity = pricedLines[i].Quantity,
                     DiscountAmount = pricedLines[i].DiscountAmount,
                     TotalPrice = pricedLines[i].TotalPrice,
+                    OrderDiscountAmount = priced.Lines[i].OrderDiscountAmount,
+                    TaxAmount = priced.Lines[i].TaxAmount,
                     CreatedAt = now
                 });
             }
@@ -281,10 +310,10 @@ public class OrderService(
 
     public async Task<CreateOrderResult> CreateAsync(
         CreateOrderRequest request,
-        Guid cashierUserId,
+        AuthenticatedUser actor,
         CancellationToken cancellationToken = default)
     {
-        var prepared = await PrepareAsync(request, cashierUserId, checkAvailability: true, cancellationToken);
+        var prepared = await PrepareAsync(request, actor, checkAvailability: true, cancellationToken);
         if (!prepared.IsSuccess)
         {
             return CreateOrderResult.ValidationFailed(prepared.ValidationErrors!);
@@ -539,6 +568,10 @@ public class OrderService(
     // Helpers
     // ------------------------------------------------------------------
 
+    // Admin is limited only by the amount rules; any other role that can sell uses the SalesStaff limit.
+    private static decimal? MaxDiscountPercent(RoleType role, PricingOptions pricing) =>
+        role == RoleType.Admin ? null : pricing.SalesStaffMaxDiscountPercent;
+
     internal static string Describe(IReadOnlyList<OrderItem> items, FulfillmentProblem problem)
     {
         var item = items[problem.LineIndex];
@@ -632,6 +665,7 @@ public class OrderService(
         Subtotal = order.Subtotal,
         DiscountAmount = order.DiscountAmount,
         TaxAmount = order.TaxAmount,
+        TaxRate = order.TaxRate,
         TotalAmount = order.TotalAmount,
         PosSessionId = order.PosSessionId,
         CashTendered = order.CashTendered,
@@ -658,7 +692,9 @@ public class OrderService(
                 UnitPrice = i.UnitPrice,
                 Quantity = i.Quantity,
                 DiscountAmount = i.DiscountAmount,
-                TotalPrice = i.TotalPrice
+                TotalPrice = i.TotalPrice,
+                OrderDiscountAmount = i.OrderDiscountAmount,
+                TaxAmount = i.TaxAmount
             })
             .ToList()
     };

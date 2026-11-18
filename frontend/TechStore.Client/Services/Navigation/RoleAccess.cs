@@ -7,6 +7,8 @@ public static class RoleAccess
     public static bool CanManageOrders(string? role) => role is "Admin" or "SalesStaff";
     public static bool CanManageCatalog(string? role) => role is "Admin" or "Manager";
     public static bool CanEditStoreSettings(string? role) => role is "Admin" or "Manager";
+    public static bool CanCreateCustomers(string? role) => role is "Admin" or "Manager" or "SalesStaff";
+    public static bool CanManageCustomers(string? role) => role is "Admin" or "Manager";
 
     public static IReadOnlyList<ShellDestinationInfo> Destinations(string? role) =>
         ShellDestinations.All.Where(item => CanOpen(AppRoute.Root(item.Id), role)).ToArray();
@@ -21,7 +23,7 @@ public static class RoleAccess
         {
             ShellDestination.Settings => true,
             ShellDestination.Dashboard => role is "Admin" or "Manager",
-            ShellDestination.Customers => role == "Admin",
+            ShellDestination.Customers => CanCreateCustomers(role),
             ShellDestination.Products => role is "Admin" or "Manager" or "SalesStaff" or "WarehouseStaff",
             ShellDestination.Inventory => role is "Admin" or "Manager" or "WarehouseStaff",
             ShellDestination.Orders => role is "Admin" or "Manager" or "SalesStaff",

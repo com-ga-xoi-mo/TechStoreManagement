@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using TechStore.Api.Customers.Services;
 using TechStore.Shared.DTOs;
+using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
 
 namespace TechStore.UnitTests;
@@ -22,18 +23,18 @@ public class CustomerAuthorizationHttpTests(CustomerApiFactory factory) : IClass
     private readonly CustomerApiFactory _factory = factory;
 
     [Fact]
-    public async Task CustomersEndpoint_Should_Return401403And200ForMissingSalesAndAdmin()
+    public async Task CustomersEndpoint_Should_Return401403And200ForMissingWarehouseAndAdmin()
     {
         var anonymousResponse = await _client.GetAsync("/api/customers");
-        var salesRequest = new HttpRequestMessage(HttpMethod.Get, "/api/customers");
-        salesRequest.Headers.Authorization = new("Bearer", CreateToken("SalesStaff"));
-        var salesResponse = await _client.SendAsync(salesRequest);
+        var warehouseRequest = new HttpRequestMessage(HttpMethod.Get, "/api/customers");
+        warehouseRequest.Headers.Authorization = new("Bearer", CreateToken("WarehouseStaff"));
+        var warehouseResponse = await _client.SendAsync(warehouseRequest);
         var adminRequest = new HttpRequestMessage(HttpMethod.Get, "/api/customers");
         adminRequest.Headers.Authorization = new("Bearer", CreateToken("Admin"));
         var adminResponse = await _client.SendAsync(adminRequest);
 
         anonymousResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.Unauthorized);
-        salesResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.Forbidden);
+        warehouseResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.Forbidden);
         adminResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
         (await adminResponse.Content.ReadAsStringAsync()).Should().Contain("totalCount");
 
@@ -93,6 +94,52 @@ public class CustomerAuthorizationHttpTests(CustomerApiFactory factory) : IClass
         (await _client.SendAsync(deleteRequest)).StatusCode.Should().Be(System.Net.HttpStatusCode.MethodNotAllowed);
     }
 
+    public static TheoryData<string, string, string, int> RoleMatrix()
+    {
+        var id = "00000000-0000-0000-0000-0000000000aa";
+        var data = new TheoryData<string, string, string, int>();
+        // Search, profile and create: Admin, Manager and SalesStaff.
+        foreach (var role in new[] { "Admin", "Manager", "SalesStaff" })
+        {
+            data.Add(role, "GET", "/api/customers", 200);
+            data.Add(role, "GET", $"/api/customers/{id}", 404);
+            data.Add(role, "POST", "/api/customers", 201);
+        }
+        // Edit, activity and history: Admin and Manager only.
+        string[][] managed =
+        [
+            ["PUT", $"/api/customers/{id}"], ["PATCH", $"/api/customers/{id}/deactivate"], ["PATCH", $"/api/customers/{id}/activate"],
+            ["GET", $"/api/customers/{id}/orders"], ["GET", $"/api/customers/{id}/loyalty-points"], ["GET", $"/api/customers/{id}/purchased-items"]
+        ];
+        var managerResults = new[] { 200, 204, 204, 200, 200, 404 };
+        for (var i = 0; i < managed.Length; i++)
+        {
+            data.Add("Manager", managed[i][0], managed[i][1], managerResults[i]);
+            data.Add("SalesStaff", managed[i][0], managed[i][1], 403);
+        }
+        // WarehouseStaff has no customer access at all.
+        foreach (var endpoint in managed.Concat([["GET", "/api/customers"], ["GET", $"/api/customers/{id}"], ["POST", "/api/customers"]]))
+            data.Add("WarehouseStaff", endpoint[0], endpoint[1], 403);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(RoleMatrix))]
+    public async Task CustomersEndpoint_RoleMatrix_ReturnsAgreedStatus(string role, string method, string path, int expected)
+    {
+        // Arrange
+        var request = new HttpRequestMessage(new HttpMethod(method), path);
+        if (method is "POST" or "PUT")
+            request.Content = JsonContent.Create(new CreateCustomerRequest { FullName = "Khách quầy", Phone = "0900000001" });
+        request.Headers.Authorization = new("Bearer", CreateToken(role));
+
+        // Act
+        var response = await _client.SendAsync(request);
+
+        // Assert
+        ((int)response.StatusCode).Should().Be(expected, $"{role} {method} {path}");
+    }
+
     private string CreateToken(string role)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("TechStore_Default_Secret_Key_At_Least_32_Bytes_Long_2026!"));
@@ -123,9 +170,9 @@ public sealed class CustomerApiFactory : WebApplicationFactory<Program>
 
 public sealed class TestCustomerService : ICustomerService
 {
-    public Task<CustomerOperationResult<PagedResultDto<CustomerSummaryDto>>> SearchAsync(CustomerSearchRequest request, CancellationToken cancellationToken = default) =>
+    public Task<CustomerOperationResult<PagedResultDto<CustomerSummaryDto>>> SearchAsync(CustomerSearchRequest request, RoleType role, CancellationToken cancellationToken = default) =>
         Task.FromResult(CustomerOperationResult<PagedResultDto<CustomerSummaryDto>>.Success(new([], 1, 20, 0, 0)));
-    public Task<CustomerOperationResult<CustomerDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<CustomerDto>.NotFound());
+    public Task<CustomerOperationResult<CustomerDto>> GetByIdAsync(Guid id, RoleType role, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<CustomerDto>.NotFound());
     public Task<CustomerOperationResult<PagedResultDto<CustomerLoyaltyPointDto>>> GetLoyaltyPointsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<PagedResultDto<CustomerLoyaltyPointDto>>.Success(new([], 1, 20, 0, 0)));
     public Task<CustomerOperationResult<PagedResultDto<OrderSummaryDto>>> GetOrdersAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<PagedResultDto<OrderSummaryDto>>.Success(new([], 1, 20, 0, 0)));
     public Task<CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>> GetPurchasedItemsAsync(Guid id, int? page, int? pageSize, CancellationToken cancellationToken = default) => Task.FromResult(CustomerOperationResult<PagedResultDto<CustomerPurchasedItemDto>>.NotFound());

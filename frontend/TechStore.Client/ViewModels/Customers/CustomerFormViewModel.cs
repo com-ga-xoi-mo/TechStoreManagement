@@ -31,6 +31,8 @@ public sealed partial class CustomerFormViewModel : PageViewModel
     [ObservableProperty] private string formError = string.Empty;
     [ObservableProperty] private bool isSaving;
     [ObservableProperty] private CustomerProfile? savedProfile;
+    /// <summary>The last save failed with 409: another customer already has this phone.</summary>
+    [ObservableProperty] private bool phoneAlreadyUsed;
 
     public bool IsEdit => _customerId.HasValue;
     public string TierCode => _membershipTier;
@@ -176,6 +178,7 @@ public sealed partial class CustomerFormViewModel : PageViewModel
             && dateErrors.Any(message => message.Contains("future", StringComparison.OrdinalIgnoreCase)))
             DateOfBirthError = "Ng\u00E0y sinh kh\u00F4ng \u0111\u01B0\u1EE3c n\u1EB1m trong t\u01B0\u01A1ng lai.";
 
+        PhoneAlreadyUsed = exception.StatusCode == 409;
         if (exception.StatusCode == 409 && string.IsNullOrEmpty(PhoneError))
             PhoneError = "Số điện thoại đã được sử dụng.";
         else if (exception.StatusCode == 401)
@@ -189,6 +192,7 @@ public sealed partial class CustomerFormViewModel : PageViewModel
     private void ClearErrors()
     {
         FullNameError = PhoneError = EmailError = DateOfBirthError = AddressError = FormError = string.Empty;
+        PhoneAlreadyUsed = false;
     }
 
     partial void OnDateOfBirthChanged(string value)

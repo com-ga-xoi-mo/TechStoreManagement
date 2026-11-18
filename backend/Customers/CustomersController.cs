@@ -3,32 +3,45 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using TechStore.Api.Customers.Services;
+using TechStore.Api.Identity.Services;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Api.Customers;
 
 [ApiController]
 [Route("api/customers")]
-[Authorize(Roles = "Admin")]
+// Search, profile and create serve the counter (A M S); edit, activity and history manage customers (A M). See docs/API_PERMISSIONS.md.
+[Authorize(Roles = "Admin,Manager,SalesStaff")]
 public class CustomersController(ICustomerService customerService) : ControllerBase
 {
+    private const string ManageRoles = "Admin,Manager";
+
     [HttpGet]
-    public async Task<IActionResult> Search([FromQuery] CustomerSearchRequest request, CancellationToken cancellationToken) =>
-        ToAction(await customerService.SearchAsync(request, cancellationToken));
+    public async Task<IActionResult> Search([FromQuery] CustomerSearchRequest request, CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
+        return ToAction(await customerService.SearchAsync(request, actor.Role, cancellationToken));
+    }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken) =>
-        ToAction(await customerService.GetByIdAsync(id, cancellationToken));
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
+        return ToAction(await customerService.GetByIdAsync(id, actor.Role, cancellationToken));
+    }
 
     [HttpGet("{id:guid}/loyalty-points")]
+    [Authorize(Roles = ManageRoles)]
     public async Task<IActionResult> GetLoyaltyPoints(Guid id, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken) =>
         ToAction(await customerService.GetLoyaltyPointsAsync(id, page, pageSize, cancellationToken));
 
     [HttpGet("{id:guid}/orders")]
+    [Authorize(Roles = ManageRoles)]
     public async Task<IActionResult> GetOrders(Guid id, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken) =>
         ToAction(await customerService.GetOrdersAsync(id, page, pageSize, cancellationToken));
 
     [HttpGet("{id:guid}/purchased-items")]
+    [Authorize(Roles = ManageRoles)]
     public async Task<IActionResult> GetPurchasedItems(Guid id, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken) =>
         ToAction(await customerService.GetPurchasedItemsAsync(id, page, pageSize, cancellationToken));
 
@@ -41,10 +54,12 @@ public class CustomersController(ICustomerService customerService) : ControllerB
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = ManageRoles)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCustomerRequest request, CancellationToken cancellationToken) =>
         ToAction(await customerService.UpdateAsync(id, request, cancellationToken));
 
     [HttpPatch("{id:guid}/deactivate")]
+    [Authorize(Roles = ManageRoles)]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
         var result = await customerService.DeactivateAsync(id, cancellationToken);
@@ -53,6 +68,7 @@ public class CustomersController(ICustomerService customerService) : ControllerB
     }
 
     [HttpPatch("{id:guid}/activate")]
+    [Authorize(Roles = ManageRoles)]
     public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
         var result = await customerService.ActivateAsync(id, cancellationToken);

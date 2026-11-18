@@ -68,6 +68,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<CustomerListViewModel>();
         services.AddTransient<CustomerFormViewModel>();
         services.AddTransient<CustomerDetailViewModel>();
+        services.AddTransient<CustomerPickerViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<LoginViewModel>();
         services.AddTransient<UserManagementViewModel>();

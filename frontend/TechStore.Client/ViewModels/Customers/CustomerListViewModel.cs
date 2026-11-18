@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using TechStore.Client.Models.Customers;
 using TechStore.Client.Repositories.Customers;
 using TechStore.Client.Services.Api;
+using TechStore.Client.Services.Navigation;
+using TechStore.Client.Services.Session;
 using TechStore.Client.ViewModels.Pages;
 
 namespace TechStore.Client.ViewModels.Customers;
@@ -13,6 +15,7 @@ public sealed partial class CustomerListViewModel : PageViewModel
     private static readonly string[] TierValues = [string.Empty, "Standard", "Silver", "Gold", "Platinum"];
     private static readonly bool?[] ActivityValues = [true, false, null];
     private readonly ICustomerRepository _customers;
+    private readonly ISessionStore? _session;
     private CancellationTokenSource? _searchDebounce;
 
     [ObservableProperty] private string searchText = string.Empty;
@@ -28,6 +31,10 @@ public sealed partial class CustomerListViewModel : PageViewModel
     [ObservableProperty] private string actionErrorMessage = string.Empty;
 
     public IReadOnlyList<CustomerSummary> Customers => Snapshot?.Items ?? NoCustomers;
+    /// <summary>Edit, activity filter and history are Admin/Manager only; SalesStaff searches and creates.</summary>
+    public bool CanManageCustomers => _session is null || (IsSessionActive && RoleAccess.CanManageCustomers(_session.Current.Role));
+    public bool CanCreateCustomers => _session is null || (IsSessionActive && RoleAccess.CanCreateCustomers(_session.Current.Role));
+    private bool IsSessionActive => _session?.Current.Status == SessionStatus.Active;
     public int CurrentPage => Snapshot?.Page ?? AppliedCriteria.Page;
     public int TotalPages => Snapshot?.TotalPages ?? 0;
     public int TotalCount => Snapshot?.TotalCount ?? 0;
@@ -66,8 +73,11 @@ public sealed partial class CustomerListViewModel : PageViewModel
         NotifyPagingCommands();
     }
 
-    public CustomerListViewModel(ICustomerRepository customers) =>
+    public CustomerListViewModel(ICustomerRepository customers, ISessionStore? session = null)
+    {
         _customers = customers ?? throw new ArgumentNullException(nameof(customers));
+        _session = session;
+    }
 
     protected override Task<bool> LoadContentAsync(CancellationToken cancellationToken) => SearchAsync(AppliedCriteria);
 
@@ -195,7 +205,8 @@ public sealed partial class CustomerListViewModel : PageViewModel
         {
             Query = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
             Tier = string.IsNullOrWhiteSpace(SelectedTier) ? null : SelectedTier,
-            IsActive = ActivityValues[Math.Clamp(SelectedActivityIndex, 0, ActivityValues.Length - 1)],
+            // The server only returns active customers to SalesStaff; ask for exactly that.
+            IsActive = CanManageCustomers ? ActivityValues[Math.Clamp(SelectedActivityIndex, 0, ActivityValues.Length - 1)] : true,
             Page = 1
         };
         await SearchAsync(AppliedCriteria);

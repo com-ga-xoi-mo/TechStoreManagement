@@ -33,3 +33,9 @@
 - **`Repositories/`** (dự kiến): `ICustomerRepository` (`Customer` cùng `CustomerLoyaltyPoint`), `IVoucherRepository`.
 - **`Services/`**: `ICustomerService.cs`, `AnalyticsService.cs`.
 - **Controllers** (đặt tại thư mục gốc của module): `CustomersController.cs` (CRUD khách hàng, tra cứu hội viên, lịch sử điểm), `AnalyticsController.cs` (Báo cáo doanh thu, lợi nhuận, phân tích mua sắm).
+
+## 5. Quyền (M3, change `m3-sales-customers`)
+- Tìm, xem hồ sơ, tạo khách: `Admin`, `Manager`, `SalesStaff`. SalesStaff chỉ thấy khách đang hoạt động; server ép `isActive=true` và trả 404 cho khách đã vô hiệu hóa.
+- Sửa, vô hiệu hóa/kích hoạt, lịch sử đơn/thiết bị/điểm: `Admin`, `Manager`.
+- `WarehouseStaff`: 403 mọi endpoint. Bảng đầy đủ: [API_PERMISSIONS](../../docs/API_PERMISSIONS.md).
+- Client dùng chung `CustomerPickerViewModel` + `CustomerPickerView` để chọn/tạo khách khi bán (trang tạo đơn, POS).

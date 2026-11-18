@@ -59,3 +59,7 @@ Kiểm tra UI lần này chạy trên Skia/Win32. Windows native và các nền 
 ## Dữ liệu demo và đối soát
 
 Xem [bảng Expected/Actual, bằng chứng kiểm thử và hướng dẫn chạy lại demo Local/R2](M3_DEMO_DATA_RECONCILIATION.md). Bốn kỳ API ở mốc seed đều khớp bảng tính tay. Luồng live ghi `asOf` riêng theo ngày demo.
+
+## Đối soát giao dịch POS live
+
+Xem [bằng chứng API/PostgreSQL và desktop sau checkout](M3_DASHBOARD_LIVE_FLOW.md). Trên build chứa POS/ca và API tìm khách cho Sales, hai ca HTTP kiểm chứng doanh thu ngày Việt Nam sau commit và dữ liệu giữ nguyên sau 409. Lượt desktop trên Kestrel kiểm chứng bán khách lẻ, đóng ca và Manager thấy đúng đơn mới. Luồng từ phiếu nhập đến Dashboard còn chờ receiving của Q. Vinh vào `dev`.

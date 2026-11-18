@@ -46,9 +46,11 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
         var draftCode = notice.Code;
         var draftOrder = await rig.FindByCode(draftCode);
         Assert.Equal(OrderStatus.Pending, draftOrder.Status);
-        Assert.Equal(draft.EstimatedTotal, draftOrder.TotalAmount);
+        // The client estimate is before VAT; the server adds the order discount and VAT (M3 pricing).
+        Assert.Equal(draft.EstimatedTotal, draftOrder.Subtotal);
+        Assert.Equal(draftOrder.Subtotal - draftOrder.DiscountAmount + draftOrder.TaxAmount, draftOrder.TotalAmount);
         Assert.Equal(AppRoute.Root(ShellDestination.Orders), rig.Navigation.Routes.Last());
-        output.WriteLine($"draft {draftCode}: Pending, server total {draftOrder.TotalAmount:N0} == estimate");
+        output.WriteLine($"draft {draftCode}: Pending, subtotal {draftOrder.Subtotal:N0} == estimate, VAT {draftOrder.TaxAmount:N0}, total {draftOrder.TotalAmount:N0}");
 
         // ---- 2. pay & complete: order Completed and the device leaves InStock ----
         var sale = rig.NewCreate();
@@ -101,9 +103,10 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
         Assert.Contains("đã hoàn tất", rig.Dialogs.Notices.Last().Message);
         var accessoryCode = rig.Dialogs.Notices.Last().Code;
         var accessoryOrder = await rig.FindByCode(accessoryCode);
-        Assert.Equal(expected, accessoryOrder.TotalAmount);
+        Assert.Equal(expected, accessoryOrder.Subtotal);
+        Assert.Equal(accessoryOrder.Subtotal - accessoryOrder.DiscountAmount + accessoryOrder.TaxAmount, accessoryOrder.TotalAmount);
         Assert.Equal(OrderStatus.Completed, accessoryOrder.Status);
-        output.WriteLine($"{accessoryCode}: 2 x {headphones.BasePrice:N0} - 100.000 = {accessoryOrder.TotalAmount:N0} (server == estimate)");
+        output.WriteLine($"{accessoryCode}: 2 x {headphones.BasePrice:N0} - 100.000 = {accessoryOrder.Subtotal:N0} (subtotal == estimate), total with VAT {accessoryOrder.TotalAmount:N0}");
 
         // ---- 5. server validation error lands on its line and the draft survives ----
         var tooMany = rig.NewCreate();

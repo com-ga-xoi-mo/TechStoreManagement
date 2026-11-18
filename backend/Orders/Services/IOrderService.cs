@@ -75,16 +75,18 @@ public record OrderTransitionResult(
 
 public interface IOrderService
 {
-    // UC-ORD-01: creates a Pending order (a draft that reserves nothing).
+    // UC-ORD-01: creates a Pending order (a draft that reserves nothing). The actor is the cashier;
+    // its role decides how much discount is allowed.
     Task<CreateOrderResult> CreateAsync(
         CreateOrderRequest request,
-        Guid cashierUserId,
+        AuthenticatedUser actor,
         CancellationToken cancellationToken = default);
 
     // Validates and prices a request without storing anything (shared by order creation and POS checkout).
+    // The actor is the cashier; its role decides how much discount is allowed.
     Task<PrepareOrderResult> PrepareAsync(
         CreateOrderRequest request,
-        Guid cashierUserId,
+        AuthenticatedUser actor,
         bool checkAvailability = true,
         CancellationToken cancellationToken = default);
 

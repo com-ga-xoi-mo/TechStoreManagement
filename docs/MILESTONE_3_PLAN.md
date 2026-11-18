@@ -106,10 +106,12 @@ Nghiệm thu: Mở ca → bán tiền mặt → trừ kho/kích hoạt bảo hà
 Làm khách hàng ở Sprint 2, công thức tiền ở Sprint 4. Bàn giao chọn/tạo khách cho Đạt; chốt thứ tự giảm dòng → giảm đơn → thuế, làm tròn và phân bổ từng dòng trong `OrderPricingHelper` cho Đạt và Bình. Đạt lưu kết quả, Bình đọc để đối chiếu.
 
 - [ ] Cho Sales tìm, chọn và tạo khách hàng phục vụ bán hàng. Quyền sửa, vô hiệu hóa và xem lịch sử phải theo bảng quyền đã chốt.
-- [ ] Chốt và triển khai thứ tự giảm giá dòng, giảm giá đơn, thuế và làm tròn. Kiểm tra quyền giảm giá; server tính tổng chính thức và phân bổ từng dòng. Đạt lưu giá và kết quả tính tại thời điểm bán trong luồng checkout.
-- [ ] Sửa `OrderPricingHelper.Calculate` để thuế và giảm giá cấp đơn không còn cố định bằng 0; dùng lại giảm giá dòng đã có. Cập nhật contract và test công thức; Đạt nối request, service và UI POS theo contract này; có ca thuế/giảm giá cấp đơn khác 0 và kiểm tra không trừ giảm giá dòng hai lần.
+- [x] Chốt và triển khai thứ tự giảm giá dòng, giảm giá đơn, thuế và làm tròn. Kiểm tra quyền giảm giá; server tính tổng chính thức và phân bổ từng dòng. Đạt lưu giá và kết quả tính tại thời điểm bán trong luồng checkout.
+- [x] Sửa `OrderPricingHelper.Calculate` để thuế và giảm giá cấp đơn không còn cố định bằng 0; dùng lại giảm giá dòng đã có. Cập nhật contract và test công thức; Đạt nối request, service và UI POS theo contract này; có ca thuế/giảm giá cấp đơn khác 0 và kiểm tra không trừ giảm giá dòng hai lần.
 
 Nghiệm thu: Sales tìm/chọn/tạo khách đúng quyền. Server tính đúng thuế và giảm giá khác 0, phân bổ/làm tròn nhất quán; không trừ giảm giá dòng hai lần.
+
+Công thức tiền theo change [m3-order-pricing](../openspec/changes/archive/2026-11-17-m3-order-pricing/tasks.md): giảm dòng → giảm đơn → VAT 10% (giá danh mục chưa VAT), làm tròn đến đồng, phân bổ phần dư lớn nhất; Sales giảm tối đa 10%. Kiểm bằng unit test, PostgreSQL thật và HTTP thật (17/11/2026). Cách gọi cho Đạt: [Orders README](../backend/Orders/README.md#công-thức-tiền-m3-change-m3-order-pricing-người-sở-hữu-vy). Phần nối POS/UI hiển thị thuế thuộc Đạt.
 
 ### T. Vinh: Giao diện theo role và tra cứu bán hàng
 

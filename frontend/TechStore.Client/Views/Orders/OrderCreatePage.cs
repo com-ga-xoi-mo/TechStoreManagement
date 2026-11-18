@@ -360,7 +360,7 @@ public sealed class OrderCreatePage : Page, IRoutePage
                                 new StackPanel()
                                     .Spacing(2)
                                     .Children(
-                                        Caption("Tạm tính"),
+                                        Caption("Tạm tính (chưa gồm thuế GTGT)"),
                                         new TextBlock()
                                             .Style(AppResources.GetStyle(AppTypography.MetricText))
                                             .Foreground(AppColors.Brushes.Text)

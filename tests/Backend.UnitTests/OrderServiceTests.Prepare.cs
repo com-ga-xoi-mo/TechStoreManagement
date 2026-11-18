@@ -15,14 +15,15 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product));
 
         // Act
-        var result = await _service.PrepareAsync(request, ActingUserId);
+        var result = await _service.PrepareAsync(request, ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         var order = result.Build!(Now);
         order.Status.Should().Be(OrderStatus.Pending);
         order.CashierUserId.Should().Be(ActingUserId);
-        order.TotalAmount.Should().Be(30_000_000m);
+        order.Subtotal.Should().Be(30_000_000m);
+        order.TotalAmount.Should().Be(33_000_000m); // catalog price + 10% VAT
         order.Items.Should().ContainSingle();
         _orders.AddedOrders.Should().BeEmpty();
         _unitOfWork.BeginTransactionCount.Should().Be(0);
@@ -34,7 +35,7 @@ public partial class OrderServiceTests
     {
         // Arrange
         var product = AddProduct();
-        var result = await _service.PrepareAsync(RequestOf(TrackedItem(product)), ActingUserId);
+        var result = await _service.PrepareAsync(RequestOf(TrackedItem(product)), ActingUser);
 
         // Act
         var first = result.Build!(Now);
@@ -48,7 +49,7 @@ public partial class OrderServiceTests
     public async Task PrepareAsync_EmptyItems_ReturnsValidationErrors()
     {
         // Act
-        var result = await _service.PrepareAsync(RequestOf(), ActingUserId);
+        var result = await _service.PrepareAsync(RequestOf(), ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeFalse();
@@ -63,7 +64,7 @@ public partial class OrderServiceTests
         _fulfillment.CheckProblems.Add(new TechStore.Api.Inventory.Services.FulfillmentProblem(0, "sold"));
 
         // Act
-        var result = await _service.PrepareAsync(RequestOf(TrackedItem(product)), ActingUserId, checkAvailability: false);
+        var result = await _service.PrepareAsync(RequestOf(TrackedItem(product)), ActingUser, checkAvailability: false);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -77,7 +78,7 @@ public partial class OrderServiceTests
         var product = AddProduct();
 
         // Act
-        var result = await _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUserId);
+        var result = await _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUser);
 
         // Assert
         result.Data!.PosSessionId.Should().BeNull();

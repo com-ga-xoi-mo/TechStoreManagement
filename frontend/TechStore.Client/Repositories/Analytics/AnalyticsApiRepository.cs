@@ -10,6 +10,7 @@ namespace TechStore.Client.Repositories.Analytics;
 public sealed class AnalyticsApiRepository(IApiClient apiClient) : IAnalyticsRepository
 {
     private const string TimeZone = "UTC+07:00";
+    private const int MaxListRows = 5;
 
     public async Task<DashboardReadResult> GetDashboardAsync(
         DashboardQuery query,
@@ -80,7 +81,7 @@ public sealed class AnalyticsApiRepository(IApiClient apiClient) : IAnalyticsRep
             throw InvalidResponse("Dashboard daily revenue does not reconcile with summary revenue.");
 
         var lowStockRows = dto.LowStockItems ?? throw InvalidResponse("Dashboard low-stock list is missing.");
-        if (lowStockRows.Count > 5)
+        if (lowStockRows.Count > MaxListRows)
             throw InvalidResponse("Dashboard returned more than five low-stock rows.");
         var lowStock = lowStockRows.Select(row =>
         {
@@ -93,7 +94,7 @@ public sealed class AnalyticsApiRepository(IApiClient apiClient) : IAnalyticsRep
         }).ToArray();
 
         var recentRows = dto.RecentOrders ?? throw InvalidResponse("Dashboard recent-orders list is missing.");
-        if (recentRows.Count > 5)
+        if (recentRows.Count > MaxListRows)
             throw InvalidResponse("Dashboard returned more than five recent orders.");
         var recentOrders = recentRows.Select(row =>
         {

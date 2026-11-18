@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TechStore.Api.Analytics.Services;
+using TechStore.Shared;
 using TechStore.Shared.DTOs;
 
 namespace TechStore.Api.Analytics;
@@ -50,8 +51,8 @@ public sealed class AnalyticsController(IAnalyticsService analyticsService) : Co
                 var days = end.Value.DayNumber - start.Value.DayNumber + 1;
                 if (days < 1)
                     ModelState.AddModelError(nameof(to), "End date must be on or after the start date.");
-                else if (days > 31)
-                    ModelState.AddModelError(nameof(to), "A custom period can include at most 31 days.");
+                else if (days > AnalyticsLimits.MaxCustomRangeDays)
+                    ModelState.AddModelError(nameof(to), $"A custom period can include at most {AnalyticsLimits.MaxCustomRangeDays} days.");
                 else
                     range = (start.Value, end.Value);
             }

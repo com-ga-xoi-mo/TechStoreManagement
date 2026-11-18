@@ -12,6 +12,7 @@ using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Dashboard;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.Views.Shell;
+using TechStore.Shared;
 using Uno.Extensions.Markup;
 
 namespace TechStore.Client.Views.Dashboard;
@@ -141,7 +142,7 @@ public sealed class DashboardPage : Page, IRoutePage
             .Child(new StackPanel().Spacing(8).Children(
                 new TextBlock().Style(AppResources.GetStyle(AppTypography.CaptionText))
                     .Foreground(AppColors.Brushes.SecondaryText).TextWrapping(TextWrapping.Wrap)
-                    .Text("Chọn tối đa 31 ngày theo giờ Việt Nam (UTC+07)."),
+                    .Text($"Chọn tối đa {AnalyticsLimits.MaxCustomRangeDays} ngày theo giờ Việt Nam (UTC+07)."),
                 dates, apply));
     }
 

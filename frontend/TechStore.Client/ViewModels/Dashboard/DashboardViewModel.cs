@@ -7,6 +7,7 @@ using TechStore.Client.Services.Api;
 using TechStore.Client.Services.Development;
 using TechStore.Client.Services.Session;
 using TechStore.Client.ViewModels.Pages;
+using TechStore.Shared;
 using TechStore.Shared.Enums;
 
 namespace TechStore.Client.ViewModels.Dashboard;
@@ -161,8 +162,8 @@ public sealed partial class DashboardViewModel : PageViewModel
             CustomToError = "Chọn ngày kết thúc không muộn hơn hôm nay theo giờ Việt Nam.";
         else if (to < from)
             CustomToError = "Ngày kết thúc phải từ ngày bắt đầu trở đi.";
-        else if (to.DayNumber - from.DayNumber >= 31)
-            CustomToError = "Chọn khoảng tối đa 31 ngày.";
+        else if (to.DayNumber - from.DayNumber >= AnalyticsLimits.MaxCustomRangeDays)
+            CustomToError = $"Chọn khoảng tối đa {AnalyticsLimits.MaxCustomRangeDays} ngày.";
         if (CustomFromError.Length != 0 || CustomToError.Length != 0) return;
 
         await ApplyQueryAsync(new(DashboardPeriod.Custom, (from, to)), -1, cancellationToken);

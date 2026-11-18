@@ -168,7 +168,7 @@ Dùng database test riêng. Mỗi test case cần có đầu vào, kết quả m
 ### Tài liệu và kết quả kiểm thử
 
 - [ ] **An:** Cập nhật README cách chạy và tài khoản demo. Bàn giao API, bảng quyền, trạng thái đơn/ca, công thức tiền, thứ tự khóa và cách migrate/seed cho nhóm M4.
-- [ ] **Bình:** Ghi tổng test Pass/Fail/Skipped/Chưa kiểm tra, lỗi đã sửa và kết quả kiểm tra lại theo bản build bàn giao.
+- [x] **Bình:** Ghi tổng test Pass/Fail/Skipped/Chưa kiểm tra, lỗi đã sửa và kết quả kiểm tra lại theo bản build bàn giao. [Báo cáo kiểm thử M3](M3_TEST_SUMMARY.md).
 
 ## Mốc nghiệm thu
 

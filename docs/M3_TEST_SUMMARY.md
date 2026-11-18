@@ -4,7 +4,7 @@
 
 - Ngày chạy 18/11/2026. Windows `10.0.26200.0`, .NET SDK `10.0.404`, Debug và desktop `net10.0-desktop`.
 - Baseline đã build là `b08abe03b9d04182c8ed95368b0345b08e4cd2b9` trên nhánh `feat/m3-manager-dashboard-access`, chứa `origin/dev` tại `6c5d8c567bc69deebeb41e9c99bbce9814cec9bc`. `git merge --no-edit origin/dev` báo `Already up to date`. Nhánh Bình chưa merge vào `dev`. Ref `dev` đã fetch chưa có controller receiving.
-- Trạng thái công bố build là **chờ xác nhận push nhánh Bình**. Auto-review chặn thao tác ghi lên GitHub khi chưa có xác nhận trực tiếp. SHA nguồn và SHA-256 artifact bên dưới ghi kết quả kiểm thử cục bộ.
+- SHA build đã push ở lượt đầu là `272e1c1de0c6335d049c0ea120cff4a85f2116bb` trên nhánh `feat/m3-manager-dashboard-access` của `origin`. Nhánh chứa `origin/dev` tại `6c5d8c567bc69deebeb41e9c99bbce9814cec9bc` và chưa merge vào `dev`. Lượt kiểm tra lại toàn solution trên SHA này dùng .NET SDK `10.0.404` và NuGet cache cục bộ. SHA-256 ở dòng bên dưới thuộc build Sprint 5 ban đầu.
 - SHA-256 build API `43D6A94FE0F55F8B0E29B7941B25285FAE538EB5FCA4579700054AFDDD198204`. Build desktop `82DBF943696FFF47DFD33A441920F164DB39E19628CB6DA74D6C3DE615BEBAEF`.
 
 ```powershell
@@ -14,7 +14,7 @@ dotnet build frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-deskto
 
 `$localPackages` lấy từ `packageFolders` trong `frontend/TechStore.Client/obj/project.assets.json`. Cả hai lượt báo `Build succeeded. 0 Warning(s) 0 Error(s)`. Log phụ tại `backend/obj/m3-acceptance/build-api.log` và `build-desktop.log`.
 
-Các lượt test dưới đây dùng cùng baseline API. Lượt backend có thêm lớp [M3AcceptancePostgresHttpTests](../tests/Backend.UnitTests/M3AcceptancePostgresHttpTests.cs) ở working tree lúc chạy. SHA-256 của `TechStore.UnitTests.dll` sau lần sửa payload là `A2FDCC73E6246EA872F21AC8D78B7D2E26C0EEB503E2CC3CF8E4E65DFD7A45CF`. Các fixture PostgreSQL dùng database test riêng. Catalog live trỏ Kestrel `http://127.0.0.1:5299/` và DB demo migrate/seed mới.
+Các lượt kiểm thử Sprint 5 ban đầu dưới đây dùng cùng baseline API. Lượt backend có thêm lớp [M3AcceptancePostgresHttpTests](../tests/Backend.UnitTests/M3AcceptancePostgresHttpTests.cs) ở working tree lúc chạy. SHA-256 của `TechStore.UnitTests.dll` sau lần sửa payload là `A2FDCC73E6246EA872F21AC8D78B7D2E26C0EEB503E2CC3CF8E4E65DFD7A45CF`. Các fixture PostgreSQL dùng database test riêng. Catalog live trỏ Kestrel `http://127.0.0.1:5299/` và DB demo migrate/seed mới.
 
 ## Kết quả theo lượt chạy
 
@@ -42,6 +42,8 @@ dotnet test tests/Frontend.IntegrationTests/TechStore.Client.IntegrationTests.cs
 | Frontend headless | `Total tests: 1063, Passed: 1063, Failed: 0, Skipped: 0` | — | `CategoryWorkspaceTests.Search_DeepMatch_OpensAncestorsAndRestoresExpansion` pass trong suite. |
 | Catalog đọc qua Kestrel | `Total tests: 1, Passed: 1, Failed: 0, Skipped: 0` | — | `Seed dataset: 20 products, 5 active category roots, 10 pages at pageSize=2.` |
 | Catalog ghi qua Kestrel | `Total tests: 1, Passed: 1, Failed: 0, Skipped: 0` | — | `LiveCatalog_FullManagementLifecycleMatchesServerContract` pass. |
+| Build toàn solution trước push | `Build succeeded. 0 Warning(s) 0 Error(s)` | — | `dotnet build TechStore.sln` đạt trên SHA đã push, gồm desktop Skia và Windows native. |
+| Test toàn solution trước push | `1.786 Pass, 0 Fail, 55 Skipped / 1.841 ca` | 55 ca PostgreSQL hoặc API live opt-in chưa bật | `dotnet test TechStore.sln` trên SHA đã push. Backend unit 723 pass/48 skipped, backend integration 4 skipped, frontend headless 1.063 pass, frontend integration 3 skipped. |
 
 Các số 0 Fail/Skipped trong những lượt có `Test Run Successful` được chuẩn hóa từ tổng và số Passed. Log phụ nằm trong `backend/obj/m3-acceptance/`. Hai lượt lọc backend trùng tập ca với suite backend đầy đủ. Lượt Catalog là hai filter riêng, suite live của frontend còn các test ngoài phạm vi hai filter này. PostgreSQL integration tại mốc cố định ghi `today` 27.980.000 ₫/2 đơn và `last7Days`, `thisMonth`, `custom` 136.080.000 ₫/20 đơn.
 

@@ -63,3 +63,7 @@ Xem [bảng Expected/Actual, bằng chứng kiểm thử và hướng dẫn ch�
 ## Đối soát giao dịch POS live
 
 Xem [bằng chứng API/PostgreSQL và desktop sau checkout](M3_DASHBOARD_LIVE_FLOW.md). Trên build chứa POS/ca và API tìm khách cho Sales, hai ca HTTP kiểm chứng doanh thu ngày Việt Nam sau commit và dữ liệu giữ nguyên sau 409. Lượt desktop trên Kestrel kiểm chứng bán khách lẻ, đóng ca và Manager thấy đúng đơn mới. Luồng từ phiếu nhập đến Dashboard còn chờ receiving của Q. Vinh vào `dev`.
+
+## Kiểm thử Sprint 5
+
+[Báo cáo kiểm thử M3](M3_TEST_SUMMARY.md) ghi kết quả regression Admin, read-back sau 201/409/400, các lượt runner theo build và các ca còn chờ bàn giao cho An.

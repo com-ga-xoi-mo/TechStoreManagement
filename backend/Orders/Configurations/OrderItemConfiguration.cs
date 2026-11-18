@@ -17,6 +17,8 @@ public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
             t.HasCheckConstraint("ck_order_items_quantity_gt_zero", "quantity > 0");
             t.HasCheckConstraint("ck_order_items_discount_ge_zero", "discount_amount >= 0");
             t.HasCheckConstraint("ck_order_items_total_price_ge_zero", "total_price >= 0");
+            t.HasCheckConstraint("ck_order_items_order_discount_ge_zero", "order_discount_amount >= 0");
+            t.HasCheckConstraint("ck_order_items_tax_amount_ge_zero", "tax_amount >= 0");
             t.HasCheckConstraint("chk_order_items_serial_single_unit", "serial_imei_id IS NULL OR quantity = 1");
         });
 
@@ -34,6 +36,8 @@ public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
         builder.Property(x => x.Quantity).HasColumnName("quantity").HasDefaultValue(1);
         builder.Property(x => x.DiscountAmount).HasColumnName("discount_amount").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.TotalPrice).HasColumnName("total_price").HasPrecision(18, 2).IsRequired();
+        builder.Property(x => x.OrderDiscountAmount).HasColumnName("order_discount_amount").HasPrecision(18, 2).HasDefaultValue(0);
+        builder.Property(x => x.TaxAmount).HasColumnName("tax_amount").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz");
 

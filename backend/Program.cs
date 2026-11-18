@@ -81,6 +81,11 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 // Orders Module services
 builder.Services.TryAddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddOptions<PricingOptions>()
+    .Bind(builder.Configuration.GetSection(PricingOptions.SectionName))
+    .ValidateDataAnnotations()
+    .Validate(o => decimal.Round(o.VatRatePercent, 2) == o.VatRatePercent, "Pricing:VatRatePercent allows at most 2 decimal places.")
+    .ValidateOnStart();
 
 // Sales Module (POS shifts and cash checkout)
 builder.Services.AddScoped<IPosSessionRepository, PosSessionRepository>();

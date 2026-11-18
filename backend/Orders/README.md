@@ -65,3 +65,28 @@ Pending ──► Processing ──► Completed
 - **Customers**: kiểm tra khách qua `ICustomerRepository.GetByIdAsync` (bản tối thiểu, Dev 5 mở rộng).
 - **Người thao tác**: chưa có đăng nhập nên lấy từ claim `sub`/`NameIdentifier`, nếu không có thì dùng admin cố định `11111111-1111-1111-1111-111111111111` (do `DataSeeder` tạo). Bỏ khi có JWT.
 - Chưa làm trong Milestone 2: hoàn trả/hoàn tiền, giải phóng giữ chỗ (`Release`), voucher, giảm giá theo hạng, thuế, ca POS (`pos_session_id` để `NULL`), xác minh thanh toán VietQR/thẻ.
+
+## Công thức tiền (M3, change `m3-order-pricing`, người sở hữu: Vy)
+
+Một hàm duy nhất `OrderPricingHelper.Calculate(lines, orderDiscount, taxRatePercent)`; mọi luồng tạo đơn (`POST /api/orders`, checkout POS) gọi hàm này và lưu kết quả, không tự tính lại.
+
+1. Dòng: `totalPrice = unitPrice × quantity − discountAmount` (giảm dòng ≤ thành tiền dòng).
+2. `subtotal = Σ totalPrice` (đã trừ giảm dòng).
+3. Giảm cấp đơn `discountAmount` từ `orderDiscountAmount` của request: số nguyên đồng, `0 ≤ giảm ≤ subtotal`, trừ một lần.
+4. `taxAmount = round((subtotal − discountAmount) × taxRate / 100)` đến đồng, nửa đồng làm tròn lên. Giá danh mục là giá chưa VAT.
+5. `totalAmount = subtotal − discountAmount + taxAmount`.
+
+Phân bổ từng dòng (lưu ở `order_items.order_discount_amount`, `order_items.tax_amount`): giảm đơn chia theo `totalPrice`, thuế chia theo `totalPrice − orderDiscountAmount`; mỗi dòng nhận phần làm tròn xuống, phần đồng còn lại cho dòng có phần lẻ lớn nhất (hòa thì dòng trước). Tổng các dòng luôn bằng số cấp đơn. `orders.tax_rate` lưu thuế suất lúc tạo đơn.
+
+Ví dụ: 2 × 1.000.000, giảm đơn 200.000, VAT 10% → subtotal 2.000.000, thuế 180.000, tổng 1.980.000; mỗi dòng giảm 100.000, thuế 90.000.
+
+Quyền giảm giá: tổng giảm (dòng + đơn) của `SalesStaff` ≤ `Pricing:SalesStaffMaxDiscountPercent` (mặc định 10%) của `Σ unitPrice × quantity`; `Admin` không giới hạn. Vượt → 400 dưới khóa `discount`.
+
+Cấu hình (`appsettings.json`, kiểm khi khởi động):
+
+```json
+"Pricing": { "VatRatePercent": 10, "SalesStaffMaxDiscountPercent": 10 }
+```
+
+Bàn giao cho Đạt (POS): trong `PrepareAsync` thay `Calculate(pricedLines)` bằng phần định giá của `CreateAsync` (kiểm `orderDiscountAmount`, quyền giảm giá theo `actor.Role`, gọi `Calculate`, gán `TaxRate`, `OrderDiscountAmount`, `TaxAmount` cho từng dòng); `PosCheckoutRequest` thêm `OrderDiscountAmount` và chuyển cho `CreateOrderRequest`; so `cashTendered` với `TotalAmount` đã gồm thuế. UI chỉ hiển thị số server trả.
+

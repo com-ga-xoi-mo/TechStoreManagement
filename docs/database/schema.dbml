@@ -402,7 +402,8 @@ Table orders {
   payment_method payment_method [not null, default: 'Cash']
   subtotal "numeric(18, 2)" [not null, note: 'CHECK subtotal >= 0: SUM(order_items.total_price), after line discounts and before order discount and tax']
   discount_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK discount_amount >= 0: Order-level voucher/VIP discount only; backend requires discount_amount <= subtotal']
-  tax_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK tax_amount >= 0: VAT amount']
+  tax_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK tax_amount >= 0: VAT = round((subtotal - discount_amount) * tax_rate / 100) to a whole dong, half away from zero']
+  tax_rate "numeric(5, 2)" [not null, default: 0, note: 'CHECK tax_rate BETWEEN 0 AND 100: VAT percent copied from Pricing:VatRatePercent at creation; catalog prices exclude VAT; never recalculated']
   total_amount "numeric(18, 2)" [not null, note: 'CHECK total_amount >= 0: subtotal - discount_amount + tax_amount; backend calculates all totals']
   voucher_id uuid [null, note: 'FK -> vouchers.id: Applied coupon discount']
   cash_tendered "numeric(18, 2)" [null, note: 'CHECK cash_tendered IS NULL OR cash_tendered >= 0: Cash handed over at POS checkout; null for orders without a cash checkout']
@@ -449,6 +450,8 @@ Table order_items {
   quantity integer [not null, default: 1, note: 'CHECK quantity > 0: Serial-tracked products use one unit per line, including drafts; non-tracked products may use multiple units']
   discount_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK discount_amount >= 0: Total discount for this entire line, not per unit; must not exceed unit_price * quantity']
   total_price "numeric(18, 2)" [not null, note: 'CHECK total_price >= 0: (unit_price * quantity) - discount']
+  order_discount_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK >= 0: this line share of orders.discount_amount, by total_price, whole dong, largest remainder; lines sum to the order value']
+  tax_amount "numeric(18, 2)" [not null, default: 0, note: 'CHECK >= 0: this line share of orders.tax_amount, by total_price - order_discount_amount, whole dong, largest remainder; refunds reuse it']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [null]
 

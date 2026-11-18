@@ -22,6 +22,8 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
     private const string StockWrite = "Admin,WarehouseStaff";
     private const string OrderRead = "Admin,Manager,SalesStaff";
     private const string OrderWrite = "Admin,SalesStaff";
+    private const string CustomerServe = "Admin,Manager,SalesStaff";
+    private const string CustomerManage = "Admin,Manager";
 
     // Independent expectations from docs/API_PERMISSIONS.md, not generated from controller attributes.
     private static readonly EndpointCase[] Baseline =
@@ -47,13 +49,13 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
         new("POST", "api/inventory/serials/batch-import", StockWrite),
         new("GET", "api/orders", OrderRead), new("GET", "api/orders/{id:guid}", OrderRead),
         new("POST", "api/orders", OrderWrite), new("PATCH", "api/orders/{id:guid}/status", OrderWrite),
-        new("GET", "api/customers", "Admin"), new("GET", "api/customers/{id:guid}", "Admin"),
-        new("GET", "api/customers/{id:guid}/loyalty-points", "Admin"),
-        new("GET", "api/customers/{id:guid}/orders", "Admin"),
-        new("GET", "api/customers/{id:guid}/purchased-items", "Admin"),
-        new("POST", "api/customers", "Admin"), new("PUT", "api/customers/{id:guid}", "Admin"),
-        new("PATCH", "api/customers/{id:guid}/deactivate", "Admin"),
-        new("PATCH", "api/customers/{id:guid}/activate", "Admin"),
+        new("GET", "api/customers", CustomerServe), new("GET", "api/customers/{id:guid}", CustomerServe),
+        new("GET", "api/customers/{id:guid}/loyalty-points", CustomerManage),
+        new("GET", "api/customers/{id:guid}/orders", CustomerManage),
+        new("GET", "api/customers/{id:guid}/purchased-items", CustomerManage),
+        new("POST", "api/customers", CustomerServe), new("PUT", "api/customers/{id:guid}", CustomerManage),
+        new("PATCH", "api/customers/{id:guid}/deactivate", CustomerManage),
+        new("PATCH", "api/customers/{id:guid}/activate", CustomerManage),
         new("GET", "api/analytics/dashboard", "Admin"),
         new("GET", "api/users", "Admin"), new("GET", "api/users/{id:guid}", "Admin"),
         new("POST", "api/users", "Admin"), new("PUT", "api/users/{id:guid}", "Admin"),

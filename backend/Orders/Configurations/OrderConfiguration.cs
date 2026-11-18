@@ -18,6 +18,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             t.HasCheckConstraint("ck_orders_total_amount_ge_zero", "total_amount >= 0");
             t.HasCheckConstraint("ck_orders_cash_tendered_ge_zero", "cash_tendered IS NULL OR cash_tendered >= 0");
             t.HasCheckConstraint("ck_orders_change_given_ge_zero", "change_given IS NULL OR change_given >= 0");
+            t.HasCheckConstraint("ck_orders_tax_rate_range", "tax_rate >= 0 AND tax_rate <= 100");
         });
 
         builder.HasKey(x => x.Id);
@@ -31,6 +32,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(x => x.Subtotal).HasColumnName("subtotal").HasPrecision(18, 2).IsRequired();
         builder.Property(x => x.DiscountAmount).HasColumnName("discount_amount").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.TaxAmount).HasColumnName("tax_amount").HasPrecision(18, 2).HasDefaultValue(0);
+        builder.Property(x => x.TaxRate).HasColumnName("tax_rate").HasPrecision(5, 2).HasDefaultValue(0);
         builder.Property(x => x.TotalAmount).HasColumnName("total_amount").HasPrecision(18, 2).IsRequired();
         builder.Property(x => x.VoucherId).HasColumnName("voucher_id");
         builder.Property(x => x.CashTendered).HasColumnName("cash_tendered").HasPrecision(18, 2);

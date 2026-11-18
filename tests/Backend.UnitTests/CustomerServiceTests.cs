@@ -30,12 +30,67 @@ public class CustomerServiceTests
         AddCustomer("An Bình", "0902", CustomerTier.Gold, true, Now);
         var third = AddCustomer("Nguyễn Vy", "0903", CustomerTier.Silver, false, Now.AddDays(-1));
 
-        var result = await _service.SearchAsync(new CustomerSearchRequest { Q = "nguyễn", Tier = "silver", IsActive = false, Page = 1, PageSize = 1 });
+        var result = await _service.SearchAsync(new CustomerSearchRequest { Q = "nguyễn", Tier = "silver", IsActive = false, Page = 1, PageSize = 1 }, RoleType.Admin);
 
         result.IsSuccess.Should().BeTrue();
         result.Data!.TotalCount.Should().Be(2);
         result.Data.TotalPages.Should().Be(2);
         result.Data.Items.Should().ContainSingle().Which.Id.Should().Be(new[] { first.Id, third.Id }.Min());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(null)]
+    public async Task SearchAsync_SalesStaff_ReturnsOnlyActiveCustomersWhateverTheFilter(bool? requestedActivity)
+    {
+        // Arrange
+        var active = AddCustomer("Khách đang hoạt động", "0911", active: true);
+        AddCustomer("Khách đã khóa", "0912", active: false);
+
+        // Act
+        var result = await _service.SearchAsync(new CustomerSearchRequest { Q = "091", IsActive = requestedActivity }, RoleType.SalesStaff);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.TotalCount.Should().Be(1);
+        result.Data.Items.Should().ContainSingle().Which.Id.Should().Be(active.Id);
+    }
+
+    [Theory]
+    [InlineData(RoleType.Admin)]
+    [InlineData(RoleType.Manager)]
+    public async Task SearchAsync_AdminOrManager_KeepsTheRequestedActivityFilter(RoleType role)
+    {
+        // Arrange
+        AddCustomer("Khách đang hoạt động", "0913", active: true);
+        var inactive = AddCustomer("Khách đã khóa", "0914", active: false);
+
+        // Act
+        var result = await _service.SearchAsync(new CustomerSearchRequest { IsActive = false }, role);
+
+        // Assert
+        result.Data!.Items.Should().ContainSingle().Which.Id.Should().Be(inactive.Id);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_SalesStaffAndInactiveCustomer_ReturnsNotFound()
+    {
+        // Arrange
+        var inactive = AddCustomer("Khách đã khóa", "0915", active: false);
+        var active = AddCustomer("Khách quen", "0916", active: true);
+
+        // Act
+        var hidden = await _service.GetByIdAsync(inactive.Id, RoleType.SalesStaff);
+        var visible = await _service.GetByIdAsync(active.Id, RoleType.SalesStaff);
+        var forManager = await _service.GetByIdAsync(inactive.Id, RoleType.Manager);
+
+        // Assert
+        hidden.Found.Should().BeFalse();
+        hidden.Data.Should().BeNull();
+        visible.IsSuccess.Should().BeTrue();
+        visible.Data!.Id.Should().Be(active.Id);
+        forManager.IsSuccess.Should().BeTrue();
+        forManager.Data!.IsActive.Should().BeFalse();
     }
 
     [Fact]
@@ -48,7 +103,7 @@ public class CustomerServiceTests
             new Order { CustomerId = customer.Id, Status = OrderStatus.Pending, TotalAmount = 800m },
             new Order { CustomerId = customer.Id, Status = OrderStatus.Cancelled, TotalAmount = 400m });
 
-        var result = await _service.SearchAsync(new CustomerSearchRequest());
+        var result = await _service.SearchAsync(new CustomerSearchRequest(), RoleType.Admin);
 
         var summary = result.Data!.Items.Should().ContainSingle().Subject;
         summary.OrderCount.Should().Be(4);
@@ -62,7 +117,7 @@ public class CustomerServiceTests
         var customer = AddCustomer("No completed orders", "0905");
         _customers.Orders.Add(new Order { CustomerId = customer.Id, Status = OrderStatus.Cancelled, TotalAmount = 200m });
 
-        var result = await _service.SearchAsync(new CustomerSearchRequest());
+        var result = await _service.SearchAsync(new CustomerSearchRequest(), RoleType.Admin);
 
         var summary = result.Data!.Items.Should().ContainSingle().Subject;
         summary.OrderCount.Should().Be(1);
@@ -117,7 +172,7 @@ public class CustomerServiceTests
     {
         foreach (var tier in new[] { "Unknown", "1" })
         {
-            var result = await _service.SearchAsync(new CustomerSearchRequest { Tier = tier });
+            var result = await _service.SearchAsync(new CustomerSearchRequest { Tier = tier }, RoleType.Admin);
             result.ValidationErrors.Should().ContainKey("tier");
         }
     }
@@ -130,7 +185,7 @@ public class CustomerServiceTests
         var entry = new CustomerLoyaltyPoint { CustomerId = customer.Id, PointsChange = 20, BalanceAfter = 1520, Reason = "Order completed", CreatedAt = Now };
         _customers.PointEntries.Add(entry);
 
-        var profile = await _service.GetByIdAsync(customer.Id);
+        var profile = await _service.GetByIdAsync(customer.Id, RoleType.Admin);
         var history = await _service.GetLoyaltyPointsAsync(customer.Id, null, null);
         var missing = await _service.GetLoyaltyPointsAsync(Guid.NewGuid(), null, null);
 
@@ -151,7 +206,7 @@ public class CustomerServiceTests
             new Order { CustomerId = customer.Id, Status = OrderStatus.Cancelled, TotalAmount = 300m },
             new Order { CustomerId = customer.Id, Status = OrderStatus.Pending, TotalAmount = 400m });
 
-        var result = await _service.GetByIdAsync(customer.Id);
+        var result = await _service.GetByIdAsync(customer.Id, RoleType.Admin);
 
         result.Data!.OrderCount.Should().Be(3);
         result.Data.CompletedOrderCount.Should().Be(1);
@@ -281,11 +336,22 @@ public class CustomerServiceTests
     }
 
     [Fact]
-    public void CustomersController_Should_RequireAdminRole()
+    public void CustomersController_Should_ServeCounterRolesAndLimitManagementToAdminAndManager()
     {
-        var attribute = typeof(CustomersController).GetCustomAttributes(typeof(AuthorizeAttribute), true)
-            .Cast<AuthorizeAttribute>().Single();
-        attribute.Roles.Should().Be("Admin");
+        // Arrange
+        string? RolesOf(string method) => typeof(CustomersController).GetMethod(method)!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>().SingleOrDefault()?.Roles;
+
+        // Act
+        var controllerRoles = typeof(CustomersController).GetCustomAttributes(typeof(AuthorizeAttribute), true)
+            .Cast<AuthorizeAttribute>().Single().Roles;
+
+        // Assert
+        controllerRoles.Should().Be("Admin,Manager,SalesStaff");
+        foreach (var counterAction in new[] { "Search", "GetById", "Create" })
+            RolesOf(counterAction).Should().BeNull(counterAction);
+        foreach (var managed in new[] { "Update", "Deactivate", "Activate", "GetOrders", "GetLoyaltyPoints", "GetPurchasedItems" })
+            RolesOf(managed).Should().Be("Admin,Manager", managed);
     }
 
     private Customer AddCustomer(string name, string phone, CustomerTier tier = CustomerTier.Standard, bool active = true, DateTime? createdAt = null)

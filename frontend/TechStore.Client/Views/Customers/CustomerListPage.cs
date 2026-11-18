@@ -73,7 +73,9 @@ public sealed class CustomerListPage : Page, IRoutePage
         heading.Children.Add(new TextBlock().Text("Quản lý hồ sơ, hạng thành viên và lịch sử mua hàng.")
             .Style(AppResources.GetStyle(AppTypography.CaptionText)).Foreground(AppColors.Brushes.SecondaryText)
             .TextWrapping(TextWrapping.Wrap));
-        var addButton = PrimaryButton("＋  Thêm khách hàng");
+        var addButton = PrimaryButton("＋  Thêm khách hàng")
+            .Visibility(x => x.Binding(() => ViewModel.CanCreateCustomers)
+                .Convert((bool visible) => visible ? Visibility.Visible : Visibility.Collapsed));
         // Modal lifetime commands belong to this View, not its data-context ViewModel.
         addButton.Command(ShowCreateDialogCommand);
         Grid.SetColumn(addButton, 1);
@@ -115,6 +117,9 @@ public sealed class CustomerListPage : Page, IRoutePage
             Padding = new Thickness(12, 4, 8, 4)
         };
         _activityFilter.SelectedIndex(x => x.Binding(() => ViewModel.SelectedActivityIndex).Mode(BindingMode.TwoWay));
+        // SalesStaff only ever sees active customers, so the activity filter would offer nothing.
+        _activityFilter.Visibility(x => x.Binding(() => ViewModel.CanManageCustomers)
+            .Convert((bool visible) => visible ? Visibility.Visible : Visibility.Collapsed));
         AutomationProperties.SetName(_activityFilter, "Lọc khách hàng theo trạng thái hoạt động");
 
         var searchAndFilters = new Grid
@@ -320,6 +325,8 @@ public sealed class CustomerListPage : Page, IRoutePage
             VerticalAlignment = VerticalAlignment.Center
         }.Background(AppColors.Brushes.Surface);
         AutomationProperties.SetName(edit, "Chỉnh sửa thông tin khách hàng");
+        // Inside the item template the DataContext is the row, so the page-level permission is applied once here.
+        edit.Visibility = ViewModel.CanManageCustomers ? Visibility.Visible : Visibility.Collapsed;
         edit.Command(ShowCustomerEditCommand);
         edit.CommandParameter(x => x.Binding());
 

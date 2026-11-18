@@ -18,7 +18,7 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product, variant));
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -30,8 +30,9 @@ public partial class OrderServiceTests
         dto.CashierUserId.Should().Be(ActingUserId);
         dto.Subtotal.Should().Be(29_990_000m);
         dto.DiscountAmount.Should().Be(0m);
-        dto.TaxAmount.Should().Be(0m);
-        dto.TotalAmount.Should().Be(29_990_000m);
+        dto.TaxRate.Should().Be(10m); // catalog prices exclude VAT
+        dto.TaxAmount.Should().Be(2_999_000m);
+        dto.TotalAmount.Should().Be(32_989_000m);
         dto.PaidAt.Should().BeNull();
         dto.CompletedAt.Should().BeNull();
         dto.Items.Should().ContainSingle().Which.UnitPrice.Should().Be(29_990_000m);
@@ -47,7 +48,7 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product));
 
         // Act
-        await _service.CreateAsync(request, ActingUserId);
+        await _service.CreateAsync(request, ActingUser);
 
         // Assert
         _unitOfWork.BeginTransactionCount.Should().Be(1);
@@ -67,7 +68,7 @@ public partial class OrderServiceTests
         var request = RequestOf(new CreateOrderItemRequest { ProductId = product.Id, Quantity = 3, DiscountAmount = 50_000m });
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -76,7 +77,8 @@ public partial class OrderServiceTests
         item.Quantity.Should().Be(3);
         item.DiscountAmount.Should().Be(50_000m);
         item.TotalPrice.Should().Be(1_000_000m);
-        result.Data.TotalAmount.Should().Be(1_000_000m);
+        result.Data.Subtotal.Should().Be(1_000_000m);
+        result.Data.TotalAmount.Should().Be(1_100_000m); // + 10% VAT
     }
 
     [Fact]
@@ -88,7 +90,7 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product, variant));
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         var stored = _orders.AddedOrders.Single().Items.Single();
@@ -107,10 +109,11 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product));
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
-        result.Data!.TotalAmount.Should().Be(12_345_000m);
+        result.Data!.Subtotal.Should().Be(12_345_000m);
+        result.Data.TotalAmount.Should().Be(13_579_500m); // catalog price + 10% VAT, never the client's amounts
         typeof(CreateOrderItemRequest).GetProperties().Select(p => p.Name)
             .Should().NotContain(["UnitPrice", "TotalPrice", "TotalAmount"]);
     }
@@ -125,7 +128,7 @@ public partial class OrderServiceTests
         request.CustomerId = customer.Id;
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -141,7 +144,7 @@ public partial class OrderServiceTests
         request.CustomerId = Guid.NewGuid();
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeFalse();
@@ -160,7 +163,7 @@ public partial class OrderServiceTests
         request.CustomerId = customer.Id;
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("customerId");
@@ -176,7 +179,7 @@ public partial class OrderServiceTests
         request.Notes = "  gift wrap  ";
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.Data!.PaymentMethod.Should().Be("VietQr");
@@ -190,7 +193,7 @@ public partial class OrderServiceTests
         var request = RequestOf(new CreateOrderItemRequest { ProductId = Guid.NewGuid(), SerialImeiId = Guid.NewGuid() });
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].productId");
@@ -204,7 +207,7 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product));
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].productId");
@@ -219,7 +222,7 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product));
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].variantId");
@@ -236,7 +239,7 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product, foreignVariant));
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].variantId");
@@ -251,7 +254,7 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product, variant));
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].variantId");
@@ -270,7 +273,7 @@ public partial class OrderServiceTests
         });
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].variantId");
@@ -284,7 +287,7 @@ public partial class OrderServiceTests
         var request = RequestOf(new CreateOrderItemRequest { ProductId = product.Id });
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].serialImeiId");
@@ -299,7 +302,7 @@ public partial class OrderServiceTests
         item.Quantity = 2;
 
         // Act
-        var result = await _service.CreateAsync(RequestOf(item), ActingUserId);
+        var result = await _service.CreateAsync(RequestOf(item), ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].quantity");
@@ -313,7 +316,7 @@ public partial class OrderServiceTests
         var request = RequestOf(new CreateOrderItemRequest { ProductId = product.Id, SerialImeiId = Guid.NewGuid() });
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].serialImeiId");
@@ -329,7 +332,7 @@ public partial class OrderServiceTests
             new CreateOrderItemRequest { ProductId = product.Id, Quantity = 2 });
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[1].productId");
@@ -345,7 +348,7 @@ public partial class OrderServiceTests
         item.DiscountAmount = 1_001m;
 
         // Act
-        var result = await _service.CreateAsync(RequestOf(item), ActingUserId);
+        var result = await _service.CreateAsync(RequestOf(item), ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].discountAmount");
@@ -360,7 +363,7 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product));
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeFalse();
@@ -379,7 +382,7 @@ public partial class OrderServiceTests
         var request = RequestOf(new CreateOrderItemRequest { ProductId = product.Id, Quantity = 5 });
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].quantity");
@@ -395,7 +398,7 @@ public partial class OrderServiceTests
         var request = RequestOf(TrackedItem(product));
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items[0].productId");
@@ -413,7 +416,7 @@ public partial class OrderServiceTests
         request.PaymentMethod = "Bitcoin";
 
         // Act
-        var result = await _service.CreateAsync(request, ActingUserId);
+        var result = await _service.CreateAsync(request, ActingUser);
 
         // Assert
         result.ValidationErrors!.Keys.Should().BeEquivalentTo("customerId", "paymentMethod", "items[0].discountAmount");
@@ -423,7 +426,7 @@ public partial class OrderServiceTests
     public async Task CreateAsync_EmptyItems_ReportsItems()
     {
         // Act
-        var result = await _service.CreateAsync(new CreateOrderRequest { Items = [] }, ActingUserId);
+        var result = await _service.CreateAsync(new CreateOrderRequest { Items = [] }, ActingUser);
 
         // Assert
         result.ValidationErrors.Should().ContainKey("items");
@@ -437,7 +440,7 @@ public partial class OrderServiceTests
         var product = AddProduct();
 
         // Act
-        var result = await _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUserId);
+        var result = await _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUser);
 
         // Assert
         result.Data!.OrderCode.Should().Be("ORD-202610-0008");
@@ -451,7 +454,7 @@ public partial class OrderServiceTests
         _unitOfWork.SaveExceptionQueue.Enqueue(new DuplicateKeyException("idx_orders_code"));
 
         // Act
-        var result = await _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUserId);
+        var result = await _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUser);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -472,7 +475,7 @@ public partial class OrderServiceTests
         }
 
         // Act
-        var result = await _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUserId);
+        var result = await _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUser);
 
         // Assert
         result.IsConflict.Should().BeTrue();
@@ -488,7 +491,7 @@ public partial class OrderServiceTests
         _unitOfWork.SaveExceptionQueue.Enqueue(new DuplicateKeyException("uq_order_items_order_serial"));
 
         // Act
-        var result = await _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUserId);
+        var result = await _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUser);
 
         // Assert
         result.IsConflict.Should().BeTrue();
@@ -504,7 +507,7 @@ public partial class OrderServiceTests
         _unitOfWork.SaveExceptionQueue.Enqueue(new InvalidOperationException("boom"));
 
         // Act
-        var act = () => _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUserId);
+        var act = () => _service.CreateAsync(RequestOf(TrackedItem(product)), ActingUser);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>();

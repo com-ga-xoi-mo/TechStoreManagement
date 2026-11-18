@@ -16,6 +16,8 @@ public class Order : BaseEntity
     public decimal Subtotal { get; set; }
     public decimal DiscountAmount { get; set; } = 0;
     public decimal TaxAmount { get; set; } = 0;
+    /// <summary>VAT rate in percent used when the order was priced; never recalculated.</summary>
+    public decimal TaxRate { get; set; } = 0;
     public decimal TotalAmount { get; set; }
     public Guid? VoucherId { get; set; }
     public decimal? CashTendered { get; set; }

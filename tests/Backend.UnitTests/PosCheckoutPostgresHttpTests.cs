@@ -12,6 +12,8 @@ namespace TechStore.UnitTests;
 public sealed class PosCheckoutPostgresHttpTests
 {
     private const decimal Price = 10_000_000m;
+    // What the customer pays: catalog prices exclude VAT and the API runs with the production 10% (M3 pricing).
+    private const decimal Total = 11_000_000m;
     private const string Password = "HttpEmployee@123";
 
     [PostgresFact]
@@ -23,13 +25,15 @@ public sealed class PosCheckoutPostgresHttpTests
         var imeiId = world.DeviceIds[0];
 
         // Act
-        using var response = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, imeiId, 10_500_000m));
+        using var response = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, imeiId, 11_500_000m));
 
         // Assert
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var order = (await response.Content.ReadFromJsonAsync<OrderDto>())!;
         Assert.Equal("Completed", order.Status);
-        Assert.Equal(Price, order.TotalAmount);
+        Assert.Equal(Price, order.Subtotal);
+        Assert.Equal(1_000_000m, order.TaxAmount);
+        Assert.Equal(Total, order.TotalAmount);
         Assert.Equal(500_000m, order.ChangeGiven);
         Assert.Equal(shift.Id, order.PosSessionId);
         Assert.Equal(world.SalesA.UserId, order.CashierUserId);
@@ -47,24 +51,24 @@ public sealed class PosCheckoutPostgresHttpTests
             Assert.Equal(InventoryMovementType.Sale, movement.MovementType);
             Assert.Equal(world.SalesA.UserId, movement.PerformedByUserId);
             var saved = await db.PosSessions.AsNoTracking().SingleAsync(s => s.Id == shift.Id);
-            Assert.Equal(Price, saved.CashSalesTotal);
+            Assert.Equal(Total, saved.CashSalesTotal);
             var dbOrder = await db.Orders.AsNoTracking().Include(o => o.Items).SingleAsync(o => o.Id == order.Id);
             Assert.Equal(11_000_000m, dbOrder.Items.Single().UnitCost);
         }
 
         // Act: close with exactly the expected cash
         using var close = await world.SalesA.Client.PostAsJsonAsync(
-            $"/api/pos/shifts/{shift.Id}/close", new CloseShiftRequest { ClosingBalance = 12_000_000m });
+            $"/api/pos/shifts/{shift.Id}/close", new CloseShiftRequest { ClosingBalance = 13_000_000m });
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, close.StatusCode);
         var closed = (await close.Content.ReadFromJsonAsync<PosShiftDto>())!;
         Assert.Equal("Closed", closed.Status);
-        Assert.Equal(12_000_000m, closed.ExpectedClosingBalance);
+        Assert.Equal(13_000_000m, closed.ExpectedClosingBalance);
         Assert.Equal(0m, closed.Discrepancy);
 
         // Act: selling into the closed shift
-        using var late = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[1], Price));
+        using var late = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[1], Total));
 
         // Assert
         Assert.Equal(HttpStatusCode.Conflict, late.StatusCode);
@@ -79,7 +83,7 @@ public sealed class PosCheckoutPostgresHttpTests
         // Arrange
         await using var world = await PosWorld.CreateAsync(deviceCount: 1);
         var shift = await world.OpenShiftAsync(world.SalesA, 0m);
-        var request = Checkout(world, shift.Id, world.DeviceIds[0], Price);
+        var request = Checkout(world, shift.Id, world.DeviceIds[0], Total);
 
         // Act
         using var first = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", request);
@@ -98,7 +102,7 @@ public sealed class PosCheckoutPostgresHttpTests
         // Arrange
         await using var world = await PosWorld.CreateAsync(deviceCount: 1);
         var shift = await world.OpenShiftAsync(world.SalesA, 0m);
-        var request = Checkout(world, shift.Id, world.DeviceIds[0], Price);
+        var request = Checkout(world, shift.Id, world.DeviceIds[0], Total);
         var gate = new TaskCompletionSource();
 
         // Act
@@ -130,7 +134,7 @@ public sealed class PosCheckoutPostgresHttpTests
         async Task<HttpStatusCode> SellAsync(PosWorld.Seller seller, PosShiftDto shift)
         {
             await gate.Task;
-            using var response = await seller.Client.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[0], Price));
+            using var response = await seller.Client.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[0], Total));
             return response.StatusCode;
         }
 
@@ -143,7 +147,7 @@ public sealed class PosCheckoutPostgresHttpTests
         await using var db = world.Database.CreateContext();
         Assert.Equal(1, await world.TestOrders(db).CountAsync());
         Assert.Equal(1, await world.TestSales(db).CountAsync());
-        Assert.Equal(Price, await world.TestShifts(db).SumAsync(s => s.CashSalesTotal));
+        Assert.Equal(Total, await world.TestShifts(db).SumAsync(s => s.CashSalesTotal));
         var stock = await db.InventoryStocks.AsNoTracking().SingleAsync(s => s.ProductId == world.ProductId);
         Assert.Equal(0, stock.Quantity);
         Assert.Equal(0, stock.ReservedQuantity);
@@ -161,7 +165,7 @@ public sealed class PosCheckoutPostgresHttpTests
         var sale = Task.Run(async () =>
         {
             await gate.Task;
-            using var response = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[0], Price));
+            using var response = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[0], Total));
             return response.StatusCode;
         });
         var close = Task.Run(async () =>
@@ -237,7 +241,7 @@ public sealed class PosCheckoutPostgresHttpTests
         Assert.Contains(all!.Items, s => s.Id == shift.Id);
 
         // Act and Assert: roles that must not sell or open
-        Assert.Equal(HttpStatusCode.Forbidden, (await world.Manager.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[0], Price))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await world.Manager.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[0], Total))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await world.Manager.PostAsJsonAsync("/api/pos/shifts", new OpenShiftRequest { OpeningBalance = 0m })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await world.Warehouse.GetAsync("/api/pos/shifts")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/pos/shifts/current")).StatusCode);
@@ -260,7 +264,7 @@ public sealed class PosCheckoutPostgresHttpTests
         // Arrange
         await using var world = await PosWorld.CreateAsync(deviceCount: 1);
         var shift = await world.OpenShiftAsync(world.SalesA, 0m);
-        using var sale = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[0], Price));
+        using var sale = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[0], Total));
         var order = (await sale.Content.ReadFromJsonAsync<OrderDto>())!;
 
         // Act
@@ -389,7 +393,7 @@ public sealed class PosCheckoutPostgresHttpTests
             await using var db = Database.CreateContext();
             Assert.Equal(expectedOrders, await TestOrders(db).CountAsync());
             Assert.Equal(expectedOrders, await TestSales(db).CountAsync());
-            Assert.Equal(Price * expectedOrders, (await db.PosSessions.AsNoTracking().SingleAsync(s => s.Id == shiftId)).CashSalesTotal);
+            Assert.Equal(Total * expectedOrders, (await db.PosSessions.AsNoTracking().SingleAsync(s => s.Id == shiftId)).CashSalesTotal);
             Assert.Equal(0, (await db.InventoryStocks.AsNoTracking().SingleAsync(s => s.ProductId == ProductId)).ReservedQuantity);
         }
 

@@ -1551,6 +1551,13 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasDefaultValue(0m)
                         .HasColumnName("tax_amount");
 
+                    b.Property<decimal>("TaxRate")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("tax_rate");
+
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
@@ -1605,6 +1612,8 @@ namespace TechStore.Api.Common.Data.Migrations
 
                             t.HasCheckConstraint("ck_orders_tax_amount_ge_zero", "tax_amount >= 0");
 
+                            t.HasCheckConstraint("ck_orders_tax_rate_range", "tax_rate >= 0 AND tax_rate <= 100");
+
                             t.HasCheckConstraint("ck_orders_total_amount_ge_zero", "total_amount >= 0");
                         });
                 });
@@ -1629,6 +1638,13 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasDefaultValue(0m)
                         .HasColumnName("discount_amount");
+
+                    b.Property<decimal>("OrderDiscountAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("order_discount_amount");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uuid")
@@ -1657,6 +1673,13 @@ namespace TechStore.Api.Common.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("sku");
+
+                    b.Property<decimal>("TaxAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("tax_amount");
 
                     b.Property<decimal>("TotalPrice")
                         .HasPrecision(18, 2)
@@ -1717,7 +1740,11 @@ namespace TechStore.Api.Common.Data.Migrations
 
                             t.HasCheckConstraint("ck_order_items_discount_ge_zero", "discount_amount >= 0");
 
+                            t.HasCheckConstraint("ck_order_items_order_discount_ge_zero", "order_discount_amount >= 0");
+
                             t.HasCheckConstraint("ck_order_items_quantity_gt_zero", "quantity > 0");
+
+                            t.HasCheckConstraint("ck_order_items_tax_amount_ge_zero", "tax_amount >= 0");
 
                             t.HasCheckConstraint("ck_order_items_total_price_ge_zero", "total_price >= 0");
 

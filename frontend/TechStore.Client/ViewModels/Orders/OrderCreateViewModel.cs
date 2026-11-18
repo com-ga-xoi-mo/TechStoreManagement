@@ -10,6 +10,7 @@ using TechStore.Client.Repositories.Orders;
 using TechStore.Client.Services.Api;
 using TechStore.Client.Services.Dialog;
 using TechStore.Client.Services.Navigation;
+using TechStore.Client.ViewModels.Customers;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
@@ -74,14 +75,19 @@ public sealed partial class OrderCreateViewModel : PageViewModel
         IOrderDeviceRepository devices,
         IProductRepository products,
         INavigationService navigation,
-        IDialogService dialogs)
+        IDialogService dialogs,
+        CustomerPickerViewModel? customer = null)
     {
         _orders = orders ?? throw new ArgumentNullException(nameof(orders));
         _devices = devices ?? throw new ArgumentNullException(nameof(devices));
         _products = products ?? throw new ArgumentNullException(nameof(products));
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
+        Customer = customer;
     }
+
+    /// <summary>Who the order is for; no selection means a walk-in guest.</summary>
+    public CustomerPickerViewModel? Customer { get; }
 
     public IReadOnlyList<PaymentOption> PaymentOptions => PaymentOption.All;
 
@@ -105,6 +111,8 @@ public sealed partial class OrderCreateViewModel : PageViewModel
     public string? CreatedOrderCode => _createdOrder?.OrderCode;
 
     protected override bool ManagesLoadState => true;
+
+    protected override void OnDeactivated() => Customer?.Cancel();
 
     protected override Task<bool> LoadContentAsync(CancellationToken cancellationToken)
     {
@@ -537,6 +545,7 @@ public sealed partial class OrderCreateViewModel : PageViewModel
 
     private CreateOrderRequest BuildRequest() => new()
     {
+        CustomerId = Customer?.SelectedCustomerId,
         PaymentMethod = SelectedPayment.Method.ToString(),
         Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(),
         Items = Lines.Select(item => new CreateOrderItemRequest

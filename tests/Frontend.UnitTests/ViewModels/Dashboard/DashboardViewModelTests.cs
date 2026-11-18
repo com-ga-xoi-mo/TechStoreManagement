@@ -142,6 +142,117 @@ public sealed class DashboardViewModelTests
     }
 
     [Fact]
+    public async Task CustomRange_DraftAndInvalidInputDoNotLoad_ApplyAndRefreshUseCommittedDates()
+    {
+        var repository = new RecordingAnalyticsRepository();
+        var viewModel = Create(repository, demoEnabled: false);
+        await viewModel.ActivateAsync();
+        viewModel.ToggleCustomRangeCommand.Execute(null);
+        Assert.True(viewModel.ShowCustomRange);
+
+        viewModel.CustomFrom = "2024-10-12";
+        viewModel.CustomTo = "18/10/2024";
+        await viewModel.ApplyCustomRangeCommand.ExecuteAsync(null);
+        Assert.NotEmpty(viewModel.CustomFromError);
+        Assert.Single(repository.Queries);
+        Assert.Equal(DashboardPeriod.Last7Days, viewModel.SelectedPeriod);
+
+        viewModel.CustomFrom = "12/10/2024";
+        Assert.Single(repository.Queries);
+        await viewModel.ApplyCustomRangeCommand.ExecuteAsync(null);
+        var custom = new DashboardQuery(DashboardPeriod.Custom, (new(2024, 10, 12), new(2024, 10, 18)));
+        Assert.Equal(custom, repository.Queries[^1]);
+        Assert.Equal(DashboardPeriod.Custom, viewModel.SelectedPeriod);
+        Assert.Contains("12/10/2024", viewModel.ReferenceLabel);
+
+        viewModel.CustomTo = "20/10/2024";
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+        Assert.Equal(custom, repository.Queries[^1]);
+        await viewModel.SelectPeriodCommand.ExecuteAsync(0);
+        Assert.Equal(new DashboardQuery(DashboardPeriod.Today), repository.Queries[^1]);
+        Assert.False(viewModel.ShowCustomRange);
+    }
+
+    [Theory]
+    [InlineData("12/10/2024", "11/10/2024")]
+    [InlineData("01/10/2024", "01/11/2024")]
+    [InlineData("12/10/2024", "31/12/9999")]
+    public async Task CustomRange_WhenEndDateInvalid_ShowsFieldError(string from, string to)
+    {
+        var repository = new RecordingAnalyticsRepository();
+        var viewModel = Create(repository, demoEnabled: false);
+        await viewModel.ActivateAsync();
+        viewModel.CustomFrom = from;
+        viewModel.CustomTo = to;
+
+        await viewModel.ApplyCustomRangeCommand.ExecuteAsync(null);
+
+        Assert.NotEmpty(viewModel.CustomToError);
+        Assert.Single(repository.Queries);
+        Assert.Equal(PageContentState.Content, viewModel.ContentState);
+    }
+
+    [Fact]
+    public async Task CustomRange_FailedRequestRetriesAppliedDates()
+    {
+        var repository = new FailOnceAnalyticsRepository();
+        var viewModel = Create(repository, demoEnabled: false);
+        await viewModel.ActivateAsync();
+        viewModel.CustomFrom = "12/10/2024";
+        viewModel.CustomTo = "18/10/2024";
+        await viewModel.ApplyCustomRangeCommand.ExecuteAsync(null);
+        Assert.Equal(PageContentState.Error, viewModel.ContentState);
+
+        viewModel.CustomFrom = "13/10/2024";
+        await viewModel.RetryCommand.ExecuteAsync(null);
+
+        Assert.Equal(new DashboardQuery(DashboardPeriod.Custom, (new(2024, 10, 12), new(2024, 10, 18))), repository.LastQuery);
+        Assert.Equal(PageContentState.Content, viewModel.ContentState);
+    }
+
+    [Fact]
+    public async Task CustomRange_WhenLogoutCancelsInFlightRequest_DropsLateResult()
+    {
+        var first = new TaskCompletionSource<DashboardReadResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var custom = new TaskCompletionSource<DashboardReadResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        first.SetResult(DashboardReadResult.Available(MakeSnapshot(DashboardPeriod.Last7Days, 222m, DashboardSourceKind.Live)));
+        var repository = new SequencedAnalyticsRepository(first, custom);
+        var session = new InMemorySessionStore();
+        session.SetSession("token", "refresh", "manager1", "Manager", "Manager");
+        var viewModel = Create(repository, demoEnabled: false, sessionStore: session);
+        await viewModel.ActivateAsync();
+        viewModel.CustomFrom = "12/10/2024";
+        viewModel.CustomTo = "18/10/2024";
+
+        var request = viewModel.ApplyCustomRangeCommand.ExecuteAsync(null);
+        Assert.Equal(DashboardPeriod.Custom, repository.Queries[^1].Period);
+        session.Clear();
+        Assert.True(repository.LastToken.IsCancellationRequested);
+        custom.SetResult(DashboardReadResult.Available(MakeSnapshot(DashboardPeriod.Custom, 999m, DashboardSourceKind.Live)));
+        await request;
+
+        Assert.Null(viewModel.Snapshot);
+        Assert.True(viewModel.IsSignedOut);
+    }
+
+    [Fact]
+    public async Task Preview_CustomRangeCommandsDoNotOpenOrRequestCustomData()
+    {
+        var repository = new AnalyticsRepositoryFake(new FixtureAnalyticsRepository());
+        var viewModel = Create(repository);
+        await viewModel.ActivateAsync();
+        viewModel.ToggleCustomRangeCommand.Execute(null);
+        viewModel.CustomFrom = "12/10/2024";
+        viewModel.CustomTo = "18/10/2024";
+
+        await viewModel.ApplyCustomRangeCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.ShowCustomRange);
+        Assert.Equal(3, viewModel.Periods.Count);
+        Assert.Equal(DashboardPeriod.Last7Days, Assert.Single(repository.Queries).Period);
+    }
+
+    [Fact]
     public async Task SessionExpired_ClearsSnapshotAndShowsAuthenticationError()
     {
         var session = new InMemorySessionStore();
@@ -260,9 +371,11 @@ public sealed class DashboardViewModelTests
     {
         private int _calls;
         public List<DashboardQuery> Queries { get; } = [];
+        public CancellationToken LastToken { get; private set; }
         public Task<DashboardReadResult> GetDashboardAsync(DashboardQuery query, CancellationToken cancellationToken = default)
         {
             Queries.Add(query);
+            LastToken = cancellationToken;
             return Interlocked.Increment(ref _calls) == 1 ? first.Task : second.Task;
         }
     }
@@ -288,7 +401,10 @@ public sealed class DashboardViewModelTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             Queries.Add(query);
-            return Task.FromResult(DashboardReadResult.Available(MakeSnapshot(query.Period, 99m, DashboardSourceKind.Live)));
+            var snapshot = MakeSnapshot(query.Period, 99m, DashboardSourceKind.Live);
+            if (query.Range is { } range)
+                snapshot = snapshot with { StartDate = range.From, EndDate = range.To };
+            return Task.FromResult(DashboardReadResult.Available(snapshot));
         }
     }
 

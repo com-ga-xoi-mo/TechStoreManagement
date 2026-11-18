@@ -28,11 +28,11 @@ public sealed class AnalyticsRepository(AppDbContext dbContext) : IAnalyticsRepo
         var revenueQuery = dbContext.Orders.AsNoTracking()
             .Where(order => order.Status == OrderStatus.Completed
                 && order.CompletedAt >= criteria.FromUtc
-                && order.CompletedAt < criteria.AsOfUtc);
+                && order.CompletedAt < criteria.ToExclusiveUtc);
 
         var revenue = await revenueQuery.SumAsync(order => (decimal?)order.TotalAmount, cancellationToken) ?? 0m;
         var orderCount = await dbContext.Orders.AsNoTracking()
-            .CountAsync(order => order.CreatedAt >= criteria.FromUtc && order.CreatedAt < criteria.AsOfUtc, cancellationToken);
+            .CountAsync(order => order.CreatedAt >= criteria.FromUtc && order.CreatedAt < criteria.ToExclusiveUtc, cancellationToken);
         var activeProductCount = await dbContext.Products.AsNoTracking()
             .CountAsync(product => product.IsActive, cancellationToken);
 
@@ -59,7 +59,7 @@ public sealed class AnalyticsRepository(AppDbContext dbContext) : IAnalyticsRepo
                 FROM orders
                 WHERE status = {OrderStatus.Completed.ToString()}
                   AND completed_at >= {criteria.FromUtc}
-                  AND completed_at < {criteria.AsOfUtc}
+                  AND completed_at < {criteria.ToExclusiveUtc}
                 GROUP BY ((completed_at AT TIME ZONE 'UTC') + INTERVAL '7 hours')::date
                 ORDER BY "Date"
                 """)
@@ -67,7 +67,7 @@ public sealed class AnalyticsRepository(AppDbContext dbContext) : IAnalyticsRepo
         var dailyRevenue = dailySqlRows.Select(row => new DashboardDailyRevenueRow(row.Date, row.Revenue)).ToList();
 
         var recentOrderRows = await dbContext.Orders.AsNoTracking()
-            .Where(order => order.CreatedAt >= criteria.FromUtc && order.CreatedAt < criteria.AsOfUtc)
+            .Where(order => order.CreatedAt >= criteria.FromUtc && order.CreatedAt < criteria.ToExclusiveUtc)
             .OrderByDescending(order => order.CreatedAt)
             .ThenByDescending(order => order.Id)
             .Take(ListLimit)

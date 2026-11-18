@@ -1,3 +1,4 @@
+using System.Globalization;
 using TechStore.Client.Models.Analytics;
 using TechStore.Client.Repositories.Analytics;
 using TechStore.Client.Services.Api;
@@ -36,6 +37,68 @@ public sealed class AnalyticsApiRepositoryTests
         Assert.Equal(OrderStatus.Processing, snapshot.RecentOrders.Single().Status);
         Assert.Equal(DateTimeKind.Utc, snapshot.AsOf.UtcDateTime.Kind);
         Assert.Equal(TimeSpan.Zero, snapshot.RecentOrders.Single().CreatedAt.Offset);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_WhenCustomRangeUsesCurrentCulture_SendsIsoDatesAndMapsZeroResult()
+    {
+        var start = new DateOnly(2026, 10, 18);
+        var end = start.AddDays(1);
+        var api = new StubApiClient(_ => MakeDto("custom") with
+        {
+            Summary = new(0m, 0, 0, 0, null, null),
+            DailyRevenue = [new(start, 0m), new(end, 0m)],
+            LowStockItems = [],
+            RecentOrders = []
+        });
+        var culture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("th-TH");
+            var result = await new AnalyticsApiRepository(api)
+                .GetDashboardAsync(new(DashboardPeriod.Custom, (start, end)));
+
+            Assert.Equal("api/analytics/dashboard?period=custom&from=2026-10-18&to=2026-10-19", api.LastPath);
+            var snapshot = Assert.IsType<DashboardSnapshot>(result.Snapshot);
+            Assert.Equal(DashboardPeriod.Custom, snapshot.Period);
+            Assert.Equal((start, end), (snapshot.StartDate, snapshot.EndDate));
+            Assert.Equal(DashboardSourceKind.Live, snapshot.SourceKind);
+            Assert.Equal(0m, snapshot.Summary.Revenue);
+            Assert.Equal(new[] { start, end }, snapshot.DailyRevenue.Select(row => row.Date));
+            Assert.Empty(snapshot.LowStockItems);
+            Assert.Empty(snapshot.RecentOrders);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    [Theory]
+    [InlineData("last7Days", false)]
+    [InlineData("custom", true)]
+    public async Task GetDashboardAsync_WhenCustomResponseDoesNotMatchQuery_ReportsInvalidResponse(string period, bool wrongDate)
+    {
+        var from = new DateOnly(2026, 10, 18);
+        var end = wrongDate ? from : from.AddDays(1);
+        var repository = new AnalyticsApiRepository(new StubApiClient(_ => MakeDto(period)));
+
+        var error = await Assert.ThrowsAsync<ApiException>(() =>
+            repository.GetDashboardAsync(new(DashboardPeriod.Custom, (from, end))));
+
+        Assert.Equal(ApiErrorKind.InvalidResponse, error.Kind);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_WhenDatesDoNotMatchPeriodType_DoesNotCallApi()
+    {
+        var date = new DateOnly(2026, 10, 18);
+        var api = new StubApiClient(_ => MakeDto("custom"));
+        var repository = new AnalyticsApiRepository(api);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.GetDashboardAsync(new(DashboardPeriod.Custom)));
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.GetDashboardAsync(new(DashboardPeriod.Today, (date, date))));
+        Assert.Null(api.LastPath);
     }
 
     [Fact]

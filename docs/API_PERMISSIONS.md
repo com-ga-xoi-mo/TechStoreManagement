@@ -1,4 +1,4 @@
-# Quyền API — M3 Sprint 1
+# Quyền API — M3
 
 A = Admin, M = Manager, S = SalesStaff, W = WarehouseStaff.
 Mỗi request nghiệp vụ cần JWT hợp lệ, tài khoản đang hoạt động, role và token_version hiện hành.
@@ -20,7 +20,7 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | POST `/api/pos/shifts`, GET `/api/pos/shifts/current`, POST `/api/pos/checkout` | A S | Open own shift, read own open shift, cash checkout into own open shift; actor from token |
 | GET `/api/pos/shifts`, `/api/pos/shifts/{id}` | A M S | A/M see all shifts; S sees only own (other users' shifts return 404) |
 | POST `/api/pos/shifts/{id}/close` | A M S | S closes own shift only; A/M close any shift; closing records `closedByUserId` |
-| GET `/api/analytics/dashboard` | A | Store-wide dashboard; Manager enablement is Sprint 2 |
+| GET `/api/analytics/dashboard` | A M | Read-only store-wide dashboard |
 | PUT `/api/settings/store` | A M | Existing store configuration fields |
 | GET `/api/auth/me`, POST `/api/auth/logout` | A M S W | Own identity and account-wide logout |
 | GET `/api/users`, `/api/users/{id}`, POST `/api/users`, PUT `/api/users/{id}`, PATCH `/api/users/{id}/status`, PUT `/api/users/{id}/role`, POST `/api/users/{id}/reset-password` | A | Account metadata and administrative mutations; never hashes/tokens |
@@ -31,9 +31,9 @@ Static product image files public; Swagger chỉ Development. Fallback policy b�
 cho endpoint không khai báo policy; không có quyền mặc định hoặc user fallback.
 Account password/hash/token/version và order cost snapshots không xuất trong business DTO.
 
-Sprint 2 tiếp tục: mở dashboard Manager và khách hàng Sales, kiểm tra trường giá vốn
+Sprint 2 tiếp tục: mở khách hàng Sales, kiểm tra trường giá vốn
 Inventory theo role, landing page/menu và tách settings cá nhân. Giá vốn sản phẩm đã được che tại server theo `FieldAccess`.
-Hiện Manager gọi dashboard và Sales gọi Customers vẫn nhận 403.
+Sales gọi Customers vẫn nhận 403.
 
 ## Kiểm chứng và cập nhật khi tích hợp
 
@@ -47,8 +47,8 @@ ghi riêng; độ phủ policy không chứng nhận mọi nghiệp vụ đã ho
 Khi chủ module merge endpoint mới hoặc thay quyền, cập nhật bảng này, spec của change
 nghiệp vụ tương ứng, baseline và test/caller trong cùng thay đổi. Không tự sinh expected
 roles từ attributes, không đưa API tương lai chưa đăng ký vào baseline rồi kết luận lỗi.
-Mở Manager dashboard thuộc Bình; Customers cho Sales thuộc Vy; trường giá vốn và UI theo
-phân công Q. Vinh/T. Vinh. Change kiểm chứng của An giữ nguyên contract Sprint 1 ở trên.
+Dashboard Manager thuộc Bình; Customers cho Sales thuộc Vy; trường giá vốn và UI theo
+phân công Q. Vinh/T. Vinh.
 
 Lệnh chạy và giới hạn TestServer/Kestrel/UI: [Identity README](../backend/Identity/README.md#repeatable-http--postgresql-regression).
 Kết quả theo build và các điểm chờ tích hợp: [M3 handoff](M3_IDENTITY_INTEGRATION_HANDOFF.md).

@@ -10,7 +10,7 @@ public sealed class RoleAccessTests(ITestOutputHelper output)
     public static IEnumerable<object[]> Cases =>
     [
         ["Admin", "Dashboard,Products,Inventory,Orders,Customers,Settings", ShellDestination.Dashboard, true, true, true, true],
-        ["Manager", "Products,Inventory,Orders,Settings", ShellDestination.Orders, false, false, false, true],
+        ["Manager", "Dashboard,Products,Inventory,Orders,Settings", ShellDestination.Dashboard, false, false, false, true],
         ["SalesStaff", "Products,Orders,Settings", ShellDestination.Orders, false, false, true, false],
         ["WarehouseStaff", "Products,Inventory,Settings", ShellDestination.Inventory, false, true, false, false],
         ["Unknown", "Settings", ShellDestination.Settings, false, false, false, false],
@@ -87,7 +87,9 @@ public sealed class RoleAccessTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("Manager", ShellDestination.Dashboard)]
+    [InlineData("Manager", ShellDestination.Customers)]
+    [InlineData("SalesStaff", ShellDestination.Dashboard)]
+    [InlineData("WarehouseStaff", ShellDestination.Dashboard)]
     [InlineData("SalesStaff", ShellDestination.Customers)]
     [InlineData("SalesStaff", ShellDestination.Inventory)]
     [InlineData("WarehouseStaff", ShellDestination.Orders)]

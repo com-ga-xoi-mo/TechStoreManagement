@@ -42,6 +42,10 @@ public sealed class DashboardPage : Page, IRoutePage
 
         var content = new StackPanel().Padding(new Thickness(20, 20, 20, 4)).Spacing(18).Children(
             BuildHeader(periodSelector),
+            BuildCustomRange(),
+            new TextBlock().Style(AppResources.GetStyle(AppTypography.CaptionText)).Foreground(AppColors.Brushes.SecondaryText)
+                .TextWrapping(TextWrapping.Wrap).Text(x => x.Binding(() => _viewModel.ReferenceLabel))
+                .Visibility(x => x.Binding(() => _viewModel.ShowLiveReference).Convert(ShowIf)),
             new InfoBar().IsOpen(x => x.Binding(() => viewModel.ShowPreviewBanner)).IsClosable(false)
                 .Severity(InfoBarSeverity.Informational).Title("Dữ liệu minh họa — chưa kết nối Analytics API")
                 .Message(x => x.Binding(() => viewModel.ReferenceLabel)),
@@ -110,10 +114,60 @@ public sealed class DashboardPage : Page, IRoutePage
             .IsEnabled(x => x.Binding(() => _viewModel.CanRefresh));
         AutomationProperties.SetName(refresh, "Làm mới thống kê");
         ToolTipService.SetToolTip(refresh, "Làm mới kỳ đang chọn");
+        var custom = new Button().Content("Khoảng ngày")
+            .Style(AppControlStyles.Styles.QuietButton)
+            .Command(x => x.Binding(() => _viewModel.ToggleCustomRangeCommand))
+            .Visibility(x => x.Binding(() => _viewModel.IsLiveMode).Convert(ShowIf));
+        AutomationProperties.SetAutomationId(custom, "DashboardCustomRange");
 
         UpdatePeriodSelector();
         return new StackPanel().Orientation(Orientation.Horizontal).Spacing(8)
-            .VerticalAlignment(VerticalAlignment.Center).Children(segmentedFrame, refresh);
+            .VerticalAlignment(VerticalAlignment.Center).Children(segmentedFrame, refresh, custom);
+    }
+
+    private UIElement BuildCustomRange()
+    {
+        var apply = new Button().Content("Áp dụng").Style(AppControlStyles.Styles.PrimaryButton)
+            .Command(x => x.Binding(() => _viewModel.ApplyCustomRangeCommand))
+            .IsEnabled(x => x.Binding(() => _viewModel.CanChangePeriod));
+        AutomationProperties.SetAutomationId(apply, "DashboardApplyRange");
+        var dates = new Grid().ColumnDefinitions("1*, 1*").ColumnSpacing(12).Children(
+            BuildDateField("Từ ngày", "DashboardFromDate", isStart: true).Grid(column: 0),
+            BuildDateField("Đến ngày", "DashboardToDate", isStart: false).Grid(column: 1));
+
+        return new Border().Background(AppColors.Brushes.Surface).BorderBrush(AppColors.Brushes.Stroke)
+            .BorderThickness(new Thickness(1)).CornerRadius(AppMetrics.Values.CardRadius).Padding(12)
+            .Visibility(x => x.Binding(() => _viewModel.ShowCustomRange).Convert(ShowIf))
+            .Child(new StackPanel().Spacing(8).Children(
+                new TextBlock().Style(AppResources.GetStyle(AppTypography.CaptionText))
+                    .Foreground(AppColors.Brushes.SecondaryText).TextWrapping(TextWrapping.Wrap)
+                    .Text("Chọn tối đa 31 ngày theo giờ Việt Nam (UTC+07)."),
+                dates, apply));
+    }
+
+    private StackPanel BuildDateField(string label, string automationId, bool isStart)
+    {
+        var input = new TextBox { Header = label, PlaceholderText = "dd/MM/yyyy", MaxLength = 10 };
+        AutomationProperties.SetAutomationId(input, automationId);
+        AutomationProperties.SetName(input, label);
+        AutomationProperties.SetHelpText(input, "Định dạng dd/MM/yyyy");
+        var error = new TextBlock().Style(AppResources.GetStyle(AppTypography.CaptionText))
+            .Foreground(AppColors.Brushes.DangerText).TextWrapping(TextWrapping.Wrap);
+        AutomationProperties.SetLiveSetting(error, AutomationLiveSetting.Polite);
+        if (isStart)
+        {
+            input.Text(x => x.Binding(() => _viewModel.CustomFrom).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged));
+            error.Text(x => x.Binding(() => _viewModel.CustomFromError))
+                .Visibility(x => x.Binding(() => _viewModel.CustomFromError).Convert(ShowIfHasText));
+        }
+        else
+        {
+            input.Text(x => x.Binding(() => _viewModel.CustomTo).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged));
+            error.Text(x => x.Binding(() => _viewModel.CustomToError))
+                .Visibility(x => x.Binding(() => _viewModel.CustomToError).Convert(ShowIfHasText));
+        }
+
+        return new StackPanel().Spacing(4).Children(input, error);
     }
 
     private void UpdatePeriodSelector()
@@ -154,7 +208,7 @@ public sealed class DashboardPage : Page, IRoutePage
             .IconSource(GetIcon(AppIcons.BoxIcon)!).IsLoading(x => x.Binding(() => _viewModel.IsLoading)).Grid(column: 2));
         grid.Children.Add(new StatCard().MinHeight(142).Title("Cảnh báo tồn kho").ValueText(x => x.Binding(() => _viewModel.LowStockText))
             .UnitText("mặt hàng").TrendText(x => x.Binding(() => _viewModel.LowStockTrendText))
-            .DetailText("theo ngưỡng tồn kho")
+            .DetailText("tại thời điểm đọc")
             .Tone(StatusTone.Warning).IconSource(GetIcon(AppIcons.WarningIcon)!)
             .IsLoading(x => x.Binding(() => _viewModel.IsLoading)).Grid(column: 3));
         return grid;
@@ -169,11 +223,11 @@ public sealed class DashboardPage : Page, IRoutePage
             BuildDailyRevenueList()));
 
         _stockPanel = new Border().Style(AppControlStyles.Styles.Panel).Padding(20).Child(new StackPanel().Spacing(10).Children(
-            new TextBlock().Style(AppTypography.Styles.SectionText).Text("Tồn kho thấp"),
+            new TextBlock().Style(AppTypography.Styles.SectionText).Text("Tồn kho thấp tại thời điểm đọc"),
             BuildLowStockList()));
         var recentPanel = new Border().Style(AppControlStyles.Styles.Panel).Padding(20).Child(new StackPanel().Spacing(10).Children(
             new Grid().ColumnDefinitions(new ColumnDefinition().Width(new GridLength(1, GridUnitType.Star)), new ColumnDefinition().Width(GridLength.Auto))
-                .Children(new TextBlock().Style(AppTypography.Styles.SectionText).Text("5 đơn hàng phát sinh gần nhất").Grid(column: 0)),
+                .Children(new TextBlock().Style(AppTypography.Styles.SectionText).Text("Đơn mới nhất trong kỳ").Grid(column: 0)),
             BuildRecentOrdersList()));
 
         _analyticsGrid = new Grid().ColumnSpacing(20).RowSpacing(20)
@@ -327,7 +381,11 @@ public sealed class DashboardPage : Page, IRoutePage
         var width = _revenueCanvas.ActualWidth;
         var height = _revenueCanvas.ActualHeight;
         var layout = RevenueChartLayout.Calculate(points, width, height, left, right, top, bottom);
-        if (layout.Points.Count == 0) return;
+        if (layout.Points.Count == 0)
+        {
+            _revenueLine.Data = null;
+            return;
+        }
 
         var plotHeight = height - top - bottom;
         var plotWidth = width - left - right;
@@ -351,6 +409,9 @@ public sealed class DashboardPage : Page, IRoutePage
         }
 
         var slotWidth = plotWidth / points.Count;
+        var isCustom = _viewModel.Snapshot?.Period == DashboardPeriod.Custom;
+        var labelWidth = isCustom ? Math.Min(plotWidth, Math.Max(44, slotWidth)) : slotWidth;
+        var labelStep = isCustom ? Math.Max(1, (int)Math.Ceiling(labelWidth / slotWidth)) : 1;
         var barWidth = Math.Min(40, slotWidth * 0.54);
         var peakIndex = points.Select((point, index) => (point, index)).MaxBy(pair => pair.point.Revenue).index;
         var baseline = top + plotHeight;
@@ -371,14 +432,17 @@ public sealed class DashboardPage : Page, IRoutePage
             Canvas.SetTop(bar, baseline - barHeight);
             _revenueCanvas.Children.Add(bar);
 
-            var dayLabel = new TextBlock().Text(GetChartDateLabel(points[index].Date, points.Count))
-                .FontSize(10).TextAlignment(TextAlignment.Center).Width(slotWidth).Foreground(textBrush);
+            var distanceToLast = points.Count - 1 - index;
+            if (distanceToLast != 0 && (index % labelStep != 0 || distanceToLast < labelStep)) continue;
+            var labelText = isCustom ? points[index].Date.ToString("dd/MM") : GetChartDateLabel(points[index].Date, points.Count);
+            var dayLabel = new TextBlock().Text(labelText)
+                .FontSize(10).TextAlignment(TextAlignment.Center).Width(labelWidth).Foreground(textBrush);
             if (index == peakIndex)
             {
                 dayLabel.Foreground(primaryBrush);
                 dayLabel.FontWeight(Microsoft.UI.Text.FontWeights.Bold);
             }
-            Canvas.SetLeft(dayLabel, left + index * slotWidth);
+            Canvas.SetLeft(dayLabel, Math.Clamp(point.X - labelWidth / 2, left, left + (plotWidth - labelWidth)));
             Canvas.SetTop(dayLabel, baseline + 7);
             _revenueCanvas.Children.Add(dayLabel);
         }
@@ -543,6 +607,7 @@ public sealed class DashboardPage : Page, IRoutePage
     }
 
     private static Visibility ShowIf(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
+    private static Visibility ShowIfHasText(string value) => ShowIf(!string.IsNullOrWhiteSpace(value));
     private static IconSource? GetIcon(string key) => Application.Current.Resources.TryGetValue(key, out var value) ? value as IconSource : null;
 
     private static void SetGridCell(UIElement element, int row, int column, int columnSpan = 1)

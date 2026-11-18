@@ -1,3 +1,4 @@
+using System.Globalization;
 using TechStore.Client.Models.Analytics;
 using TechStore.Client.Services.Api;
 using TechStore.Shared.DTOs;
@@ -5,7 +6,7 @@ using TechStore.Shared.Enums;
 
 namespace TechStore.Client.Repositories.Analytics;
 
-/// <summary>Reads the server-computed Admin dashboard snapshot and maps it to client presentation models.</summary>
+/// <summary>Reads and maps the server-computed store-wide dashboard snapshot.</summary>
 public sealed class AnalyticsApiRepository(IApiClient apiClient) : IAnalyticsRepository
 {
     private const string TimeZone = "UTC+07:00";
@@ -22,15 +23,26 @@ public sealed class AnalyticsApiRepository(IApiClient apiClient) : IAnalyticsRep
             DashboardPeriod.Today => "today",
             DashboardPeriod.Last7Days => "last7Days",
             DashboardPeriod.ThisMonth => "thisMonth",
+            DashboardPeriod.Custom => "custom",
             _ => throw new ArgumentOutOfRangeException(nameof(query), query.Period, "Unsupported dashboard period.")
         };
 
-        var dto = await apiClient.GetAsync<AdminDashboardDto>(
-            $"api/analytics/dashboard?period={periodKey}", cancellationToken);
-        return DashboardReadResult.Available(Map(dto, query.Period, periodKey));
+        var path = $"api/analytics/dashboard?period={periodKey}";
+        if (query.Period == DashboardPeriod.Custom)
+        {
+            var range = query.Range ?? throw new ArgumentException("A custom dashboard period requires both dates.", nameof(query));
+            path = string.Create(CultureInfo.InvariantCulture, $"{path}&from={range.From:yyyy-MM-dd}&to={range.To:yyyy-MM-dd}");
+        }
+        else if (query.Range is not null)
+        {
+            throw new ArgumentException("Dashboard dates require a custom period.", nameof(query));
+        }
+
+        var dto = await apiClient.GetAsync<AdminDashboardDto>(path, cancellationToken);
+        return DashboardReadResult.Available(Map(dto, query, periodKey));
     }
 
-    private static DashboardSnapshot Map(AdminDashboardDto dto, DashboardPeriod requestedPeriod, string requestedPeriodKey)
+    private static DashboardSnapshot Map(AdminDashboardDto dto, DashboardQuery query, string requestedPeriodKey)
     {
         if (dto is null) throw InvalidResponse("Dashboard response is null.");
         if (!string.Equals(dto.Period, requestedPeriodKey, StringComparison.Ordinal))
@@ -39,6 +51,8 @@ public sealed class AnalyticsApiRepository(IApiClient apiClient) : IAnalyticsRep
             throw InvalidResponse("Dashboard response has an unsupported time zone.");
         if (dto.StartDate > dto.EndDate)
             throw InvalidResponse("Dashboard response has an invalid date range.");
+        if (query.Range is { } range && (dto.StartDate != range.From || dto.EndDate != range.To))
+            throw InvalidResponse("Dashboard response dates do not match the requested range.");
         if (dto.AsOf.Kind != DateTimeKind.Utc)
             throw InvalidResponse("Dashboard as-of timestamp must be UTC.");
 
@@ -93,7 +107,7 @@ public sealed class AnalyticsApiRepository(IApiClient apiClient) : IAnalyticsRep
         }).ToArray();
 
         return new DashboardSnapshot(
-            requestedPeriod,
+            query.Period,
             dto.StartDate,
             dto.EndDate,
             new DateTimeOffset(dto.AsOf),

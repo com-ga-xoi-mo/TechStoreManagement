@@ -14,13 +14,23 @@ namespace TechStore.Client.ViewModels.Dashboard;
 public sealed partial class DashboardViewModel : PageViewModel
 {
     private static readonly CultureInfo VietnameseCulture = CultureInfo.GetCultureInfo("vi-VN");
+    private static readonly TimeSpan VietnamOffset = TimeSpan.FromHours(7);
+    private const string DateInputFormat = "dd/MM/yyyy";
     private readonly IAnalyticsRepository _analytics;
     private readonly DashboardPreviewOptions _previewOptions;
     private readonly ISessionStore _sessionStore;
     private bool _hasActivated;
+    private DashboardQuery _appliedQuery = new(DashboardPeriod.Last7Days);
 
-    [ObservableProperty] private DashboardSnapshot? snapshot;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowLiveReference))]
+    private DashboardSnapshot? snapshot;
     [ObservableProperty] private int selectedPeriodIndex = 1;
+    [ObservableProperty] private bool showCustomRange;
+    [ObservableProperty] private string customFrom = string.Empty;
+    [ObservableProperty] private string customTo = string.Empty;
+    [ObservableProperty] private string customFromError = string.Empty;
+    [ObservableProperty] private string customToError = string.Empty;
 
     public IReadOnlyList<DashboardPeriodOption> Periods { get; } =
     [
@@ -40,10 +50,11 @@ public sealed partial class DashboardViewModel : PageViewModel
         _sessionStore.SessionChanged += OnSessionChanged;
     }
 
-    public DashboardPeriod SelectedPeriod => Periods[SelectedPeriodIndex].Period;
+    public DashboardPeriod SelectedPeriod => _appliedQuery.Period;
     public bool IsDemoMode => _previewOptions.Enabled;
     public bool IsLiveMode => !_previewOptions.Enabled;
     public bool ShowPreviewBanner => IsDemoMode;
+    public bool ShowLiveReference => IsLiveMode && Snapshot is not null;
     public bool ShowDashboardPanels => IsContent || IsLoading;
     // Kept as a source-compatible alias while the XAML page is replaced in the same change.
     public bool ShowPreviewPanels => ShowDashboardPanels;
@@ -52,13 +63,13 @@ public sealed partial class DashboardViewModel : PageViewModel
     public bool CanRefresh => !IsLoading;
     public bool IsSignedOut => IsLiveMode && _sessionStore.Current.Status == SessionStatus.Anonymous && IsEmpty;
     public string EmptyDashboardMessage => IsSignedOut
-        ? "Đăng nhập bằng tài khoản Quản trị viên để xem thống kê."
+        ? "Đăng nhập bằng tài khoản Quản trị viên hoặc Quản lý để xem thống kê."
         : "Chưa có dữ liệu trong kỳ đã chọn.";
     public string ReferenceLabel => Snapshot is null
         ? string.Empty
         : IsDemoMode
-            ? $"Kỳ {Snapshot.StartDate:dd/MM/yyyy}–{Snapshot.EndDate:dd/MM/yyyy} · Dữ liệu minh họa tại {Snapshot.AsOf.ToOffset(TimeSpan.FromHours(7)):dd/MM/yyyy HH:mm} (UTC+07)"
-            : $"Kỳ {Snapshot.StartDate:dd/MM/yyyy}–{Snapshot.EndDate:dd/MM/yyyy} · Cập nhật {Snapshot.AsOf.ToOffset(TimeSpan.FromHours(7)):dd/MM/yyyy HH:mm} (UTC+07)";
+            ? $"Kỳ {Snapshot.StartDate:dd/MM/yyyy}–{Snapshot.EndDate:dd/MM/yyyy} · Dữ liệu minh họa tại {Snapshot.AsOf.ToOffset(VietnamOffset):dd/MM/yyyy HH:mm} (UTC+07)"
+            : $"Kỳ {Snapshot.StartDate:dd/MM/yyyy}–{Snapshot.EndDate:dd/MM/yyyy} · Cập nhật {Snapshot.AsOf.ToOffset(VietnamOffset):dd/MM/yyyy HH:mm} (UTC+07)";
     public string ChartPeakSummary
     {
         get
@@ -122,15 +133,61 @@ public sealed partial class DashboardViewModel : PageViewModel
         if (periodIndex < 0 || periodIndex >= Periods.Count || periodIndex == SelectedPeriodIndex || IsLoading)
             return;
 
+        ShowCustomRange = false;
+        await ApplyQueryAsync(new(Periods[periodIndex].Period), periodIndex, cancellationToken);
+    }
+
+    [RelayCommand]
+    private void ToggleCustomRange()
+    {
+        if (IsLiveMode) ShowCustomRange = !ShowCustomRange;
+    }
+
+    [RelayCommand]
+    private async Task ApplyCustomRangeAsync(CancellationToken cancellationToken)
+    {
+        if (!IsLiveMode || IsLoading) return;
+
+        var fromValid = DateOnly.TryParseExact(CustomFrom, DateInputFormat, VietnameseCulture, DateTimeStyles.None, out var from);
+        var toValid = DateOnly.TryParseExact(CustomTo, DateInputFormat, VietnameseCulture, DateTimeStyles.None, out var to);
+        CustomFromError = fromValid ? string.Empty : "Nhập ngày bắt đầu theo dd/MM/yyyy.";
+        CustomToError = toValid ? string.Empty : "Nhập ngày kết thúc theo dd/MM/yyyy.";
+        if (!fromValid || !toValid) return;
+
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(VietnamOffset).DateTime);
+        if (from == DateOnly.MinValue)
+            CustomFromError = "Ngày bắt đầu nằm ngoài khoảng hỗ trợ.";
+        if (to > today || to == DateOnly.MaxValue)
+            CustomToError = "Chọn ngày kết thúc không muộn hơn hôm nay theo giờ Việt Nam.";
+        else if (to < from)
+            CustomToError = "Ngày kết thúc phải từ ngày bắt đầu trở đi.";
+        else if (to.DayNumber - from.DayNumber >= 31)
+            CustomToError = "Chọn khoảng tối đa 31 ngày.";
+        if (CustomFromError.Length != 0 || CustomToError.Length != 0) return;
+
+        await ApplyQueryAsync(new(DashboardPeriod.Custom, (from, to)), -1, cancellationToken);
+    }
+
+    partial void OnCustomFromChanged(string value)
+    {
+        CustomFromError = string.Empty;
+        CustomToError = string.Empty;
+    }
+
+    partial void OnCustomToChanged(string value) => CustomToError = string.Empty;
+
+    private Task<bool> ApplyQueryAsync(DashboardQuery query, int periodIndex, CancellationToken cancellationToken)
+    {
+        _appliedQuery = query;
         SelectedPeriodIndex = periodIndex;
         OnPropertyChanged(nameof(SelectedPeriod));
-        await LoadSnapshotAsync(Periods[periodIndex].Period, cancellationToken);
+        return LoadSnapshotAsync(query, cancellationToken);
     }
 
     [RelayCommand]
     private async Task RefreshAsync(CancellationToken cancellationToken)
     {
-        if (!IsLoading) await LoadSnapshotAsync(SelectedPeriod, cancellationToken);
+        if (!IsLoading) await LoadSnapshotAsync(_appliedQuery, cancellationToken);
     }
 
     protected override bool ManagesLoadState => true;
@@ -138,10 +195,10 @@ public sealed partial class DashboardViewModel : PageViewModel
     protected override Task<bool> LoadContentAsync(CancellationToken cancellationToken)
     {
         _hasActivated = true;
-        return LoadSnapshotAsync(SelectedPeriod, cancellationToken);
+        return LoadSnapshotAsync(_appliedQuery, cancellationToken);
     }
 
-    protected override Task RetryContentAsync() => LoadSnapshotAsync(SelectedPeriod, ActivationToken);
+    protected override Task RetryContentAsync() => LoadSnapshotAsync(_appliedQuery, ActivationToken);
 
     protected override void OnLatestRequestFailed(Exception exception)
     {
@@ -152,9 +209,10 @@ public sealed partial class DashboardViewModel : PageViewModel
     protected override string GetSafeErrorMessage(Exception exception) => exception switch
     {
         ApiException { StatusCode: 401 } when _sessionStore.Current.Status == SessionStatus.Anonymous =>
-            "Đăng nhập bằng tài khoản Quản trị viên để xem thống kê.",
+            "Đăng nhập bằng tài khoản Quản trị viên hoặc Quản lý để xem thống kê.",
         ApiException { StatusCode: 401 } => "Phiên truy cập đã hết hạn. Hãy đăng nhập lại để tiếp tục.",
         ApiException { StatusCode: 403 } => "Bạn không có quyền xem Dashboard Analytics.",
+        ApiException { StatusCode: 400 } => "Kỳ thống kê không hợp lệ. Hãy kiểm tra khoảng ngày theo giờ Việt Nam.",
         ApiException { Kind: ApiErrorKind.Timeout } => "Yêu cầu Dashboard quá thời gian chờ. Hãy thử lại.",
         ApiException { Kind: ApiErrorKind.Network } => "Không thể kết nối Dashboard API. Hãy kiểm tra kết nối rồi thử lại.",
         ApiException { Kind: ApiErrorKind.InvalidResponse } => "Dashboard API trả dữ liệu không đúng định dạng.",
@@ -198,7 +256,7 @@ public sealed partial class DashboardViewModel : PageViewModel
         _sessionStore.SessionChanged -= OnSessionChanged;
     }
 
-    private async Task<bool> LoadSnapshotAsync(DashboardPeriod period, CancellationToken cancellationToken)
+    private async Task<bool> LoadSnapshotAsync(DashboardQuery query, CancellationToken cancellationToken)
     {
         ErrorMessage = string.Empty;
         ContentState = PageContentState.Loading;
@@ -208,7 +266,7 @@ public sealed partial class DashboardViewModel : PageViewModel
         var sessionGeneration = _sessionStore.Current.Generation;
         return await RunLatestRequestAsync(
             async token => new RequestSnapshot(
-                await _analytics.GetDashboardAsync(new DashboardQuery(period), token),
+                await _analytics.GetDashboardAsync(query, token),
                 sessionGeneration),
             result =>
             {
@@ -249,7 +307,7 @@ public sealed partial class DashboardViewModel : PageViewModel
             return;
         }
 
-        _ = LoadSnapshotAsync(SelectedPeriod, ActivationToken);
+        _ = LoadSnapshotAsync(_appliedQuery, ActivationToken);
     }
 
     private void OnPresentationChanged()

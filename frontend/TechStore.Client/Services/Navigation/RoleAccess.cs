@@ -20,7 +20,8 @@ public static class RoleAccess
         AppRouteKind.Root => route.Destination switch
         {
             ShellDestination.Settings => true,
-            ShellDestination.Dashboard or ShellDestination.Customers => role == "Admin", // Manager dashboard and Sales customers await server permissions.
+            ShellDestination.Dashboard => role is "Admin" or "Manager",
+            ShellDestination.Customers => role == "Admin",
             ShellDestination.Products => role is "Admin" or "Manager" or "SalesStaff" or "WarehouseStaff",
             ShellDestination.Inventory => role is "Admin" or "Manager" or "WarehouseStaff",
             ShellDestination.Orders => role is "Admin" or "Manager" or "SalesStaff",

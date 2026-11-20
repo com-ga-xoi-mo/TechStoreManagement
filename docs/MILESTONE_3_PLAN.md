@@ -65,17 +65,19 @@ không kết luận chủ module chưa làm trên nhánh riêng hoặc có lỗi
 
 Bảo vệ giá vốn serial ở Sprint 2, triển khai nhập hàng ở Sprint 3. Chốt với Đạt thứ tự khóa chung và contract kiểm tra/trừ kho, giá vốn, lịch sử và bảo hành. Dùng lại `IInventoryFulfillmentService`; Q. Vinh sửa logic kho, Đạt gọi từ luồng bán.
 
-- [ ] Áp dụng bảng quyền đã chốt cho giá vốn trong DTO serial. Không chỉ ẩn giá trên giao diện.
-- [ ] Làm màn hình/API tìm, tạo, sửa và ngừng sử dụng nhà cung cấp; giữ lịch sử phiếu nhập.
-- [ ] Làm danh sách, chi tiết và tạo phiếu nhập theo sản phẩm/biến thể. Server tính tổng từ số lượng và đơn giá nhập.
-- [ ] Chốt trạng thái phiếu và quyền sửa/hủy. Hỗ trợ nhận một phần, nhận đủ và hủy phần chưa nhận.
-- [ ] Khi nhận hàng, chặn số lượng vượt phần còn lại và chặn ghi nhận lại cùng lần nhận. Lưu người nhận, thời điểm và chứng từ.
-- [ ] Nhập Serial/IMEI đúng sản phẩm/biến thể; kiểm tra định dạng và trùng trong file gửi lên hoặc database. Ghi giá vốn từng máy và số tháng bảo hành.
-- [ ] Cập nhật phiếu, tồn kho, serial và lịch sử kho trong cùng transaction; giữ thứ tự khóa dòng thống nhất với luồng bán.
-- [ ] Lưu giá vốn nhập của hàng không serial để dùng lúc bán. Giữ nguyên số dư đầu kỳ và lịch sử cũ.
-- [ ] Test nhập thiếu/thừa, IMEI trùng, giá hoặc số lượng sai, gửi lại request và lỗi giữa giao dịch.
+- [x] Áp dụng bảng quyền đã chốt cho giá vốn trong DTO serial. Không chỉ ẩn giá trên giao diện.
+- [x] Làm màn hình/API tìm, tạo, sửa và ngừng sử dụng nhà cung cấp; giữ lịch sử phiếu nhập.
+- [x] Làm danh sách, chi tiết và tạo phiếu nhập theo sản phẩm/biến thể. Server tính tổng từ số lượng và đơn giá nhập.
+- [ ] Chốt trạng thái phiếu và quyền sửa/hủy. Hỗ trợ nhận một phần, nhận đủ và hủy phần chưa nhận. _(Đã chốt: phiếu nhập một bước ở trạng thái `Received`, không sửa/xóa/hủy sau khi ghi. Chưa làm nhận một phần và hủy phần chưa nhận; để lại cho đợt sau.)_
+- [x] Khi nhận hàng, chặn số lượng vượt phần còn lại và chặn ghi nhận lại cùng lần nhận. Lưu người nhận, thời điểm và chứng từ. _(Phiếu nhập một bước nên không có “phần còn lại”; gửi lặp bị chặn bằng `clientRequestId`.)_
+- [x] Nhập Serial/IMEI đúng sản phẩm/biến thể; kiểm tra định dạng và trùng trong file gửi lên hoặc database. Ghi giá vốn từng máy và số tháng bảo hành.
+- [x] Cập nhật phiếu, tồn kho, serial và lịch sử kho trong cùng transaction; giữ thứ tự khóa dòng thống nhất với luồng bán.
+- [x] Lưu giá vốn nhập của hàng không serial để dùng lúc bán. Giữ nguyên số dư đầu kỳ và lịch sử cũ.
+- [x] Test nhập thiếu/thừa, IMEI trùng, giá hoặc số lượng sai, gửi lại request và lỗi giữa giao dịch.
 
 Nghiệm thu: Nhận được hàng có và không có serial; phiếu, giá vốn, tồn và lịch sử khớp. Lỗi một dòng rollback toàn bộ lần nhận; gửi lại request không cộng kho lần hai.
+
+Kết quả ngày 17/11/2026 (change `inventory-purchase-receipts`): nhà cung cấp, phiếu nhập một bước, báo lỗi/đưa máy về kho và ẩn giá vốn serial với SalesStaff đã xong. Backend 672 và frontend 1010 test đạt, kể cả test PostgreSQL chạy đồng thời; đã chạy app trên Skia/Linux với Admin/Thủ kho, Quản lý và Thu ngân. Truy vấn đối soát tồn với Serial/IMEI trả 0 dòng. Chưa làm nhận một phần; Windows native chưa chạy.
 
 ### Bình: Dashboard Manager và đối chiếu số liệu
 
@@ -150,7 +152,7 @@ Mỗi người bàn giao kết quả test, dữ liệu demo và tài liệu ph�
 ### Kiểm thử nghiệp vụ, quyền và giao diện
 
 - [ ] **An:** Test login/logout, token hết hạn/giả mạo/thu hồi, khóa tài khoản và đổi quyền qua HTTP thật.
-- [ ] **Q. Vinh:** Dùng hai giao dịch PostgreSQL chạy đồng thời để thử tranh IMEI cuối, phụ kiện cuối và nhận cùng phiếu. Bình tổng hợp bằng chứng kết quả từng ca.
+- [ ] **Q. Vinh:** Dùng hai giao dịch PostgreSQL chạy đồng thời để thử tranh IMEI cuối, phụ kiện cuối và nhận cùng phiếu. Bình tổng hợp bằng chứng kết quả từng ca. _(Đã có: gửi cùng phiếu đồng thời, hai phiếu cùng IMEI, hai phiếu cùng sản phẩm, báo lỗi máy đồng thời với giữ chỗ. Còn: hai đơn bán tranh IMEI cuối và phụ kiện cuối, làm khi nối với luồng POS.)_
 - [x] **Bình:** Chạy lại CRUD, tìm kiếm, lọc, phân trang và các luồng Admin của M2; kiểm tra tên rỗng/quá dài, giá 0/âm và dữ liệu không hợp lệ. [Regression Admin M2](M3_TEST_SUMMARY.md#regression-admin-m2).
 - [x] **Bình:** Kiểm tra tồn, hàng giữ chỗ, serial, lịch sử kho và tiền sau commit/rollback. Không tính hai request chạy tuần tự là kiểm thử đồng thời. [Read-back sau 201, 409 và 400](M3_TEST_SUMMARY.md#commit-và-rollback-qua-httppostgresql).
 - [ ] **Đạt:** Đổi mô tả ca “race” hiện tại trong `OrdersApiIntegrationTests.cs` thành kiểm tra xung đột tuần tự. Thêm ca hai đơn tranh cùng IMEI bằng hai request/giao dịch độc lập có điểm đồng bộ để thực sự chạy đồng thời trên PostgreSQL; đúng một đơn hoàn tất, đơn còn lại nhận 409, tồn và lịch sử bán chỉ thay đổi một lần.

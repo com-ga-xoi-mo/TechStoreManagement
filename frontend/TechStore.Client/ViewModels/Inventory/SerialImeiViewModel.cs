@@ -43,6 +43,8 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository inventoryRe
         new(SerialImeiStatusFilter.Defective, "Lỗi")
     ];
 
+    // Set by CategoryManagementViewModel from the signed-in role; write actions are hidden and refused without it.
+    [ObservableProperty] private bool _canWrite;
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private SerialImeiStatusFilter _statusFilter;
     [ObservableProperty] private Guid? _productFilterId;
@@ -64,6 +66,32 @@ public sealed partial class SerialImeiViewModel(IInventoryRepository inventoryRe
     public string TotalLabel => $"{TotalCount:N0} Serial / IMEI";
     public string PageLabel => $"Trang {Page} / {Math.Max(1, TotalPages)}";
     public string FooterText => $"Hiển thị {(TotalCount == 0 ? 0 : (Page - 1) * PageSize + 1)} – {Math.Min(Page * PageSize, TotalCount)} trên tổng số {TotalCount:N0} Serial / IMEI";
+
+    public event Action<SerialImeiDto, DeviceStatusMode>? DeviceStatusRequested;
+
+    public static bool CanReportDefective(SerialImeiDto? item) =>
+        item is not null && item.Status == SerialImeiStatus.InStock;
+
+    public static bool CanRestore(SerialImeiDto? item) =>
+        item is not null && item.Status == SerialImeiStatus.Defective;
+
+    [RelayCommand]
+    private void ReportDefective(object? parameter)
+    {
+        if (CanWrite && parameter is SerialImeiDto item && CanReportDefective(item))
+        {
+            DeviceStatusRequested?.Invoke(item, DeviceStatusMode.ReportDefective);
+        }
+    }
+
+    [RelayCommand]
+    private void Restore(object? parameter)
+    {
+        if (CanWrite && parameter is SerialImeiDto item && CanRestore(item))
+        {
+            DeviceStatusRequested?.Invoke(item, DeviceStatusMode.Restore);
+        }
+    }
 
     partial void OnSearchTextChanged(string value) => ReloadAfterFilterChanged();
     partial void OnStatusFilterChanged(SerialImeiStatusFilter value) => ReloadAfterFilterChanged();

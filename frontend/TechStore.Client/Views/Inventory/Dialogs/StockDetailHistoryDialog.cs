@@ -240,7 +240,16 @@ internal sealed class MovementDateConverter : IValueConverter
 
 internal sealed class MovementTypeConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, string language) => value?.ToString() switch { "Sale" => "Bán hàng", "CustomerReturn" => "Trả hàng", "Adjustment" => "Điều chỉnh", "PurchaseReceipt" => "Nhập kho", _ => value?.ToString() ?? "—" };
+    public object Convert(object value, Type targetType, object parameter, string language) => value?.ToString() switch
+    {
+        "Sale" => "Bán hàng",
+        "CustomerReturn" => "Trả hàng",
+        "Adjustment" => "Điều chỉnh",
+        "PurchaseReceipt" => "Nhập kho",
+        "Defective" => "Báo lỗi máy",
+        "OpeningBalance" => "Tồn đầu kỳ",
+        _ => value?.ToString() ?? "—"
+    };
     public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotSupportedException();
 }
 

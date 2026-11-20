@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TechStore.Client.Views.Inventory;
+using TechStore.Client.Views.Inventory.Dialogs;
 using TechStore.Client.Services.Inventory;
 using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Repositories.Catalog;
@@ -83,6 +84,17 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<InventoryStockPage>();
         services.AddTransient<SerialImeiViewModel>();
         services.AddTransient<SerialImeiPage>();
+        services.AddTransient<SupplierListViewModel>();
+        services.AddTransient<SupplierEditorDialogViewModel>();
+        services.AddTransient<SupplierListView>();
+        services.AddTransient<SupplierEditorDialog>();
+        services.AddTransient<PurchaseReceiptListViewModel>();
+        services.AddTransient<PurchaseReceiptDetailDialogViewModel>();
+        services.AddTransient<CreatePurchaseReceiptDialogViewModel>();
+        services.AddTransient<PurchaseReceiptListView>();
+        services.AddTransient<PurchaseReceiptDetailDialog>();
+        services.AddTransient<CreatePurchaseReceiptDialog>();
+        services.AddTransient<DeviceStatusDialogViewModel>();
 
         services.AddTransient<DashboardPage>();
         services.AddTransient<ProductListPage>();
@@ -119,6 +131,9 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ICategoryRepository, CategoryRepository>();
         services.AddTransient<ICategoryWorkspaceRepository, CategoryRepository>();
         services.AddTransient<IInventoryRepository, InventoryRepository>();
+        services.AddTransient<ISerialDeviceRepository, SerialDeviceRepository>();
+        services.AddTransient<ISupplierRepository, SupplierRepository>();
+        services.AddTransient<IPurchaseReceiptRepository, PurchaseReceiptRepository>();
         services.AddTransient<ICustomerRepository, CustomerRepository>();
         services.AddTransient<IOrderRepository, OrderRepository>();
         services.AddTransient<IOrderDeviceRepository, OrderDeviceRepository>();

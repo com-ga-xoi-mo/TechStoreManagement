@@ -14,12 +14,10 @@ public class InventoryService(
     IProductRepository productRepository,
     ISerialImeiRepository serialRepository,
     IPurchaseOrderRepository purchaseOrderRepository,
+    ISupplierRepository supplierRepository,
     IUnitOfWork unitOfWork,
     TimeProvider? timeProvider = null) : IInventoryService
 {
-    // System supplier that owns the purchase orders created for opening balances.
-    private const string OpeningSupplierName = "Số dư đầu kỳ";
-
     private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     public async Task<InventoryStockSearchResult> GetStocksAsync(
         InventoryStockFilterRequest request,
@@ -94,6 +92,10 @@ public class InventoryService(
             if (validatedProduct == null)
             {
                 errors["productId"] = [$"Product with ID '{request.ProductId.Value}' does not exist."];
+            }
+            else if (validatedProduct.IsSerialTracked)
+            {
+                errors["productId"] = ["Hàng có Serial/IMEI: nhập máy qua phiếu nhập hoặc nhập theo lô Serial/IMEI, không khởi tạo số dư trực tiếp."];
             }
             else if (request.VariantId.HasValue && request.VariantId.Value != Guid.Empty)
             {
@@ -193,11 +195,11 @@ public class InventoryService(
         Guid performedByUserId,
         CancellationToken cancellationToken)
     {
-        var supplier = await purchaseOrderRepository.FindSupplierByNameAsync(OpeningSupplierName, cancellationToken);
+        var supplier = await supplierRepository.FindByNameAsync(SystemSuppliers.OpeningBalanceName, cancellationToken);
         if (supplier == null)
         {
-            supplier = new Supplier { Name = OpeningSupplierName, Phone = "N/A", IsActive = false };
-            purchaseOrderRepository.AddSupplier(supplier);
+            supplier = new Supplier { Name = SystemSuppliers.OpeningBalanceName, Phone = "N/A", IsActive = false };
+            supplierRepository.Add(supplier);
         }
 
         var now = _time.GetUtcNow().UtcDateTime;
@@ -336,6 +338,14 @@ public class InventoryService(
             {
                 await unitOfWork.RollbackAsync(cancellationToken);
                 return AdjustInventoryStockResult.NotFound();
+            }
+
+            var product = await productRepository.GetDetailAsync(stock.ProductId, cancellationToken);
+            if (product != null && product.IsSerialTracked)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return AdjustInventoryStockResult.Conflict(
+                    "Hàng có Serial/IMEI: nhập máy qua phiếu nhập, bớt máy bằng Báo lỗi máy theo từng IMEI.");
             }
 
             var newQuantityLong = (long)stock.Quantity + request.QuantityChange;

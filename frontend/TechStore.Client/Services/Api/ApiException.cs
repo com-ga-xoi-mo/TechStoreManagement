@@ -21,7 +21,8 @@ public sealed class ApiException : Exception
         string? code = null,
         string? traceId = null,
         IReadOnlyDictionary<string, IReadOnlyList<string>>? fieldErrors = null,
-        Exception? innerException = null)
+        Exception? innerException = null,
+        IReadOnlyList<string>? duplicateIdentifiers = null)
         : base(message, innerException)
     {
         Kind = kind;
@@ -30,6 +31,7 @@ public sealed class ApiException : Exception
         Detail = detail;
         Code = code;
         TraceId = traceId;
+        DuplicateIdentifiers = duplicateIdentifiers;
         FieldErrors = new ReadOnlyDictionary<string, IReadOnlyList<string>>(
             fieldErrors?.ToDictionary(
                 pair => pair.Key,
@@ -52,6 +54,8 @@ public sealed class ApiException : Exception
 
     public IReadOnlyDictionary<string, IReadOnlyList<string>> FieldErrors { get; }
 
+    public IReadOnlyList<string>? DuplicateIdentifiers { get; }
+
     internal static ApiException Http(int statusCode, ApiProblemDetails? problem) => new(
         ApiErrorKind.Http,
         $"The API request failed with HTTP status {statusCode}.",
@@ -60,5 +64,6 @@ public sealed class ApiException : Exception
         problem?.Detail,
         problem?.Code,
         problem?.TraceId,
-        problem?.FieldErrors);
+        problem?.FieldErrors,
+        duplicateIdentifiers: problem?.DuplicateIdentifiers);
 }

@@ -53,14 +53,50 @@ public record BatchImportSerialImeiResult(
         new(false, 0, conflictingSerials, conflictingImeis, null, true, reason);
 }
 
+public record DeviceStatusResult(
+    bool IsSuccess,
+    SerialImeiDto? Data,
+    Dictionary<string, string[]>? ValidationErrors,
+    bool IsNotFound,
+    bool IsConflict,
+    string? ConflictReason)
+{
+    public static DeviceStatusResult Success(SerialImeiDto data) =>
+        new(true, data, null, false, false, null);
+
+    public static DeviceStatusResult ValidationFailed(Dictionary<string, string[]> errors) =>
+        new(false, null, errors, false, false, null);
+
+    public static DeviceStatusResult NotFound() =>
+        new(false, null, null, true, false, null);
+
+    public static DeviceStatusResult Conflict(string reason) =>
+        new(false, null, null, false, true, reason);
+}
+
 public interface ISerialImeiService
 {
     Task<SerialImeiSearchResult> GetSerialsAsync(
         SerialImeiFilterRequest request,
+        bool includeCost = false,
         CancellationToken cancellationToken = default);
 
     Task<BatchImportSerialImeiResult> BatchImportAsync(
         BatchImportSerialImeiRequest request,
         Guid performedByUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<DeviceStatusResult> ReportDefectiveAsync(
+        Guid deviceId,
+        ReportDefectiveDeviceRequest request,
+        Guid actorUserId,
+        bool includeCost = false,
+        CancellationToken cancellationToken = default);
+
+    Task<DeviceStatusResult> RestoreAsync(
+        Guid deviceId,
+        RestoreDeviceRequest request,
+        Guid actorUserId,
+        bool includeCost = false,
         CancellationToken cancellationToken = default);
 }

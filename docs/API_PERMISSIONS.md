@@ -11,8 +11,13 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | POST `/api/products/{productId}/images`, DELETE `/api/products/{productId}/images/{imageId}`, PUT `/api/products/{productId}/images/layout` | A M | Existing image management |
 | GET `/api/categories/tree` | A M S W | Existing category tree |
 | POST `/api/categories`, PUT/DELETE `/api/categories/{id}` | A | Existing category management |
-| GET `/api/inventory/stocks`, `/api/inventory/stocks/{stockId}/detail`, `/api/inventory/serials` | A M S W | Existing stock, serial and movement DTOs; cost-field policy reviewed in Sprint 2 |
-| POST `/api/inventory/stocks/initialize`, POST `/api/inventory/stocks/{stockId}/adjust`, DELETE `/api/inventory/stocks/{stockId}`, POST `/api/inventory/serials/batch-import` | A W | Existing inventory writes, never catalog price writes |
+| GET `/api/inventory/stocks`, `/api/inventory/stocks/{stockId}/detail`, `/api/inventory/serials` | A M S W | Existing stock, serial and movement DTOs; trường `unitCost` của thiết bị trong `/api/inventory/serials` chỉ hiển thị cho A M W, ẩn thành `null` với SalesStaff |
+| POST `/api/inventory/stocks/initialize`, POST `/api/inventory/stocks/{stockId}/adjust`, DELETE `/api/inventory/stocks/{stockId}`, POST `/api/inventory/serials/batch-import` | A W | Existing inventory writes, never catalog price writes; `initialize` từ chối hàng serial với 400 Bad Request; `adjust` từ chối hàng serial với 409 Conflict |
+| GET `/api/inventory/suppliers`, `/api/inventory/suppliers/{id}` | A M W | Danh bạ nhà cung cấp, loại trừ nhà cung cấp hệ thống |
+| POST `/api/inventory/suppliers`, PUT `/api/inventory/suppliers/{id}`, PATCH `/api/inventory/suppliers/{id}/status` | A W | Quản lý nhà cung cấp (tạo, sửa, ngừng hoạt động/sử dụng lại) |
+| GET `/api/inventory/purchase-receipts`, `/api/inventory/purchase-receipts/{id}` | A M W | Tra cứu danh sách và chi tiết phiếu nhập kho |
+| POST `/api/inventory/purchase-receipts` | A W | Lập phiếu nhập kho một bước (idempotent qua `clientRequestId`) |
+| POST `/api/inventory/serials/{id}/defective`, POST `/api/inventory/serials/{id}/restore` | A W | Báo lỗi thiết bị (tồn -1, movement `Defective`) và đưa thiết bị đã sửa về kho (tồn +1, movement `Adjustment`) |
 | GET `/api/orders`, `/api/orders/{id}` | A M S | A/M see all; S sees only orders whose cashier is that user |
 | POST `/api/orders`, PATCH `/api/orders/{id}/status` | A S | A writes all; S transitions only own orders; creator comes from token |
 | GET `/api/customers`, `/api/customers/{id}` | A M S | S chỉ thấy khách đang hoạt động (server ép `isActive=true`); khách đã vô hiệu hóa trả 404 với S |

@@ -19,7 +19,7 @@ public sealed class RoleActionTests
         if (role is not null) session.SetSession("token", "refresh", "user", "User", role);
         var inventory = new InventoryStockViewModel(null!, sessionStore: session);
         var serials = new SerialImeiViewModel(null!);
-        var workspace = new CategoryManagementViewModel(null!, null!, inventory, serials, session);
+        var workspace = new CategoryManagementViewModel(null!, null!, inventory, serials, null!, null!, session);
         var orderList = new OrderListViewModel(new FakeOrderRepository(), new FakeNavigation(), new FakeDialogService(), new FakeDetailPresenter(), session);
         Assert.Equal(categories, workspace.CanManageCategories);
         Assert.Equal(categories, workspace.ShowCategoryAction);
@@ -31,10 +31,8 @@ public sealed class RoleActionTests
     public void MissingOptionalStore_PreservesGalleryActions()
     {
         var inventory = new InventoryStockViewModel(null!);
-        var workspace = new CategoryManagementViewModel(null!, null!, inventory, new SerialImeiViewModel(null!));
         var orders = new OrderListViewModel(new FakeOrderRepository(), new FakeNavigation(), new FakeDialogService(), new FakeDetailPresenter());
         Assert.True(inventory.CanManageStock);
-        Assert.True(workspace.CanManageCategories);
         Assert.True(orders.CanManageOrders);
     }
 }

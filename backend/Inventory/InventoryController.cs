@@ -160,7 +160,8 @@ public class InventoryController : ControllerBase
         [FromQuery] SerialImeiFilterRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await _serialImeiService.GetSerialsAsync(request, cancellationToken);
+        var includeCost = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("WarehouseStaff");
+        var result = await _serialImeiService.GetSerialsAsync(request, includeCost, cancellationToken);
         if (!result.IsSuccess)
         {
             return ValidationProblem(BuildModelState(result.ValidationErrors));
@@ -198,6 +199,88 @@ public class InventoryController : ControllerBase
         return Created(
             $"/api/inventory/serials?productId={request.ProductId}",
             new { importedCount = result.ImportedCount });
+    }
+
+    [HttpPost("serials/{id:guid}/defective")]
+    [Authorize(Roles = "Admin,WarehouseStaff")]
+    [ProducesResponseType(typeof(SerialImeiDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ReportDefective(
+        [FromRoute] Guid id,
+        [FromBody] ReportDefectiveDeviceRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var includeCost = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("WarehouseStaff");
+        var result = await _serialImeiService.ReportDefectiveAsync(id, request, userId.Value, includeCost, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Data);
+        }
+
+        if (result.IsNotFound)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Not Found",
+                detail: "Không tìm thấy thiết bị.");
+        }
+
+        if (result.IsConflict)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Conflict",
+                detail: result.ConflictReason);
+        }
+
+        return ValidationProblem(BuildModelState(result.ValidationErrors));
+    }
+
+    [HttpPost("serials/{id:guid}/restore")]
+    [Authorize(Roles = "Admin,WarehouseStaff")]
+    [ProducesResponseType(typeof(SerialImeiDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Restore(
+        [FromRoute] Guid id,
+        [FromBody] RestoreDeviceRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (!userId.HasValue) return Unauthorized();
+
+        var includeCost = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("WarehouseStaff");
+        var result = await _serialImeiService.RestoreAsync(id, request, userId.Value, includeCost, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Data);
+        }
+
+        if (result.IsNotFound)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Not Found",
+                detail: "Không tìm thấy thiết bị.");
+        }
+
+        if (result.IsConflict)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Conflict",
+                detail: result.ConflictReason);
+        }
+
+        return ValidationProblem(BuildModelState(result.ValidationErrors));
     }
 
     private Guid? GetUserId()

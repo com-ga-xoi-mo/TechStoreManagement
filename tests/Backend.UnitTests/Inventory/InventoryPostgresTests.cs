@@ -23,7 +23,8 @@ public class InventoryPostgresTests
             Sku = "KB-60PCT",
             Brand = "Keychron",
             BasePrice = 2000000m,
-            CostPrice = 1500000m
+            CostPrice = 1500000m,
+            IsSerialTracked = false
         };
         var p2 = new Product
         {
@@ -33,7 +34,8 @@ public class InventoryPostgresTests
             Sku = "KB-100",
             Brand = "Keychron",
             BasePrice = 2500000m,
-            CostPrice = 1800000m
+            CostPrice = 1800000m,
+            IsSerialTracked = false
         };
         context.Categories.Add(category);
         context.Products.AddRange(p1, p2);
@@ -52,5 +54,7 @@ public class InventoryPostgresTests
         // Assert
         totalCount.Should().Be(1);
         items.Should().ContainSingle().Which.Stock.ProductId.Should().Be(p1.Id);
+
+        await SerialStockReconciliationHelper.AssertSerialStockReconciledAsync(database);
     }
 }

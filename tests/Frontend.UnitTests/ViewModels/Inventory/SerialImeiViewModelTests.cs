@@ -1,3 +1,4 @@
+using FluentAssertions;
 using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Services.Api;
@@ -257,6 +258,89 @@ public sealed class SerialImeiViewModelTests
         Assert.False(vm.PageButtons[0].IsCurrent);
         Assert.True(vm.PageButtons[1].IsCurrent);
         Assert.False(vm.PageButtons[2].IsCurrent);
+    }
+
+    [Fact]
+    public void CanReportDefective_OnlyTrueForInStock()
+    {
+        SerialImeiViewModel.CanReportDefective(null).Should().BeFalse();
+        SerialImeiViewModel.CanReportDefective(new SerialImeiDto { Status = SerialImeiStatus.InStock }).Should().BeTrue();
+        SerialImeiViewModel.CanReportDefective(new SerialImeiDto { Status = SerialImeiStatus.Reserved }).Should().BeFalse();
+        SerialImeiViewModel.CanReportDefective(new SerialImeiDto { Status = SerialImeiStatus.Sold }).Should().BeFalse();
+        SerialImeiViewModel.CanReportDefective(new SerialImeiDto { Status = SerialImeiStatus.Returned }).Should().BeFalse();
+        SerialImeiViewModel.CanReportDefective(new SerialImeiDto { Status = SerialImeiStatus.UnderRepair }).Should().BeFalse();
+        SerialImeiViewModel.CanReportDefective(new SerialImeiDto { Status = SerialImeiStatus.Defective }).Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanRestore_OnlyTrueForDefective()
+    {
+        SerialImeiViewModel.CanRestore(null).Should().BeFalse();
+        SerialImeiViewModel.CanRestore(new SerialImeiDto { Status = SerialImeiStatus.Defective }).Should().BeTrue();
+        SerialImeiViewModel.CanRestore(new SerialImeiDto { Status = SerialImeiStatus.InStock }).Should().BeFalse();
+        SerialImeiViewModel.CanRestore(new SerialImeiDto { Status = SerialImeiStatus.Reserved }).Should().BeFalse();
+        SerialImeiViewModel.CanRestore(new SerialImeiDto { Status = SerialImeiStatus.Sold }).Should().BeFalse();
+        SerialImeiViewModel.CanRestore(new SerialImeiDto { Status = SerialImeiStatus.Returned }).Should().BeFalse();
+        SerialImeiViewModel.CanRestore(new SerialImeiDto { Status = SerialImeiStatus.UnderRepair }).Should().BeFalse();
+    }
+
+    [Fact]
+    public void ReportDefectiveCommand_WhenInStock_RaisesDeviceStatusRequested()
+    {
+        var vm = new SerialImeiViewModel(new FakeApi(Page(1, 20, 0))) { CanWrite = true };
+        SerialImeiDto? requestedDevice = null;
+        DeviceStatusMode? requestedMode = null;
+        vm.DeviceStatusRequested += (d, m) =>
+        {
+            requestedDevice = d;
+            requestedMode = m;
+        };
+
+        var inStockItem = new SerialImeiDto { Id = Guid.NewGuid(), Status = SerialImeiStatus.InStock, Imei = "123" };
+        var defectiveItem = new SerialImeiDto { Id = Guid.NewGuid(), Status = SerialImeiStatus.Defective, Imei = "456" };
+
+        // Invalid arg / non-matching status
+        vm.ReportDefectiveCommand.Execute(null);
+        requestedDevice.Should().BeNull();
+
+        vm.ReportDefectiveCommand.Execute("not an item");
+        requestedDevice.Should().BeNull();
+
+        vm.ReportDefectiveCommand.Execute(defectiveItem);
+        requestedDevice.Should().BeNull();
+
+        // Valid InStock
+        vm.ReportDefectiveCommand.Execute(inStockItem);
+        requestedDevice.Should().BeSameAs(inStockItem);
+        requestedMode.Should().Be(DeviceStatusMode.ReportDefective);
+    }
+
+    [Fact]
+    public void RestoreCommand_WhenDefective_RaisesDeviceStatusRequested()
+    {
+        var vm = new SerialImeiViewModel(new FakeApi(Page(1, 20, 0))) { CanWrite = true };
+        SerialImeiDto? requestedDevice = null;
+        DeviceStatusMode? requestedMode = null;
+        vm.DeviceStatusRequested += (d, m) =>
+        {
+            requestedDevice = d;
+            requestedMode = m;
+        };
+
+        var inStockItem = new SerialImeiDto { Id = Guid.NewGuid(), Status = SerialImeiStatus.InStock, Imei = "123" };
+        var defectiveItem = new SerialImeiDto { Id = Guid.NewGuid(), Status = SerialImeiStatus.Defective, Imei = "456" };
+
+        // Invalid arg / non-matching status
+        vm.RestoreCommand.Execute(null);
+        requestedDevice.Should().BeNull();
+
+        vm.RestoreCommand.Execute(inStockItem);
+        requestedDevice.Should().BeNull();
+
+        // Valid Defective
+        vm.RestoreCommand.Execute(defectiveItem);
+        requestedDevice.Should().BeSameAs(defectiveItem);
+        requestedMode.Should().Be(DeviceStatusMode.Restore);
     }
 
     private static SerialImeiDto Serial(string serialNumber) => new()

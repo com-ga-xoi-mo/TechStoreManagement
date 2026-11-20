@@ -14,13 +14,14 @@ public class InventoryServiceTests
     private readonly FakeProductRepository _productRepository = new();
     private readonly FakeSerialImeiRepository _serialRepository = new();
     private readonly FakePurchaseOrderRepository _purchaseOrders = new();
+    private readonly FakeSupplierRepository _supplierRepository = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly InventoryService _service;
     private readonly Guid _userId = Guid.NewGuid();
 
     public InventoryServiceTests()
     {
-        _service = new InventoryService(_stockRepository, _productRepository, _serialRepository, _purchaseOrders, _unitOfWork);
+        _service = new InventoryService(_stockRepository, _productRepository, _serialRepository, _purchaseOrders, _supplierRepository, _unitOfWork);
     }
 
     [Fact]
@@ -178,7 +179,7 @@ public class InventoryServiceTests
     {
         // Arrange
         var productId = Guid.NewGuid();
-        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Test Product" });
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Test Product", IsSerialTracked = false });
         var request = new InitializeStockRequest
         {
             ProductId = productId,
@@ -216,7 +217,7 @@ public class InventoryServiceTests
     {
         // Arrange
         var productId = Guid.NewGuid();
-        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Existing Product" });
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Existing Product", IsSerialTracked = false });
         _stockRepository.Stocks.Add(new InventoryStock
         {
             ProductId = productId,
@@ -250,7 +251,7 @@ public class InventoryServiceTests
     {
         // Arrange
         var prodId = Guid.NewGuid();
-        _productRepository.Products.Add(prodId, new Product { Id = prodId, Name = "Test Product" });
+        _productRepository.Products.Add(prodId, new Product { Id = prodId, Name = "Test Product", IsSerialTracked = false });
         var request = new InitializeStockRequest
         {
             ProductId = prodId,
@@ -298,6 +299,7 @@ public class InventoryServiceTests
         {
             Id = productId,
             Name = "Product A",
+            IsSerialTracked = false,
             Variants = new List<ProductVariant>
             {
                 new() { Id = Guid.NewGuid(), ProductId = productId, Sku = "SKU-1" }
@@ -410,7 +412,9 @@ public class InventoryServiceTests
     [Fact]
     public async Task AdjustStockAsync_Increase_UpdatesQuantityAndWritesAdjustmentMovement()
     {
-        var stock = new InventoryStock { Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), Quantity = 10, ReservedQuantity = 2 };
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Non-serial", IsSerialTracked = false });
+        var stock = new InventoryStock { Id = Guid.NewGuid(), ProductId = productId, Quantity = 10, ReservedQuantity = 2 };
         _stockRepository.Stocks.Add(stock);
 
         var result = await _service.AdjustStockAsync(stock.Id, new AdjustStockRequest
@@ -430,7 +434,9 @@ public class InventoryServiceTests
     [Fact]
     public async Task AdjustStockAsync_DecreaseBelowReserved_ReturnsConflict()
     {
-        var stock = new InventoryStock { Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), Quantity = 10, ReservedQuantity = 8 };
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Non-serial", IsSerialTracked = false });
+        var stock = new InventoryStock { Id = Guid.NewGuid(), ProductId = productId, Quantity = 10, ReservedQuantity = 8 };
         _stockRepository.Stocks.Add(stock);
 
         var result = await _service.AdjustStockAsync(stock.Id, new AdjustStockRequest
@@ -449,7 +455,9 @@ public class InventoryServiceTests
     public async Task AdjustStockAsync_CheckConstraintViolation_ReturnsConflict()
     {
         // Arrange
-        var stock = new InventoryStock { Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), Quantity = 10, ReservedQuantity = 0 };
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Non-serial", IsSerialTracked = false });
+        var stock = new InventoryStock { Id = Guid.NewGuid(), ProductId = productId, Quantity = 10, ReservedQuantity = 0 };
         _stockRepository.Stocks.Add(stock);
         _unitOfWork.ExceptionToThrowOnSave = new TechStore.Api.Common.Data.CheckConstraintViolationException("chk_inventory_stocks_quantity");
 
@@ -462,6 +470,56 @@ public class InventoryServiceTests
         // Assert
         result.IsSuccess.Should().BeFalse();
         result.IsConflict.Should().BeTrue();
+        _unitOfWork.RollbackCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task AdjustStockAsync_WhenSerialTracked_PositiveChange_ReturnsConflict_And_DoesNotChangeStock()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Serial Product", IsSerialTracked = true });
+        var stock = new InventoryStock { Id = Guid.NewGuid(), ProductId = productId, Quantity = 10, ReservedQuantity = 2 };
+        _stockRepository.Stocks.Add(stock);
+
+        // Act
+        var result = await _service.AdjustStockAsync(stock.Id, new AdjustStockRequest
+        {
+            QuantityChange = 5, Reason = "Kiểm kê", Note = "Bổ sung"
+        }, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.IsConflict.Should().BeTrue();
+        result.ConflictReason.Should().Be("Hàng có Serial/IMEI: nhập máy qua phiếu nhập, bớt máy bằng Báo lỗi máy theo từng IMEI.");
+        stock.Quantity.Should().Be(10);
+        _stockRepository.Movements.Should().BeEmpty();
+        _unitOfWork.CommitCount.Should().Be(0);
+        _unitOfWork.RollbackCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task AdjustStockAsync_WhenSerialTracked_NegativeChange_ReturnsConflict_And_DoesNotChangeStock()
+    {
+        // Arrange
+        var productId = Guid.NewGuid();
+        _productRepository.Products.Add(productId, new Product { Id = productId, Name = "Serial Product", IsSerialTracked = true });
+        var stock = new InventoryStock { Id = Guid.NewGuid(), ProductId = productId, Quantity = 10, ReservedQuantity = 2 };
+        _stockRepository.Stocks.Add(stock);
+
+        // Act
+        var result = await _service.AdjustStockAsync(stock.Id, new AdjustStockRequest
+        {
+            QuantityChange = -1, Reason = "Kiểm kê"
+        }, _userId);
+
+        // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.IsConflict.Should().BeTrue();
+        result.ConflictReason.Should().Be("Hàng có Serial/IMEI: nhập máy qua phiếu nhập, bớt máy bằng Báo lỗi máy theo từng IMEI.");
+        stock.Quantity.Should().Be(10);
+        _stockRepository.Movements.Should().BeEmpty();
+        _unitOfWork.CommitCount.Should().Be(0);
         _unitOfWork.RollbackCount.Should().Be(1);
     }
 
@@ -582,7 +640,7 @@ public class InventoryServiceTests
 
         // Assert: one purchase line "5 x 200,000", received, on the system supplier
         result.IsSuccess.Should().BeTrue();
-        var supplier = _purchaseOrders.Suppliers.Should().ContainSingle().Subject;
+        var supplier = _supplierRepository.Suppliers.Should().ContainSingle().Subject;
         supplier.IsActive.Should().BeFalse();
         var order = _purchaseOrders.PurchaseOrders.Should().ContainSingle().Subject;
         order.Supplier.Should().BeSameAs(supplier);
@@ -616,25 +674,29 @@ public class InventoryServiceTests
         await _service.InitializeStockAsync(new InitializeStockRequest { ProductId = second, Quantity = 9, UnitCost = 30_000m }, _userId);
 
         // Assert
-        _purchaseOrders.Suppliers.Should().ContainSingle();
+        _supplierRepository.Suppliers.Should().ContainSingle();
         _purchaseOrders.PurchaseOrders.Should().HaveCount(2);
         _purchaseOrders.PurchaseOrders.Select(p => p.PoNumber).Distinct().Should().HaveCount(2);
     }
 
     [Fact]
-    public async Task InitializeStockAsync_Should_Not_Require_A_Cost_For_Serial_Tracked_Goods()
+    public async Task InitializeStockAsync_Should_Reject_Serial_Tracked_Goods_With_BadRequest_Under_ProductId()
     {
-        // Arrange: devices carry their own cost, so the opening quantity needs none and makes no purchase line.
+        // Arrange: serial-tracked goods cannot be initialized directly; they must enter via purchase receipt or serial batch import.
         var productId = Guid.NewGuid();
         _productRepository.Products.Add(productId, new Product { Id = productId, Name = "iPhone", IsSerialTracked = true });
 
         // Act
-        var result = await _service.InitializeStockAsync(new InitializeStockRequest { ProductId = productId, Quantity = 3 }, _userId);
+        var result = await _service.InitializeStockAsync(new InitializeStockRequest { ProductId = productId, Quantity = 3, UnitCost = 15_000_000m }, _userId);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
+        result.IsSuccess.Should().BeFalse();
+        result.ValidationErrors.Should().ContainKey("productId");
+        result.ValidationErrors!["productId"].Should().Contain(msg => msg.Contains("Serial/IMEI"));
         _purchaseOrders.PurchaseOrders.Should().BeEmpty();
-        _purchaseOrders.Suppliers.Should().BeEmpty();
-        _stockRepository.Movements.Should().ContainSingle().Which.PurchaseOrderItem.Should().BeNull();
+        _supplierRepository.Suppliers.Should().BeEmpty();
+        _stockRepository.Stocks.Should().BeEmpty();
+        _stockRepository.Movements.Should().BeEmpty();
+        _unitOfWork.BeginTransactionCount.Should().Be(0);
     }
 }

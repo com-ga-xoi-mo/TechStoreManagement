@@ -5,9 +5,10 @@ using TechStore.Client.Models.Inventory;
 using TechStore.Client.Services.Inventory;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
-using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.Services.Navigation;
 using TechStore.Client.Services.Session;
+using TechStore.Client.ViewModels.Pages;
+using TechStore.Shared.DTOs;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Client.ViewModels.Inventory;
@@ -17,7 +18,9 @@ public sealed partial class CategoryManagementViewModel(
     ICategoryDialogRequests dialogs,
     InventoryStockViewModel inventory,
     SerialImeiViewModel serials,
-    ISessionStore? sessionStore = null) : PageViewModel
+    PurchaseReceiptListViewModel receipts,
+    SupplierListViewModel suppliers,
+    ISessionStore session) : PageViewModel
 {
     private readonly List<CategoryRow> _allRows = [];
     private readonly Dictionary<Guid, CategoryRow> _byId = [];
@@ -26,11 +29,13 @@ public sealed partial class CategoryManagementViewModel(
     private int _currentPage = 1;
 
     public const int PageSize = 15;
-    public bool CanManageCategories => sessionStore is null || (sessionStore.Current.Status == SessionStatus.Active && RoleAccess.CanManageCategories(sessionStore.Current.Role));
+    public bool CanManageCategories => session.Current.Status == SessionStatus.Active && RoleAccess.CanManageCategories(session.Current.Role);
     public bool ShowCategoryAction => IsCategoryTab && CanManageCategories;
     public ICategoryWorkspaceRepository Categories => categories;
     public InventoryStockViewModel Inventory { get; } = inventory;
     public SerialImeiViewModel Serials { get; } = serials;
+    public PurchaseReceiptListViewModel Receipts { get; } = receipts;
+    public SupplierListViewModel Suppliers { get; } = suppliers;
     public ObservableCollection<CategoryNode> RootCategories { get; } = [];
     public ObservableCollection<CategoryRow> VisibleRows { get; } = [];
     public ObservableCollection<int> PageNumbers { get; } = [];
@@ -50,6 +55,7 @@ public sealed partial class CategoryManagementViewModel(
     [ObservableProperty] private int _pageCount;
     [ObservableProperty] private CategoryWorkspaceTab _selectedTab = CategoryWorkspaceTab.Categories;
     [ObservableProperty] private string _statusUpdateError = string.Empty;
+    [ObservableProperty] private bool _canWriteInventory;
 
     public int CurrentPage => _currentPage;
     public bool CanGoPrevious => CurrentPage > 1;
@@ -63,6 +69,37 @@ public sealed partial class CategoryManagementViewModel(
     public bool IsCategoryTab => SelectedTab == CategoryWorkspaceTab.Categories;
     public bool IsInventoryTab => SelectedTab == CategoryWorkspaceTab.Inventory;
     public bool IsSerialTab => SelectedTab == CategoryWorkspaceTab.SerialImei;
+    public bool IsReceiptsTab => SelectedTab == CategoryWorkspaceTab.PurchaseReceipts;
+    public bool IsSuppliersTab => SelectedTab == CategoryWorkspaceTab.Suppliers;
+    public bool ShowInventoryImportAction => IsInventoryTab && CanWriteInventory;
+    public bool ShowSerialImportAction => IsSerialTab && CanWriteInventory;
+    public bool ShowReceiptCreateAction => IsReceiptsTab && CanWriteInventory;
+
+    // Hides write actions the API would refuse (Manager reads only, SalesStaff neither reads nor writes
+    // receipts and suppliers) and preloads the purchase tabs for roles that may read them.
+    public void ApplyPermissions()
+    {
+        var current = session.Current;
+        CanWriteInventory = InventoryPermissions.CanWrite(current);
+        Receipts.CanWrite = CanWriteInventory;
+        Suppliers.CanWrite = CanWriteInventory;
+        Serials.CanWrite = CanWriteInventory;
+        OnPropertyChanged(nameof(CanManageCategories));
+        OnPropertyChanged(nameof(ShowCategoryAction));
+
+        if (!InventoryPermissions.CanReadPurchases(current)) return;
+        if (!Receipts.HasLoaded && !Receipts.IsLoading) _ = Receipts.LoadCommand.ExecuteAsync(null);
+        if (!Suppliers.HasLoaded && !Suppliers.IsLoading) _ = Suppliers.LoadCommand.ExecuteAsync(null);
+    }
+
+    partial void OnCanWriteInventoryChanged(bool value) => NotifyActionVisibility();
+
+    private void NotifyActionVisibility()
+    {
+        OnPropertyChanged(nameof(ShowInventoryImportAction));
+        OnPropertyChanged(nameof(ShowSerialImportAction));
+        OnPropertyChanged(nameof(ShowReceiptCreateAction));
+    }
 
     public Task RefreshAsync() => ReloadAsync();
 
@@ -82,11 +119,43 @@ public sealed partial class CategoryManagementViewModel(
         OnPropertyChanged(nameof(ShowCategoryAction));
         OnPropertyChanged(nameof(IsInventoryTab));
         OnPropertyChanged(nameof(IsSerialTab));
+        OnPropertyChanged(nameof(IsReceiptsTab));
+        OnPropertyChanged(nameof(IsSuppliersTab));
+        NotifyActionVisibility();
+
+        // Opening a tab loads its first page once; later visits keep the loaded list.
+        if (value == CategoryWorkspaceTab.PurchaseReceipts && !Receipts.HasLoaded && !Receipts.IsLoading)
+            _ = Receipts.LoadCommand.ExecuteAsync(null);
+        else if (value == CategoryWorkspaceTab.Suppliers && !Suppliers.HasLoaded && !Suppliers.IsLoading)
+            _ = Suppliers.LoadCommand.ExecuteAsync(null);
+    }
+
+    // A recorded receipt changes the receipt list, stock balances and devices: reload each once.
+    public async Task OnReceiptCreatedAsync(PurchaseReceiptDetail receipt, bool wasReplay = false)
+    {
+        ArgumentNullException.ThrowIfNull(receipt);
+        await Receipts.LoadCommand.ExecuteAsync(null);
+        await Inventory.LoadCommand.ExecuteAsync(null);
+        await Serials.LoadCommand.ExecuteAsync(null);
+        _ = Inventory.ShowSuccessToastAsync(wasReplay
+            ? $"Phiếu nhập {receipt.PoNumber} đã được ghi ở lần gửi trước; thay đổi sau đó không được áp dụng."
+            : $"Đã tạo phiếu nhập {receipt.PoNumber} thành công.");
+    }
+
+    // A defect report or restore changes one device and its stock balance: reload both lists once.
+    public async Task OnDeviceStatusChangedAsync(SerialDeviceItem device, DeviceStatusMode mode)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+        await Serials.LoadCommand.ExecuteAsync(null);
+        await Inventory.LoadCommand.ExecuteAsync(null);
+        var actionText = mode == DeviceStatusMode.ReportDefective ? "báo lỗi" : "đưa về kho";
+        _ = Inventory.ShowSuccessToastAsync($"Đã {actionText} thiết bị {device.Identifier} thành công.");
     }
     partial void OnTotalCountChanged(int value) => OnPropertyChanged(nameof(TotalLabel));
 
     protected override async Task<bool> LoadContentAsync(CancellationToken cancellationToken)
     {
+        ApplyPermissions();
         try
         {
             StatusUpdateError = string.Empty;

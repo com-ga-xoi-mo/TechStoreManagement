@@ -110,6 +110,12 @@ public sealed class InventoryRepositoryTests
 
     private sealed class RecordingApiClient : IApiClient
     {
+        public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
+            string relativePath,
+            TRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         private readonly object _result;
         public string? Path { get; private set; }
 

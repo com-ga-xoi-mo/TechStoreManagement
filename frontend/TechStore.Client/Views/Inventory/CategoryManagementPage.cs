@@ -12,10 +12,12 @@ using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Services.Api;
+using TechStore.Client.Services.Dialog;
 using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.Views.Shell;
 using TechStore.Shared.DTOs;
+using TechStore.Shared.Requests;
 using Uno.Extensions.Markup;
 using static TechStore.Client.Views.Inventory.WorkspaceParts;
 
@@ -28,8 +30,16 @@ public sealed class CategoryManagementPage : Page, IRoutePage
     private readonly IInventoryRepository _inventoryRepository;
     private readonly IProductRepository _productRepository;
     private readonly ContentDialogPresenter _dialogPresenter;
+    private readonly SupplierListViewModel _supplierViewModel;
+    private readonly ISupplierRepository _supplierRepository;
+    private readonly IDialogService _dialogService;
+    private readonly PurchaseReceiptListViewModel _receiptViewModel;
+    private readonly IPurchaseReceiptRepository _receiptRepository;
+    private readonly ISerialDeviceRepository _serialDeviceRepository;
     private readonly InventoryStockPage _inventoryStockPage;
     private readonly SerialImeiPage _serialImeiPage;
+    private readonly SupplierListView _supplierListView;
+    private readonly PurchaseReceiptListView _receiptListView;
     private readonly CategoryDeleteCoordinator _deleteCoordinator = new();
     private readonly AsyncRelayCommand<CategoryDialogRequest> _showDialog;
     public CategoryManagementViewModel ViewModel { get; }
@@ -40,15 +50,27 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         CategoryDialogRequests dialogRequests,
         IInventoryRepository inventoryRepository,
         IProductRepository productRepository,
-        ContentDialogPresenter dialogPresenter)
+        ContentDialogPresenter dialogPresenter,
+        ISupplierRepository supplierRepository,
+        IDialogService dialogService,
+        IPurchaseReceiptRepository receiptRepository,
+        ISerialDeviceRepository serialDeviceRepository)
     {
         ViewModel = viewModel;
         _dialogRequests = dialogRequests;
         _inventoryRepository = inventoryRepository;
         _productRepository = productRepository;
         _dialogPresenter = dialogPresenter;
+        _supplierViewModel = viewModel.Suppliers;
+        _supplierRepository = supplierRepository;
+        _dialogService = dialogService;
+        _receiptViewModel = viewModel.Receipts;
+        _receiptRepository = receiptRepository;
+        _serialDeviceRepository = serialDeviceRepository;
         _inventoryStockPage = new InventoryStockPage(viewModel.Inventory);
         _serialImeiPage = new SerialImeiPage(viewModel.Serials);
+        _supplierListView = new SupplierListView(_supplierViewModel);
+        _receiptListView = new PurchaseReceiptListView(_receiptViewModel);
         _showDialog = new AsyncRelayCommand<CategoryDialogRequest>(ShowDialogAsync);
         // Subscribe immediately as well as on Loaded. ItemsControl rows can be
         // realized before the parent Loaded callback on Uno/Skia.
@@ -56,6 +78,11 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         ViewModel.Inventory.StockDetailRequested += OnInventoryStockDetailRequested;
         ViewModel.Inventory.StockAdjustmentRequested += OnInventoryStockAdjustmentRequested;
         ViewModel.Inventory.ActionRequested += OnInventoryActionRequested;
+        _supplierViewModel.SupplierEditorRequested += OnSupplierEditorRequested;
+        _supplierViewModel.SupplierStatusRequested += OnSupplierStatusRequested;
+        _receiptViewModel.ReceiptDetailRequested += OnReceiptDetailRequested;
+        _receiptViewModel.CreateReceiptRequested += OnCreateReceiptRequested;
+        ViewModel.Serials.DeviceStatusRequested += OnDeviceStatusRequested;
         DataContext = viewModel;
         this.Background(Theme(AppColors.Canvas));
         var workspace = new Grid { RowSpacing = 24, Padding = new Thickness(24) };
@@ -95,6 +122,14 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         serialHost.Visibility(x => x.Binding(() => ViewModel.IsSerialTab).Convert(ShowIf));
         Grid.SetRow(serialHost, 2);
         workspace.Children.Add(serialHost);
+        var receiptHost = new Border { Child = _receiptListView };
+        receiptHost.Visibility(x => x.Binding(() => ViewModel.IsReceiptsTab).Convert(ShowIf));
+        Grid.SetRow(receiptHost, 2);
+        workspace.Children.Add(receiptHost);
+        var supplierHost = new Border { Child = _supplierListView };
+        supplierHost.Visibility(x => x.Binding(() => ViewModel.IsSuppliersTab).Convert(ShowIf));
+        Grid.SetRow(supplierHost, 2);
+        workspace.Children.Add(supplierHost);
         var root = new Grid();
         root.Children.Add(workspace);
         var successToast = BuildInventorySuccessToast();
@@ -123,6 +158,16 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         var serialTotalHost = new Border { Child = serialTotal };
         serialTotalHost.Visibility(x => x.Binding(() => ViewModel.IsSerialTab).Convert(ShowIf));
         titleLine.Children.Add(serialTotalHost);
+        var receiptTotal = Text(size: 14, color: AppColors.SecondaryText);
+        receiptTotal.Text(x => x.Binding(() => ViewModel.Receipts.TotalLabel));
+        var receiptTotalHost = new Border { Child = receiptTotal };
+        receiptTotalHost.Visibility(x => x.Binding(() => ViewModel.IsReceiptsTab).Convert(ShowIf));
+        titleLine.Children.Add(receiptTotalHost);
+        var supplierTotal = Text(size: 14, color: AppColors.SecondaryText);
+        supplierTotal.Text(x => x.Binding(() => ViewModel.Suppliers.TotalLabel));
+        var supplierTotalHost = new Border { Child = supplierTotal };
+        supplierTotalHost.Visibility(x => x.Binding(() => ViewModel.IsSuppliersTab).Convert(ShowIf));
+        titleLine.Children.Add(supplierTotalHost);
         title.Children.Add(titleLine);
         title.Children.Add(Text("Quản lý danh mục, tồn kho và serial/IMEI.", 13, AppColors.SecondaryText));
 
@@ -139,17 +184,20 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         inventoryActions.Children.Add(exportReport);
         var importAction = BuildPrimaryAction("add", "Nhập kho mới", "Nhập kho mới");
         importAction.Command(x => x.Binding(() => ViewModel.Inventory.ImportStockCommand));
-        importAction.Visibility(x => x.Binding(() => ViewModel.Inventory.CanManageStock).Convert(ShowIf));
+        importAction.Visibility(x => x.Binding(() => ViewModel.CanWriteInventory).Convert(ShowIf));
         inventoryActions.Children.Add(importAction);
         inventoryActions.Visibility(x => x.Binding(() => ViewModel.IsInventoryTab).Convert(ShowIf));
         actions.Children.Add(inventoryActions);
         var serialActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         var serialImportAction = BuildPrimaryAction("add", "Nhập kho mới", "Nhập kho mới");
         serialImportAction.Command(x => x.Binding(() => ViewModel.Inventory.ImportStockCommand));
-        serialImportAction.Visibility(x => x.Binding(() => ViewModel.Inventory.CanManageStock).Convert(ShowIf));
         serialActions.Children.Add(serialImportAction);
-        serialActions.Visibility(x => x.Binding(() => ViewModel.IsSerialTab).Convert(ShowIf));
+        serialActions.Visibility(x => x.Binding(() => ViewModel.ShowSerialImportAction).Convert(ShowIf));
         actions.Children.Add(serialActions);
+        var receiptAction = BuildPrimaryAction("add", "Tạo phiếu nhập", "Tạo phiếu nhập hàng");
+        receiptAction.Command(x => x.Binding(() => ViewModel.Receipts.CreateReceiptCommand));
+        receiptAction.Visibility(x => x.Binding(() => ViewModel.ShowReceiptCreateAction).Convert(ShowIf));
+        actions.Children.Add(receiptAction);
         return new ResponsivePair(title, actions);
     }
 
@@ -184,6 +232,18 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             text.Text(x => x.Binding(() => ViewModel.Serials.TotalCount));
             return text;
         }, CategoryWorkspaceTab.SerialImei));
+        tabs.Children.Add(CreateTabButton("Nhập hàng", color =>
+        {
+            var text = Text("0", 12, color, 600);
+            text.Text(x => x.Binding(() => ViewModel.Receipts.TotalCount));
+            return text;
+        }, CategoryWorkspaceTab.PurchaseReceipts));
+        tabs.Children.Add(CreateTabButton("Nhà cung cấp", color =>
+        {
+            var text = Text("0", 12, color, 600);
+            text.Text(x => x.Binding(() => ViewModel.Suppliers.TotalCount));
+            return text;
+        }, CategoryWorkspaceTab.Suppliers));
         return new Border
         {
             Child = tabs,
@@ -361,6 +421,16 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         ViewModel.Inventory.StockAdjustmentRequested += OnInventoryStockAdjustmentRequested;
         ViewModel.Inventory.ActionRequested -= OnInventoryActionRequested;
         ViewModel.Inventory.ActionRequested += OnInventoryActionRequested;
+        _supplierViewModel.SupplierEditorRequested -= OnSupplierEditorRequested;
+        _supplierViewModel.SupplierEditorRequested += OnSupplierEditorRequested;
+        _supplierViewModel.SupplierStatusRequested -= OnSupplierStatusRequested;
+        _supplierViewModel.SupplierStatusRequested += OnSupplierStatusRequested;
+        _receiptViewModel.ReceiptDetailRequested -= OnReceiptDetailRequested;
+        _receiptViewModel.ReceiptDetailRequested += OnReceiptDetailRequested;
+        _receiptViewModel.CreateReceiptRequested -= OnCreateReceiptRequested;
+        _receiptViewModel.CreateReceiptRequested += OnCreateReceiptRequested;
+        ViewModel.Serials.DeviceStatusRequested -= OnDeviceStatusRequested;
+        ViewModel.Serials.DeviceStatusRequested += OnDeviceStatusRequested;
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs args)
@@ -370,7 +440,139 @@ public sealed class CategoryManagementPage : Page, IRoutePage
         ViewModel.Inventory.StockDetailRequested -= OnInventoryStockDetailRequested;
         ViewModel.Inventory.StockAdjustmentRequested -= OnInventoryStockAdjustmentRequested;
         ViewModel.Inventory.ActionRequested -= OnInventoryActionRequested;
+        _supplierViewModel.SupplierEditorRequested -= OnSupplierEditorRequested;
+        _supplierViewModel.SupplierStatusRequested -= OnSupplierStatusRequested;
+        _receiptViewModel.ReceiptDetailRequested -= OnReceiptDetailRequested;
+        _receiptViewModel.CreateReceiptRequested -= OnCreateReceiptRequested;
+        ViewModel.Serials.DeviceStatusRequested -= OnDeviceStatusRequested;
         ViewModel.Inventory.DismissSuccessToast();
+    }
+
+    private void OnSupplierEditorRequested(SupplierItem? item) => _ = ShowSupplierEditorAsync(item);
+
+    private void OnSupplierStatusRequested(SupplierItem item) => _ = ShowSupplierStatusConfirmationAsync(item);
+
+    private void OnReceiptDetailRequested(PurchaseReceiptSummary summary) => _ = ShowReceiptDetailAsync(summary);
+
+    private void OnCreateReceiptRequested() => _ = ShowCreateReceiptAsync();
+
+    private void OnDeviceStatusRequested(SerialImeiDto device, DeviceStatusMode mode) => _ = ShowDeviceStatusDialogAsync(device, mode);
+
+    private async Task ShowDeviceStatusDialogAsync(SerialImeiDto device, DeviceStatusMode mode)
+    {
+        var vm = new DeviceStatusDialogViewModel(_serialDeviceRepository, device, mode);
+        vm.DeviceStatusChanged += changedDevice => _ = ViewModel.OnDeviceStatusChangedAsync(changedDevice, mode);
+
+        var root = XamlRoot ?? _serialImeiPage.XamlRoot;
+        try
+        {
+            var shown = _dialogPresenter.IsReady
+                && await _dialogPresenter.TryShowAsync(() => new DeviceStatusDialog(vm), CancellationToken.None);
+            if (!shown && root is not null)
+            {
+                var dialog = new DeviceStatusDialog(vm) { XamlRoot = root };
+                await dialog.ShowAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Device status dialog failed: {ex}");
+        }
+    }
+
+    private async Task ShowReceiptDetailAsync(PurchaseReceiptSummary summary)
+    {
+        var vm = new PurchaseReceiptDetailDialogViewModel(_receiptRepository);
+        _ = vm.LoadAsync(summary.Id);
+        var root = XamlRoot ?? _receiptListView.XamlRoot;
+        try
+        {
+            var shown = _dialogPresenter.IsReady
+                && await _dialogPresenter.TryShowAsync(() => new PurchaseReceiptDetailDialog(vm), CancellationToken.None);
+            if (!shown && root is not null)
+            {
+                var dialog = new PurchaseReceiptDetailDialog(vm) { XamlRoot = root };
+                await dialog.ShowAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Receipt detail dialog failed: {ex}");
+        }
+    }
+
+    private async Task ShowCreateReceiptAsync()
+    {
+        var vm = new CreatePurchaseReceiptDialogViewModel(_productRepository, _supplierRepository, _receiptRepository);
+        vm.ReceiptCreated += receipt => _ = ViewModel.OnReceiptCreatedAsync(receipt, vm.LastSubmitWasReplay);
+
+        var root = XamlRoot ?? _receiptListView.XamlRoot;
+        try
+        {
+            var shown = _dialogPresenter.IsReady
+                && await _dialogPresenter.TryShowAsync(() => new CreatePurchaseReceiptDialog(vm), CancellationToken.None);
+            if (!shown && root is not null)
+            {
+                var dialog = new CreatePurchaseReceiptDialog(vm) { XamlRoot = root };
+                await dialog.ShowAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Create receipt dialog failed: {ex}");
+        }
+    }
+
+    private async Task ShowSupplierEditorAsync(SupplierItem? item)
+    {
+        var vm = new SupplierEditorDialogViewModel(_supplierRepository);
+        vm.Load(item);
+        vm.SupplierSaved += _saved =>
+        {
+            _supplierViewModel.LoadCommand.Execute(null);
+        };
+        var root = XamlRoot ?? _supplierListView.XamlRoot;
+        var shown = false;
+        try
+        {
+            if (_dialogPresenter.IsReady)
+                shown = await _dialogPresenter.TryShowAsync(() => new SupplierEditorDialog(vm), CancellationToken.None);
+            if (!shown && root is not null)
+            {
+                var dialog = new SupplierEditorDialog(vm) { XamlRoot = root };
+                await dialog.ShowAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Supplier editor dialog failed: {ex}");
+        }
+    }
+
+    private async Task ShowSupplierStatusConfirmationAsync(SupplierItem item)
+    {
+        var actionText = item.IsActive ? "Ngừng sử dụng" : "Sử dụng lại";
+        var message = item.IsActive
+            ? $"Bạn có chắc chắn muốn ngừng sử dụng nhà cung cấp \"{item.Name}\"? Nhà cung cấp này sẽ không thể chọn khi tạo phiếu nhập mới."
+            : $"Bạn có chắc chắn muốn kích hoạt lại nhà cung cấp \"{item.Name}\"?";
+
+        var result = await _dialogService.ConfirmAsync(new DialogRequest(
+            Title: $"{actionText} nhà cung cấp",
+            Message: message,
+            PrimaryButtonText: actionText,
+            SecondaryButtonText: "Hủy"));
+
+        if (result == DialogResult.Confirmed)
+        {
+            var error = await _supplierViewModel.ChangeStatusAsync(item);
+            if (error is not null)
+            {
+                await _dialogService.InformAsync(new DialogRequest(
+                    Title: "Lỗi",
+                    Message: error,
+                    PrimaryButtonText: "Đóng"));
+            }
+        }
     }
 
     private void OnInventoryDeleteRequested(InventoryStockDeleteRequest request)
@@ -388,38 +590,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
     private void OnInventoryActionRequested(InventoryStockAction action)
     {
         if (action == InventoryStockAction.Import)
-            _ = ShowImportStockAsync();
-    }
-
-    private async Task ShowImportStockAsync()
-    {
-        var vm = new ImportStockDialogViewModel(_productRepository, _inventoryRepository);
-        var imported = false;
-        vm.ImportSucceeded += _ => imported = true;
-        var root = XamlRoot ?? _inventoryStockPage.XamlRoot;
-        var shown = false;
-        try
-        {
-            if (_dialogPresenter.IsReady)
-                shown = await _dialogPresenter.TryShowAsync(() => new ImportStockDialog(vm), CancellationToken.None);
-            if (!shown && root is not null)
-            {
-                var dialog = new ImportStockDialog(vm) { XamlRoot = root };
-                await dialog.ShowAsync();
-                shown = true;
-            }
-        }
-        catch (Exception exception)
-        {
-            System.Diagnostics.Debug.WriteLine($"Inventory import dialog failed: {exception}");
-        }
-
-        if (shown && imported)
-        {
-            await ViewModel.Inventory.LoadCommand.ExecuteAsync(null);
-            if (!ViewModel.Inventory.HasError)
-                await ViewModel.Inventory.ShowSuccessToastAsync("Đã nhập kho thành công.");
-        }
+            _ = ShowCreateReceiptAsync();
     }
 
     private async Task ShowStockDetailAsync(InventoryStockRow row)

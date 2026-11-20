@@ -212,6 +212,12 @@ public sealed class CategoryRepositoryTests
 
     private sealed class RecordingWorkspaceApiClient : IApiClient
     {
+        public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
+            string relativePath,
+            TRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public string? LastPath { get; private set; }
         public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<TResponse> GetAsync<TResponse>(string relativePath, CancellationToken cancellationToken = default) => throw new NotSupportedException();
@@ -239,6 +245,12 @@ public sealed class CategoryRepositoryTests
 
     private sealed class JsonApiClient(string json) : IApiClient
     {
+        public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
+            string relativePath,
+            TRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<TResponse> GetAsync<TResponse>(string relativePath, CancellationToken cancellationToken = default)
         {
@@ -256,6 +268,12 @@ public sealed class CategoryRepositoryTests
 
     private sealed class ThrowingApiClient(ApiException error) : IApiClient
     {
+        public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
+            string relativePath,
+            TRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<TResponse> GetAsync<TResponse>(string relativePath, CancellationToken cancellationToken = default) => throw error;
         public Task<TResponse> PostAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default) => throw error;

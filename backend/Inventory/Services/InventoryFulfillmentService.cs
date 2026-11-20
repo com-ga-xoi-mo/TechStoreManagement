@@ -8,16 +8,14 @@ public class InventoryFulfillmentService(
     ISerialImeiRepository serialImeiRepository,
     IInventoryStockRepository stockRepository) : IInventoryFulfillmentService
 {
-    private readonly record struct StockKey(Guid ProductId, Guid? VariantId);
-
     public async Task<FulfillmentCheckResult> CheckAvailabilityAsync(
         IReadOnlyList<FulfillmentLine> lines,
         CancellationToken cancellationToken = default)
     {
         var problems = new List<FulfillmentProblem>();
         var devices = await LoadDevicesAsync(lines, forUpdate: false, cancellationToken);
-        var stocks = new Dictionary<StockKey, InventoryStock?>();
-        var demand = new Dictionary<StockKey, int>();
+        var stocks = new Dictionary<StockLockKey, InventoryStock?>();
+        var demand = new Dictionary<StockLockKey, int>();
 
         for (var i = 0; i < lines.Count; i++)
         {
@@ -33,7 +31,7 @@ public class InventoryFulfillmentService(
                 }
             }
 
-            var key = new StockKey(line.ProductId, line.VariantId);
+            var key = new StockLockKey(line.ProductId, line.VariantId);
             if (!stocks.TryGetValue(key, out var stock))
             {
                 stock = await stockRepository.GetByProductAndVariantAsync(key.ProductId, key.VariantId, cancellationToken);
@@ -87,10 +85,10 @@ public class InventoryFulfillmentService(
             return FulfillmentResult.Failed(stockProblem);
         }
 
-        var demand = new Dictionary<StockKey, int>();
+        var demand = new Dictionary<StockLockKey, int>();
         for (var i = 0; i < lines.Count; i++)
         {
-            var key = new StockKey(lines[i].ProductId, lines[i].VariantId);
+            var key = new StockLockKey(lines[i].ProductId, lines[i].VariantId);
             var stock = stocks[key];
             var total = demand.GetValueOrDefault(key) + lines[i].Quantity;
             var available = stock.Quantity - stock.ReservedQuantity;
@@ -154,10 +152,10 @@ public class InventoryFulfillmentService(
             return SaleConfirmationResult.Failed(stockProblem);
         }
 
-        var demand = new Dictionary<StockKey, int>();
+        var demand = new Dictionary<StockLockKey, int>();
         for (var i = 0; i < lines.Count; i++)
         {
-            var key = new StockKey(lines[i].ProductId, lines[i].VariantId);
+            var key = new StockLockKey(lines[i].ProductId, lines[i].VariantId);
             var stock = stocks[key];
             var total = demand.GetValueOrDefault(key) + lines[i].Quantity;
             if (total > stock.ReservedQuantity || total > stock.Quantity)
@@ -188,7 +186,7 @@ public class InventoryFulfillmentService(
                 unitCost = await stockRepository.GetAverageReceivedUnitCostAsync(line.ProductId, line.VariantId, cancellationToken);
             }
 
-            var stock = stocks[new StockKey(line.ProductId, line.VariantId)];
+            var stock = stocks[new StockLockKey(line.ProductId, line.VariantId)];
             stock.Quantity -= line.Quantity;
             stock.ReservedQuantity -= line.Quantity;
             stock.UpdatedAt = completedAt;
@@ -239,16 +237,14 @@ public class InventoryFulfillmentService(
 
     // Locks the stock rows in ascending (product, variant) order and returns them by key.
     // Returns a problem (on the first line using the missing row) when a row does not exist.
-    private async Task<(Dictionary<StockKey, InventoryStock> Stocks, FulfillmentProblem? Problem)> LockStocksAsync(
+    private async Task<(Dictionary<StockLockKey, InventoryStock> Stocks, FulfillmentProblem? Problem)> LockStocksAsync(
         IReadOnlyList<FulfillmentLine> lines,
         CancellationToken cancellationToken)
     {
-        var stocks = new Dictionary<StockKey, InventoryStock>();
-        var keys = lines
-            .Select(l => new StockKey(l.ProductId, l.VariantId))
-            .Distinct()
-            .OrderBy(k => k.ProductId)
-            .ThenBy(k => k.VariantId);
+        var stocks = new Dictionary<StockLockKey, InventoryStock>();
+        var keys = InventoryLockOrdering.OrderKeys(lines
+            .Select(l => new StockLockKey(l.ProductId, l.VariantId))
+            .Distinct());
 
         foreach (var key in keys)
         {

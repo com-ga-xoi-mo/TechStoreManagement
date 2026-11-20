@@ -7,7 +7,7 @@ namespace TechStore.Client.Models.Inventory;
 
 public enum CategoryStatusFilter { All, Active, Hidden }
 
-public enum CategoryWorkspaceTab { Categories, Inventory, SerialImei }
+public enum CategoryWorkspaceTab { Categories, Inventory, SerialImei, PurchaseReceipts, Suppliers }
 
 public sealed record CategoryStatusOption(CategoryStatusFilter Value, string Label);
 

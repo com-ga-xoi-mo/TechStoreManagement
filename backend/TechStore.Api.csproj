@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\shared\TechStore.Shared.csproj" />
+    <EmbeddedResource Include="samples/demo-products/*.png" LogicalName="DemoProductImages.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

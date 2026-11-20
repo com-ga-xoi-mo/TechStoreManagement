@@ -18,7 +18,7 @@ Every business API SHALL require a valid authenticated user even when the endpoi
 - **THEN** missing access authentication does not prevent the endpoint from evaluating its own input; invalid credentials or refresh tokens can still return 401
 
 ### Requirement: Action permissions cover every business endpoint
-The server SHALL enforce the following Sprint 1 matrix. `A`, `M`, `S`, `W` mean Admin, Manager, SalesStaff, WarehouseStaff. Roles absent from a row SHALL receive 403. All listed reads return existing DTO fields unless a narrower scope is stated; account secrets and order cost snapshots SHALL never be returned. No user-management DELETE endpoint SHALL exist.
+The server SHALL enforce the following authorization matrix. `A`, `M`, `S`, `W` mean Admin, Manager, SalesStaff, WarehouseStaff. Roles absent from a row SHALL receive 403. All listed reads return existing DTO fields unless a narrower scope is stated; account secrets and order cost snapshots SHALL never be returned. No user-management DELETE endpoint SHALL exist.
 
 | API/action | Allowed roles | Read/write scope |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ The server SHALL enforce the following Sprint 1 matrix. `A`, `M`, `S`, `W` mean 
 | POST `/api/customers` | A M S | Create a customer at the counter; points, tier and activity stay server-controlled |
 | GET `/api/customers/{id}/loyalty-points`, `/api/customers/{id}/orders`, `/api/customers/{id}/purchased-items` | A M | Existing customer history DTOs |
 | PUT `/api/customers/{id}`, PATCH `/api/customers/{id}/deactivate`, `/api/customers/{id}/activate` | A M | Existing customer management |
-| GET `/api/analytics/dashboard` | A | Store-wide dashboard; Manager enablement is Sprint 2 |
+| GET `/api/analytics/dashboard` | A M | Read-only store-wide dashboard |
 | PUT `/api/settings/store` | A M | Existing store configuration fields |
 | GET `/api/auth/me`, POST `/api/auth/logout` | A M S W | Own identity and account-wide logout |
 | GET `/api/users`, `/api/users/{id}`, POST `/api/users`, PUT `/api/users/{id}`, PATCH `/api/users/{id}/status`, PUT `/api/users/{id}/role`, POST `/api/users/{id}/reset-password` | A | Account metadata and administrative mutations; never hashes/tokens |
@@ -49,8 +49,18 @@ The server SHALL enforce the following Sprint 1 matrix. `A`, `M`, `S`, `W` mean 
 - **THEN** analytics returns 403 and the order list, its totalCount and totalPages include only that user's own orders
 
 #### Scenario: Manager retains product editing rights
-- **WHEN** Manager sends a valid product update or calls the Sprint 1 dashboard endpoint
-- **THEN** the product update is allowed and the dashboard returns 403 until its Sprint 2 capability change
+- **WHEN** Manager sends a valid product update
+- **THEN** the product update is allowed
+
+#### Scenario: Manager can read store-wide Dashboard
+
+- **WHEN** Manager with a current valid JWT requests the Dashboard with valid inputs
+- **THEN** the API returns 200 and provides the same store-wide read scope as for Admin
+
+#### Scenario: Warehouse cannot read store-wide Dashboard
+
+- **WHEN** WarehouseStaff with a current valid JWT requests the Dashboard
+- **THEN** the API returns 403 without analytics data
 
 #### Scenario: Sales serves customers without managing them
 - **WHEN** SalesStaff searches, opens and creates a customer, then calls customer update, deactivation or history endpoints

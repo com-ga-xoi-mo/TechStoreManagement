@@ -83,7 +83,7 @@ Kết quả ngày 17/11/2026 (change `inventory-purchase-receipts`): nhà cung c
 
 Triển khai dashboard ở Sprint 2. Dựng bộ dữ liệu tính tay trước, sau đó thay bằng giao dịch thật. Chốt với Đạt trạng thái đơn, thời điểm ghi nhận doanh thu, dữ liệu đơn/ca và quy tắc ngày Việt Nam; đọc số tiền đã lưu do Vy tính để đối chiếu.
 
-- [ ] Cho Manager xem dashboard thật; giữ chặn Sales và Warehouse. Đối chiếu doanh thu theo ngày Việt Nam, kể cả ngày không có đơn.
+- [x] Cho Manager xem dashboard thật; giữ chặn Sales và Warehouse. Đối chiếu doanh thu theo ngày Việt Nam, kể cả ngày không có đơn. [Quyền và Dashboard Manager](M3_TEST_SUMMARY.md#dashboard-manager) · [Đối soát bốn kỳ theo UTC+07](M3_TEST_SUMMARY.md#actual-qua-http-ở-mốc-cố-định).
 
 Nghiệm thu: Manager xem được số liệu thật, Sales/Warehouse bị chặn; doanh thu khớp bộ dữ liệu tính tay, đúng ngày Việt Nam và cả ngày không có đơn.
 
@@ -153,8 +153,8 @@ Mỗi người bàn giao kết quả test, dữ liệu demo và tài liệu ph�
 
 - [ ] **An:** Test login/logout, token hết hạn/giả mạo/thu hồi, khóa tài khoản và đổi quyền qua HTTP thật.
 - [ ] **Q. Vinh:** Dùng hai giao dịch PostgreSQL chạy đồng thời để thử tranh IMEI cuối, phụ kiện cuối và nhận cùng phiếu. Bình tổng hợp bằng chứng kết quả từng ca. _(Đã có: gửi cùng phiếu đồng thời, hai phiếu cùng IMEI, hai phiếu cùng sản phẩm, báo lỗi máy đồng thời với giữ chỗ. Còn: hai đơn bán tranh IMEI cuối và phụ kiện cuối, làm khi nối với luồng POS.)_
-- [ ] **Bình:** Chạy lại CRUD, tìm kiếm, lọc, phân trang và các luồng Admin của M2; kiểm tra tên rỗng/quá dài, giá 0/âm và dữ liệu không hợp lệ.
-- [ ] **Bình:** Kiểm tra tồn, hàng giữ chỗ, serial, lịch sử kho và tiền sau commit/rollback. Không tính hai request chạy tuần tự là kiểm thử đồng thời.
+- [x] **Bình:** Chạy lại CRUD, tìm kiếm, lọc, phân trang và các luồng Admin của M2; kiểm tra tên rỗng/quá dài, giá 0/âm và dữ liệu không hợp lệ. [Regression Admin M2](M3_TEST_SUMMARY.md#regression-admin-m2).
+- [x] **Bình:** Kiểm tra tồn, hàng giữ chỗ, serial, lịch sử kho và tiền sau commit/rollback. Không tính hai request chạy tuần tự là kiểm thử đồng thời. [Read-back sau 201, 409 và 400](M3_TEST_SUMMARY.md#commit-và-rollback-qua-httppostgresql).
 - [ ] **Đạt:** Đổi mô tả ca “race” hiện tại trong `OrdersApiIntegrationTests.cs` thành kiểm tra xung đột tuần tự. Thêm ca hai đơn tranh cùng IMEI bằng hai request/giao dịch độc lập có điểm đồng bộ để thực sự chạy đồng thời trên PostgreSQL; đúng một đơn hoàn tất, đơn còn lại nhận 409, tồn và lịch sử bán chỉ thay đổi một lần.
 - [ ] **Đạt:** Dùng hai giao dịch PostgreSQL chạy đồng thời để thử chuyển trạng thái cùng đơn và bán trong lúc đóng ca. Bình tổng hợp bằng chứng kết quả từng ca.
 - [x] **T. Vinh:** Kiểm tra HTTP methods, JSON và mã lỗi 200/201/204/400/401/403/404/409/500 phù hợp; thử lỗi mạng và phục hồi giao diện.
@@ -164,13 +164,13 @@ Dùng database test riêng. Mỗi test case cần có đầu vào, kết quả m
 
 ### Dữ liệu demo
 
-- [ ] **Bình:** Chuẩn bị ít nhất 20 sản phẩm, 5 danh mục, 10 khách, 20 đơn nhiều trạng thái và bốn tài khoản demo. Sản phẩm có ảnh và giá vốn; đơn có đủ chi tiết và dữ liệu để vẽ biểu đồ.
-- [ ] **Bình:** Kiểm tra seed chạy lại không đổi mật khẩu hoặc phá dữ liệu. Chọn kỳ báo cáo có dữ liệu, giữ các ngày cố định mà test hiện tại đang dùng.
+- [x] **Bình:** Chuẩn bị ít nhất 20 sản phẩm, 5 danh mục, 10 khách, 20 đơn nhiều trạng thái và bốn tài khoản demo. Sản phẩm có ảnh và giá vốn; đơn có đủ chi tiết và dữ liệu để vẽ biểu đồ. [Bằng chứng fixture và HTTP trên PostgreSQL](M3_TEST_SUMMARY.md#dữ-liệu-demo-và-đối-soát-kpi).
+- [x] **Bình:** Kiểm tra seed chạy lại không đổi mật khẩu hoặc phá dữ liệu. Chọn kỳ báo cáo có dữ liệu, giữ các ngày cố định mà test hiện tại đang dùng. [Kiểm thử seed lại](M3_TEST_SUMMARY.md#chạy-lại-kiểm-thử) · [Đối soát tại mốc cố định](M3_TEST_SUMMARY.md#actual-qua-http-ở-mốc-cố-định).
 
 ### Tài liệu và kết quả kiểm thử
 
 - [ ] **An:** Cập nhật README cách chạy và tài khoản demo. Bàn giao API, bảng quyền, trạng thái đơn/ca, công thức tiền, thứ tự khóa và cách migrate/seed cho nhóm M4.
-- [ ] **Bình:** Ghi tổng test Pass/Fail/Skipped/Chưa kiểm tra, lỗi đã sửa và kết quả kiểm tra lại theo bản build bàn giao.
+- [x] **Bình:** Ghi tổng test Pass/Fail/Skipped/Chưa kiểm tra, lỗi đã sửa và kết quả kiểm tra lại theo bản build bàn giao. [Báo cáo kiểm thử M3](M3_TEST_SUMMARY.md).
 
 ## Mốc nghiệm thu
 

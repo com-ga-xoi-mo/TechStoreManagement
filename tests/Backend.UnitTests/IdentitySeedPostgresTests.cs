@@ -18,7 +18,8 @@ public sealed class IdentitySeedPostgresTests
     {
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);
         await using var db = database.CreateContext();
-        await new DataSeeder(new DemoSeedRepository(db), new UnitOfWork(db)).SeedAsync();
+        var seeder = new DataSeeder(new DemoSeedRepository(db), new UnitOfWork(db), new FakeObjectStorage());
+        await seeder.SeedAsync();
         var originalHashes = await db.Users.ToDictionaryAsync(u => u.Username, u => u.PasswordHash);
         foreach (var (username, password) in new[] { ("admin", "Admin@123"), ("cashier1", "Cashier@123"), ("warehouse1", "Warehouse@123"), ("manager1", "Manager@123") })
         {
@@ -38,7 +39,7 @@ public sealed class IdentitySeedPostgresTests
         new UserRepository(db).ReplaceRole(manager, await db.Roles.SingleAsync(r => r.Name == RoleType.SalesStaff), DateTime.UtcNow);
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
-        await new DataSeeder(new DemoSeedRepository(db), new UnitOfWork(db)).SeedAsync();
+        await seeder.SeedAsync();
         db.ChangeTracker.Clear();
         var saved = await new UserRepository(db).GetByIdWithRolesAsync(id);
         Assert.Equal("edited@test.vn", saved!.Email);

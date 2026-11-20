@@ -19,6 +19,7 @@ public class FakeUnitOfWork : IUnitOfWork
     public IsolationLevel? LastIsolationLevel { get; private set; }
 
     public Exception? ExceptionToThrowOnSave { get; set; }
+    public Exception? ExceptionToThrowOnCommit { get; set; }
 
     // Lets a test undo what a fake repository staged, as a real rollback clears the change tracker.
     public Action? OnRollback { get; set; }
@@ -62,6 +63,7 @@ public class FakeUnitOfWork : IUnitOfWork
     public Task CommitAsync(CancellationToken cancellationToken = default)
     {
         CommitCount++;
+        if (ExceptionToThrowOnCommit is not null) throw ExceptionToThrowOnCommit;
         return Task.CompletedTask;
     }
 

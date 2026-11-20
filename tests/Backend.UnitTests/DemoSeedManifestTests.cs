@@ -1,4 +1,5 @@
 using FluentAssertions;
+using TechStore.Api.Catalog.Services;
 using TechStore.Api.Common.Data;
 using Xunit;
 
@@ -6,6 +7,20 @@ namespace TechStore.UnitTests;
 
 public class DemoSeedManifestTests
 {
+    [Fact]
+    public void ProductCovers_Should_BeEmbeddedPngsForEveryFixtureCategory()
+    {
+        foreach (var slug in DemoSeedManifest.Products.Select(x => x.CategorySlug).Distinct())
+        {
+            var resource = DemoSeedManifest.CoverResourcesByCategory[slug];
+            using var stream = typeof(DemoSeedManifest).Assembly.GetManifestResourceStream(resource);
+            Assert.NotNull(stream);
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            Assert.Equal("image/png", ProductImageFileInspector.Inspect(buffer.ToArray(), out _)?.ContentType);
+        }
+    }
+
     [Fact]
     public void Build_Should_UseStableIdentifiersAndTimestamps()
     {

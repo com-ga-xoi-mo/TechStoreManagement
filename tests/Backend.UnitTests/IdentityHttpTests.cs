@@ -106,7 +106,9 @@ public sealed class IdentityHttpTests
             factory.Users.Add(user);
             await factory.LoginAsync(client, user.Username);
             Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/users")).StatusCode);
-            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/analytics/dashboard")).StatusCode);
+            // Manager may read the store-wide dashboard (m3-manager-dashboard-access); AnalyticsControllerTests covers its 200.
+            if (role != RoleType.Manager)
+                Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/analytics/dashboard")).StatusCode);
             if (role == RoleType.WarehouseStaff)
             {
                 Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/orders")).StatusCode);

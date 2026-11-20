@@ -1,7 +1,7 @@
 namespace TechStore.Api.Analytics.Repositories;
 
-/// <summary>Validated UTC boundaries and period key for one dashboard read.</summary>
-public sealed record DashboardAnalyticsCriteria(string Period, DateTime FromUtc, DateTime AsOfUtc);
+/// <summary>Validated UTC interval [FromUtc, ToExclusiveUtc) for one dashboard read.</summary>
+public sealed record DashboardAnalyticsCriteria(string Period, DateTime FromUtc, DateTime ToExclusiveUtc);
 
 /// <summary>Compact repository projection; contains no persistence entities or API DTOs.</summary>
 public sealed record DashboardAnalyticsReadModel(

@@ -15,6 +15,10 @@ public interface IProductRepository
         Guid id,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Product>> GetManyWithVariantsAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<string>> FindExistingSkusAsync(
         IEnumerable<string> skus,
         CancellationToken cancellationToken = default);

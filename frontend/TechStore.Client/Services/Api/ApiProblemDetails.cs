@@ -9,7 +9,8 @@ public sealed record ApiProblemDetails(
     int? Status,
     string? Code,
     string? TraceId,
-    IReadOnlyDictionary<string, IReadOnlyList<string>> FieldErrors)
+    IReadOnlyDictionary<string, IReadOnlyList<string>> FieldErrors,
+    IReadOnlyList<string>? DuplicateIdentifiers = null)
 {
     public static ApiProblemDetails? TryParse(JsonElement root)
     {
@@ -25,13 +26,14 @@ public sealed record ApiProblemDetails(
         var code = GetString(root, "code") ?? GetString(root, "errorCode");
         var traceId = GetString(root, "traceId") ?? GetString(root, "traceIdentifier");
         var errors = ParseFieldErrors(root);
+        var duplicateIdentifiers = ParseStringArray(root, "duplicateIdentifiers");
         if (type is null && title is null && detail is null && status is null
-            && code is null && traceId is null && errors.Count == 0)
+            && code is null && traceId is null && errors.Count == 0 && duplicateIdentifiers is null)
         {
             return null;
         }
 
-        return new ApiProblemDetails(type, title, detail, status, code, traceId, errors);
+        return new ApiProblemDetails(type, title, detail, status, code, traceId, errors, duplicateIdentifiers);
     }
 
     private static string? GetString(JsonElement root, string name) =>
@@ -43,6 +45,19 @@ public sealed record ApiProblemDetails(
         root.TryGetProperty(name, out var value) && value.TryGetInt32(out var result)
             ? result
             : null;
+
+    private static IReadOnlyList<string>? ParseStringArray(JsonElement root, string name)
+    {
+        if (!root.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        return value.EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.String)
+            .Select(item => item.GetString()!)
+            .ToList();
+    }
 
     private static IReadOnlyDictionary<string, IReadOnlyList<string>> ParseFieldErrors(JsonElement root)
     {

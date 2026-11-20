@@ -1151,6 +1151,10 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
+                    b.Property<Guid?>("ClientRequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("client_request_id");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamptz")
@@ -1189,6 +1193,10 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasDefaultValue("Draft")
                         .HasColumnName("status");
 
+                    b.Property<string>("SupplierDocumentNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("supplier_document_number");
+
                     b.Property<Guid>("SupplierId")
                         .HasColumnType("uuid")
                         .HasColumnName("supplier_id");
@@ -1205,6 +1213,10 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClientRequestId")
+                        .IsUnique()
+                        .HasDatabaseName("idx_purchase_orders_client_request_id");
 
                     b.HasIndex("CreatedByUserId")
                         .HasDatabaseName("idx_purchase_orders_created_by");

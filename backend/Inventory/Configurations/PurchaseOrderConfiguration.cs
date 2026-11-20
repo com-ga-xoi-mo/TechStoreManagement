@@ -23,6 +23,8 @@ public class PurchaseOrderConfiguration : IEntityTypeConfiguration<PurchaseOrder
         builder.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasDefaultValue(PurchaseOrderStatus.Draft).IsRequired();
         builder.Property(x => x.TotalCost).HasColumnName("total_cost").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.Notes).HasColumnName("notes");
+        builder.Property(x => x.SupplierDocumentNumber).HasColumnName("supplier_document_number");
+        builder.Property(x => x.ClientRequestId).HasColumnName("client_request_id");
         builder.Property(x => x.OrderedAt).HasColumnName("ordered_at").HasColumnType("timestamptz");
         builder.Property(x => x.ReceivedAt).HasColumnName("received_at").HasColumnType("timestamptz");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
@@ -33,6 +35,7 @@ public class PurchaseOrderConfiguration : IEntityTypeConfiguration<PurchaseOrder
         builder.HasIndex(x => x.CreatedByUserId).HasDatabaseName("idx_purchase_orders_created_by");
         builder.HasIndex(x => x.ReceivedByUserId).HasDatabaseName("idx_purchase_orders_received_by");
         builder.HasIndex(x => x.PoNumber).IsUnique().HasDatabaseName("idx_purchase_orders_po_number");
+        builder.HasIndex(x => x.ClientRequestId).IsUnique().HasDatabaseName("idx_purchase_orders_client_request_id");
         builder.HasIndex(x => x.Status).HasDatabaseName("idx_purchase_orders_status");
 
         // Relationships

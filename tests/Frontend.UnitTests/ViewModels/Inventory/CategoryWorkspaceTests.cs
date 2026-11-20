@@ -3,12 +3,14 @@ using TechStore.Client.Controls;
 using TechStore.Client.Models.Inventory;
 using TechStore.Client.Services.Files;
 using TechStore.Client.Services.Inventory;
+using TechStore.Client.Services.Session;
 using TechStore.Client.ViewModels.Inventory;
 using TechStore.Client.Models.Catalog;
 using TechStore.Client.Repositories.Catalog;
 using TechStore.Client.Repositories.Inventory;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Shared.DTOs;
+using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Client.UnitTests.ViewModels.Inventory;
@@ -70,6 +72,7 @@ public class CategoryWorkspaceTests
     private sealed class StockApi : IInventoryRepository
     {
         public int Calls { get; private set; }
+        public int SerialCalls { get; private set; }
         public Func<Task<PagedResultDto<InventoryStockDto>>>? StockHandler { get; set; }
         public Func<Task<PagedResultDto<SerialImeiDto>>>? SerialHandler { get; set; }
 
@@ -86,6 +89,7 @@ public class CategoryWorkspaceTests
 
         public Task<PagedResultDto<SerialImeiDto>> GetSerialsAsync(SerialImeiFilterRequest request, CancellationToken cancellationToken = default)
         {
+            SerialCalls++;
             if (SerialHandler is not null) return SerialHandler();
             return Task.FromResult(new PagedResultDto<SerialImeiDto>
             {
@@ -94,18 +98,47 @@ public class CategoryWorkspaceTests
         }
     }
 
+    private sealed class FakeReceiptApi : IPurchaseReceiptRepository
+    {
+        public int LoadCalls { get; private set; }
+        public Task<PurchaseReceiptSearchResult> GetReceiptsAsync(PurchaseReceiptFilterRequest request, CancellationToken cancellationToken = default)
+        {
+            LoadCalls++;
+            return Task.FromResult(new PurchaseReceiptSearchResult(true, [], 1, 20, 0, 0));
+        }
+        public Task<PurchaseReceiptDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PurchaseReceiptCreateResult> CreateAsync(CreatePurchaseReceiptRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    private sealed class FakeSupplierApi : ISupplierRepository
+    {
+        public Task<SupplierSearchResult> GetSuppliersAsync(SupplierFilterRequest request, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SupplierSearchResult(true, [], 1, 100, 0, 0));
+        public Task<SupplierDetailResult> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<SupplierMutationResult> CreateAsync(SaveSupplierRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<SupplierMutationResult> UpdateAsync(Guid id, SaveSupplierRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<SupplierMutationResult> SetStatusAsync(Guid id, bool isActive, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
     private static CategoryManagementViewModel CreateVm(
         ICategoryWorkspaceRepository api,
         ICategoryDialogRequests? dialogs = null,
         InventoryStockViewModel? inventory = null,
-        SerialImeiViewModel? serials = null)
+        SerialImeiViewModel? serials = null,
+        PurchaseReceiptListViewModel? receipts = null,
+        SupplierListViewModel? suppliers = null,
+        ISessionStore? session = null)
     {
         var stockApi = new StockApi();
+        var supplierApi = new FakeSupplierApi();
         return new CategoryManagementViewModel(
             api,
             dialogs ?? new FakeDialogs(),
             inventory ?? new InventoryStockViewModel(stockApi),
-            serials ?? new SerialImeiViewModel(stockApi));
+            serials ?? new SerialImeiViewModel(stockApi),
+            receipts ?? new PurchaseReceiptListViewModel(new FakeReceiptApi(), supplierApi),
+            suppliers ?? new SupplierListViewModel(supplierApi),
+            session ?? new InMemorySessionStore());
     }
 
     private static CategoryNode Node(string name, bool active = true, params CategoryNode[] children) =>
@@ -609,6 +642,69 @@ public class CategoryWorkspaceTests
         inventoryVm.IsSuccessToastVisible.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task OnReceiptCreatedAsync_RefreshesReceiptsStockAndSerialsExactlyOnce()
+    {
+        // Arrange
+        var stockApi = new StockApi();
+        var inventoryVm = new InventoryStockViewModel(stockApi);
+        var serialsVm = new SerialImeiViewModel(stockApi);
+        var receiptApi = new FakeReceiptApi();
+        var receiptsVm = new PurchaseReceiptListViewModel(receiptApi, new FakeSupplierApi());
+        var vm = CreateVm(new FakeApi([]), inventory: inventoryVm, serials: serialsVm, receipts: receiptsVm);
+        var detail = new PurchaseReceiptDetail(
+            Guid.NewGuid(), "PN-20261117-TEST", Guid.NewGuid(), "Supplier", null, Guid.NewGuid(), null,
+            DateTime.UtcNow, Guid.NewGuid(), "User", 100_000m, []);
+
+        // Act
+        await vm.OnReceiptCreatedAsync(detail);
+
+        // Assert
+        receiptApi.LoadCalls.Should().Be(1);
+        stockApi.Calls.Should().Be(1);
+        stockApi.SerialCalls.Should().Be(1);
+        inventoryVm.IsSuccessToastVisible.Should().BeTrue();
+        inventoryVm.SuccessToastMessage.Should().Contain("PN-20261117-TEST");
+    }
+
+    [Fact]
+    public async Task OnDeviceStatusChangedAsync_RefreshesSerialsAndStockExactlyOnce()
+    {
+        // Arrange
+        var stockApi = new StockApi();
+        var inventoryVm = new InventoryStockViewModel(stockApi);
+        var serialsVm = new SerialImeiViewModel(stockApi);
+        var vm = CreateVm(new FakeApi([]), inventory: inventoryVm, serials: serialsVm);
+        var device = new SerialDeviceItem(Guid.NewGuid(), "iPhone 16", null, null, "356789012345678", SerialImeiStatus.Defective);
+
+        // Act
+        await vm.OnDeviceStatusChangedAsync(device, DeviceStatusMode.ReportDefective);
+
+        // Assert
+        stockApi.Calls.Should().Be(1);
+        stockApi.SerialCalls.Should().Be(1);
+        inventoryVm.SuccessToastMessage.Should().Contain("356789012345678");
+    }
+
+    [Fact]
+    public async Task SelectingReceiptsTab_LoadsFirstPageOnlyOnce()
+    {
+        // Arrange
+        var receiptApi = new FakeReceiptApi();
+        var receiptsVm = new PurchaseReceiptListViewModel(receiptApi, new FakeSupplierApi());
+        var vm = CreateVm(new FakeApi([]), receipts: receiptsVm);
+
+        // Act
+        vm.SelectedTab = CategoryWorkspaceTab.PurchaseReceipts;
+        await Task.Yield();
+        vm.SelectedTab = CategoryWorkspaceTab.Inventory;
+        vm.SelectedTab = CategoryWorkspaceTab.PurchaseReceipts;
+
+        // Assert
+        receiptApi.LoadCalls.Should().Be(1);
+        receiptsVm.HasLoaded.Should().BeTrue();
+    }
+
     private sealed class BlockingCsvFileSaver : ICsvFileSaver
     {
         public async Task<CsvSaveResult?> SaveAsync(string suggestedFileName, string content, CancellationToken cancellationToken = default)
@@ -616,5 +712,73 @@ public class CategoryWorkspaceTests
             await Task.Delay(Timeout.Infinite, cancellationToken);
             return new CsvSaveResult("/tmp/ignored.csv", false);
         }
+    }
+
+    private static InMemorySessionStore SessionAs(string role)
+    {
+        var session = new InMemorySessionStore();
+        session.SetSession("access", "refresh", "user", "User", role);
+        return session;
+    }
+
+    [Theory]
+    [InlineData("Admin", true)]
+    [InlineData("WarehouseStaff", true)]
+    [InlineData("Manager", false)]
+    [InlineData("SalesStaff", false)]
+    public void ApplyPermissions_ShowsWriteActionsOnlyToRolesTheApiAllows(string role, bool canWrite)
+    {
+        // Arrange
+        var stockApi = new StockApi();
+        var serials = new SerialImeiViewModel(stockApi);
+        var receipts = new PurchaseReceiptListViewModel(new FakeReceiptApi(), new FakeSupplierApi());
+        var suppliers = new SupplierListViewModel(new FakeSupplierApi());
+        var vm = CreateVm(new FakeApi([]), serials: serials, receipts: receipts, suppliers: suppliers, session: SessionAs(role));
+
+        // Act
+        vm.ApplyPermissions();
+        vm.SelectedTab = CategoryWorkspaceTab.PurchaseReceipts;
+
+        // Assert
+        vm.CanWriteInventory.Should().Be(canWrite);
+        vm.ShowReceiptCreateAction.Should().Be(canWrite);
+        receipts.CanWrite.Should().Be(canWrite);
+        suppliers.CanWrite.Should().Be(canWrite);
+        serials.CanWrite.Should().Be(canWrite);
+    }
+
+    [Theory]
+    [InlineData("Manager", 1)]
+    [InlineData("SalesStaff", 0)]
+    public void ApplyPermissions_PreloadsPurchaseTabsOnlyForRolesThatMayReadThem(string role, int expectedLoads)
+    {
+        // Arrange
+        var receiptApi = new FakeReceiptApi();
+        var receipts = new PurchaseReceiptListViewModel(receiptApi, new FakeSupplierApi());
+        var vm = CreateVm(new FakeApi([]), receipts: receipts, session: SessionAs(role));
+
+        // Act
+        vm.ApplyPermissions();
+
+        // Assert
+        receiptApi.LoadCalls.Should().Be(expectedLoads);
+    }
+
+    [Fact]
+    public async Task OnReceiptCreatedAsync_WhenReplayed_SaysTheReceiptWasAlreadyRecorded()
+    {
+        // Arrange
+        var stockApi = new StockApi();
+        var inventoryVm = new InventoryStockViewModel(stockApi);
+        var vm = CreateVm(new FakeApi([]), inventory: inventoryVm);
+        var detail = new PurchaseReceiptDetail(
+            Guid.NewGuid(), "PN-20261117-REPLAY", Guid.NewGuid(), "Supplier", null, Guid.NewGuid(), null,
+            DateTime.UtcNow, Guid.NewGuid(), "User", 100_000m, []);
+
+        // Act
+        await vm.OnReceiptCreatedAsync(detail, wasReplay: true);
+
+        // Assert
+        inventoryVm.SuccessToastMessage.Should().Contain("đã được ghi ở lần gửi trước");
     }
 }

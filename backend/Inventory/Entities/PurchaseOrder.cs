@@ -13,6 +13,8 @@ public class PurchaseOrder : BaseEntity
     public PurchaseOrderStatus Status { get; set; } = PurchaseOrderStatus.Draft;
     public decimal TotalCost { get; set; } = 0;
     public string? Notes { get; set; }
+    public string? SupplierDocumentNumber { get; set; }
+    public Guid? ClientRequestId { get; set; }
     public DateTime? OrderedAt { get; set; }
     public DateTime? ReceivedAt { get; set; }
 

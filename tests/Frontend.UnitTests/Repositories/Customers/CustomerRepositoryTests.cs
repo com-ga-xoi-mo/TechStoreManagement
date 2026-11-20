@@ -168,6 +168,12 @@ public sealed class CustomerRepositoryTests
 
     private sealed class StubApiClient : IApiClient
     {
+        public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
+            string relativePath,
+            TRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public object? GetResponse { get; set; }
         public object? WriteResponse { get; set; }
         public Exception? GetException { get; set; }

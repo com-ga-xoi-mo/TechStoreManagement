@@ -50,8 +50,15 @@ public sealed class PostgresDatabase : IAsyncDisposable
         }
     }
 
-    public AppDbContext CreateContext() => new(new DbContextOptionsBuilder<AppDbContext>()
-        .UseNpgsql(ConnectionString).Options);
+    public AppDbContext CreateContext(params Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor[] interceptors)
+    {
+        var builder = new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(ConnectionString);
+        if (interceptors.Length > 0)
+        {
+            builder.AddInterceptors(interceptors);
+        }
+        return new AppDbContext(builder.Options);
+    }
 
     public async ValueTask DisposeAsync()
     {

@@ -6,6 +6,12 @@ namespace TechStore.Client.UnitTests.Repositories.Orders;
 /// <summary>Hand-written IApiClient for repository tests: records every call and answers with canned JSON or throws.</summary>
 internal sealed class RecordingApiClient(Func<string, string, object?, string> respond) : IApiClient
 {
+    public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
+        string relativePath,
+        TRequest request,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
     public Dictionary<string, string>? LastFields { get; private set; }
 
     public Task<TResponse> PostFileAsync<TResponse>(string relativePath, ApiFileContent file, IReadOnlyDictionary<string, string>? fields = null, CancellationToken cancellationToken = default)

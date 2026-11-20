@@ -44,24 +44,6 @@ public sealed record InventoryStockAdjustmentResult(
     public static InventoryStockAdjustmentResult Success(InventoryStockDetailDto data) => new(true, data);
 }
 
-public sealed record InventoryStockInitializeResult(
-    bool Succeeded,
-    InventoryStockDto? Data = null,
-    InventoryStockDetailFailure Failure = InventoryStockDetailFailure.None,
-    string? Message = null)
-{
-    public static InventoryStockInitializeResult Success(InventoryStockDto data) => new(true, data);
-}
-
-public sealed record InventorySerialImportResult(
-    bool Succeeded,
-    int ImportedCount = 0,
-    InventoryStockDetailFailure Failure = InventoryStockDetailFailure.None,
-    string? Message = null)
-{
-    public static InventorySerialImportResult Success(int importedCount) => new(true, importedCount);
-}
-
 public sealed record InventoryStockDeleteResult(
     bool Succeeded,
     InventoryStockDeleteFailure Failure = InventoryStockDeleteFailure.None,
@@ -102,14 +84,4 @@ public interface IInventoryRepository
         AdjustStockRequest request,
         CancellationToken cancellationToken = default) =>
         Task.FromResult(new InventoryStockAdjustmentResult(false, Failure: InventoryStockDetailFailure.Unavailable, Message: "Stock adjustment is not supported."));
-
-    Task<InventoryStockInitializeResult> InitializeStockAsync(
-        InitializeStockRequest request,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(new InventoryStockInitializeResult(false, Failure: InventoryStockDetailFailure.Unavailable, Message: "Stock initialization is not supported."));
-
-    Task<InventorySerialImportResult> BatchImportSerialsAsync(
-        BatchImportSerialImeiRequest request,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(new InventorySerialImportResult(false, Failure: InventoryStockDetailFailure.Unavailable, Message: "Serial import is not supported."));
 }

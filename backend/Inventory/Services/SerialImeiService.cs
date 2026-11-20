@@ -14,12 +14,13 @@ public class SerialImeiService(
     ISerialImeiRepository serialImeiRepository,
     IInventoryStockRepository stockRepository,
     IProductRepository productRepository,
-    IUnitOfWork unitOfWork) : ISerialImeiService
+    IUnitOfWork unitOfWork,
+    TimeProvider? timeProvider = null) : ISerialImeiService
 {
-    private static readonly Regex ImeiRegex = new(@"^[0-9]{15}$", RegexOptions.Compiled);
-
+    private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
     public async Task<SerialImeiSearchResult> GetSerialsAsync(
         SerialImeiFilterRequest request,
+        bool includeCost = false,
         CancellationToken cancellationToken = default)
     {
         var page = request.Page.GetValueOrDefault(1);
@@ -40,7 +41,7 @@ public class SerialImeiService(
         var (items, totalCount) = await serialImeiRepository.SearchAsync(criteria, cancellationToken);
         var totalPages = pageSize > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0;
 
-        var dtos = items.Select(MapToDto).ToList();
+        var dtos = items.Select(item => MapToDto(item, includeCost)).ToList();
 
         var paged = new PagedResultDto<SerialImeiDto>
         {
@@ -123,7 +124,7 @@ public class SerialImeiService(
                 continue;
             }
 
-            if (imei != null && !ImeiRegex.IsMatch(imei))
+            if (imei != null && !SerialImeiValidationHelper.IsValidImei(imei))
             {
                 errors[$"items[{i}].imei"] = ["IMEI must be exactly 15 digits."];
             }
@@ -246,7 +247,226 @@ public class SerialImeiService(
         }
     }
 
-    private static SerialImeiDto MapToDto(SerialImei item)
+    public async Task<DeviceStatusResult> ReportDefectiveAsync(
+        Guid deviceId,
+        ReportDefectiveDeviceRequest request,
+        Guid actorUserId,
+        bool includeCost = false,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (deviceId == Guid.Empty)
+        {
+            return DeviceStatusResult.NotFound();
+        }
+
+        var errors = new Dictionary<string, string[]>();
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            errors["reason"] = ["Lý do báo lỗi là bắt buộc."];
+        }
+        else if (request.Reason.Trim().Length > 200)
+        {
+            errors["reason"] = ["Lý do không được vượt quá 200 ký tự."];
+        }
+
+        if (request.Note != null && request.Note.Length > 1000)
+        {
+            errors["note"] = ["Ghi chú không được vượt quá 1000 ký tự."];
+        }
+
+        if (errors.Count > 0)
+        {
+            return DeviceStatusResult.ValidationFailed(errors);
+        }
+
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var devices = await serialImeiRepository.GetForUpdateAsync([deviceId], cancellationToken);
+            var device = devices.FirstOrDefault();
+            if (device == null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeviceStatusResult.NotFound();
+            }
+
+            if (device.Status != SerialImeiStatus.InStock)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeviceStatusResult.Conflict($"Thiết bị không ở trạng thái sẵn sàng trong kho (trạng thái hiện tại: {StatusLabel(device.Status)}).");
+            }
+
+            var stock = await stockRepository.GetForUpdateAsync(device.ProductId, device.VariantId, cancellationToken);
+            if (stock == null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeviceStatusResult.Conflict("Không tìm thấy dòng tồn kho tương ứng với thiết bị.");
+            }
+
+            if (stock.Quantity - 1 < stock.ReservedQuantity || stock.Quantity - 1 < 0)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeviceStatusResult.Conflict("Không thể giảm tồn kho thấp hơn số lượng đang giữ chỗ hoặc nhỏ hơn 0.");
+            }
+
+            var now = _time.GetUtcNow().UtcDateTime;
+            device.Status = SerialImeiStatus.Defective;
+            device.UpdatedAt = now;
+
+            stock.Quantity -= 1;
+            stock.UpdatedAt = now;
+
+            var devCode = !string.IsNullOrWhiteSpace(device.Imei) ? $"IMEI {device.Imei}" : $"Serial {device.SerialNumber}";
+            var trimmedReason = request.Reason!.Trim();
+            var trimmedNote = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+            var reasonText = trimmedNote != null
+                ? $"Báo lỗi máy {devCode}: {trimmedReason} — {trimmedNote}"
+                : $"Báo lỗi máy {devCode}: {trimmedReason}";
+
+            stockRepository.AddMovement(new InventoryMovement
+            {
+                InventoryStockId = stock.Id,
+                MovementType = InventoryMovementType.Defective,
+                QuantityChange = -1,
+                QuantityAfter = stock.Quantity,
+                PerformedByUserId = actorUserId,
+                Reason = reasonText,
+                CreatedAt = now
+            });
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+
+            return DeviceStatusResult.Success(await MapChangedDeviceAsync(device, includeCost, cancellationToken));
+        }
+        catch
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<DeviceStatusResult> RestoreAsync(
+        Guid deviceId,
+        RestoreDeviceRequest request,
+        Guid actorUserId,
+        bool includeCost = false,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (deviceId == Guid.Empty)
+        {
+            return DeviceStatusResult.NotFound();
+        }
+
+        var errors = new Dictionary<string, string[]>();
+        if (request.Note != null && request.Note.Length > 1000)
+        {
+            errors["note"] = ["Ghi chú không được vượt quá 1000 ký tự."];
+        }
+
+        if (errors.Count > 0)
+        {
+            return DeviceStatusResult.ValidationFailed(errors);
+        }
+
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var devices = await serialImeiRepository.GetForUpdateAsync([deviceId], cancellationToken);
+            var device = devices.FirstOrDefault();
+            if (device == null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeviceStatusResult.NotFound();
+            }
+
+            if (device.Status != SerialImeiStatus.Defective)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeviceStatusResult.Conflict($"Thiết bị không ở trạng thái báo lỗi (trạng thái hiện tại: {StatusLabel(device.Status)}).");
+            }
+
+            var stock = await stockRepository.GetForUpdateAsync(device.ProductId, device.VariantId, cancellationToken);
+            if (stock == null)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeviceStatusResult.Conflict("Không tìm thấy dòng tồn kho tương ứng với thiết bị.");
+            }
+
+            var now = _time.GetUtcNow().UtcDateTime;
+            device.Status = SerialImeiStatus.InStock;
+            device.UpdatedAt = now;
+
+            stock.Quantity += 1;
+            stock.UpdatedAt = now;
+
+            var devCode = !string.IsNullOrWhiteSpace(device.Imei) ? $"IMEI {device.Imei}" : $"Serial {device.SerialNumber}";
+            var trimmedNote = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+            var reasonText = trimmedNote != null
+                ? $"Sửa xong máy {devCode}: {trimmedNote}"
+                : $"Sửa xong máy {devCode}";
+
+            stockRepository.AddMovement(new InventoryMovement
+            {
+                InventoryStockId = stock.Id,
+                MovementType = InventoryMovementType.Adjustment,
+                QuantityChange = 1,
+                QuantityAfter = stock.Quantity,
+                PerformedByUserId = actorUserId,
+                Reason = reasonText,
+                CreatedAt = now
+            });
+
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+
+            return DeviceStatusResult.Success(await MapChangedDeviceAsync(device, includeCost, cancellationToken));
+        }
+        catch
+        {
+            await unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    // The locked device row carries no product navigation, so names are read after commit.
+    private async Task<SerialImeiDto> MapChangedDeviceAsync(
+        SerialImei device,
+        bool includeCost,
+        CancellationToken cancellationToken)
+    {
+        var dto = MapToDto(device, includeCost);
+        var product = await productRepository.GetDetailAsync(device.ProductId, cancellationToken);
+        if (product == null)
+        {
+            return dto;
+        }
+
+        dto.ProductName = product.Name;
+        if (device.VariantId.HasValue)
+        {
+            dto.VariantName = product.Variants.FirstOrDefault(v => v.Id == device.VariantId.Value)?.VariantName;
+        }
+
+        return dto;
+    }
+
+    private static string StatusLabel(SerialImeiStatus status) => status switch
+    {
+        SerialImeiStatus.InStock => "Trong kho",
+        SerialImeiStatus.Reserved => "Đang giữ",
+        SerialImeiStatus.Sold => "Đã bán",
+        SerialImeiStatus.Returned => "Đã trả",
+        SerialImeiStatus.UnderRepair => "Đang sửa chữa",
+        SerialImeiStatus.Defective => "Lỗi",
+        _ => status.ToString()
+    };
+
+    private static SerialImeiDto MapToDto(SerialImei item, bool includeCost)
     {
         return new SerialImeiDto
         {
@@ -258,7 +478,7 @@ public class SerialImeiService(
             SerialNumber = item.SerialNumber,
             Imei = item.Imei,
             Status = item.Status,
-            UnitCost = item.UnitCost,
+            UnitCost = includeCost ? item.UnitCost : null,
             PurchaseOrderId = item.PurchaseOrderId,
             WarrantyMonths = item.WarrantyMonths,
             WarrantyStartAt = item.WarrantyStartAt,

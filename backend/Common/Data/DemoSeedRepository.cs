@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Catalog.Entities;
+using TechStore.Api.Catalog.Services;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Customers.Entities;
 using TechStore.Api.Identity.Entities;
@@ -26,7 +27,7 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
         }
     }
 
-    public async Task ReconcileAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyDictionary<string, Product>> ReconcileAsync(CancellationToken cancellationToken)
     {
         var roles = await EnsureRolesAsync(cancellationToken);
         var users = await EnsureUsersAsync(roles, cancellationToken);
@@ -41,6 +42,44 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
         await EnsureLoyaltyAsync(customers, cancellationToken);
         await EnsureOrdersAsync(users, customers, session, products, serials, cancellationToken);
         await EnsureSessionTotalsAsync(session, cancellationToken);
+        return products;
+    }
+
+    public async Task<IReadOnlyList<ProductSeed>> FindProductsMissingCoverAsync(
+        IReadOnlyDictionary<string, Product> products, CancellationToken cancellationToken)
+    {
+        var missing = new List<ProductSeed>();
+        foreach (var seed in DemoSeedManifest.Products)
+        {
+            var product = products[seed.Sku];
+            if (dbContext.Entry(product).State == EntityState.Added)
+            {
+                missing.Add(seed);
+                continue;
+            }
+
+            // Catalog mutations take the same row lock. Read the current cover after acquiring it,
+            // independently of the copy tracked since reconciliation started.
+            var current = dbContext.Database.IsRelational()
+                ? await dbContext.Products.FromSqlInterpolated($"SELECT * FROM products WHERE id = {product.Id} FOR UPDATE")
+                    .AsNoTracking().FirstOrDefaultAsync(cancellationToken)
+                : product;
+            if (current is null)
+                throw Conflict("product", seed.Sku, "product was removed during reconciliation");
+
+            if (string.IsNullOrWhiteSpace(current.ImageUrl) &&
+                !await dbContext.Set<ProductImage>().AnyAsync(x => x.ProductId == product.Id, cancellationToken))
+            {
+                missing.Add(seed);
+            }
+        }
+        return missing;
+    }
+
+    public void StageCover(Product product, ProductImage image)
+    {
+        dbContext.Set<ProductImage>().Add(image);
+        product.ImageUrl = ProductCoverImage.UrlOf([image]);
     }
 
     private async Task<Dictionary<RoleType, Role>> EnsureRolesAsync(CancellationToken ct)

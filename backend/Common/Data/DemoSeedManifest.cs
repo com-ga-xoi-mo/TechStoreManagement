@@ -152,6 +152,16 @@ internal static class DemoSeedManifest
 
         return rows;
     }
+
+    public static IReadOnlyDictionary<string, string> CoverResourcesByCategory { get; } =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["smartphones"] = "DemoProductImages.smartphones.png",
+            ["laptops"] = "DemoProductImages.laptops.png",
+            ["tablets"] = "DemoProductImages.tablets.png",
+            ["monitors"] = "DemoProductImages.monitors.png",
+            ["accessories"] = "DemoProductImages.accessories.png"
+        };
 }
 
 internal sealed record CategorySeed(string Slug, string Name, string Description);

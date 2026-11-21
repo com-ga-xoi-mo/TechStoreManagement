@@ -4,5 +4,6 @@ public enum DashboardPeriod
 {
     Today,
     Last7Days,
-    ThisMonth
+    ThisMonth,
+    Custom
 }

@@ -1,6 +1,15 @@
 namespace TechStore.Shared.DTOs;
 
-/// <summary>Admin analytics snapshot returned by GET /api/analytics/dashboard.</summary>
+/// <summary>Store-wide analytics snapshot returned to Admin and Manager by GET /api/analytics/dashboard.</summary>
+/// <param name="Period">today, last7Days, thisMonth, or custom.</param>
+/// <param name="StartDate">Inclusive first Vietnam calendar date of the report.</param>
+/// <param name="EndDate">Inclusive last Vietnam calendar date of the report.</param>
+/// <param name="TimeZone">Vietnam calendar offset (UTC+07:00).</param>
+/// <param name="AsOf">UTC time of the database snapshot, independent of the last calendar date in a historical report.</param>
+/// <param name="Summary">Period and snapshot KPI totals.</param>
+/// <param name="DailyRevenue">One revenue point for each date in the report.</param>
+/// <param name="LowStockItems">Current low-stock balances at the snapshot time.</param>
+/// <param name="RecentOrders">Newest orders created within the report period.</param>
 public sealed record AdminDashboardDto(
     string Period,
     DateOnly StartDate,

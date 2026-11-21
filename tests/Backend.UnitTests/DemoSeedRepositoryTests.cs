@@ -14,7 +14,8 @@ public class DemoSeedRepositoryTests
         // Arrange
         var options = CreateOptions();
         await using var db = new AppDbContext(options);
-        var seeder = new DataSeeder(new DemoSeedRepository(db), new FakeUnitOfWork(db));
+        var storage = new FakeObjectStorage();
+        var seeder = new DataSeeder(new DemoSeedRepository(db), new FakeUnitOfWork(db), storage);
 
         // Act
         await seeder.SeedAsync();
@@ -32,6 +33,17 @@ public class DemoSeedRepositoryTests
         first.PurchaseReceipts.Should().Be(10);
         first.Sales.Should().Be(12);
         first.VietQr.Should().Be(6);
+        storage.PutCount.Should().Be(20);
+        storage.Objects.Should().HaveCount(20);
+        var covers = await db.Products.Include(product => product.Images).ToListAsync();
+        foreach (var product in covers)
+        {
+            var cover = Assert.Single(product.Images);
+            cover.Url.Should().Be("https://img.test/" + cover.ObjectKey);
+            product.ImageUrl.Should().Be(cover.Url);
+            cover.VariantId.Should().BeNull();
+            cover.SortOrder.Should().Be(0);
+        }
 
         var serialStatuses = await db.SerialImeis.AsNoTracking().GroupBy(x => x.Status)
             .Select(x => new { Status = x.Key, Count = x.Count() }).ToDictionaryAsync(x => x.Status, x => x.Count);
@@ -64,7 +76,7 @@ public class DemoSeedRepositoryTests
         db.UserRoles.Add(new TechStore.Api.Identity.Entities.UserRole { UserId = admin.Id, RoleId = adminRole.Id });
         db.Customers.Add(existingCustomer);
         await db.SaveChangesAsync();
-        var seeder = new DataSeeder(new DemoSeedRepository(db), new FakeUnitOfWork(db));
+        var seeder = new DataSeeder(new DemoSeedRepository(db), new FakeUnitOfWork(db), new FakeObjectStorage());
 
         // Act
         await seeder.SeedAsync();
@@ -122,7 +134,14 @@ public class DemoSeedRepositoryTests
         var supplierId = await db.Suppliers.Select(x => x.Id).SingleAsync();
 
         // Act
-        await new DataSeeder(new DemoSeedRepository(db), new FakeUnitOfWork(db)).SeedAsync();
+        var coverOnly = products.Values.First();
+        coverOnly.ImageUrl = "/uploads/legacy/cover.png";
+        await db.SaveChangesAsync();
+
+        var storage = new FakeObjectStorage();
+        await new DataSeeder(new DemoSeedRepository(db), new FakeUnitOfWork(db), storage).SeedAsync();
+        coverOnly.ImageUrl.Should().Be("/uploads/legacy/cover.png");
+        storage.PutCount.Should().Be(19);
 
         // Assert
         foreach (var (slug, id) in categoryIds)
@@ -143,7 +162,7 @@ public class DemoSeedRepositoryTests
         var options = CreateOptions();
         await using (var db = new AppDbContext(options))
         {
-            var seeder = new DataSeeder(new DemoSeedRepository(db), new FakeUnitOfWork(db));
+            var seeder = new DataSeeder(new DemoSeedRepository(db), new FakeUnitOfWork(db), new FakeObjectStorage());
             await seeder.SeedAsync();
             var firstDemoCustomer = await db.Customers.SingleAsync(x => x.Phone == DemoSeedManifest.Customers[2].Phone);
             var loyalty = await db.CustomerLoyaltyPoints.SingleAsync(x => x.CustomerId == firstDemoCustomer.Id && x.Reason == "Initial Sprint 2 demo loyalty balance");

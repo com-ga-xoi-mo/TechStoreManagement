@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Analytics.Repositories;
+using TechStore.Api.Analytics.Services;
 using TechStore.Api.Catalog.Entities;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Customers.Entities;
@@ -58,22 +59,55 @@ public sealed class AnalyticsPostgresIntegrationTests
         await db.SaveChangesAsync();
 
         var repository = new AnalyticsRepository(db);
-        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead);
-        var asOf = await repository.GetSnapshotTimeUtcAsync();
-        var criteria = new DashboardAnalyticsCriteria("last7Days", nowUtc.AddDays(-7), asOf);
-        var actual = await repository.GetDashboardAsync(criteria);
-        var sqlRevenue = await db.Orders.AsNoTracking().Where(order => order.Status == OrderStatus.Completed && order.CompletedAt >= criteria.FromUtc && order.CompletedAt < criteria.AsOfUtc).SumAsync(order => (decimal?)order.TotalAmount) ?? 0m;
+        await using (var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead))
+        {
+            var asOf = await repository.GetSnapshotTimeUtcAsync();
+            var criteria = new DashboardAnalyticsCriteria("last7Days", nowUtc.AddDays(-7), asOf);
+            var actual = await repository.GetDashboardAsync(criteria);
+            var sqlRevenue = await db.Orders.AsNoTracking()
+                .Where(order => order.Status == OrderStatus.Completed && order.CompletedAt >= criteria.FromUtc
+                    && order.CompletedAt < criteria.ToExclusiveUtc)
+                .SumAsync(order => (decimal?)order.TotalAmount) ?? 0m;
 
-        Assert.Equal(100m, actual.Revenue);
-        Assert.Equal(2, actual.OrderCount);
-        Assert.Equal(1, actual.ActiveProductCount);
-        Assert.Equal(sqlRevenue, actual.DailyRevenue.Sum(row => row.Revenue));
-        Assert.Equal(1, actual.LowStockCount);
-        Assert.Single(actual.LowStockItems);
-        Assert.Equal("Historical phone", actual.RecentOrders.Single(row => row.Id == completed.Id).FirstProductName);
-        await tx.RollbackAsync();
+            Assert.Equal(100m, actual.Revenue);
+            Assert.Equal(2, actual.OrderCount);
+            Assert.Equal(1, actual.ActiveProductCount);
+            Assert.Equal(sqlRevenue, actual.DailyRevenue.Sum(row => row.Revenue));
+            Assert.Equal(1, actual.LowStockCount);
+            Assert.Single(actual.LowStockItems);
+            Assert.Equal("Historical phone", actual.RecentOrders.Single(row => row.Id == completed.Id).FirstProductName);
+            await tx.RollbackAsync();
+        }
 
-        Console.WriteLine($"PostgreSQL {await db.Database.SqlQueryRaw<string>("SELECT version() AS \"Value\"").SingleAsync()}; asOf={asOf:O}; revenue={actual.Revenue}; dailyTotal={actual.DailyRevenue.Sum(row => row.Revenue)}");
+        // The Vietnam calendar interval 12–14 October is [11 Oct 17:00Z, 14 Oct 17:00Z).
+        var start = new DateTime(2024, 10, 11, 17, 0, 0, DateTimeKind.Utc);
+        var end = start.AddDays(3);
+        var createdBefore = Complete(120m, start.AddSeconds(-1), start);
+        var justBeforeEnd = Complete(75m, end.AddMinutes(-2), end.AddSeconds(-1));
+        var completedAtEnd = Complete(300m, start, end);
+        db.AddRange(createdBefore, justBeforeEnd, completedAtEnd,
+            Complete(450m, end, end), Complete(950m, start.AddMinutes(-2), start.AddMinutes(-1)));
+        await db.SaveChangesAsync();
+
+        var service = new AnalyticsService(repository, new UnitOfWork(db));
+        var custom = await service.GetDashboardAsync(new("custom", (new(2024, 10, 12), new(2024, 10, 14))));
+        Assert.NotNull(custom.Snapshot);
+        Assert.Equal("custom", custom.Snapshot.Period);
+        Assert.True(custom.Snapshot.AsOf > end);
+        Assert.Equal(195m, custom.Snapshot.Summary.Revenue);
+        Assert.Equal(2, custom.Snapshot.Summary.OrderCount);
+        Assert.Equal(new[] { 120m, 0m, 75m }, custom.Snapshot.DailyRevenue.Select(row => row.Revenue));
+        Assert.Equal(custom.Snapshot.Summary.Revenue, custom.Snapshot.DailyRevenue.Sum(row => row.Revenue));
+        Assert.Equal(new[] { justBeforeEnd.Id, completedAtEnd.Id }, custom.Snapshot.RecentOrders.Select(row => row.Id));
+        Assert.Equal(1, custom.Snapshot.Summary.ActiveProductCount);
+        Assert.Equal(1, custom.Snapshot.Summary.LowStockCount);
+        Assert.Equal(3, Assert.Single(custom.Snapshot.LowStockItems).AvailableQuantity);
+
+        Order Complete(decimal total, DateTime created, DateTime settled) => new()
+        {
+            OrderCode = $"AN-{Guid.NewGuid():N}", CashierUserId = cashier.Id, Status = OrderStatus.Completed,
+            TotalAmount = total, Subtotal = total, CreatedAt = created, PaidAt = settled, CompletedAt = settled
+        };
     }
 }
 

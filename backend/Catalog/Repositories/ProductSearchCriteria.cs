@@ -18,4 +18,5 @@ public sealed record ProductSearchCriteria(
     ProductSortField SortField,
     bool Descending,
     int Page,
-    int PageSize);
+    int PageSize,
+    string? ExactCode = null);

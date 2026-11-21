@@ -20,7 +20,8 @@
   - `amount > 0` kiểu `numeric(18, 2)` (khớp chính xác số tiền cần thanh toán của đơn hàng).
   - `bank_bin` (Mã BIN ngân hàng, ví dụ 970422 cho MBBank) và `bank_account_number` của cửa hàng.
   - `qr_content` lưu chuỗi EMVCo VietQR tiêu chuẩn để render mã QR hiển thị cho khách quét.
-  - Khi ngân hàng callback webhook xác nhận tiền về: cập nhật `status = Confirmed`, ghi nhận `confirmed_at`, đồng thời cập nhật đơn hàng sang `Completed` và kích hoạt bảo hành.
+  - M3 chỉ cho chuyển đơn VietQR sang `Processing` hoặc `Completed` khi có giao dịch `Confirmed` đúng đơn, đúng tổng, có thời điểm xác nhận.
+  - Quy trình dự kiến ở M4 khi ngân hàng callback xác nhận tiền về: cập nhật `status = Confirmed`, ghi nhận `confirmed_at`, đồng thời cập nhật đơn hàng sang `Completed` và kích hoạt bảo hành.
 - **Kiểu dữ liệu:** Toàn bộ số tiền dùng `numeric(18, 2)`, thời gian `opened_at`, `closed_at`, `confirmed_at` dùng `timestamptz` (UTC).
 
 ## 4. Cấu trúc Thành phần Module
@@ -32,6 +33,7 @@
 ## 5. API POS tiền mặt (M3)
 |Endpoint|Quyền|Ghi chú|
 |:---|:---|:---|
+|`POST /api/pos/quote`|Admin, SalesStaff|Định giá giỏ theo giá hiện hành, giảm dòng, `orderDiscountAmount` và VAT. Trả `subtotal`, `discountAmount`, `taxAmount`, `totalAmount`. Không ghi đơn hoặc giữ hàng.|
 |`POST /api/pos/shifts`|Admin, SalesStaff|Mở ca với `openingBalance` (≥ 0, 2 chữ số thập phân). Mỗi người một ca `Open` (index `uq_pos_sessions_cashier_open`); mở lần hai trả 409.|
 |`GET /api/pos/shifts/current`|Admin, SalesStaff|Ca `Open` của chính mình hoặc 404.|
 |`GET /api/pos/shifts`, `GET /api/pos/shifts/{id}`|Admin, Manager, SalesStaff|Admin/Manager xem mọi ca; SalesStaff chỉ ca của mình (ca người khác trả 404).|
@@ -40,7 +42,7 @@
 
 ### Luồng checkout (một transaction)
 1. Kiểm tra đầu vào (`checkoutKey`, `posSessionId`, `cashTendered`), tra `checkoutKey` đã lưu (trả lại đơn cũ, `Replayed`).
-2. `IOrderService.PrepareAsync`: validate và định giá phía server qua `OrderPricingHelper` (giá client không được nhận); `cashTendered` phải ≥ tổng đơn.
+2. `IOrderService.PrepareAsync`: validate và định giá phía server qua `OrderPricingHelper` (giá client không được nhận); `cashTendered` phải ≥ tổng đơn. Quầy gửi `expectedTotal` từ lần định giá cuối. Tổng thay đổi trả 409 để thu ngân xem lại trước khi thu.
 3. `BeginTransaction`, khóa dòng ca (`FOR UPDATE`); sai chủ → 404, ca không `Open` → 409; tra lại `checkoutKey` dưới khóa.
 4. Sinh mã đơn, `ReserveAsync` rồi `ConfirmSaleAsync` (Inventory, Q. Vinh): giữ hàng, trừ kho, ghi lịch sử, lưu giá vốn, kích hoạt bảo hành.
 5. Đơn sang `Completed` (`PaidAt = CompletedAt`), lưu `cashTendered`, `changeGiven = cashTendered - total`, `posSessionId`, `checkoutKey`; `cash_sales_total += total` (không cộng tiền thừa).

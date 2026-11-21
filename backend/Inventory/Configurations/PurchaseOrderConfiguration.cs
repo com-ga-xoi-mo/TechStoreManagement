@@ -30,6 +30,11 @@ public class PurchaseOrderConfiguration : IEntityTypeConfiguration<PurchaseOrder
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz");
 
+        builder.Property(x => x.CancelledAt).HasColumnName("cancelled_at").HasColumnType("timestamptz");
+        builder.Property(x => x.CancelledByUserId).HasColumnName("cancelled_by_user_id");
+        builder.HasOne<TechStore.Api.Identity.Entities.User>().WithMany().HasForeignKey(x => x.CancelledByUserId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => x.CancelledByUserId).HasDatabaseName("idx_purchase_orders_cancelled_by");
+
         // Indexes
         builder.HasIndex(x => x.SupplierId).HasDatabaseName("idx_purchase_orders_supplier_id");
         builder.HasIndex(x => x.CreatedByUserId).HasDatabaseName("idx_purchase_orders_created_by");

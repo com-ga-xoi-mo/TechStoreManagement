@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Orders.Entities;
+using TechStore.Shared.Enums;
 
 namespace TechStore.Api.Orders.Repositories;
 
@@ -83,6 +84,11 @@ public class OrderRepository(AppDbContext dbContext) : IOrderRepository
                 .ThenInclude(i => i.SerialImei)
             .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
     }
+
+    public Task<bool> HasConfirmedVietQrAsync(Guid orderId, decimal amount, CancellationToken cancellationToken) =>
+        dbContext.VietQrTransactions.AsNoTracking().AnyAsync(q => q.OrderId == orderId
+            && q.Status == VietQrStatus.Confirmed && q.ConfirmedAt != null && q.Amount == amount,
+            cancellationToken);
 
     public async Task<Order?> GetForUpdateWithItemsAsync(
         Guid id,

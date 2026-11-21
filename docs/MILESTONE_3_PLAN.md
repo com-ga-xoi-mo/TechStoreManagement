@@ -68,8 +68,8 @@ Bảo vệ giá vốn serial ở Sprint 2, triển khai nhập hàng ở Sprint 
 - [x] Áp dụng bảng quyền đã chốt cho giá vốn trong DTO serial. Không chỉ ẩn giá trên giao diện.
 - [x] Làm màn hình/API tìm, tạo, sửa và ngừng sử dụng nhà cung cấp; giữ lịch sử phiếu nhập.
 - [x] Làm danh sách, chi tiết và tạo phiếu nhập theo sản phẩm/biến thể. Server tính tổng từ số lượng và đơn giá nhập.
-- [ ] Chốt trạng thái phiếu và quyền sửa/hủy. Hỗ trợ nhận một phần, nhận đủ và hủy phần chưa nhận. _(Đã chốt: phiếu nhập một bước ở trạng thái `Received`, không sửa/xóa/hủy sau khi ghi. Chưa làm nhận một phần và hủy phần chưa nhận; để lại cho đợt sau.)_
-- [x] Khi nhận hàng, chặn số lượng vượt phần còn lại và chặn ghi nhận lại cùng lần nhận. Lưu người nhận, thời điểm và chứng từ. _(Phiếu nhập một bước nên không có “phần còn lại”; gửi lặp bị chặn bằng `clientRequestId`.)_
+- [x] Chốt trạng thái phiếu và quyền sửa/hủy. Thủ kho hoặc Admin nhận từng đợt, nhận đủ hoặc hủy số còn chờ. Dòng đã nhận giữ nguyên số lượng, thiết bị, giá vốn và lịch sử. [Kiểm chứng ngày 22/11](M3_TEST_SUMMARY.md#nhận-hàng-từng-phần-ngày-22112026).
+- [x] Chặn vượt số còn lại, nhận dựa trên số liệu cũ và nhận lặp cùng đợt. Mỗi đợt lưu người nhận, thời điểm, chứng từ và số thực nhập theo dòng.
 - [x] Nhập Serial/IMEI đúng sản phẩm/biến thể; kiểm tra định dạng và trùng trong file gửi lên hoặc database. Ghi giá vốn từng máy và số tháng bảo hành.
 - [x] Cập nhật phiếu, tồn kho, serial và lịch sử kho trong cùng transaction; giữ thứ tự khóa dòng thống nhất với luồng bán.
 - [x] Lưu giá vốn nhập của hàng không serial để dùng lúc bán. Giữ nguyên số dư đầu kỳ và lịch sử cũ.
@@ -92,14 +92,14 @@ Nghiệm thu: Manager xem được số liệu thật, Sales/Warehouse bị ch�
 Triển khai ở Sprint 4. Nhận tìm sản phẩm/IMEI từ T. Vinh, chọn/tạo khách và công thức tiền từ Vy, thao tác kho từ Q. Vinh. Lưu giá và phân bổ tiền tại thời điểm bán, trả DTO cho UI và dữ liệu đơn/ca cho Bình; không viết lại công thức hoặc logic kho.
 
 - [x] Chốt ý nghĩa trạng thái đơn và thời điểm ghi nhận tiền: đơn POS tiền mặt đi thẳng `Pending → Completed` trong checkout, `PaidAt = CompletedAt`; đơn nháp vẫn dùng `Pending`/`Processing` như cũ ([backend/Sales/README.md](../backend/Sales/README.md)).
-- [ ] Làm màn bán hàng: quét barcode/Serial/IMEI, thêm/xóa dòng, đổi số lượng, chọn khách hoặc khách lẻ. Chặn IMEI trùng trong giỏ và máy đã bán.
+- [x] Làm màn bán hàng: quét barcode/Serial/IMEI, thêm/xóa dòng, đổi số lượng, chọn khách hoặc khách lẻ. Chặn IMEI trùng trong giỏ và máy đã bán.
 - [x] Mở ca với tiền đầu ca; gắn đơn với người bán và ca. Chặn bán vào ca đã đóng hoặc ca của người khác (checkout trả 409/404).
-- [ ] Thu tiền mặt và tính tiền thừa. Gọi công thức của Vy và service kho do Q. Vinh phụ trách; hoàn tất đơn, ghi tiền ca, trừ kho, ghi lịch sử, lưu giá vốn và kích hoạt bảo hành trong cùng giao dịch.
+- [x] Thu tiền mặt và tính tiền thừa. Gọi công thức của Vy và service kho do Q. Vinh phụ trách; hoàn tất đơn, ghi tiền ca, trừ kho, ghi lịch sử, lưu giá vốn và kích hoạt bảo hành trong cùng giao dịch.
 - [x] Chặn ghi nhận thanh toán lặp khi nhấn hai lần hoặc thử lại sau lỗi mạng (`checkoutKey` + unique index; test hai request đồng thời trên PostgreSQL).
 - [x] Đóng ca với tiền dự kiến, tiền thực đếm và lý do chênh lệch.
-- [ ] Giữ hủy đơn nháp và các bước chuyển trạng thái hợp lệ. Đơn đã thanh toán phải theo quy trình hoàn tiền M4; không cho đánh dấu QR đã trả tiền khi chưa có xác nhận.
-- [ ] Hiển thị đủ chi tiết đơn: mã, ngày, khách, mặt hàng, số lượng, đơn giá, giảm giá, thuế, tổng tiền, phương thức và trạng thái.
-- [ ] Test đơn rỗng, số lượng 0/âm/quá tồn, giả giá từ client, giảm giá vượt giá trị, thuế sai, làm tròn, tiền nhận thiếu và ca đã đóng.
+- [x] Giữ hủy đơn nháp và các bước chuyển trạng thái hợp lệ. Đơn đã thanh toán phải theo quy trình hoàn tiền M4; không cho đánh dấu QR đã trả tiền khi chưa có xác nhận.
+- [x] Hiển thị đủ chi tiết đơn: mã, ngày, khách, mặt hàng, số lượng, đơn giá, giảm giá, thuế, tổng tiền, phương thức và trạng thái.
+- [x] Test đơn rỗng, số lượng 0/âm/quá tồn, giả giá từ client, giảm giá vượt giá trị, thuế sai, làm tròn, tiền nhận thiếu và ca đã đóng.
 
 Nghiệm thu: Mở ca → bán tiền mặt → trừ kho/kích hoạt bảo hành → xem doanh thu chạy đúng; tiền đơn và tiền ca khớp. Lỗi phải rollback, gửi lặp không ghi tiền hoặc trừ kho hai lần.
 
@@ -151,12 +151,12 @@ Mỗi người bàn giao kết quả test, dữ liệu demo và tài liệu ph�
 
 ### Kiểm thử nghiệp vụ, quyền và giao diện
 
-- [ ] **An:** Test login/logout, token hết hạn/giả mạo/thu hồi, khóa tài khoản và đổi quyền qua HTTP thật.
-- [ ] **Q. Vinh:** Dùng hai giao dịch PostgreSQL chạy đồng thời để thử tranh IMEI cuối, phụ kiện cuối và nhận cùng phiếu. Bình tổng hợp bằng chứng kết quả từng ca. _(Đã có: gửi cùng phiếu đồng thời, hai phiếu cùng IMEI, hai phiếu cùng sản phẩm, báo lỗi máy đồng thời với giữ chỗ. Còn: hai đơn bán tranh IMEI cuối và phụ kiện cuối, làm khi nối với luồng POS.)_
+- [x] **An:** Test login/logout, token hết hạn/giả mạo/thu hồi, khóa tài khoản và đổi quyền qua HTTP thật.
+- [x] **Q. Vinh:** Dùng hai giao dịch PostgreSQL chạy đồng thời để thử tranh IMEI cuối, phụ kiện cuối và nhận cùng phiếu. Bình tổng hợp bằng chứng kết quả từng ca.
 - [x] **Bình:** Chạy lại CRUD, tìm kiếm, lọc, phân trang và các luồng Admin của M2; kiểm tra tên rỗng/quá dài, giá 0/âm và dữ liệu không hợp lệ. [Regression Admin M2](M3_TEST_SUMMARY.md#regression-admin-m2).
 - [x] **Bình:** Kiểm tra tồn, hàng giữ chỗ, serial, lịch sử kho và tiền sau commit/rollback. Không tính hai request chạy tuần tự là kiểm thử đồng thời. [Read-back sau 201, 409 và 400](M3_TEST_SUMMARY.md#commit-và-rollback-qua-httppostgresql).
-- [ ] **Đạt:** Đổi mô tả ca “race” hiện tại trong `OrdersApiIntegrationTests.cs` thành kiểm tra xung đột tuần tự. Thêm ca hai đơn tranh cùng IMEI bằng hai request/giao dịch độc lập có điểm đồng bộ để thực sự chạy đồng thời trên PostgreSQL; đúng một đơn hoàn tất, đơn còn lại nhận 409, tồn và lịch sử bán chỉ thay đổi một lần.
-- [ ] **Đạt:** Dùng hai giao dịch PostgreSQL chạy đồng thời để thử chuyển trạng thái cùng đơn và bán trong lúc đóng ca. Bình tổng hợp bằng chứng kết quả từng ca.
+- [x] **Đạt:** Đổi mô tả ca “race” hiện tại trong `OrdersApiIntegrationTests.cs` thành kiểm tra xung đột tuần tự. Thêm ca hai đơn tranh cùng IMEI bằng hai request/giao dịch độc lập có điểm đồng bộ để thực sự chạy đồng thời trên PostgreSQL; đúng một đơn hoàn tất, đơn còn lại nhận 409, tồn và lịch sử bán chỉ thay đổi một lần.
+- [x] **Đạt:** Dùng hai giao dịch PostgreSQL chạy đồng thời để thử chuyển trạng thái cùng đơn và bán trong lúc đóng ca. Bình tổng hợp bằng chứng kết quả từng ca.
 - [x] **T. Vinh:** Kiểm tra HTTP methods, JSON và mã lỗi 200/201/204/400/401/403/404/409/500 phù hợp; thử lỗi mạng và phục hồi giao diện.
 - [ ] **T. Vinh:** Chạy UI trên Windows native và Skia. Kiểm tra Light/Dark/System, resize, bàn phím và binding; ghi build, hệ điều hành, ảnh hoặc log kết quả.
 
@@ -169,7 +169,7 @@ Dùng database test riêng. Mỗi test case cần có đầu vào, kết quả m
 
 ### Tài liệu và kết quả kiểm thử
 
-- [ ] **An:** Cập nhật README cách chạy và tài khoản demo. Bàn giao API, bảng quyền, trạng thái đơn/ca, công thức tiền, thứ tự khóa và cách migrate/seed cho nhóm M4.
+- [x] **An:** Cập nhật README cách chạy và tài khoản demo. Bàn giao API, bảng quyền, trạng thái đơn/ca, công thức tiền, thứ tự khóa và cách migrate/seed cho nhóm M4.
 - [x] **Bình:** Ghi tổng test Pass/Fail/Skipped/Chưa kiểm tra, lỗi đã sửa và kết quả kiểm tra lại theo bản build bàn giao. [Báo cáo kiểm thử M3](M3_TEST_SUMMARY.md).
 
 ## Mốc nghiệm thu
@@ -184,10 +184,12 @@ Dùng database test riêng. Mỗi test case cần có đầu vào, kết quả m
 
 ## Điều kiện hoàn thành M3
 
-- [ ] **An:** Bốn role dùng được hệ thống đúng quyền; mọi API nghiệp vụ kiểm tra quyền ở server.
-- [ ] **Đạt:** Luồng nhập hàng, mở ca, bán tiền mặt, trừ kho, bảo hành và doanh thu chạy đúng.
-- [ ] **Q. Vinh:** Test đồng thời đạt, không bán trùng IMEI, âm kho hoặc ghi nhận tiền/nhập hàng hai lần.
-- [ ] **T. Vinh:** Các luồng M2 vẫn hoạt động; không còn lỗi chặn bán hàng, sai tiền, sai tồn hoặc vượt quyền.
-- [ ] **An:** Có kết quả kiểm thử, dữ liệu demo và tài liệu để nhóm tiếp tục M4.
+Ngày 22/11/2026, **55/57 mục đạt** trên working tree `dev`. Nghiệp vụ kho và POS đã có kết quả tích hợp. Hai mục còn mở là chạy giao diện Windows native và dùng kết quả đó để chốt hồi quy M2 trên bản M3. [Kết quả và bằng chứng](M3_TEST_SUMMARY.md#nhận-hàng-từng-phần-ngày-22112026).
+
+- [x] **An:** Bốn role dùng được hệ thống đúng quyền; mọi API nghiệp vụ kiểm tra quyền ở server.
+- [x] **Đạt:** Luồng nhập hàng, mở ca, bán tiền mặt, trừ kho, bảo hành và doanh thu chạy đúng.
+- [x] **Q. Vinh:** Test đồng thời đạt, không bán trùng IMEI, âm kho hoặc ghi nhận tiền/nhập hàng hai lần.
+- [ ] **T. Vinh:** Các luồng M2 vẫn hoạt động; không còn lỗi chặn bán hàng, sai tiền, sai tồn hoặc vượt quyền. _(Chờ lượt nghiệm thu giao diện Windows native của bản tích hợp.)_
+- [x] **An:** Có kết quả kiểm thử, dữ liệu demo và tài liệu để nhóm tiếp tục M4.
 
 Giữ kiến trúc và quy ước hiện có. Khi thay API hoặc schema, cập nhật các nơi gọi, spec, test, dữ liệu mẫu, migration và schema.dbml liên quan; secrets chỉ đặt trong cấu hình local hoặc biến môi trường.

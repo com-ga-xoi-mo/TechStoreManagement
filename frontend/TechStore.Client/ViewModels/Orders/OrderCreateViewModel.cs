@@ -108,6 +108,8 @@ public sealed partial class OrderCreateViewModel : PageViewModel
     public string EstimatedTotalText => OrderPresentation.FormatMoney(EstimatedTotal);
     public string LineCountText => Lines.Count == 1 ? "1 dòng" : $"{Lines.Count} dòng";
     public bool CanSubmit => Lines.Count > 0 && !IsSubmitting && _createdOrder is null;
+    public bool CanPayAndComplete => CanSubmit && SelectedPayment.Method != PaymentMethod.VietQr;
+    partial void OnSelectedPaymentChanged(PaymentOption value) => RefreshSubmitState();
     public string? CreatedOrderCode => _createdOrder?.OrderCode;
 
     protected override bool ManagesLoadState => true;
@@ -169,6 +171,7 @@ public sealed partial class OrderCreateViewModel : PageViewModel
 
     private void RefreshSubmitState()
     {
+        OnPropertyChanged(nameof(CanPayAndComplete));
         OnPropertyChanged(nameof(CanSubmit));
         SaveDraftCommand.NotifyCanExecuteChanged();
         PayAndCompleteCommand.NotifyCanExecuteChanged();
@@ -483,7 +486,7 @@ public sealed partial class OrderCreateViewModel : PageViewModel
     [RelayCommand(CanExecute = nameof(CanSubmit))]
     private Task SaveDraft() => SubmitAsync(complete: false);
 
-    [RelayCommand(CanExecute = nameof(CanSubmit))]
+    [RelayCommand(CanExecute = nameof(CanPayAndComplete))]
     private Task PayAndComplete() => SubmitAsync(complete: true);
 
     [RelayCommand]
@@ -491,7 +494,7 @@ public sealed partial class OrderCreateViewModel : PageViewModel
 
     private async Task SubmitAsync(bool complete)
     {
-        if (!CanSubmit) return;
+        if (!CanSubmit || (complete && !CanPayAndComplete)) return;
         if (Notes.Trim().Length > MaxNotesLength)
         {
             GeneralError = $"Ghi chú tối đa {MaxNotesLength} ký tự.";

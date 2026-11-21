@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using TechStore.Client.Controls;
 using TechStore.Client.Controls.Presentation;
 using TechStore.Client.Models.Inventory;
@@ -108,6 +109,8 @@ public sealed class PurchaseReceiptDetailDialog : ContentDialog
         error.Margin = new Thickness(0, 30, 0, 30);
         error.Text(x => x.Binding(() => ViewModel.ErrorMessage));
         error.Visibility(x => x.Binding(() => ViewModel.HasError).Convert(ShowIf));
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.Children.Add(error);
 
         var content = new StackPanel { Spacing = 20 };
@@ -200,6 +203,33 @@ public sealed class PurchaseReceiptDetailDialog : ContentDialog
         linesContainer.ItemsSource(x => x.Binding(() => ViewModel.Receipt!.Lines));
         content.Children.Add(linesContainer);
 
+        content.Children.Add(Text("", 14, AppColors.Text, 600).Text(x => x.Binding(() => ViewModel.StatusLabel)));
+        var actions = new StackPanel { Spacing = 8 };
+        actions.Visibility(x => x.Binding(() => ViewModel.IsOpenForDelivery).Convert(ShowIf));
+        var entries = new ItemsControl().ItemsSource(x => x.Binding(() => ViewModel.DeliveryLines))
+            .ItemTemplate<DeliveryLineDraft>(draft => new StackPanel().Spacing(4).Children(
+                new TextBlock().Text(x => x.Binding(() => draft.Label)),
+                new TextBox { Header = "Số lượng nhận đợt này", PlaceholderText = "Để trống nếu chưa nhận" }
+                    .Text(x => x.Binding(() => draft.QuantityText).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged)),
+                new TextBox { Header = "Serial/IMEI thực nhận (mỗi dòng một mã)", AcceptsReturn = true }
+                    .Visibility(x => x.Binding(() => draft.Line.IsSerialTracked).Convert(ShowIf))
+                    .Text(x => x.Binding(() => draft.Codes).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged))));
+        entries.IsEnabled(x => x.Binding(() => ViewModel.CanEdit));
+        actions.Children.Add(new TextBox { Header = "Số chứng từ đợt này", MaxLength = 100, PlaceholderText = "Mặc định dùng chứng từ của phiếu" }
+            .IsEnabled(x => x.Binding(() => ViewModel.CanEdit))
+            .Text(x => x.Binding(() => ViewModel.DeliveryDocument).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged)));
+        actions.Children.Add(entries);
+        actions.Children.Add(new Button { Content = "Ghi nhận đợt hàng" }.Command(x => x.Binding(() => ViewModel.ReceiveCommand))
+            .IsEnabled(x => x.Binding(() => ViewModel.CanReceive)));
+        actions.Children.Add(new CheckBox { Content = "Xác nhận hủy toàn bộ số lượng còn chờ nhận" }
+            .IsEnabled(x => x.Binding(() => ViewModel.CanEdit))
+            .IsChecked(x => x.Binding(() => ViewModel.ConfirmCancel).Mode(BindingMode.TwoWay)));
+        actions.Children.Add(new Button { Content = "Hủy phần chưa nhận" }.Command(x => x.Binding(() => ViewModel.CancelRemainderCommand))
+            .IsEnabled(x => x.Binding(() => ViewModel.CanCancel)));
+        actions.Children.Add(new Button { Content = "Tải lại phiếu" }.Command(x => x.Binding(() => ViewModel.ReloadCommand))
+            .Visibility(x => x.Binding(() => ViewModel.HasError).Convert(ShowIf)));
+        content.Children.Add(actions);
+        Grid.SetRow(content, 1);
         root.Children.Add(content);
         return root;
     }
@@ -274,8 +304,8 @@ internal sealed class PurchaseReceiptLinesHost : ItemsControl
         grid.Children.Add(productInfo);
 
         var quantity = new StackPanel { Spacing = 2, HorizontalAlignment = HorizontalAlignment.Center };
-        quantity.Children.Add(Text("Số lượng", 11, AppColors.SecondaryText));
-        quantity.Children.Add(Text(line.Quantity.ToString("N0"), 13, AppColors.Text, 600));
+        quantity.Children.Add(Text("Đã nhận / Đặt", 11, AppColors.SecondaryText));
+        quantity.Children.Add(Text($"{line.Quantity:N0} / {line.OrderedQuantity:N0}", 13, AppColors.Text, 600));
         Grid.SetColumn(quantity, 1);
         grid.Children.Add(quantity);
 

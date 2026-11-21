@@ -24,7 +24,7 @@ public sealed class IdentitySeedPostgresTests
         foreach (var (username, password) in new[] { ("admin", "Admin@123"), ("cashier1", "Cashier@123"), ("warehouse1", "Warehouse@123"), ("manager1", "Manager@123") })
         {
             await using var loginDb = database.CreateContext();
-            var service = new AuthService(new UserRepository(loginDb), new RefreshTokenRepository(loginDb), new UnitOfWork(loginDb), Options.Create(new JwtOptions()), TimeProvider.System);
+            var service = new AuthService(new UserRepository(loginDb), new RefreshTokenRepository(loginDb), new UnitOfWork(loginDb), Options.Create(new JwtOptions { SecretKey = new string('T', 64) }), TimeProvider.System);
             Assert.NotNull(await service.LoginAsync(new LoginRequest { Username = username, Password = password }));
         }
         var anchor = await db.Orders.Select(x => new { x.Id, x.CreatedAt, x.TotalAmount }).ToListAsync();

@@ -1,5 +1,7 @@
 # M3 — Bàn giao kiểm chứng Identity và hiện trạng tích hợp
 
+**Bản tích hợp hiện hành:** xem [kết quả sửa và chạy lại M3](M3_TEST_SUMMARY.md#nhận-hàng-từng-phần-ngày-22112026) và [checklist sang M4](MILESTONE_3_PLAN.md#điều-kiện-hoàn-thành-m3). Phần bên dưới ghi kết quả lịch sử tại SHA của Sprint 1.
+
 Phụ trách: An. Baseline `dev`/HEAD `4548b45` sau PR #21, ngày 16/11/2026;
 phần bổ sung nằm trên working tree nhánh `feat/m3-security-verification-handoff`.
 Change: [proposal](../openspec/changes/archive/2026-11-16-m3-security-verification-handoff/proposal.md),

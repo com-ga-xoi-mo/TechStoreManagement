@@ -4,6 +4,7 @@ using TechStore.Api.Inventory.Services;
 using TechStore.Api.Orders.Repositories;
 using TechStore.Api.Orders.Services;
 using TechStore.Api.Sales.Repositories;
+using TechStore.Shared.DTOs;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
 
@@ -22,6 +23,25 @@ public class PosCheckoutService(
     private const int MaxCodeAttempts = 5;
     private const string OrderCodeConstraint = "idx_orders_code";
     private const string CheckoutKeyConstraint = "uq_orders_cashier_checkout_key";
+
+    private Task<PrepareOrderResult> PrepareCashAsync(PosCheckoutRequest request, AuthenticatedUser actor, CancellationToken cancellationToken) =>
+        orderService.PrepareAsync(new CreateOrderRequest
+        {
+            PaymentMethod = nameof(PaymentMethod.Cash),
+            Items = request.Items,
+            CustomerId = request.CustomerId,
+            OrderDiscountAmount = request.OrderDiscountAmount,
+            Notes = request.Notes
+        }, actor, checkAvailability: false, cancellationToken);
+
+    public async Task<PosResult<PosQuoteDto>> QuoteAsync(PosCheckoutRequest request, AuthenticatedUser actor, CancellationToken cancellationToken)
+    {
+        var prepared = await PrepareCashAsync(request, actor, cancellationToken);
+        if (!prepared.IsSuccess)
+            return PosResult<PosQuoteDto>.ValidationFailed(prepared.ValidationErrors!);
+        var order = prepared.Build!(timeProvider.GetUtcNow().UtcDateTime);
+        return PosResult<PosQuoteDto>.Success(new(order.Subtotal, order.DiscountAmount, order.TaxAmount, order.TotalAmount));
+    }
 
     public async Task<PosResult<PosCheckoutOutcome>> CheckoutAsync(
         PosCheckoutRequest request,
@@ -67,17 +87,7 @@ public class PosCheckoutService(
         }
 
         // Prices and totals are server-side. Availability is checked later, under locks.
-        var prepared = await orderService.PrepareAsync(
-            new CreateOrderRequest
-            {
-                CustomerId = request.CustomerId,
-                PaymentMethod = nameof(PaymentMethod.Cash),
-                Notes = request.Notes,
-                Items = request.Items
-            },
-            actor,
-            checkAvailability: false,
-            cancellationToken);
+        var prepared = await PrepareCashAsync(request, actor, cancellationToken);
 
         if (!prepared.IsSuccess)
         {
@@ -86,9 +96,13 @@ public class PosCheckoutService(
                 errors[field] = errors.TryGetValue(field, out var own) ? [.. own, .. messages] : messages;
             }
         }
-        else if (!errors.ContainsKey("cashTendered") && request.CashTendered!.Value < prepared.Build!(timeProvider.GetUtcNow().UtcDateTime).TotalAmount)
+        else
         {
-            errors["cashTendered"] = ["The cash received is less than the order total."];
+            var total = prepared.Build!(timeProvider.GetUtcNow().UtcDateTime).TotalAmount;
+            if (request.ExpectedTotal is decimal expected && expected != total)
+                return PosResult<PosCheckoutOutcome>.Conflict("Giá đã thay đổi. Vui lòng kiểm tra lại tổng tiền.");
+            if (!errors.ContainsKey("cashTendered") && request.CashTendered!.Value < total)
+                errors["cashTendered"] = ["The cash received is less than the order total."];
         }
 
         if (errors.Count > 0)

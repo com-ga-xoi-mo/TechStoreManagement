@@ -4,7 +4,7 @@
 - `InventoryStock.cs` (`inventory_stocks`): Số dư tồn kho vật lý và số lượng đặt trước theo sản phẩm/biến thể.
 - `InventoryMovement.cs` (`inventory_movements`): Sổ cái kiểm toán biến động kho bất biến (Append-Only Audit Ledger).
 - `Supplier.cs` (`suppliers`): Danh bạ nhà cung cấp / nhà phân phối thiết bị chính hãng.
-- `PurchaseOrder.cs` (`purchase_orders`): Phiếu nhập kho từ nhà cung cấp. Hiện mỗi phiếu được ghi một bước ở trạng thái `Received` (kèm `supplier_document_number` và khóa chống gửi lặp `client_request_id`); đặt hàng trước rồi nhận nhiều đợt chưa được làm.
+- `PurchaseOrder.cs` (`purchase_orders`): Phiếu nhập kho từ nhà cung cấp. Phiếu có thể nhận đủ ngay hoặc lập chờ giao và nhận nhiều đợt. Số lượng đặt, số lượng đã nhận và trạng thái phiếu được lưu riêng.
 - `PurchaseOrderItem.cs` (`purchase_order_items`): Chi tiết từng dòng sản phẩm/biến thể cần nhập, số lượng đặt và số lượng thực nhận.
 - `SerialImei.cs` (`serial_imeis`): Quản lý định danh từng máy cụ thể (mã Serial hoặc IMEI 15 số), tình trạng máy và ngày bảo hành.
 
@@ -50,12 +50,19 @@
 ## 5. Luồng Phiếu Nhập & Quản Lý Thiết Bị Lỗi
 
 ### 5.1. Luồng Phiếu Nhập Kho (Purchase Receipts)
-- Phiếu nhập kho được thực hiện qua `POST /api/inventory/purchase-receipts`, tạo một đơn nhập hàng `purchase_orders` ở trạng thái `Received` ngay lập tức trong một transaction ACID nguyên tử.
+- Phiếu nhập kho được thực hiện qua `POST /api/inventory/purchase-receipts`, mặc định tạo phiếu ở trạng thái `Received` ngay lập tức trong một transaction ACID nguyên tử.
 - Hỗ trợ nhập cả hàng có Serial/IMEI và hàng không có Serial/IMEI:
   - Hàng không có serial: tăng số dư `inventory_stocks.quantity`, ghi `inventory_movements` (loại `PurchaseReceipt`).
   - Hàng có serial: tăng số dư `inventory_stocks.quantity`, ghi các dòng thiết bị `serial_imeis` (trạng thái `InStock`, có `unit_cost`, thời hạn bảo hành), ghi `inventory_movements` (loại `PurchaseReceipt`).
 - **Ngữ nghĩa Idempotency qua `clientRequestId`**: Client sinh một GUID `clientRequestId` cho mỗi lần mở form. Nếu gửi lại cùng GUID (do rớt mạng hoặc retry), hệ thống trả HTTP 200 OK replay chi tiết phiếu đã tạo trước đó, tuyệt đối không tạo đơn trùng hay cộng dồn tồn kho hai lần.
 - **Giới hạn nghiệp vụ**: Phiếu nhập đã nhận không cho phép sửa, xóa hoặc hủy để đảm bảo tính toàn vẹn của sổ cái và giá vốn đã ghi nhận. Nếu nhập sai số lượng hàng không serial, thủ kho dùng điều chỉnh tồn kho; nếu thừa máy có serial, thủ kho tạm chuyển sang trạng thái `Defective`.
+
+#### Nhận hàng nhiều đợt
+
+1. Admin hoặc Thủ kho chọn **Lập phiếu chờ nhận hàng** khi tạo phiếu. API nhận `receiveLater: true`, số lượng đặt, đơn giá và bảo hành của từng dòng. Phiếu bắt đầu ở `Ordered`, tổng thực nhận bằng 0.
+2. Trong chi tiết phiếu, nhập số lượng giao đợt này và Serial/IMEI cho từng dòng có hàng. Để trống các dòng chưa giao. `POST /api/inventory/purchase-receipts/{id}/deliveries` nhận `clientRequestId`, `supplierDocumentNumber` tùy chọn và `lines` gồm `lineId`, `expectedReceivedQuantity`, `quantity`, `devices`. Dùng lại cùng mã yêu cầu khi thử lại một đợt. Nếu người khác đã thay đổi số thực nhận của dòng, API trả 409. Khi vượt số còn lại, API cũng trả 409.
+3. Mỗi đợt khóa phiếu trước rồi khóa tồn theo thứ tự sản phẩm và biến thể. Số thực nhận, tiền, thiết bị và lịch sử kho được ghi cùng giao dịch. Mỗi dòng lịch sử có người nhận, thời điểm và mã đợt. Chứng từ đợt được ghi trong diễn giải lịch sử, mặc định theo chứng từ phiếu. Trạng thái là `PartiallyReceived` hoặc `Received` khi tất cả các dòng đã đủ.
+4. Để kết thúc sớm, xác nhận rồi chọn **Hủy phần chưa nhận**. `POST /api/inventory/purchase-receipts/{id}/cancel-remainder` đóng phiếu đang chờ hoặc đã nhận một phần, lưu người hủy và thời điểm. Số đã nhận, giá vốn và lịch sử được giữ nguyên. Phiếu đã nhận đủ từ chối hủy với 409. Manager được đọc phiếu, SalesStaff không có quyền truy cập.
 
 ### 5.2. Vòng Đời Thiết Bị Lỗi & Phục Hồi Kho
 ```

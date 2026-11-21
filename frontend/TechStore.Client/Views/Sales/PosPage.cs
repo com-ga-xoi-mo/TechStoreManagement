@@ -6,6 +6,7 @@ using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Orders;
 using TechStore.Client.ViewModels.Pages;
 using TechStore.Client.ViewModels.Sales;
+using TechStore.Client.Views.Customers;
 using TechStore.Client.Views.Shell;
 using Uno.Extensions.Markup;
 using static TechStore.Client.Views.Orders.OrderViewParts;
@@ -221,9 +222,17 @@ public sealed class PosPage : Page, IRoutePage
             .Children(
                 new StackPanel()
                     .Spacing(16)
-                    .Children(BuildScan(), BuildCart())
+                    .Children(BuildScan(), BuildCart(), BuildCustomer())
                     .Grid(column: 0),
                 BuildPayment().Grid(column: 1));
+
+    private UIElement BuildCustomer()
+    {
+        if (ViewModel.Customer is not { } customer) return new Border();
+        var picker = new CustomerPickerView(customer);
+        picker.SetBinding(Control.IsEnabledProperty, new Binding { Source = ViewModel, Path = new PropertyPath(nameof(ViewModel.CanEditCart)) });
+        return picker;
+    }
 
     private UIElement BuildScan() =>
         new Border()
@@ -345,50 +354,65 @@ public sealed class PosPage : Page, IRoutePage
 
     // ---------- cash payment ----------
 
-    private UIElement BuildPayment() =>
-        new Border()
-            .Style(AppControlStyles.Styles.Panel)
+    private UIElement BuildPayment()
+    {
+        // Adding these controls directly avoids recursive ResourceParent traversal on first layout in Uno Skia 6.7.
+        var panel = new StackPanel().Spacing(14);
+        panel.Children.Add(new TextBlock().Style(AppTypography.Styles.SectionText).Text("Thanh toán tiền mặt"));
+        panel.Children.Add(new TextBox().Style(AppControlStyles.Styles.TextBox)
+            .Header("Giảm giá đơn (₫)")
+            .IsEnabled(x => x.Binding(() => ViewModel.CanEditCart))
+            .Text(x => x.Binding(() => ViewModel.DiscountText).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged)));
+        panel.Children.Add(Caption("Thuế VAT"));
+        panel.Children.Add(new TextBlock().Text(x => x.Binding(() => ViewModel.TaxText)));
+        panel.Children.Add(new TextBlock().Style(AppControlStyles.Styles.FieldError)
+            .TextWrapping(TextWrapping.Wrap)
+            .Text(x => x.Binding(() => ViewModel.QuoteError))
+            .Visibility(x => x.Binding(() => ViewModel.HasQuoteError).Convert((bool v) => ShowIf(v))));
+        panel.Children.Add(new Button().Content("Tính lại")
+            .Command(x => x.Binding(() => ViewModel.RefreshQuoteCommand))
+            .Visibility(x => x.Binding(() => ViewModel.HasQuoteError).Convert((bool v) => ShowIf(v))));
+        panel.Children.Add(new StackPanel()
+            .Spacing(2)
+            .Children(
+                Caption("Tổng thanh toán"),
+                new TextBlock()
+                    .Style(AppResources.GetStyle(AppTypography.MetricText))
+                    .Foreground(AppColors.Brushes.Text)
+                    .Text(x => x.Binding(() => ViewModel.EstimatedTotalText))));
+        panel.Children.Add(new TextBox()
+            .Style(AppControlStyles.Styles.TextBox)
+            .Header("Tiền khách đưa (₫)")
+            .IsEnabled(x => x.Binding(() => ViewModel.CanEditCart))
+            .Text(x => x.Binding(() => ViewModel.CashText).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged)));
+        panel.Children.Add(new StackPanel()
+            .Spacing(2)
+            .Children(
+                Caption("Tiền thừa trả khách"),
+                new TextBlock()
+                    .Style(AppResources.GetStyle(AppTypography.MetricText))
+                    .Foreground(AppColors.Brushes.Text)
+                    .Text(x => x.Binding(() => ViewModel.ChangeText))));
+        panel.Children.Add(new TextBlock()
+            .Style(AppControlStyles.Styles.FieldError)
+            .Text(x => x.Binding(() => ViewModel.PayError))
+            .Visibility(x => x.Binding(() => ViewModel.HasPayError).Convert((bool v) => ShowIf(v))));
+        panel.Children.Add(new Button()
+            .Style(AppControlStyles.Styles.PrimaryButton)
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
+            .Content("Thanh toán")
+            .Command(x => x.Binding(() => ViewModel.PayCommand)));
+        panel.Children.Add(new Button()
+            .Style(AppControlStyles.Styles.Button)
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
+            .Content("Xóa giỏ hàng")
+            .Command(x => x.Binding(() => ViewModel.ClearCartCommand)));
+        panel.Children.Add(new ProgressBar()
+            .IsIndeterminate(true)
+            .Visibility(x => x.Binding(() => ViewModel.IsPaying).Convert((bool v) => ShowIf(v))));
+
+        return new Border().Style(AppControlStyles.Styles.Panel)
             .VerticalAlignment(VerticalAlignment.Top)
-            .Child(
-                new StackPanel()
-                    .Spacing(14)
-                    .Children(
-                        new TextBlock().Style(AppTypography.Styles.SectionText).Text("Thanh toán tiền mặt"),
-                        new StackPanel()
-                            .Spacing(2)
-                            .Children(
-                                Caption("Tổng tiền (tạm tính, server chốt khi thanh toán)"),
-                                new TextBlock()
-                                    .Style(AppResources.GetStyle(AppTypography.MetricText))
-                                    .Foreground(AppColors.Brushes.Text)
-                                    .Text(x => x.Binding(() => ViewModel.EstimatedTotalText))),
-                        new TextBox()
-                            .Style(AppControlStyles.Styles.TextBox)
-                            .Header("Tiền khách đưa (₫)")
-                            .Text(x => x.Binding(() => ViewModel.CashText).Mode(BindingMode.TwoWay)),
-                        new StackPanel()
-                            .Spacing(2)
-                            .Children(
-                                Caption("Tiền thừa trả khách"),
-                                new TextBlock()
-                                    .Style(AppResources.GetStyle(AppTypography.MetricText))
-                                    .Foreground(AppColors.Brushes.Text)
-                                    .Text(x => x.Binding(() => ViewModel.ChangeText))),
-                        new TextBlock()
-                            .Style(AppControlStyles.Styles.FieldError)
-                            .Text(x => x.Binding(() => ViewModel.PayError))
-                            .Visibility(x => x.Binding(() => ViewModel.HasPayError).Convert((bool v) => ShowIf(v))),
-                        new Button()
-                            .Style(AppControlStyles.Styles.PrimaryButton)
-                            .HorizontalAlignment(HorizontalAlignment.Stretch)
-                            .Content("Thanh toán")
-                            .Command(x => x.Binding(() => ViewModel.PayCommand)),
-                        new Button()
-                            .Style(AppControlStyles.Styles.Button)
-                            .HorizontalAlignment(HorizontalAlignment.Stretch)
-                            .Content("Xóa giỏ hàng")
-                            .Command(x => x.Binding(() => ViewModel.ClearCartCommand)),
-                        new ProgressBar()
-                            .IsIndeterminate(true)
-                            .Visibility(x => x.Binding(() => ViewModel.IsPaying).Convert((bool v) => ShowIf(v)))));
+            .Child(panel);
+    }
 }

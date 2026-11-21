@@ -142,7 +142,7 @@ public class CustomerAuthorizationHttpTests(CustomerApiFactory factory) : IClass
 
     private string CreateToken(string role)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("TechStore_Default_Secret_Key_At_Least_32_Bytes_Long_2026!"));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(CustomerApiFactory.TestKey));
         var token = new JwtSecurityToken(
             issuer: "TechStore.Api",
             audience: "TechStore.Client",
@@ -156,8 +156,11 @@ public class CustomerAuthorizationHttpTests(CustomerApiFactory factory) : IClass
 
 public sealed class CustomerApiFactory : WebApplicationFactory<Program>
 {
+    internal static readonly string TestKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseSetting("Jwt:SecretKey", TestKey);
         builder.UseEnvironment("Testing");
         builder.ConfigureTestServices(services =>
         {

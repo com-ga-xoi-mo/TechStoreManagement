@@ -111,6 +111,159 @@ public class PurchaseReceiptPostgresTests
     }
 
     [PostgresFact]
+    public async Task PlannedReceipt_MixedDeliveryAndCancellation_OnlyReceivedUnitsEnterStockAndCost()
+    {
+        await using var database = await PostgresDatabase.CreateAsync(migrate: true);
+        await using var seed = database.CreateContext();
+        var (actor, supplier, category) = await SeedCommonAsync(seed);
+        var cable = new Product { CategoryId = category.Id, Name = "Cable", Sku = "C", IsSerialTracked = false };
+        var phone = new Product { CategoryId = category.Id, Name = "Phone", Sku = "P", IsSerialTracked = true };
+        seed.Products.AddRange(cable, phone);
+        await seed.SaveChangesAsync();
+        var (service, context) = CreateService(database);
+        await using var scope = context;
+        var planned = await service.CreateAsync(new()
+        {
+            ReceiveLater = true, ClientRequestId = Guid.NewGuid(), SupplierId = supplier.Id,
+            Lines = [new() { ProductId = cable.Id, Quantity = 5, UnitCost = 100 },
+                     new() { ProductId = phone.Id, Quantity = 3, UnitCost = 530, WarrantyMonths = 18 }]
+        }, actor.Id);
+        var po = planned.Data!;
+        po.Status.Should().Be(PurchaseOrderStatus.Ordered);
+        po.TotalCost.Should().Be(0);
+        po.ReceivedAt.Should().BeNull();
+        (await seed.InventoryStocks.CountAsync()).Should().Be(0);
+        var cableLine = po.Lines.Single(l => l.ProductId == cable.Id);
+        var phoneLine = po.Lines.Single(l => l.ProductId == phone.Id);
+        var delivery = new ReceivePurchaseDeliveryRequest
+        {
+            ClientRequestId = Guid.NewGuid(), SupplierDocumentNumber = "DN-01",
+            Lines = [new() { LineId = cableLine.Id, Quantity = 2 },
+                     new() { LineId = phoneLine.Id, Quantity = 1, Devices = [new() { SerialNumber = "TEST-SN-A" }] }]
+        };
+        async Task<PurchaseReceiptResult> Receive(ReceivePurchaseDeliveryRequest request, bool fail = false)
+        {
+            var (svc, db) = CreateService(database, failOnSave: fail);
+            await using var disposable = db;
+            return await svc.ReceiveAsync(po.Id, request, actor.Id);
+        }
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Receive(delivery, fail: true));
+        (await seed.InventoryMovements.CountAsync()).Should().Be(0);
+        (await seed.SerialImeis.CountAsync()).Should().Be(0);
+        var part = (await Receive(delivery)).Data!;
+        part.Status.Should().Be(PurchaseOrderStatus.PartiallyReceived);
+        part.TotalCost.Should().Be(730);
+        (await Receive(delivery)).IsReplay.Should().BeTrue();
+
+        var stale = new ReceivePurchaseDeliveryRequest { ClientRequestId = Guid.NewGuid(), Lines = delivery.Lines };
+        (await Receive(stale)).IsConflict.Should().BeTrue();
+        var next = new ReceivePurchaseDeliveryRequest { ClientRequestId = Guid.NewGuid(), Lines =
+            [new() { LineId = cableLine.Id, ExpectedReceivedQuantity = 2, Quantity = 4 }] };
+        (await Receive(next)).IsConflict.Should().BeTrue();
+        next.Lines[0].Quantity = 1;
+        (await Receive(next)).Data!.TotalCost.Should().Be(830);
+        var (cancelService, cancelDb) = CreateService(database);
+        await using var cancelScope = cancelDb;
+        var cancelled = (await cancelService.CancelRemainderAsync(po.Id, actor.Id)).Data!;
+        cancelled.Status.Should().Be(PurchaseOrderStatus.Cancelled);
+        cancelled.CancelledByUserId.Should().Be(actor.Id);
+        cancelled.CancelledAt.Should().NotBeNull();
+        cancelled.TotalCost.Should().Be(830);
+        (await cancelService.CancelRemainderAsync(po.Id, actor.Id)).IsReplay.Should().BeTrue();
+        (await Receive(delivery)).IsReplay.Should().BeTrue();
+        next.ClientRequestId = Guid.NewGuid();
+        next.Lines[0].ExpectedReceivedQuantity = 3;
+        (await Receive(next)).IsConflict.Should().BeTrue();
+        (await seed.InventoryMovements.SumAsync(m => m.QuantityChange)).Should().Be(4);
+        (await seed.InventoryStocks.SumAsync(s => s.Quantity)).Should().Be(4);
+        (await seed.InventoryMovements.CountAsync(m => m.ReceiptRequestId == delivery.ClientRequestId && m.Reason!.Contains("DN-01") && m.PerformedByUserId == actor.Id)).Should().Be(2);
+        var device = await seed.SerialImeis.SingleAsync();
+        device.WarrantyMonths.Should().Be(18);
+        device.UnitCost.Should().Be(530);
+        (await new InventoryStockRepository(seed).GetAverageReceivedUnitCostAsync(cable.Id, null)).Should().Be(100);
+    }
+
+    [PostgresFact]
+    public async Task PlannedReceipt_FinalSerialDelivery_CompletesAndClosedReceiptCanOnlyReplay()
+    {
+        await using var database = await PostgresDatabase.CreateAsync(migrate: true);
+        await using var seed = database.CreateContext();
+        var (actor, supplier, category) = await SeedCommonAsync(seed);
+        var phone = new Product { CategoryId = category.Id, Name = "Phone", Sku = "P", IsSerialTracked = true };
+        seed.Products.Add(phone);
+        await seed.SaveChangesAsync();
+        var (service, context) = CreateService(database);
+        await using var scope = context;
+        var request = new CreatePurchaseReceiptRequest { ReceiveLater = true, ClientRequestId = Guid.NewGuid(), SupplierId = supplier.Id,
+            Lines = [new() { ProductId = phone.Id, Quantity = 2, UnitCost = 95.25m, WarrantyMonths = 6 }] };
+        var plan = (await service.CreateAsync(request, actor.Id)).Data!;
+        var line = plan.Lines.Single();
+        var first = new ReceivePurchaseDeliveryRequest { ClientRequestId = Guid.NewGuid(),
+            Lines = [new() { LineId = line.Id, Quantity = 1, Devices = [new() { SerialNumber = "PHONE-A" }] }] };
+        var part = (await service.ReceiveAsync(plan.Id, first, actor.Id)).Data!;
+        Assert.Equal(PurchaseOrderStatus.PartiallyReceived, part.Status);
+        var last = new ReceivePurchaseDeliveryRequest { ClientRequestId = Guid.NewGuid(),
+            Lines = [new() { LineId = line.Id, ExpectedReceivedQuantity = 1, Quantity = 1, Devices = [new() { SerialNumber = "PHONE-A" }] }] };
+        Assert.True((await service.ReceiveAsync(plan.Id, last, actor.Id)).IsConflict);
+        last.Lines[0].Devices[0].SerialNumber = "PHONE-B";
+        var full = (await service.ReceiveAsync(plan.Id, last, actor.Id)).Data!;
+        Assert.Equal(PurchaseOrderStatus.Received, full.Status);
+        Assert.Equal(190.50m, full.TotalCost);
+        Assert.Equal(2, full.Lines.Single().Devices.Count);
+        Assert.True((await service.ReceiveAsync(plan.Id, first, actor.Id)).IsReplay);
+        Assert.True((await service.CancelRemainderAsync(plan.Id, actor.Id)).IsConflict);
+
+        request.ClientRequestId = Guid.NewGuid();
+        var neverReceived = (await service.CreateAsync(request, actor.Id)).Data!;
+        var closed = (await service.CancelRemainderAsync(neverReceived.Id, actor.Id)).Data!;
+        Assert.Equal(PurchaseOrderStatus.Cancelled, closed.Status);
+        Assert.Null(closed.ReceivedAt);
+        Assert.Equal(0, closed.TotalCost);
+        Assert.Equal(2, await seed.InventoryMovements.CountAsync());
+    }
+
+    [PostgresFact]
+    public async Task PlannedReceipt_ConcurrentDeliveryReplayAndCancellation_AreSerialized()
+    {
+        await using var database = await PostgresDatabase.CreateAsync(migrate: true);
+        await using var seed = database.CreateContext();
+        var (actor, supplier, category) = await SeedCommonAsync(seed);
+        var cable = new Product { CategoryId = category.Id, Name = "Cable", Sku = "C", IsSerialTracked = false };
+        seed.Products.Add(cable);
+        await seed.SaveChangesAsync();
+        foreach (var competingAction in new[] { "replay", "receive", "cancel" })
+        {
+            var (planner, plannerDb) = CreateService(database);
+            await using var planScope = plannerDb;
+            var plan = (await planner.CreateAsync(new() { ReceiveLater = true, ClientRequestId = Guid.NewGuid(), SupplierId = supplier.Id,
+                Lines = [new() { ProductId = cable.Id, Quantity = 2, UnitCost = 30 }] }, actor.Id)).Data!;
+            var line = plan.Lines.Single();
+            var barrier = new LockBarrier();
+            var key = Guid.NewGuid();
+            async Task<PurchaseReceiptResult> Run(string action)
+            {
+                var (svc, db) = CreateService(database, new FirstLockInterceptor(barrier));
+                await using var requestScope = db;
+                return action == "cancel" ? await svc.CancelRemainderAsync(plan.Id, actor.Id) :
+                    await svc.ReceiveAsync(plan.Id, new() { ClientRequestId = action == "receive" ? Guid.NewGuid() : key,
+                        Lines = [new() { LineId = line.Id, Quantity = 2 }] }, actor.Id);
+            }
+            var outcomes = await Task.WhenAll(Run("first"), Run(competingAction));
+            if (competingAction == "replay")
+            {
+                outcomes.Should().OnlyContain(o => o.IsSuccess);
+                outcomes.Count(o => o.IsReplay).Should().Be(1);
+            }
+            else outcomes.Count(o => o.IsConflict).Should().Be(1);
+            var detail = (await planner.GetDetailAsync(plan.Id)).Data!;
+            var received = detail.Status == PurchaseOrderStatus.Received;
+            detail.Lines.Single().Quantity.Should().Be(received ? 2 : 0);
+            detail.TotalCost.Should().Be(received ? 60 : 0);
+            (await seed.InventoryMovements.CountAsync(m => m.PurchaseOrderItemId == line.Id)).Should().Be(received ? 1 : 0);
+        }
+    }
+
+    [PostgresFact]
     public async Task CreateAsync_SerialAndNonSerialLines_UpdatesStockLedgerDevicesAndAverageCost()
     {
         await using var database = await PostgresDatabase.CreateAsync(migrate: true);

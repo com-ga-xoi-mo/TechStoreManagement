@@ -42,6 +42,10 @@ public class FakeOrderRepository : IOrderRepository
         return Task.FromResult(order);
     }
 
+    public Dictionary<Guid, decimal> ConfirmedQrPayments { get; } = [];
+    public Task<bool> HasConfirmedVietQrAsync(Guid orderId, decimal amount, CancellationToken cancellationToken) =>
+        Task.FromResult(ConfirmedQrPayments.TryGetValue(orderId, out var paid) && paid == amount);
+
     public Task<Order?> GetForUpdateWithItemsAsync(Guid id, CancellationToken cancellationToken = default)
     {
         GetForUpdateCallCount++;

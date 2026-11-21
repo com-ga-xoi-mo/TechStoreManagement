@@ -9,7 +9,7 @@ using TechStore.Shared.Requests;
 
 namespace TechStore.Api.Inventory.Services;
 
-public class PurchaseReceiptService(
+public partial class PurchaseReceiptService(
     IPurchaseOrderRepository purchaseOrderRepository,
     IInventoryStockRepository stockRepository,
     ISerialImeiRepository serialImeiRepository,
@@ -48,13 +48,20 @@ public class PurchaseReceiptService(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var (order, devices) = await purchaseOrderRepository.GetReceiptDetailAsync(id, cancellationToken);
-        if (order == null)
+        // The header/lines and device list are separate queries; a delivery must appear in both or neither.
+        await unitOfWork.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, cancellationToken);
+        try
         {
-            return PurchaseReceiptDetailResult.NotFound();
+            var (order, devices) = await purchaseOrderRepository.GetReceiptDetailAsync(id, cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
+            return order == null ? PurchaseReceiptDetailResult.NotFound()
+                : PurchaseReceiptDetailResult.Success(MapToDetailDto(order, devices));
         }
-
-        return PurchaseReceiptDetailResult.Success(MapToDetailDto(order, devices));
+        catch
+        {
+            await unitOfWork.RollbackAsync(CancellationToken.None);
+            throw;
+        }
     }
 
     public async Task<PurchaseReceiptResult> CreateAsync(
@@ -71,15 +78,8 @@ public class PurchaseReceiptService(
             });
         }
 
-        var existingId = await purchaseOrderRepository.FindIdByClientRequestIdAsync(request.ClientRequestId.Value, cancellationToken);
-        if (existingId.HasValue)
-        {
-            var (existingOrder, existingDevices) = await purchaseOrderRepository.GetReceiptDetailAsync(existingId.Value, cancellationToken);
-            if (existingOrder != null)
-            {
-                return PurchaseReceiptResult.Replayed(MapToDetailDto(existingOrder, existingDevices));
-            }
-        }
+        var replay = await FindReplayAsync(request.ClientRequestId.Value, cancellationToken);
+        if (replay != null) return replay;
 
         // 2. Validate request (in-memory)
         var errors = new Dictionary<string, string[]>();
@@ -168,6 +168,10 @@ public class PurchaseReceiptService(
                 if (costErr != null)
                 {
                     errors[$"lines[{i}].unitCost"] = [costErr];
+                }
+                else if (decimal.Round(line.UnitCost!.Value, 2) != line.UnitCost.Value)
+                {
+                    errors[$"lines[{i}].unitCost"] = ["Giá nhập có tối đa hai chữ số thập phân."];
                 }
                 else if (line.Quantity.HasValue && line.Quantity.Value > 0 && line.Quantity.Value * line.UnitCost!.Value > UnitCostRules.MaxLineTotal)
                 {
@@ -295,7 +299,9 @@ public class PurchaseReceiptService(
                 {
                     var devCount = line.Devices?.Count ?? 0;
                     totalDevices += devCount;
-                    if (!line.Quantity.HasValue || devCount != line.Quantity.Value)
+                    if (request.ReceiveLater && devCount != 0)
+                        errors[$"lines[{i}].devices"] = ["Chỉ gửi mã máy khi hàng về kho."];
+                    else if (!request.ReceiveLater && devCount != line.Quantity)
                     {
                         errors[$"lines[{i}].devices"] = [$"Số lượng máy ({devCount}) phải bằng số lượng nhập ({line.Quantity ?? 0})."];
                     }
@@ -316,7 +322,7 @@ public class PurchaseReceiptService(
 
             // Each line fits numeric(18,2), but their sum is stored in total_cost too.
             var receiptTotal = request.Lines
-                .Where(l => l.Quantity is > 0 && l.UnitCost is >= 0)
+                .Where(l => l.Quantity is > 0 and <= 100_000 && l.UnitCost is >= 0 and <= UnitCostRules.Max)
                 .Sum(l => l.Quantity!.Value * l.UnitCost!.Value);
             if (receiptTotal > UnitCostRules.MaxLineTotal)
             {
@@ -345,6 +351,8 @@ public class PurchaseReceiptService(
                 if (existing.HasAnyDuplicates)
                 {
                     await unitOfWork.RollbackAsync(cancellationToken);
+                    var raced = await FindReplayAsync(request.ClientRequestId.Value, cancellationToken);
+                    if (raced != null) return raced;
                     var dupeList = existing.ExistingSerials.Concat(existing.ExistingImeis).Distinct().ToList();
                     return PurchaseReceiptResult.Conflict("Serial hoặc IMEI đã tồn tại trong hệ thống.", dupeList);
                 }
@@ -358,15 +366,15 @@ public class PurchaseReceiptService(
             {
                 SupplierId = request.SupplierId!.Value,
                 CreatedByUserId = actorUserId,
-                ReceivedByUserId = actorUserId,
+                ReceivedByUserId = request.ReceiveLater ? null : actorUserId,
                 PoNumber = poNumber,
                 SupplierDocumentNumber = trimmedDoc,
                 ClientRequestId = request.ClientRequestId.Value,
-                Status = PurchaseOrderStatus.Received,
-                TotalCost = totalCost,
+                Status = request.ReceiveLater ? PurchaseOrderStatus.Ordered : PurchaseOrderStatus.Received,
+                TotalCost = request.ReceiveLater ? 0m : totalCost,
                 Notes = trimmedNote,
                 OrderedAt = now,
-                ReceivedAt = now,
+                ReceivedAt = request.ReceiveLater ? null : now,
                 CreatedAt = now
             };
 
@@ -385,70 +393,20 @@ public class PurchaseReceiptService(
                 var unitCost = line.UnitCost!.Value;
                 var warrantyMonths = line.WarrantyMonths.GetValueOrDefault(12);
 
-                var stock = await stockRepository.GetForUpdateAsync(productId, variantId, cancellationToken);
-                if (stock == null)
-                {
-                    stock = new InventoryStock
-                    {
-                        ProductId = productId,
-                        VariantId = variantId,
-                        Quantity = 0,
-                        ReservedQuantity = 0,
-                        MinStockAlert = 5,
-                        CreatedAt = now
-                    };
-                    stockRepository.Add(stock);
-                }
-
-                stock.Quantity += qty;
-                stock.UpdatedAt = now;
-
                 var poItem = new PurchaseOrderItem
                 {
                     PurchaseOrder = po,
                     ProductId = productId,
                     VariantId = variantId,
                     OrderedQuantity = qty,
-                    ReceivedQuantity = qty,
+                    WarrantyMonths = products[productId].IsSerialTracked ? warrantyMonths : 0,
                     UnitCost = unitCost,
                     CreatedAt = now
                 };
                 po.Items.Add(poItem);
 
-                stockRepository.AddMovement(new InventoryMovement
-                {
-                    InventoryStock = stock,
-                    MovementType = InventoryMovementType.PurchaseReceipt,
-                    QuantityChange = qty,
-                    QuantityAfter = stock.Quantity,
-                    PerformedByUserId = actorUserId,
-                    PurchaseOrderItem = poItem,
-                    Reason = $"Phiếu nhập {poNumber}",
-                    CreatedAt = now
-                });
-
-                if (line.Devices != null && line.Devices.Count > 0)
-                {
-                    foreach (var dev in line.Devices)
-                    {
-                        var normalizedSerial = SerialImeiValidationHelper.Normalize(dev.SerialNumber);
-                        var normalizedImei = SerialImeiValidationHelper.Normalize(dev.Imei);
-
-                        var serialEntity = new SerialImei
-                        {
-                            ProductId = productId,
-                            VariantId = variantId,
-                            SerialNumber = normalizedSerial,
-                            Imei = normalizedImei,
-                            Status = SerialImeiStatus.InStock,
-                            UnitCost = unitCost,
-                            WarrantyMonths = warrantyMonths,
-                            PurchaseOrder = po,
-                            CreatedAt = now
-                        };
-                        devicesToAdd.Add(serialEntity);
-                    }
-                }
+                if (!request.ReceiveLater)
+                    await ReceiveLineAsync(po, poItem, qty, line.Devices, actorUserId, now, null, trimmedDoc, devicesToAdd, cancellationToken);
             }
 
             purchaseOrderRepository.Add(po);
@@ -458,9 +416,8 @@ public class PurchaseReceiptService(
             }
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
-            await unitOfWork.CommitAsync(cancellationToken);
-
             var (createdOrder, createdDevices) = await purchaseOrderRepository.GetReceiptDetailAsync(po.Id, cancellationToken);
+            await unitOfWork.CommitAsync(cancellationToken);
             return PurchaseReceiptResult.Created(MapToDetailDto(createdOrder ?? po, createdDevices.Count > 0 ? createdDevices : devicesToAdd));
         }
         catch (DuplicateKeyException ex)
@@ -468,15 +425,8 @@ public class PurchaseReceiptService(
             await unitOfWork.RollbackAsync(cancellationToken);
 
             // Re-read by clientRequestId before handling constraint
-            var existingIdAfterConflict = await purchaseOrderRepository.FindIdByClientRequestIdAsync(request.ClientRequestId.Value, cancellationToken);
-            if (existingIdAfterConflict.HasValue)
-            {
-                var (existingOrder, existingDevices) = await purchaseOrderRepository.GetReceiptDetailAsync(existingIdAfterConflict.Value, cancellationToken);
-                if (existingOrder != null)
-                {
-                    return PurchaseReceiptResult.Replayed(MapToDetailDto(existingOrder, existingDevices));
-                }
-            }
+            var raced = await FindReplayAsync(request.ClientRequestId.Value, cancellationToken);
+            if (raced != null) return raced;
 
             if (ex.ConstraintName == "idx_inventory_stocks_product_variant")
             {
@@ -497,6 +447,78 @@ public class PurchaseReceiptService(
         {
             await unitOfWork.RollbackAsync(cancellationToken);
             throw;
+        }
+    }
+
+    private async Task<PurchaseReceiptResult?> FindReplayAsync(Guid key, CancellationToken cancellationToken)
+    {
+        var existingId = await purchaseOrderRepository.FindIdByClientRequestIdAsync(key, cancellationToken);
+        if (existingId == null) return null;
+        var detail = await GetDetailAsync(existingId.Value, cancellationToken);
+        return detail.Data == null ? null : PurchaseReceiptResult.Replayed(detail.Data);
+    }
+
+    private async Task ReceiveLineAsync(PurchaseOrder po, PurchaseOrderItem poItem, int qty,
+        List<PurchaseReceiptDeviceRequest>? devices, Guid actorUserId, DateTime now, Guid? requestId, string? documentNumber,
+        List<SerialImei> devicesToAdd, CancellationToken cancellationToken)
+    {
+        var productId = poItem.ProductId;
+        var variantId = poItem.VariantId;
+        var unitCost = poItem.UnitCost;
+        var warrantyMonths = poItem.WarrantyMonths ?? 12;
+        poItem.ReceivedQuantity += qty;
+        var stock = await stockRepository.GetForUpdateAsync(productId, variantId, cancellationToken);
+        if (stock == null)
+        {
+            stock = new InventoryStock
+            {
+                ProductId = productId,
+                VariantId = variantId,
+                Quantity = 0,
+                ReservedQuantity = 0,
+                MinStockAlert = 5,
+                CreatedAt = now
+            };
+            stockRepository.Add(stock);
+        }
+
+        stock.Quantity += qty;
+        stock.UpdatedAt = now;
+
+        stockRepository.AddMovement(new InventoryMovement
+        {
+            InventoryStock = stock,
+            MovementType = InventoryMovementType.PurchaseReceipt,
+            QuantityChange = qty,
+            ReceiptRequestId = requestId,
+            QuantityAfter = stock.Quantity,
+            PerformedByUserId = actorUserId,
+            PurchaseOrderItem = poItem,
+            Reason = documentNumber == null ? $"Phiếu nhập {po.PoNumber}" : $"Phiếu nhập {po.PoNumber} · Chứng từ {documentNumber}",
+            CreatedAt = now
+        });
+
+        if (devices != null && devices.Count > 0)
+        {
+            foreach (var dev in devices)
+            {
+                var normalizedSerial = SerialImeiValidationHelper.Normalize(dev.SerialNumber);
+                var normalizedImei = SerialImeiValidationHelper.Normalize(dev.Imei);
+
+                var serialEntity = new SerialImei
+                {
+                    ProductId = productId,
+                    VariantId = variantId,
+                    SerialNumber = normalizedSerial,
+                    Imei = normalizedImei,
+                    Status = SerialImeiStatus.InStock,
+                    UnitCost = unitCost,
+                    WarrantyMonths = warrantyMonths,
+                    PurchaseOrder = po,
+                    CreatedAt = now
+                };
+                devicesToAdd.Add(serialEntity);
+            }
         }
     }
 
@@ -525,17 +547,21 @@ public class PurchaseReceiptService(
                 VariantId = item.VariantId,
                 VariantName = item.Variant?.VariantName,
                 VariantSku = item.Variant?.Sku,
+                OrderedQuantity = item.OrderedQuantity,
                 Quantity = item.ReceivedQuantity,
                 UnitCost = item.UnitCost,
                 LineTotal = item.ReceivedQuantity * item.UnitCost,
                 IsSerialTracked = item.Product?.IsSerialTracked ?? (itemDevices.Count > 0),
-                WarrantyMonths = itemDevices.Count > 0 ? (devices.FirstOrDefault(d => d.ProductId == item.ProductId && d.VariantId == item.VariantId)?.WarrantyMonths ?? 12) : 0,
+                WarrantyMonths = item.WarrantyMonths ?? (itemDevices.Count > 0 ? (devices.FirstOrDefault(d => d.ProductId == item.ProductId && d.VariantId == item.VariantId)?.WarrantyMonths ?? 12) : 0),
                 Devices = itemDevices
             };
         }).ToList();
 
         return new PurchaseReceiptDto
         {
+            Status = order.Status,
+            CancelledAt = order.CancelledAt,
+            CancelledByUserId = order.CancelledByUserId,
             Id = order.Id,
             PoNumber = order.PoNumber,
             SupplierId = order.SupplierId,

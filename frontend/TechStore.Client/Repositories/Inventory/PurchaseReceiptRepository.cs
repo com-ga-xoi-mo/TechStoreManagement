@@ -50,6 +50,25 @@ public class PurchaseReceiptRepository(IApiClient api) : IPurchaseReceiptReposit
         }
     }
 
+    public Task<PurchaseReceiptDetailResult> ReceiveAsync(Guid id, ReceivePurchaseDeliveryRequest delivery, CancellationToken cancellationToken = default) =>
+        UpdateAsync($"api/inventory/purchase-receipts/{id}/deliveries", delivery, cancellationToken);
+
+    public Task<PurchaseReceiptDetailResult> CancelRemainderAsync(Guid id, CancellationToken cancellationToken = default) =>
+        UpdateAsync($"api/inventory/purchase-receipts/{id}/cancel-remainder", new { }, cancellationToken);
+
+    private async Task<PurchaseReceiptDetailResult> UpdateAsync<T>(string route, T request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return PurchaseReceiptDetailResult.Success(await api.PostAsync<T, PurchaseReceiptDto>(route, request, cancellationToken));
+        }
+        catch (ApiException ex)
+        {
+            var message = ex.FieldErrors.Values.SelectMany(errors => errors).FirstOrDefault() ?? ex.Detail;
+            return PurchaseReceiptDetailResult.Failed(MapFailureKind(ex), message);
+        }
+    }
+
     public async Task<PurchaseReceiptCreateResult> CreateAsync(
         CreatePurchaseReceiptRequest request,
         CancellationToken cancellationToken = default)

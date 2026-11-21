@@ -8,6 +8,7 @@ using TechStore.Client.UnitTests.ViewModels.Orders;
 using CatalogFactory = TechStore.Client.UnitTests.ViewModels.Orders.Catalog;
 using OrderFactory = TechStore.Client.UnitTests.ViewModels.Orders.Orders;
 using TechStore.Client.ViewModels.Sales;
+using TechStore.Shared.DTOs;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
 
@@ -39,6 +40,9 @@ internal sealed class FakePosRepository : IPosRepository
         return Task.FromResult(Current! with { Status = PosSessionStatus.Closed });
     }
 
+    public Func<PosCheckoutRequest, Task<PosQuoteDto>> Price { get; set; } = null!;
+    public Task<PosQuoteDto> QuoteAsync(PosCheckoutRequest request, CancellationToken cancellationToken = default) => Price(request);
+
     public Task<OrderDetail> CheckoutAsync(PosCheckoutRequest request, CancellationToken cancellationToken = default)
     {
         Checkouts.Add(request);
@@ -68,6 +72,17 @@ public sealed class PosViewModelTests
 
         public Rig()
         {
+            Pos.Price = request =>
+            {
+                var subtotal = request.Items!.Sum(i =>
+                {
+                    var product = Products.Details[i.ProductId!.Value];
+                    var variant = product.Variants.FirstOrDefault(v => v.Id == i.VariantId);
+                    return (variant?.Price ?? product.BasePrice) * i.Quantity!.Value;
+                });
+                var discount = request.OrderDiscountAmount ?? 0m;
+                return Task.FromResult(new PosQuoteDto(subtotal, discount, 0, subtotal - discount));
+            };
             Drafts = new PosDraftStore(Session);
             ViewModel = new PosViewModel(Pos, Devices, Products, Drafts);
         }
@@ -100,8 +115,8 @@ public sealed class PosViewModelTests
         {
             var product = Products.Add(CatalogFactory.Product(name, serialTracked: false, basePrice: price));
             Products.OnSearch = query => Task.FromResult(new ProductPage(
-                Products.Details.Values.Where(p => p.Sku == query.Query).Select(CatalogFactory.Summary).ToArray(), 1, 10,
-                Products.Details.Values.Count(p => p.Sku == query.Query), 1));
+                Products.Details.Values.Where(p => p.Sku == query.ExactCode).Select(CatalogFactory.Summary).ToArray(), 1, 10,
+                Products.Details.Values.Count(p => p.Sku == query.ExactCode), 1));
             return product;
         }
     }
@@ -112,6 +127,38 @@ public sealed class PosViewModelTests
         rig.Pos.Current = PosShifts.Open(opening);
         await rig.ViewModel.ActivateAsync();
         return rig;
+    }
+
+    [Fact]
+    public async Task Scan_PartialSkuFromSearch_CannotAddAnItem()
+    {
+        var rig = await OpenRig();
+        var item = rig.Accessory();
+        rig.Products.OnSearch = _ => Task.FromResult(new ProductPage([CatalogFactory.Summary(item)], 1, 10, 1, 1));
+        await rig.Scan(item.Sku[..^1]);
+        Assert.Empty(rig.ViewModel.Lines);
+    }
+
+    [Fact]
+    public async Task Pay_CurrentQuoteWithVat_DeterminesEligibilityChangeAndExpectedTotal()
+    {
+        var rig = await OpenRig();
+        var item = rig.Accessory(price: 100_000m);
+        var first = new TaskCompletionSource<PosQuoteDto>();
+        rig.Pos.Price = _ => first.Task;
+        await rig.Scan(item.Sku);
+        rig.ViewModel.CashText = "100000";
+        Assert.False(rig.ViewModel.CanPay);
+        rig.Pos.Price = request => Task.FromResult(new PosQuoteDto(100_000m, request.OrderDiscountAmount!.Value, 9_500m, 104_500m));
+        rig.ViewModel.DiscountText = "5000";
+        first.SetResult(new(100_000m, 0m, 10_000m, 110_000m));
+        Assert.False(rig.ViewModel.CanPay);
+        rig.ViewModel.CashText = "120000";
+        Assert.Equal(15_500m, rig.ViewModel.Change);
+        await rig.ViewModel.PayCommand.ExecuteAsync(null);
+        var sent = Assert.Single(rig.Pos.Checkouts);
+        Assert.Equal(104_500m, sent.ExpectedTotal);
+        Assert.Equal(5_000m, sent.OrderDiscountAmount);
     }
 
     // ---------- shift ----------

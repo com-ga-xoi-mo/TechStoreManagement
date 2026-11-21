@@ -3,6 +3,7 @@ namespace TechStore.Shared.Requests;
 public class ProductSearchRequest
 {
     public string? Q { get; set; }
+    public string? ExactCode { get; set; }
     public string? Brand { get; set; }
     public Guid? CategoryId { get; set; }
     public bool? IsActive { get; set; }

@@ -29,6 +29,15 @@ public class ProductRepository(AppDbContext dbContext) : IProductRepository
             query = dbContext.Products.AsNoTracking();
         }
 
+        if (!string.IsNullOrWhiteSpace(criteria.ExactCode))
+        {
+            var code = EscapeLikePattern(criteria.ExactCode);
+            query = query.Where(p => EF.Functions.ILike(p.Sku, code, @"\")
+                || (p.Barcode != null && EF.Functions.ILike(p.Barcode, code, @"\"))
+                || p.Variants.Any(v => v.IsActive && (EF.Functions.ILike(v.Sku, code, @"\")
+                    || (v.Barcode != null && EF.Functions.ILike(v.Barcode, code, @"\")))));
+        }
+
         if (!string.IsNullOrWhiteSpace(criteria.Keyword))
         {
             var serial = criteria.Keyword.Trim().ToLower();

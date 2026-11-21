@@ -12,13 +12,15 @@ using TechStore.Client.Repositories.Sales;
 using TechStore.Client.Services.Api;
 using TechStore.Client.ViewModels.Orders;
 using TechStore.Client.ViewModels.Pages;
+using TechStore.Shared.DTOs;
+using TechStore.Client.ViewModels.Customers;
 using TechStore.Shared.Requests;
 
 namespace TechStore.Client.ViewModels.Sales;
 
 /// <summary>
 /// Cash register: scan items into a cart, take cash and check out into the open shift. Amounts shown before payment
-/// are estimates from the catalog price; the order the server returns is the number the user finally sees.
+/// come from the same server pricing service used at checkout.
 /// </summary>
 public sealed partial class PosViewModel : PageViewModel
 {
@@ -54,8 +56,15 @@ public sealed partial class PosViewModel : PageViewModel
     [ObservableProperty] private bool awaitingRetry;
     [ObservableProperty] private OrderDetail? receipt;
 
-    public PosViewModel(IPosRepository pos, IOrderDeviceRepository devices, IProductRepository products, IPosDraftStore drafts)
+    [ObservableProperty] private string discountText = string.Empty;
+    [ObservableProperty] private PosQuoteDto? quote;
+    [ObservableProperty] private string quoteError = string.Empty;
+    private CancellationTokenSource? _quoteRequest;
+    public CustomerPickerViewModel? Customer { get; }
+
+    public PosViewModel(IPosRepository pos, IOrderDeviceRepository devices, IProductRepository products, IPosDraftStore drafts, CustomerPickerViewModel? customer = null)
     {
+        Customer = customer;
         _drafts = drafts ?? throw new ArgumentNullException(nameof(drafts));
         _pos = pos ?? throw new ArgumentNullException(nameof(pos));
         _devices = devices ?? throw new ArgumentNullException(nameof(devices));
@@ -74,15 +83,17 @@ public sealed partial class PosViewModel : PageViewModel
         ? string.Empty
         : $"Đơn {Receipt.OrderCode} đã hoàn tất. Tổng {OrderPresentation.FormatMoney(Receipt.TotalAmount)} · Khách đưa {OrderPresentation.FormatMoney(Receipt.CashTendered ?? Receipt.TotalAmount)} · Tiền thừa {OrderPresentation.FormatMoney(Receipt.ChangeGiven ?? 0m)}";
 
-    public decimal EstimatedTotal => Lines.Sum(item => item.Line.EstimatedTotal);
-    public string EstimatedTotalText => OrderPresentation.FormatMoney(EstimatedTotal);
+    public decimal EstimatedTotal => Quote?.TotalAmount ?? 0m;
+    public string EstimatedTotalText => Quote is null ? "—" : OrderPresentation.FormatMoney(Quote.TotalAmount);
+    public string TaxText => Quote is null ? "—" : OrderPresentation.FormatMoney(Quote.TaxAmount);
+    public bool HasQuoteError => QuoteError.Length > 0;
 
     /// <summary>The cash received, or null when the box is empty or not a valid amount.</summary>
     public decimal? CashReceived => TryParseMoney(CashText, out var cash) ? cash : null;
 
-    public decimal Change => CashReceived is { } cash && cash >= EstimatedTotal ? cash - EstimatedTotal : 0m;
-    public string ChangeText => OrderPresentation.FormatMoney(Change);
-    public bool CanPay => HasShift && HasLines && !IsPaying && CashReceived is { } cash && cash >= EstimatedTotal;
+    public decimal Change => Quote is { } price && CashReceived is { } cash && cash >= price.TotalAmount ? cash - price.TotalAmount : 0m;
+    public string ChangeText => Quote is null ? "—" : OrderPresentation.FormatMoney(Change);
+    public bool CanPay => HasShift && HasLines && !IsPaying && !IsScanning && Quote is { } price && CashReceived is { } cash && cash >= price.TotalAmount;
     public bool CanEditCart => HasShift && !IsPaying && !AwaitingRetry;
 
     public string ShiftSummary => Shift is null
@@ -111,10 +122,13 @@ public sealed partial class PosViewModel : PageViewModel
         Shift = await _pos.GetCurrentShiftAsync(cancellationToken);
         if (Shift is { IsOpen: true } open && _drafts.Take(open.Id) is { } draft)
         {
+            AwaitingRetry = draft.AwaitingRetry;
+            if (Customer != null) Customer.SelectedCustomer = draft.Customer;
+            DiscountText = draft.DiscountText;
+            if (AwaitingRetry) Quote = draft.Quote;
             Lines = draft.Lines;
             CashText = draft.CashText;
             _checkoutKey = draft.CheckoutKey;
-            AwaitingRetry = draft.AwaitingRetry;
             CountedCashText = draft.CountedCashText;
             ClosingNote = draft.ClosingNote;
             IsClosingShift = draft.IsClosingShift;
@@ -126,8 +140,11 @@ public sealed partial class PosViewModel : PageViewModel
     /// <summary>Leaving the page (for example to Settings) must not throw away a sale or a half-filled close.</summary>
     protected override void OnDeactivated()
     {
+        _quoteRequest?.Cancel();
+        Customer?.Cancel();
         if (Shift is { IsOpen: true } open && (HasLines || IsClosingShift))
-            _drafts.Save(new PosDraft(open.Id, Lines, CashText, _checkoutKey, AwaitingRetry, IsClosingShift, CountedCashText, ClosingNote));
+            _drafts.Save(new PosDraft(open.Id, Lines, CashText, _checkoutKey, AwaitingRetry || IsPaying, IsClosingShift, CountedCashText, ClosingNote,
+                Customer?.SelectedCustomer, DiscountText, Quote));
     }
 
     // ---------- derived state ----------
@@ -166,13 +183,71 @@ public sealed partial class PosViewModel : PageViewModel
     partial void OnIsPayingChanged(bool value) => RefreshPayState();
     partial void OnAwaitingRetryChanged(bool value) => RefreshPayState();
 
-    partial void OnLinesChanged(IReadOnlyList<DraftLineItem> value)
+    partial void OnIsScanningChanged(bool value) => RefreshPayState();
+    partial void OnDiscountTextChanged(string value) => _ = RefreshQuoteAsync();
+    partial void OnQuoteErrorChanged(string value) => OnPropertyChanged(nameof(HasQuoteError));
+    partial void OnLinesChanged(IReadOnlyList<DraftLineItem>? oldValue, IReadOnlyList<DraftLineItem> newValue)
     {
         OnPropertyChanged(nameof(HasLines));
+        if (oldValue == null || !oldValue.Select(i => i.Line).SequenceEqual(newValue.Select(i => i.Line)))
+            _ = RefreshQuoteAsync();
+        RefreshPayState();
+    }
+
+    partial void OnQuoteChanged(PosQuoteDto? value)
+    {
+        OnPropertyChanged(nameof(TaxText));
         OnPropertyChanged(nameof(EstimatedTotal));
         OnPropertyChanged(nameof(EstimatedTotalText));
         RefreshPayState();
     }
+
+    [RelayCommand]
+    private async Task RefreshQuoteAsync()
+    {
+        _quoteRequest?.Cancel();
+        if (AwaitingRetry) return;
+        Quote = null;
+        QuoteError = string.Empty;
+        if (!HasLines) return;
+        if (!string.IsNullOrWhiteSpace(DiscountText)
+            && (!TryParseMoney(DiscountText, out var discount) || decimal.Truncate(discount) != discount))
+        {
+            QuoteError = "Giảm giá đơn phải là số đồng nguyên không âm.";
+            return;
+        }
+
+        using var request = CancellationTokenSource.CreateLinkedTokenSource(ActivationToken);
+        _quoteRequest = request;
+        try
+        {
+            var price = await _pos.QuoteAsync(BuildRequest(), request.Token);
+            if (!request.IsCancellationRequested) Quote = price;
+        }
+        catch (OperationCanceledException) when (request.IsCancellationRequested) { }
+        catch (ApiException error)
+        {
+            if (!request.IsCancellationRequested) QuoteError = OrderApiErrors.Describe(error, "Tính tiền");
+        }
+        finally
+        {
+            if (ReferenceEquals(_quoteRequest, request)) _quoteRequest = null;
+        }
+    }
+
+    private PosCheckoutRequest BuildRequest() => new()
+    {
+        CustomerId = Customer?.SelectedCustomerId,
+        OrderDiscountAmount = TryParseMoney(DiscountText, out var discount) ? discount : 0m,
+        Items = Lines.Select(item => new CreateOrderItemRequest
+        {
+            ProductId = item.Line.ProductId,
+            VariantId = item.Line.VariantId,
+            SerialImeiId = item.Line.SerialImeiId,
+            Quantity = item.Line.Quantity,
+            DiscountAmount = item.Line.DiscountAmount
+        }).ToList()
+    };
 
     private void RefreshPayState()
     {
@@ -315,10 +390,9 @@ public sealed partial class PosViewModel : PageViewModel
             return AddDevice(product, scanned);
         }
 
-        var page = await _products.SearchAsync(new ProductQuery { Query = code, IsActive = true, Sort = "name:asc", PageSize = 10 }, ActivationToken);
+        var page = await _products.SearchAsync(new ProductQuery { ExactCode = code, IsActive = true, Sort = "name:asc", PageSize = 10 }, ActivationToken);
         if (version != _scanVersion) return string.Empty;
-        var hit = page.Items.FirstOrDefault(item => string.Equals(item.Sku, code, StringComparison.OrdinalIgnoreCase))
-            ?? (page.Items.Count == 1 ? page.Items[0] : null);
+        var hit = page.Items.Count == 1 ? page.Items[0] : null;
         if (hit is null)
             return page.Items.Count == 0 ? "Không tìm thấy máy hoặc sản phẩm với mã này." : "Có nhiều sản phẩm phù hợp. Hãy quét đúng SKU hoặc mã vạch.";
 
@@ -343,6 +417,10 @@ public sealed partial class PosViewModel : PageViewModel
     private string? AddProduct(ProductDetail? product, string code)
     {
         if (product is not { IsActive: true }) return "Sản phẩm đã ngừng kinh doanh.";
+        bool Matches(string? value) => string.Equals(code, value, StringComparison.OrdinalIgnoreCase);
+        var productMatch = Matches(product.Sku) || Matches(product.Barcode);
+        if (!productMatch && !product.Variants.Any(v => v.IsActive && (Matches(v.Sku) || Matches(v.Barcode))))
+            return "Không tìm thấy sản phẩm với mã này.";
         if (product.IsSerialTracked) return $"{product.Name} theo dõi IMEI: hãy quét IMEI hoặc serial của máy cần bán.";
 
         var active = product.Variants.Where(v => v.IsActive).ToArray();
@@ -351,7 +429,7 @@ public sealed partial class PosViewModel : PageViewModel
         {
             variant = active.FirstOrDefault(v => string.Equals(v.Sku, code, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(v.Barcode, code, StringComparison.OrdinalIgnoreCase))
-                ?? (active.Length == 1 ? active[0] : null);
+                ?? (productMatch && active.Length == 1 ? active[0] : null);
             if (variant is null) return $"{product.Name} có nhiều biến thể: hãy quét SKU hoặc mã vạch của biến thể.";
         }
 
@@ -411,6 +489,8 @@ public sealed partial class PosViewModel : PageViewModel
     {
         if (!CanEditCart) return;
         Lines = [];
+        Customer?.Reset();
+        DiscountText = string.Empty;
         CashText = string.Empty;
         PayError = string.Empty;
         _checkoutKey = null;
@@ -430,25 +510,19 @@ public sealed partial class PosViewModel : PageViewModel
         IsPaying = true;
         try
         {
-            var order = await _pos.CheckoutAsync(new PosCheckoutRequest
-            {
-                PosSessionId = current.Id,
-                CheckoutKey = _checkoutKey,
-                CashTendered = cash,
-                Items = Lines.Select(item => new CreateOrderItemRequest
-                {
-                    ProductId = item.Line.ProductId,
-                    VariantId = item.Line.VariantId,
-                    SerialImeiId = item.Line.SerialImeiId,
-                    Quantity = item.Line.Quantity,
-                    DiscountAmount = item.Line.DiscountAmount
-                }).ToList()
-            }, ActivationToken);
+            var request = BuildRequest();
+            request.PosSessionId = current.Id;
+            request.CheckoutKey = _checkoutKey;
+            request.CashTendered = cash;
+            request.ExpectedTotal = Quote!.TotalAmount;
+            var order = await _pos.CheckoutAsync(request, ActivationToken);
 
             Receipt = order;
-            Lines = [];
-            CashText = string.Empty;
             AwaitingRetry = false;
+            Lines = [];
+            Customer?.Reset();
+            DiscountText = string.Empty;
+            CashText = string.Empty;
             _checkoutKey = null;
             await RefreshShiftAfterSaleAsync();
         }
@@ -458,6 +532,7 @@ public sealed partial class PosViewModel : PageViewModel
         catch (ApiException exception)
         {
             ShowPayFailure(exception);
+            if (exception.StatusCode == 409) await RefreshQuoteAsync();
         }
         finally
         {

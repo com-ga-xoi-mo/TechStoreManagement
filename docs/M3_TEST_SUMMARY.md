@@ -1,5 +1,56 @@
 # M3 — Kết quả kiểm thử Sprint 5
 
+## Nhận hàng từng phần ngày 22/11/2026
+
+**55/57 mục M3 đã đạt.** Luồng nhận từng đợt và hủy phần chưa nhận đã được kiểm tra trên working tree `dev` dựa trên `d2f17bf`. Hai mục còn mở là nghiệm thu Windows native và chốt hồi quy M2 trên bản tích hợp. Lượt giao diện dưới đây chạy trên Skia/macOS.
+
+| Ca nghiệm thu | Kết quả quan sát |
+| --- | --- |
+| Đặt hàng và nhận đủ hai đợt qua Kestrel | Phiếu `PN-20261121-B976057C` đặt 5, nhận 2 rồi 3 với đơn giá 125,50 ₫. API lần lượt trả tổng thực nhận 251 ₫ rồi 627,50 ₫. Trạng thái cuối `Received`. Hủy phiếu đã nhận đủ trả 409. |
+| Hủy sau khi nhận một phần qua Kestrel | Phiếu `PN-20261121-94FAFDFA` đặt 5, nhận 2, hủy 3. Đọc lại được `Cancelled`, số thực nhận 2, tổng 251 ₫, có người hủy và thời điểm. Gửi lại yêu cầu hủy thành công. Nhận thêm sau khi hủy trả 409. |
+| Màn hình Thủ kho trên Skia | Tạo phiếu chờ bằng form, ghi đợt 2/5, xác nhận hủy số còn lại qua nút trong dialog. Đọc lại phiếu `PN-20261121-028278F1` có tổng thực nhận 200 ₫. PostgreSQL có đúng một biến động +2 với chứng từ `M3-SKIA`. Ô số lượng nhận focus bàn phím và dialog đã chuyển Light/Dark. |
+| Chống ghi trùng và rollback | Test dùng hai kết nối PostgreSQL 16 với điểm đồng bộ ở khóa phiếu. Gửi cùng mã đợt chỉ ghi kho một lần. Hai yêu cầu khác mã tranh lượng còn lại hoặc nhận đồng thời với hủy chỉ có một thao tác thắng. Test gây lỗi sau khi ghi và trước commit xác nhận cả tồn, serial và sổ kho quay lại trạng thái trước đó. |
+| Serial, giá vốn và phân quyền | Hai đợt giao hai serial khác nhau mới đủ phiếu. Serial trùng trả xung đột. Lô hỗn hợp giữ đúng bảo hành và giá vốn phần thực nhận sau khi hủy. Ma trận 70 endpoint kiểm tra bốn role, 66 ca 401 và 108 ca 403. |
+
+`dotnet build TechStore.sln -t:Rebuild -m:1 -p:EnableWindowsTargeting=true` trên macOS thành công, 0 cảnh báo, 0 lỗi. Migration `PartialPurchaseDeliveries` đã áp dụng trên PostgreSQL test, EF báo model khớp migration. OpenSpec strict đạt 38/38.
+
+| Lượt cuối của `dotnet test TechStore.sln` | Đạt | Lỗi | Bỏ qua |
+| --- | ---: | ---: | ---: |
+| Backend unit và HTTP, bật PostgreSQL | 861 | 0 | 0 |
+| Backend integration, seed và Analytics | 4 | 0 | 0 |
+| Frontend headless | 1.141 | 0 | 0 |
+| Frontend integration trên Kestrel | 3 | 0 | 0 |
+| **Tổng** | **2.009** | **0** | **0** |
+
+Lượt đầu có 4 lỗi khởi tạo fixture vì tên hai database seed và Analytics thiếu dấu hiệu database test. Lượt cuối chạy lại toàn solution với database riêng có hậu tố `_test` và bật đầy đủ các biến opt-in. Xem [contract và cách thao tác](../backend/Inventory/README.md#nhận-hàng-nhiều-đợt), [kiểm thử PostgreSQL](../tests/Backend.UnitTests/Inventory/PurchaseReceiptPostgresTests.cs) và [checklist M3](MILESTONE_3_PLAN.md#điều-kiện-hoàn-thành-m3).
+
+## Kiểm tra lại bản tích hợp M3
+
+Kiểm tra ngày 21/11/2026 trên nhánh `dev`, gồm các thay đổi trong working tree trên `d2f17bf`. Môi trường macOS 26.2 arm64, .NET SDK 10.0.401 và PostgreSQL 16. API Kestrel và các bộ test dùng database riêng. Rebuild solution trên macOS thành công với 0 warning, 0 error, gồm client desktop Skia. OpenSpec strict đạt 38/38. Các số liệu của các nhánh ở phần sau là lịch sử.
+
+| Bộ kiểm thử | Đạt | Lỗi | Bỏ qua |
+| --- | ---: | ---: | ---: |
+| Backend unit và HTTP, bật PostgreSQL | 858 | 0 | 0 |
+| Backend integration, seed và Analytics | 4 | 0 | 0 |
+| Frontend headless | 1.140 | 0 | 0 |
+| Frontend integration, Kestrel với database mới | 3 | 0 | 0 |
+| **Tổng** | **2.005** | **0** | **0** |
+
+| Phạm vi | Bằng chứng |
+| --- | --- |
+| VietQR | Qua Kestrel, cả hai yêu cầu chuyển đơn VietQR chưa xác nhận sang `Processing` và `Completed` đều trả 409. Đọc lại được `Pending`, `PaidAt = null`. Unit test kiểm tra cả xác nhận sai tiền, đúng tiền và đơn đang `Processing`. |
+| Tiền mặt | POS lấy tổng từ `POST /api/pos/quote`. Báo giá và checkout dùng cùng công thức phía server. Test HTTP kiểm tra giảm giá đơn 500.000 ₫, VAT 950.000 ₫ và tổng 10.450.000 ₫. Checkout trả 409 khi tổng khách vừa xem đã đổi. |
+| Thu ngân và tra cứu | POS chọn khách hoặc khách lẻ, nhập giảm giá và chỉ thêm phụ kiện khớp nguyên SKU/barcode. Test ViewModel kiểm tra mã thiếu ký tự, báo giá cũ trả về muộn, tiền nhận thiếu, thử lại sau mất kết nối. |
+| Giao diện POS trên Skia | Mở màn hình bán hàng của SalesStaff trên macOS, đổi chiều rộng 950 → 800, đổi Dark → Light và chuyển focus bàn phím vào ô quét. Với phụ kiện 100.000 ₫, giảm 5.000 ₫ và VAT 9.500 ₫, nút Thanh toán khóa khi nhập 100.000 ₫. Nhập 120.000 ₫ và chọn khách demo, giao diện hiện tiền thừa 15.500 ₫. Biên nhận `ORD-202611-0010` khớp khách, tổng và tiền thừa. Đã sửa lỗi dựng panel thanh toán lần đầu trên Skia. |
+| Nhập hàng đến Dashboard | Phiếu `PN-20261121-17A6C18E`, đơn `ORD-202611-0006`. Tạm tính sau giảm dòng 29.900.000 ₫, giảm đơn 100.000 ₫, VAT 2.980.000 ₫, khách đưa 100.000.000 ₫. Tiền thừa 67.220.000 ₫. Tiền ca và doanh thu cùng tăng 32.780.000 ₫. Đọc lại máy đã bán, giá vốn 14.000.000 ₫ và bảo hành 9 tháng. |
+| Đồng thời | Mỗi ca quan sát được hai phiên PostgreSQL cùng chờ khóa. Hai thu ngân tranh phụ kiện cuối hoặc serial cuối có đúng một 201 và một 409. Hai yêu cầu hoàn tất cùng đơn có một 200 và một 409. Khi đóng ca thắng checkout, đóng ca trả 200, bán trả 409 và số tiền chốt khớp tổng đơn. Test nhận cùng phiếu kiểm tra chỉ cộng kho một lần. |
+| Phân quyền | 68 endpoint, 4 public. Kiểm tra policy cho bốn role, 64 phản hồi 401 thiếu token và 104 phản hồi 403 sai role. API yêu cầu cấu hình khóa ký riêng khi khởi động. |
+| Catalog live | Ba bộ test đọc Catalog, ghi Catalog và Orders chạy chung một lượt trên Kestrel. Chúng dùng tuần tự database demo chung để giữ tập kết quả ổn định khi kiểm tra phân trang. |
+
+**Tại lượt kiểm tra ngày 21/11.** Windows native cần chạy lại luồng tích hợp với bốn role, Light/Dark/System, resize, bàn phím và binding. Mục nghiệm thu UI/M2 tổng thể chờ kết quả đó. Phiếu nhập một bước đã được kiểm tra. Nhận một phần và hủy phần chưa nhận là mục hoãn trong kế hoạch và cần được chốt phạm vi trước khi đóng M3.
+
+Các lệnh và biến môi trường để chạy lại nằm ở [phần kiểm thử](#kết-quả-theo-lượt-chạy). Với working tree hiện tại, chạy trọn từng project trong `tests/`, bật cả PostgreSQL và `TECHSTORE_API_BASE_URL` cho suite live. Xem [cách cấu hình JWT, migrate và seed](../README.md), [quyền API](API_PERMISSIONS.md), [contract POS và thứ tự khóa](../backend/Sales/README.md) cùng [checklist và các mục mở](MILESTONE_3_PLAN.md#điều-kiện-hoàn-thành-m3).
+
 ## Build bàn giao của Bình
 
 - Ngày chạy 18/11/2026. Windows `10.0.26200.0`, .NET SDK `10.0.404`, Debug và desktop `net10.0-desktop`.
@@ -49,7 +100,7 @@ Các số 0 Fail/Skipped trong những lượt có `Test Run Successful` đượ
 
 ## Regression Admin M2
 
-Nguồn build cho các mã trong bảng là baseline hiện tại ở đầu trang. Các ca tự động dùng TestServer/PostgreSQL, Kestrel hoặc headless như cột bằng chứng. Phần này không có ca Admin chạy tay.
+Nguồn build cho các mã trong bảng là [bản bàn giao của Bình](#build-bàn-giao-của-bình). Các ca tự động dùng TestServer/PostgreSQL, Kestrel hoặc headless như cột bằng chứng. Phần này không có ca Admin chạy tay.
 
 | Mã | Owner | Đầu vào | Expected | Actual | Bằng chứng | Trạng thái |
 | --- | --- | --- | --- | --- | --- | --- |

@@ -11,6 +11,7 @@ using Xunit.Abstractions;
 
 namespace TechStore.Client.IntegrationTests;
 
+[Collection("Live API database")]
 public sealed class CatalogApiIntegrationTests(ITestOutputHelper output)
 {
     private const string BaseUrlEnvironmentVariable = "TECHSTORE_API_BASE_URL";

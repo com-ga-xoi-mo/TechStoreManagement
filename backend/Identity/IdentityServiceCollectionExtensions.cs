@@ -15,6 +15,9 @@ public static class IdentityServiceCollectionExtensions
         var section = configuration.GetSection(JwtOptions.SectionName);
         services.Configure<JwtOptions>(section);
         var jwt = section.Get<JwtOptions>() ?? new JwtOptions();
+        if (string.IsNullOrWhiteSpace(jwt.SecretKey) || Encoding.UTF8.GetByteCount(jwt.SecretKey) < 32)
+            throw new InvalidOperationException("Jwt:SecretKey must be configured with at least 32 bytes.");
+
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
         {
             options.RequireHttpsMetadata = false;

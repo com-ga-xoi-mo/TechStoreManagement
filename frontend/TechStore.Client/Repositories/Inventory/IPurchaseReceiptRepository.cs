@@ -76,6 +76,9 @@ public sealed record PurchaseReceiptCreateResult(
 
 public interface IPurchaseReceiptRepository
 {
+    Task<PurchaseReceiptDetailResult> ReceiveAsync(Guid id, ReceivePurchaseDeliveryRequest delivery, CancellationToken cancellationToken = default);
+    Task<PurchaseReceiptDetailResult> CancelRemainderAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task<PurchaseReceiptSearchResult> GetReceiptsAsync(
         PurchaseReceiptFilterRequest request,
         CancellationToken cancellationToken = default);

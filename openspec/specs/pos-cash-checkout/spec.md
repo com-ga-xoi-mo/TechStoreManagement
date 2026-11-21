@@ -7,7 +7,9 @@ Bán hàng tiền mặt tại quầy trong một transaction: tạo đơn, thu t
 ## Requirements
 
 ### Requirement: Atomic cash checkout
-`POST /api/pos/checkout` SHALL, in one database transaction, create the order, verify and reserve the devices and stock through the inventory fulfilment service, confirm the sale (stock deduction, `Sale` movements, per-line cost snapshot, warranty dates), set `status` = `Completed`, `paymentMethod` = `Cash`, `paidAt` = `completedAt` = now, store `cashTendered` and `changeGiven`, credit the order total to the shift's `cashSalesTotal` and return 201 with the order. Request fields: `posSessionId`, `checkoutKey`, `customerId?`, `cashTendered`, `notes?`, `items` (as in `CreateOrderRequest`). Prices, totals and cost SHALL be computed by the server; client prices SHALL be ignored. Only `SalesStaff` and `Admin` SHALL check out.
+`POST /api/pos/checkout` SHALL, in one database transaction, create the order, verify and reserve the devices and stock through the inventory fulfilment service, confirm the sale (stock deduction, `Sale` movements, per-line cost snapshot, warranty dates), set `status` = `Completed`, `paymentMethod` = `Cash`, `paidAt` = `completedAt` = now, store `cashTendered` and `changeGiven`, credit the order total to the shift's `cashSalesTotal` and return 201 with the order. Request fields: `posSessionId`, `checkoutKey`, `customerId?`, `cashTendered`, `orderDiscountAmount?`, `expectedTotal?`, `notes?`, `items` (as in `CreateOrderRequest`). Prices, totals and cost SHALL be computed by the server; client prices SHALL be ignored. Only `SalesStaff` and `Admin` SHALL check out.
+
+`POST /api/pos/quote` SHALL allow Admin and SalesStaff to price the same cart with the checkout pricing service without writing an order or reserving stock. A new checkout with an expected total different from the current price SHALL return 409 without recording a payment. Replay of a committed checkout key SHALL return the original order.
 
 #### Scenario: Successful cash sale
 - **WHEN** a SalesStaff with an open shift checks out one in-stock IMEI device priced 10,000,000 with `cashTendered` = 10,000,000

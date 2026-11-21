@@ -138,6 +138,12 @@ Each order SHALL receive a unique code `ORD-{yyyyMM}-{NNNN}` using the UTC creat
 ### Requirement: Order status transitions
 `PATCH /api/orders/{id}/status` with `{ "targetStatus": "..." }` SHALL apply only these transitions: `Pending → Processing`, `Pending → Completed`, `Processing → Completed`, `Pending → Cancelled`. Any other combination from the current status (including repeating the current status and every transition out of `Completed`, `Cancelled`, `PartiallyRefunded` or `Refunded`) SHALL return 409 and change nothing. A `targetStatus` that is not one of `Processing`, `Completed`, `Cancelled` (for example `Pending`, `Refunded` or an unknown name) SHALL return 400. An unknown order SHALL return 404. The endpoint SHALL lock the order row, so concurrent transitions of one order execute one after another. On success the response is 200 with the updated order detail.
 
+For a VietQr order, changing to Processing or Completed SHALL require a confirmed payment for that order with a confirmation timestamp and the exact order total. The service SHALL check this before changing payment, inventory or warranty data.
+
+#### Scenario: Unconfirmed VietQR
+- **WHEN** a seller requests Processing or Completed for a pending VietQr order without a matching confirmation
+- **THEN** the API returns 409 and the order remains unpaid and pending
+
 #### Scenario: Pending to Processing
 - **WHEN** a `Pending` order is moved to `Processing`
 - **THEN** every serial-tracked line's device becomes `Reserved`, the stock rows' `reserved_quantity` increases by the line quantities, `paid_at` is set, `completed_at` stays empty, and no inventory movement is written

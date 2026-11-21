@@ -14,6 +14,7 @@ internal static class ProductQueryUri
         Validate(query);
         var parameters = new List<string>();
         Add("q", query.Query?.Trim());
+        Add("exactCode", query.ExactCode?.Trim());
         Add("brand", query.Brand?.Trim());
         Add("categoryId", query.CategoryId?.ToString("D"));
         Add("isActive", query.IsActive?.ToString().ToLowerInvariant());

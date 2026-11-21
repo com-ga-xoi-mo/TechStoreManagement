@@ -13,6 +13,7 @@ public class PurchaseOrderItemConfiguration : IEntityTypeConfiguration<PurchaseO
         {
             t.HasCheckConstraint("ck_po_items_ordered_qty_gt_zero", "ordered_quantity > 0");
             t.HasCheckConstraint("ck_po_items_received_qty_valid", "received_quantity >= 0 AND received_quantity <= ordered_quantity");
+            t.HasCheckConstraint("ck_po_items_warranty_months", "warranty_months BETWEEN 0 AND 120");
             t.HasCheckConstraint("ck_po_items_unit_cost_ge_zero", "unit_cost >= 0");
         });
 
@@ -26,6 +27,8 @@ public class PurchaseOrderItemConfiguration : IEntityTypeConfiguration<PurchaseO
         builder.Property(x => x.UnitCost).HasColumnName("unit_cost").HasPrecision(18, 2).IsRequired();
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz");
+
+        builder.Property(x => x.WarrantyMonths).HasColumnName("warranty_months");
 
         // Indexes
         builder.HasIndex(x => x.PurchaseOrderId).HasDatabaseName("idx_po_items_po_id");

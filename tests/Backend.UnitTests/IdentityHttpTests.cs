@@ -8,12 +8,14 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using TechStore.Api.Catalog.Repositories;
 using TechStore.Api.Customers.Repositories;
+using TechStore.Api.Identity;
 using TechStore.Api.Identity.Configurations;
 using TechStore.Api.Identity.Repositories;
 using TechStore.Api.Identity.Services;
@@ -29,6 +31,18 @@ namespace TechStore.UnitTests;
 
 public sealed class IdentityHttpTests
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData(" ")]
+    [InlineData("too-short")]
+    public void Authentication_RequiresConfiguredSigningKey(string? secret)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Jwt:SecretKey"] = secret })
+            .Build();
+        Assert.Throws<InvalidOperationException>(() => new ServiceCollection().AddStoreAuthentication(configuration));
+    }
+
     [Theory]
     [InlineData("GET", "/api/orders")]
     [InlineData("GET", "/api/orders/00000000-0000-0000-0000-000000000001")]
@@ -248,6 +262,7 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseSetting("Jwt:SecretKey", new string('T', 64));
         builder.UseEnvironment("Testing");
         builder.ConfigureTestServices(services =>
         {

@@ -37,7 +37,7 @@ A line for a product that has variants SHALL name one of its active variants, be
 - **THEN** the API returns HTTP 400 under `lines[n].variantId` and writes nothing
 
 ### Requirement: Serial and IMEI lines on a receipt
-A line for a serial-tracked product SHALL carry exactly `quantity` devices, each with a serial number of at most 100 characters after trimming, an IMEI of exactly 15 digits, or both. A line for a product that is not serial-tracked SHALL carry no devices. One receipt SHALL carry at most 500 devices. A serial number or IMEI repeated within the receipt or already present in the system SHALL be refused.
+When goods are received, a line for a serial-tracked product SHALL carry exactly `quantity` devices, each with a serial number of at most 100 characters after trimming, an IMEI of exactly 15 digits, or both. A line for a product that is not serial-tracked SHALL carry no devices. One receipt SHALL carry at most 500 devices. A serial number or IMEI repeated within the receipt or already present in the system SHALL be refused.
 
 #### Scenario: Device count differs from quantity
 - **WHEN** a serial-tracked line has quantity 5 and 4 devices
@@ -56,7 +56,7 @@ A line for a serial-tracked product SHALL carry exactly `quantity` devices, each
 - **THEN** the API returns HTTP 409 ProblemDetails listing the duplicate identifiers and writes nothing
 
 ### Requirement: Receipt is recorded in one transaction
-A valid receipt SHALL, in one transaction, create a `Received` purchase order with a server-generated unique number `PN-yyyyMMdd-XXXXXXXX`, the caller as creator and receiver, the current UTC time as ordered and received time, and `total_cost` = Σ quantity × unit cost. It SHALL add one line per request line with ordered = received = quantity, and return HTTP 201 with the receipt detail and Location `/api/inventory/purchase-receipts/{id}`.
+A valid immediate receipt (default) SHALL, in one transaction, create a `Received` purchase order with a server-generated unique number `PN-yyyyMMdd-XXXXXXXX`, the caller as creator and receiver, the current UTC time as ordered and received time, and `total_cost` = Σ quantity × unit cost. It SHALL add one line per request line with ordered = received = quantity, and return HTTP 201 with the receipt detail and Location `/api/inventory/purchase-receipts/{id}`.
 
 #### Scenario: Receive goods without serial
 - **WHEN** a WarehouseStaff user receives 20 "Cáp USB-C 1m" at 45,000 from supplier "FPT Trading" with document number "HD-0912"
@@ -71,7 +71,7 @@ A valid receipt SHALL, in one transaction, create a `Received` purchase order wi
 - **THEN** no purchase order, line, stock change, movement or device from that request exists afterwards
 
 ### Requirement: Receipt updates stock, devices and ledger
-For each line the receipt SHALL add `quantity` to the product/variant stock balance, creating the balance with quantity 0, reserved 0 and low-stock alert 5 when absent. It SHALL write one `PurchaseReceipt` movement linked to the line with the new `quantity_after` and a note naming the receipt number, and create each device `InStock` with the line's unit cost and warranty months and a link to the receipt.
+For each physically received line the receipt SHALL add `quantity` to the product/variant stock balance, creating the balance with quantity 0, reserved 0 and low-stock alert 5 when absent. It SHALL write one `PurchaseReceipt` movement linked to the line with the new `quantity_after` and a note naming the receipt number, and create each device `InStock` with the line's unit cost and warranty months and a link to the receipt.
 
 #### Scenario: Restock an existing balance
 - **WHEN** a product has quantity 8 and reserved 2, and a receipt adds 20
@@ -86,7 +86,7 @@ For each line the receipt SHALL add `quantity` to the product/variant stock bala
 - **THEN** 5 devices exist with status `InStock`, `unit_cost` 18,200,000, `warranty_months` 12 and this receipt as purchase order, and the variant's stock quantity equals its `InStock` plus `Reserved` devices
 
 ### Requirement: Received cost feeds cost of goods sold
-Every receipt line SHALL count as received purchase cost, so a later sale of goods without serial snapshots the average received unit cost weighted by quantity across all received lines of that product/variant, and a sold device snapshots its own unit cost.
+Only physically received quantities SHALL count as received purchase cost, so a later sale of goods without serial snapshots the average received unit cost weighted by quantity across all received lines of that product/variant, and a sold device snapshots its own unit cost.
 
 #### Scenario: New lot at a different price
 - **WHEN** a product has an opening balance of 10 at 100,000, a receipt adds 10 at 120,000, and one unit is then sold and completed
@@ -119,7 +119,7 @@ Receipts SHALL lock the affected stock balances in ascending product, then varia
 - **THEN** one returns HTTP 201, the other HTTP 409, and only one device with that IMEI exists
 
 ### Requirement: Purchase receipt listing
-`GET /api/inventory/purchase-receipts` SHALL return a page of received purchase orders, including opening-balance orders, newest received first, filtered by `search` (receipt number, supplier document number or supplier name, case-insensitive, wildcards literal) and `supplierId`. Each item SHALL show id, number, supplier name, document number, received time, receiver name (empty when unknown), line count, total quantity and total cost.
+`GET /api/inventory/purchase-receipts` SHALL return a page of Ordered, PartiallyReceived, Received and Cancelled purchase orders, including opening-balance orders, newest receipt activity first (received time or creation time), filtered by `search` (receipt number, supplier document number or supplier name, case-insensitive, wildcards literal) and `supplierId`. Each item SHALL show id, number, status, supplier name, document number, received time, receiver name (empty when unknown), line count, total quantity and total cost.
 
 #### Scenario: Find a receipt by document number
 - **WHEN** a Manager requests `/api/inventory/purchase-receipts?search=HD-0912`
@@ -150,3 +150,19 @@ Creating a receipt SHALL be allowed to Admin and WarehouseStaff; listing and det
 #### Scenario: Manager cannot receive goods
 - **WHEN** a Manager posts a receipt
 - **THEN** the API returns HTTP 403 and writes nothing
+
+### Requirement: Incremental receiving and cancellation
+
+Admin and WarehouseStaff SHALL be able to set `receiveLater` on creation. An ordered receipt SHALL record quantities, unit cost and warranty, accept no device identifiers and leave physical stock and actual cost unchanged. Manager SHALL have read-only access. Legacy callers SHALL retain immediate receipt behavior.
+
+#### Scenario: Two deliveries against one receipt
+- **WHEN** a supplier delivers two of five units, then the other three
+- **THEN** the receipt progresses from Ordered to PartiallyReceived to Received, with each batch recording its actor, timestamp, source document where supplied, stock movements and actual cost
+
+#### Scenario: Conflicting or retried delivery
+- **WHEN** two clients post deliveries to the same receipt
+- **THEN** the API locks the receipt before checking each line's expected received quantity and remaining balance. It applies each client request ID once per receipt. A stale or excessive batch returns 409 and writes no lines
+
+#### Scenario: Cancel the unreceived balance
+- **WHEN** a writer cancels an Ordered or PartiallyReceived receipt
+- **THEN** the receipt becomes Cancelled, the actor and cancellation time are saved, prior stock, devices and costs are preserved, and later new deliveries return 409. Repeating cancellation returns the closed receipt. A fully received receipt cannot be cancelled

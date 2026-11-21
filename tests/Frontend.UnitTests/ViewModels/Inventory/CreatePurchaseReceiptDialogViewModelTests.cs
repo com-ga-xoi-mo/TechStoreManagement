@@ -56,6 +56,9 @@ public sealed class CreatePurchaseReceiptDialogViewModelTests
 
     private sealed class FakeReceiptRepository : IPurchaseReceiptRepository
     {
+        public Task<PurchaseReceiptDetailResult> ReceiveAsync(Guid id, ReceivePurchaseDeliveryRequest delivery, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PurchaseReceiptDetailResult> CancelRemainderAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public CreatePurchaseReceiptRequest? LastRequest { get; private set; }
         public PurchaseReceiptCreateResult? CustomCreateResult { get; set; }
         public int SubmitCallCount { get; private set; }

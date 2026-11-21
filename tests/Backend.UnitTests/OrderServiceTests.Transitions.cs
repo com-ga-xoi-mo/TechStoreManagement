@@ -8,6 +8,28 @@ namespace TechStore.UnitTests;
 // UC-ORD-04: UpdateStatusAsync
 public partial class OrderServiceTests
 {
+    [Theory]
+    [InlineData(OrderStatus.Pending, "Processing")]
+    [InlineData(OrderStatus.Pending, "Completed")]
+    [InlineData(OrderStatus.Processing, "Completed")]
+    public async Task UpdateStatusAsync_VietQrRequiresConfirmedOrderAmount(OrderStatus initial, string target)
+    {
+        var (order, _, _) = AddOrder(initial);
+        order.PaymentMethod = PaymentMethod.VietQr;
+        var originalPaidAt = order.PaidAt;
+        foreach (var mismatch in new[] { false, true })
+        {
+            if (mismatch) _orders.ConfirmedQrPayments[order.Id] = order.TotalAmount + 1;
+            var denied = await _service.UpdateStatusAsync(order.Id, Target(target), ActingUser);
+            denied.IsConflict.Should().BeTrue();
+            order.Status.Should().Be(initial);
+            order.PaidAt.Should().Be(originalPaidAt);
+            _fulfillment.CallLog.Should().BeEmpty();
+        }
+        _orders.ConfirmedQrPayments[order.Id] = order.TotalAmount;
+        (await _service.UpdateStatusAsync(order.Id, Target(target), ActingUser)).IsSuccess.Should().BeTrue();
+    }
+
     [Fact]
     public async Task UpdateStatusAsync_PendingToProcessing_ReservesAndMarksPaid()
     {

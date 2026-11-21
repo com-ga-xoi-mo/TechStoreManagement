@@ -15,6 +15,9 @@ public record PurchaseReceiptResult(
     public static PurchaseReceiptResult Created(PurchaseReceiptDto data) =>
         new(true, false, data, null, false, false, null);
 
+    public static PurchaseReceiptResult Updated(PurchaseReceiptDto data) =>
+        new(true, false, data, null, false, false, null);
+
     public static PurchaseReceiptResult Replayed(PurchaseReceiptDto data) =>
         new(true, true, data, null, false, false, null);
 

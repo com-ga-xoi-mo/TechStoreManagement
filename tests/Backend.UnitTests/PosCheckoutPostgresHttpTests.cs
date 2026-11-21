@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Shared.DTOs;
@@ -15,6 +16,35 @@ public sealed class PosCheckoutPostgresHttpTests
     // What the customer pays: catalog prices exclude VAT and the API runs with the production 10% (M3 pricing).
     private const decimal Total = 11_000_000m;
     private const string Password = "HttpEmployee@123";
+
+    [PostgresFact]
+    public async Task Quote_WithOrderDiscount_CheckoutUsesTheSameTaxAndRejectsChangedTotal()
+    {
+        await using var world = await PosWorld.CreateAsync(deviceCount: 1);
+        var shift = await world.OpenShiftAsync(world.SalesA, 0m);
+        var request = Checkout(world, shift.Id, world.DeviceIds[0], Total);
+        request.OrderDiscountAmount = 500_000m;
+        using var quoteResponse = await world.SalesA.Client.PostAsJsonAsync("/api/pos/quote", request);
+        quoteResponse.EnsureSuccessStatusCode();
+        var quote = (await quoteResponse.Content.ReadFromJsonAsync<PosQuoteDto>())!;
+        Assert.Equal(950_000m, quote.TaxAmount);
+        Assert.Equal(10_450_000m, quote.TotalAmount);
+        request.ExpectedTotal = quote.TotalAmount - 1;
+        using var stale = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", request);
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        request.ExpectedTotal = quote.TotalAmount;
+        var payload = JsonSerializer.SerializeToNode(request, JsonSerializerOptions.Web)!.AsObject();
+        payload["taxAmount"] = 0;
+        payload["items"]![0]!["unitPrice"] = 1;
+        using var paid = await world.SalesA.Client.PostAsJsonAsync("/api/pos/checkout", payload);
+        Assert.Equal(HttpStatusCode.Created, paid.StatusCode);
+        var order = (await paid.Content.ReadFromJsonAsync<OrderDto>())!;
+        Assert.Equal(Price, Assert.Single(order.Items).UnitPrice);
+        Assert.Equal(quote.TaxAmount, order.TaxAmount);
+        Assert.Equal(quote.TotalAmount, order.TotalAmount);
+        Assert.Equal(500_000m, Assert.Single(order.Items).OrderDiscountAmount);
+        Assert.Equal(Total - quote.TotalAmount, order.ChangeGiven);
+    }
 
     [PostgresFact]
     public async Task CashSale_FullFlow_UpdatesOrderDeviceStockWarrantyAndShiftThenCloses()

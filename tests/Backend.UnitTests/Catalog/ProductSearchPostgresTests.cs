@@ -46,6 +46,11 @@ public class ProductSearchPostgresTests
         (await Ids("50%X")).Should().BeEmpty();
         (await Ids("macbook air m3 apple mac book air m3 ignored")).Should().BeEquivalentTo(new[] { first.Id, second.Id, wrongPrice.Id, wrongSpec.Id });
 
+        var exact = await repository.SearchAsync(criteria with { ExactCode = "var-bar" });
+        exact.Items.Should().ContainSingle().Which.Id.Should().Be(first.Id);
+        (await repository.SearchAsync(criteria with { ExactCode = "VAR-BA" })).Items.Should().BeEmpty();
+        (await repository.SearchAsync(criteria with { ExactCode = "VAR%" })).Items.Should().BeEmpty();
+
         var filtered = criteria with { Keyword = "macbook m3", Brand = "apple", MinPrice = 90, MaxPrice = 110, SpecFilterJson = "{\"ram_gb\":16}", PageSize = 1 };
         var page1 = await repository.SearchAsync(filtered);
         var page2 = await repository.SearchAsync(filtered with { Page = 2 });

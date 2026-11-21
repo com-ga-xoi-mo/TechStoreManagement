@@ -8,6 +8,20 @@ namespace TechStore.Api.Inventory.Repositories;
 
 public class PurchaseOrderRepository(AppDbContext dbContext) : IPurchaseOrderRepository
 {
+    public async Task<PurchaseOrder?> LockReceiptAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var order = await dbContext.PurchaseOrders
+            .FromSqlInterpolated($"SELECT * FROM purchase_orders WHERE id = {id} FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
+        if (order != null)
+            await dbContext.Entry(order).Collection(p => p.Items).Query().Include(i => i.Product).LoadAsync(cancellationToken);
+        return order;
+    }
+
+    public Task<bool> HasDeliveryAsync(Guid receiptId, Guid requestId, CancellationToken cancellationToken) =>
+        dbContext.InventoryMovements.AnyAsync(m => m.ReceiptRequestId == requestId
+            && m.PurchaseOrderItem!.PurchaseOrderId == receiptId, cancellationToken);
+
     public void Add(PurchaseOrder purchaseOrder) => dbContext.PurchaseOrders.Add(purchaseOrder);
 
     public async Task<Guid?> FindIdByClientRequestIdAsync(Guid clientRequestId, CancellationToken cancellationToken = default)
@@ -25,7 +39,7 @@ public class PurchaseOrderRepository(AppDbContext dbContext) : IPurchaseOrderRep
     {
         var query = dbContext.PurchaseOrders
             .AsNoTracking()
-            .Where(p => p.Status == PurchaseOrderStatus.Received);
+            .Where(p => p.Status != PurchaseOrderStatus.Draft);
 
         if (criteria.SupplierId.HasValue)
         {
@@ -52,6 +66,7 @@ public class PurchaseOrderRepository(AppDbContext dbContext) : IPurchaseOrderRep
             .Select(p => new PurchaseReceiptSummaryDto
             {
                 Id = p.Id,
+                Status = p.Status,
                 PoNumber = p.PoNumber,
                 SupplierId = p.SupplierId,
                 SupplierName = p.Supplier.Name,

@@ -13,6 +13,10 @@ public class FakePurchaseOrderRepository : IPurchaseOrderRepository
     public FakeSupplierRepository? SupplierRepository { get; set; }
     public FakeProductRepository? ProductRepository { get; set; }
 
+    public Task<PurchaseOrder?> LockReceiptAsync(Guid id, CancellationToken cancellationToken) =>
+        Task.FromResult(PurchaseOrders.SingleOrDefault(p => p.Id == id));
+    public Task<bool> HasDeliveryAsync(Guid receiptId, Guid requestId, CancellationToken cancellationToken) => Task.FromResult(false);
+
     public void Add(PurchaseOrder purchaseOrder)
     {
         StagedOrders.Add(purchaseOrder);
@@ -39,7 +43,7 @@ public class FakePurchaseOrderRepository : IPurchaseOrderRepository
         CancellationToken cancellationToken = default)
     {
         var query = PurchaseOrders
-            .Where(p => p.Status == PurchaseOrderStatus.Received)
+            .Where(p => p.Status != PurchaseOrderStatus.Draft)
             .AsQueryable();
 
         if (criteria.SupplierId.HasValue)
@@ -65,6 +69,7 @@ public class FakePurchaseOrderRepository : IPurchaseOrderRepository
             .Select(p => new PurchaseReceiptSummaryDto
             {
                 Id = p.Id,
+                Status = p.Status,
                 PoNumber = p.PoNumber,
                 SupplierId = p.SupplierId,
                 SupplierName = p.Supplier?.Name ?? string.Empty,

@@ -478,6 +478,13 @@ public class OrderService(
 
             var now = timeProvider.GetUtcNow().UtcDateTime;
 
+            if (target != OrderStatus.Cancelled && order.PaymentMethod == PaymentMethod.VietQr
+                && !await orderRepository.HasConfirmedVietQrAsync(order.Id, order.TotalAmount, cancellationToken))
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return OrderTransitionResult.Conflict("Chưa có xác nhận VietQR cho đủ số tiền của đơn hàng.");
+            }
+
             if (target == OrderStatus.Cancelled)
             {
                 // Only Pending orders reach this branch; they hold no reservation.

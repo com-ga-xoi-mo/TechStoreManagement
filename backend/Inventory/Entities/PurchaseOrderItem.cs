@@ -10,6 +10,7 @@ public class PurchaseOrderItem : BaseEntity
     public Guid? VariantId { get; set; }
     public int OrderedQuantity { get; set; }
     public int ReceivedQuantity { get; set; } = 0;
+    public int? WarrantyMonths { get; set; }
     public decimal UnitCost { get; set; }
 
     // Navigation properties

@@ -14,7 +14,7 @@ namespace TechStore.UnitTests;
 
 public sealed class IdentityConcurrencyPostgresTests
 {
-    private static readonly IOptions<JwtOptions> Options = Microsoft.Extensions.Options.Options.Create(new JwtOptions());
+    private static readonly IOptions<JwtOptions> Options = Microsoft.Extensions.Options.Options.Create(new JwtOptions { SecretKey = new string('T', 64) });
 
     [PostgresFact]
     public async Task RefreshAsync_TwoIndependentTransactions_ConsumeTokenExactlyOnce()

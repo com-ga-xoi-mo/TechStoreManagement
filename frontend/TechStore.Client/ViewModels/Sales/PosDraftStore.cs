@@ -1,3 +1,5 @@
+using TechStore.Client.Models.Customers;
+using TechStore.Shared.DTOs;
 using TechStore.Client.Services.Session;
 using TechStore.Client.ViewModels.Orders;
 
@@ -12,7 +14,10 @@ public sealed record PosDraft(
     bool AwaitingRetry,
     bool IsClosingShift,
     string CountedCashText,
-    string ClosingNote);
+    string ClosingNote,
+    CustomerChoice? Customer = null,
+    string DiscountText = "",
+    PosQuoteDto? Quote = null);
 
 public interface IPosDraftStore
 {

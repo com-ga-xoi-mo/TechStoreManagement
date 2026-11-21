@@ -9,6 +9,7 @@ public class PurchaseReceiptLineDto
     public Guid? VariantId { get; set; }
     public string? VariantName { get; set; }
     public string? VariantSku { get; set; }
+    public int OrderedQuantity { get; set; }
     public int Quantity { get; set; }
     public decimal UnitCost { get; set; }
     public decimal LineTotal { get; set; }

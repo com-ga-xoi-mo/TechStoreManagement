@@ -17,6 +17,7 @@
   - Sản phẩm không có biến thể: bán trực tiếp theo SKU sản phẩm, `variant_id = NULL`.
   - Sản phẩm có biến thể: SKU sản phẩm đóng vai trò mã tra cứu model (lookup code), từng biến thể sở hữu SKU bán lẻ, giá bán riêng (`product_variants.price`) và barcode riêng.
   - SKU sản phẩm và SKU biến thể đã tạo không được sửa.
+  - POS gửi tham số `exactCode` đến `GET /api/products` để tìm nguyên mã SKU/barcode của sản phẩm hoặc biến thể đang hoạt động, không phân biệt hoa thường. Bộ lọc chạy trước phân trang.
   - Sản phẩm có biến thể không có barcode cấp sản phẩm.
 - **Vòng đời & RBAC:**
   - Ngừng kinh doanh = `PATCH /api/products/{id}/status`; xóa thật chỉ khi chưa có tồn kho/IMEI/phiếu nhập/đơn hàng.

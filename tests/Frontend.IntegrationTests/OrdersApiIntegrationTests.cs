@@ -18,6 +18,7 @@ namespace TechStore.Client.IntegrationTests;
 /// PostgreSQL. Run it on a freshly seeded database (it sells 3 of the 4 seeded iPhone devices):
 /// <c>TECHSTORE_API_BASE_URL=http://localhost:5176/ dotnet test tests/Frontend.IntegrationTests</c>.
 /// </summary>
+[Collection("Live API database")]
 public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
 {
     private const string IphoneKeyword = "IP15PM-256-NT";
@@ -40,12 +41,21 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
         draft.AddLineCommand.Execute(null);
         Assert.Equal(variantPrice, draft.EstimatedTotal);
 
+        draft.SelectedPayment = draft.PaymentOptions.Single(p => p.Method == PaymentMethod.VietQr);
         await draft.SaveDraftCommand.ExecuteAsync(null);
         var notice = Assert.Single(rig.Dialogs.Notices);
         Assert.Contains("chờ xử lý", notice.Message);
         var draftCode = notice.Code;
         var draftOrder = await rig.FindByCode(draftCode);
         Assert.Equal(OrderStatus.Pending, draftOrder.Status);
+        foreach (var target in new[] { OrderStatus.Processing, OrderStatus.Completed })
+        {
+            var conflict = await Assert.ThrowsAsync<ApiException>(() => rig.OrderRepository.UpdateStatusAsync(draftOrder.Id, target));
+            Assert.Equal(409, conflict.StatusCode);
+        }
+        var unpaid = await rig.FindByCode(draftCode);
+        Assert.Equal(OrderStatus.Pending, unpaid.Status);
+        Assert.Null(unpaid.PaidAt);
         // The client estimate is before VAT; the server adds the order discount and VAT (M3 pricing).
         Assert.Equal(draft.EstimatedTotal, draftOrder.Subtotal);
         Assert.Equal(draftOrder.Subtotal - draftOrder.DiscountAmount + draftOrder.TaxAmount, draftOrder.TotalAmount);
@@ -60,15 +70,17 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
         sale.SelectedDevice = soldDevice;
         sale.AddLineCommand.Execute(null);
         sale.SelectedPayment = sale.PaymentOptions.Single(p => p.Method == PaymentMethod.VietQr);
+        Assert.False(sale.PayAndCompleteCommand.CanExecute(null));
+        sale.SelectedPayment = sale.PaymentOptions.Single(p => p.Method == PaymentMethod.Cash);
         await sale.PayAndCompleteCommand.ExecuteAsync(null);
         Assert.Contains("đã hoàn tất", rig.Dialogs.Notices.Last().Message);
         var saleCode = rig.Dialogs.Notices.Last().Code;
         var saleOrder = await rig.FindByCode(saleCode);
         Assert.Equal(OrderStatus.Completed, saleOrder.Status);
-        Assert.Equal(PaymentMethod.VietQr, saleOrder.PaymentMethod);
+        Assert.Equal(PaymentMethod.Cash, saleOrder.PaymentMethod);
         var remaining = await rig.DeviceRepository.GetInStockAsync(iphone.Id, draft.SelectedVariant?.Id);
         Assert.DoesNotContain(remaining.Items, d => d.Id == soldDevice.Id);
-        output.WriteLine($"sale {saleCode}: Completed via VietQr, device {soldDevice.Display} left InStock");
+        output.WriteLine($"sale {saleCode}: Completed via Cash, device {soldDevice.Display} left InStock");
 
         // ---- 3. sequential conflict: two drafts hold the same device; the second completion is refused by the server ----
         var raceA = await rig.DraftFor(IphoneKeyword, devices[2].Id);
@@ -138,7 +150,7 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
 
         // ---- 8. a missing order is a clean 404 ----
         Assert.Null(await rig.OrderRepository.GetByIdAsync(Guid.NewGuid()));
-        output.WriteLine("checks: estimate==server total (serial and no-IMEI), VietQr, device leaves InStock, 409 sequential conflict, 400 on line, detail IMEI, filters, 404");
+        output.WriteLine("checks: estimate==server total (serial and no-IMEI), QR instant payment disabled, device leaves InStock, 409 sequential conflict, 400 on line, detail IMEI, filters, 404");
     }
 
     private static async Task Eventually(Func<bool> condition, string failure, int seconds = 15)

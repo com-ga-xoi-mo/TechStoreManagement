@@ -11,6 +11,7 @@ public class InventoryMovement : BaseEntity
     public int QuantityChange { get; set; }
     public int QuantityAfter { get; set; }
     public Guid PerformedByUserId { get; set; }
+    public Guid? ReceiptRequestId { get; set; }
     public Guid? PurchaseOrderItemId { get; set; }
     public Guid? OrderItemId { get; set; }
     public Guid? OrderReturnId { get; set; }

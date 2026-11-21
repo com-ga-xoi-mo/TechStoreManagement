@@ -3,6 +3,7 @@ namespace TechStore.Client.Models.Catalog;
 public sealed record ProductQuery
 {
     public string? Query { get; init; }
+    public string? ExactCode { get; init; }
     public string? Brand { get; init; }
     public Guid? CategoryId { get; init; }
     public bool? IsActive { get; init; }

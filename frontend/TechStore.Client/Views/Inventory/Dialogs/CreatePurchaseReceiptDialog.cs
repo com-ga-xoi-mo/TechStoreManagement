@@ -143,6 +143,8 @@ public sealed class CreatePurchaseReceiptDialog : ContentDialog
         Grid.SetRow(notePanel, 1);
         generalGrid.Children.Add(notePanel);
 
+        body.Children.Add(new CheckBox { Content = "Lập phiếu chờ nhận hàng (nhập số lượng đặt, chưa ghi tồn kho)" }
+            .IsChecked(x => x.Binding(() => ViewModel.ReceiveLater).Mode(BindingMode.TwoWay)));
         body.Children.Add(generalGrid);
 
         // Section 2: Product Picker (to add line)
@@ -337,7 +339,7 @@ public sealed class CreatePurchaseReceiptDialog : ContentDialog
         cancel.Padding = new Thickness(18, 0, 18, 0);
         cancel.Command(x => x.Binding(() => ViewModel.CancelCommand));
 
-        var confirm = Button(Text("Xác nhận nhập", 14, AppColors.OnPrimary, 600), primary: true);
+        var confirm = Button(Text("", 14, AppColors.OnPrimary, 600).Text(x => x.Binding(() => ViewModel.SubmitLabel)), primary: true);
         confirm.Height = 38;
         confirm.Padding = new Thickness(24, 0, 24, 0);
         confirm.Command(x => x.Binding(() => ViewModel.SubmitCommand));

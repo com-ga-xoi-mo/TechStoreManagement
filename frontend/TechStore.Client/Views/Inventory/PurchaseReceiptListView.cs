@@ -273,7 +273,9 @@ internal sealed class PurchaseReceiptTableRows(PurchaseReceiptListViewModel view
         var grid = Columns();
 
         // PoNumber
-        var poNum = Text(row.PoNumber, 14, AppColors.Text, 600);
+        var poNum = new StackPanel();
+        poNum.Children.Add(Text(row.PoNumber, 14, AppColors.Text, 600));
+        poNum.Children.Add(Text(ReceiptStatusLabels.Format(row.Status), 12, AppColors.SecondaryText));
         Grid.SetColumn(poNum, 0);
         grid.Children.Add(poNum);
 

@@ -58,6 +58,14 @@ public class PosController(IPosShiftService shiftService, IPosCheckoutService ch
         return Map(result, shift => Ok(shift));
     }
 
+    [HttpPost("quote")]
+    [Authorize(Roles = "Admin,SalesStaff")]
+    public async Task<IActionResult> Quote([FromBody] PosCheckoutRequest request, CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
+        return Map(await checkoutService.QuoteAsync(request, actor, cancellationToken), quote => Ok(quote));
+    }
+
     [HttpPost("checkout")]
     [Authorize(Roles = "Admin,SalesStaff")]
     public async Task<IActionResult> Checkout([FromBody] PosCheckoutRequest request, CancellationToken cancellationToken)

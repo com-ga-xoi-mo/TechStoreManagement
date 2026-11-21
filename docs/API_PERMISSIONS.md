@@ -16,7 +16,8 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | GET `/api/inventory/suppliers`, `/api/inventory/suppliers/{id}` | A M W | Danh bạ nhà cung cấp, loại trừ nhà cung cấp hệ thống |
 | POST `/api/inventory/suppliers`, PUT `/api/inventory/suppliers/{id}`, PATCH `/api/inventory/suppliers/{id}/status` | A W | Quản lý nhà cung cấp (tạo, sửa, ngừng hoạt động/sử dụng lại) |
 | GET `/api/inventory/purchase-receipts`, `/api/inventory/purchase-receipts/{id}` | A M W | Tra cứu danh sách và chi tiết phiếu nhập kho |
-| POST `/api/inventory/purchase-receipts` | A W | Lập phiếu nhập kho một bước (idempotent qua `clientRequestId`) |
+| POST `/api/inventory/purchase-receipts` | A W | Nhận đủ ngay hoặc lập phiếu chờ giao, chống lặp theo `clientRequestId` |
+| POST `/api/inventory/purchase-receipts/{id}/deliveries`, `/api/inventory/purchase-receipts/{id}/cancel-remainder` | A W | Nhận từng đợt hoặc đóng phần chưa nhận. Lưu người thao tác từ token. |
 | POST `/api/inventory/serials/{id}/defective`, POST `/api/inventory/serials/{id}/restore` | A W | Báo lỗi thiết bị (tồn -1, movement `Defective`) và đưa thiết bị đã sửa về kho (tồn +1, movement `Adjustment`) |
 | GET `/api/orders`, `/api/orders/{id}` | A M S | A/M see all; S sees only orders whose cashier is that user |
 | POST `/api/orders`, PATCH `/api/orders/{id}/status` | A S | A writes all; S transitions only own orders; creator comes from token |
@@ -24,7 +25,7 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | POST `/api/customers` | A M S | Tạo khách tại quầy; điểm, hạng và trạng thái do server quyết định |
 | GET `/api/customers/{id}/loyalty-points`, `/api/customers/{id}/orders`, `/api/customers/{id}/purchased-items` | A M | Lịch sử khách gồm đơn của thu ngân khác nên không mở cho S |
 | PUT `/api/customers/{id}`, PATCH `/api/customers/{id}/deactivate`, `/api/customers/{id}/activate` | A M | Sửa liên hệ và trạng thái khách |
-| POST `/api/pos/shifts`, GET `/api/pos/shifts/current`, POST `/api/pos/checkout` | A S | Open own shift, read own open shift, cash checkout into own open shift; actor from token |
+| POST `/api/pos/shifts`, GET `/api/pos/shifts/current`, POST `/api/pos/quote`, POST `/api/pos/checkout` | A S | Open own shift, read own open shift, quote a cart without writing an order, cash checkout into own open shift; actor from token |
 | GET `/api/pos/shifts`, `/api/pos/shifts/{id}` | A M S | A/M see all shifts; S sees only own (other users' shifts return 404) |
 | POST `/api/pos/shifts/{id}/close` | A M S | S closes own shift only; A/M close any shift; closing records `closedByUserId` |
 | GET `/api/analytics/dashboard` | A M | Read-only store-wide dashboard |

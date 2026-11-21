@@ -70,6 +70,28 @@ public class PurchaseReceiptsController(IPurchaseReceiptService receiptService) 
         if (!userId.HasValue) return Unauthorized();
 
         var result = await receiptService.CreateAsync(request, userId.Value, cancellationToken);
+        return WriteResult(result, creating: true);
+    }
+
+    [HttpPost("{id:guid}/deliveries")]
+    [Authorize(Roles = "Admin,WarehouseStaff")]
+    public async Task<IActionResult> Receive(Guid id, [FromBody] ReceivePurchaseDeliveryRequest request, CancellationToken cancellationToken)
+    {
+        if (GetUserId() is not { } actor) return Unauthorized();
+        return WriteResult(await receiptService.ReceiveAsync(id, request, actor, cancellationToken));
+    }
+
+    [HttpPost("{id:guid}/cancel-remainder")]
+    [Authorize(Roles = "Admin,WarehouseStaff")]
+    public async Task<IActionResult> CancelRemainder(Guid id, CancellationToken cancellationToken)
+    {
+        if (GetUserId() is not { } actor) return Unauthorized();
+        return WriteResult(await receiptService.CancelRemainderAsync(id, actor, cancellationToken));
+    }
+
+    private IActionResult WriteResult(PurchaseReceiptResult result, bool creating = false)
+    {
+        if (result.IsNotFound) return NotFound();
         if (!result.IsSuccess)
         {
             if (result.IsConflict)
@@ -90,7 +112,7 @@ public class PurchaseReceiptsController(IPurchaseReceiptService receiptService) 
             return ValidationProblem(BuildModelState(result.ValidationErrors));
         }
 
-        if (result.IsReplay)
+        if (!creating || result.IsReplay)
         {
             return Ok(result.Data);
         }

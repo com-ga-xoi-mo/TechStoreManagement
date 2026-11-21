@@ -82,7 +82,15 @@ docker compose up -d
 > - **Password:** `TechStorePassword123!`
 
 #### Bước 3: Khởi chạy Backend API Server
-Mở terminal và chạy lệnh:
+Đặt `Jwt__SecretKey` riêng cho mỗi môi trường (ít nhất 32 byte ngẫu nhiên). Trong Development, lưu giá trị vào `backend/.env` đã được Git bỏ qua. Trên macOS/Linux, chạy một lần từ gốc repo nếu chưa có khóa:
+
+```bash
+(umask 077; echo "Jwt__SecretKey=$(openssl rand -hex 32)" >> backend/.env)
+```
+
+Trên PowerShell, có thể đặt khóa cho phiên terminal bằng `$env:Jwt__SecretKey = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))` (PowerShell 7). Môi trường triển khai lưu khóa ổn định trong cấu hình bí mật. Khi thay khóa, JWT cũ hết hiệu lực.
+
+Khởi chạy API trong terminal đã cấu hình:
 ```bash
 dotnet run --project backend/TechStore.Api.csproj --launch-profile http
 ```

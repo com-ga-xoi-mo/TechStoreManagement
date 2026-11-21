@@ -222,7 +222,8 @@ public class ProductService(
             SortField: sortField,
             Descending: isDescending,
             Page: page,
-            PageSize: pageSize);
+            PageSize: pageSize,
+            ExactCode: request.ExactCode?.Trim());
 
         // 6. Query repository
         var (items, totalCount) = await productRepository.SearchAsync(criteria, cancellationToken);

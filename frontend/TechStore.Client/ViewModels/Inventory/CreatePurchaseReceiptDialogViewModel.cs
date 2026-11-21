@@ -97,6 +97,12 @@ public sealed partial class ReceiptLineDraft : ObservableObject
         .Where(s => s.Length > 0)
         .ToList();
 
+    internal static List<PurchaseReceiptDeviceRequest> ParseDevices(string codes) => codes
+        .Split(SerialSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(code => code.Length == 15 && code.All(char.IsDigit)
+            ? new PurchaseReceiptDeviceRequest { Imei = code }
+            : new PurchaseReceiptDeviceRequest { SerialNumber = code }).ToList();
+
     public int DeviceCount => ParseCodes().Count;
     public bool HasDuplicateCodes => ParseCodes().Count != ParseCodes().Distinct(StringComparer.OrdinalIgnoreCase).Count();
 
@@ -161,6 +167,15 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
 
     // True when the server answered with a receipt recorded by an earlier attempt of this form (HTTP 200 replay):
     // edits made after that attempt were not applied.
+    [ObservableProperty] private bool receiveLater;
+    public string SubmitLabel => ReceiveLater ? "Lập phiếu chờ nhận" : "Xác nhận nhập";
+
+    partial void OnReceiveLaterChanged(bool value)
+    {
+        OnPropertyChanged(nameof(SubmitLabel));
+        NotifyValidation();
+    }
+
     public bool LastSubmitWasReplay { get; private set; }
 
     public ObservableCollection<SupplierItem> Suppliers { get; } = [];
@@ -222,6 +237,7 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
                     return $"Giá nhập của mặt hàng \"{line.DisplayName}\" không hợp lệ (số không âm).";
                 }
 
+                if (decimal.Round(cost, 2) != cost) return "Giá nhập có tối đa hai chữ số thập phân.";
                 if (cost > ReceiptLineDraft.MaxUnitCost)
                 {
                     return $"Giá nhập của mặt hàng \"{line.DisplayName}\" không được vượt quá {ReceiptLineDraft.MaxUnitCost.ToString("N0", ViCulture)} ₫.";
@@ -233,6 +249,9 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
                     {
                         return $"Thời hạn bảo hành của \"{line.DisplayName}\" phải từ 0 đến {ReceiptLineDraft.MaxWarrantyMonths} tháng.";
                     }
+
+                    if (ReceiveLater && line.DeviceCount > 0) return "Nhập Serial/IMEI khi nhận hàng thực tế.";
+                    if (ReceiveLater) continue;
 
                     if (line.DeviceCount != line.Quantity)
                     {
@@ -522,6 +541,7 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
         {
             var request = new CreatePurchaseReceiptRequest
             {
+                ReceiveLater = ReceiveLater,
                 ClientRequestId = ClientRequestId,
                 SupplierId = SelectedSupplier!.Id,
                 SupplierDocumentNumber = string.IsNullOrWhiteSpace(SupplierDocumentNumber) ? null : SupplierDocumentNumber.Trim(),
@@ -533,11 +553,7 @@ public sealed partial class CreatePurchaseReceiptDialogViewModel : ObservableObj
                     Quantity = l.Quantity,
                     UnitCost = l.UnitCost!.Value,
                     WarrantyMonths = l.IsSerialTracked ? l.WarrantyMonths : 0,
-                    Devices = l.IsSerialTracked
-                        ? l.ParseCodes().Select(code => code.Length == 15 && code.All(char.IsDigit)
-                            ? new PurchaseReceiptDeviceRequest { Imei = code }
-                            : new PurchaseReceiptDeviceRequest { SerialNumber = code }).ToList()
-                        : []
+                    Devices = l.IsSerialTracked && !ReceiveLater ? ReceiptLineDraft.ParseDevices(l.SerialLines) : []
                 }).ToList()
             };
 

@@ -100,6 +100,9 @@ public class CategoryWorkspaceTests
 
     private sealed class FakeReceiptApi : IPurchaseReceiptRepository
     {
+        public Task<PurchaseReceiptDetailResult> ReceiveAsync(Guid id, ReceivePurchaseDeliveryRequest delivery, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PurchaseReceiptDetailResult> CancelRemainderAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public int LoadCalls { get; private set; }
         public Task<PurchaseReceiptSearchResult> GetReceiptsAsync(PurchaseReceiptFilterRequest request, CancellationToken cancellationToken = default)
         {

@@ -1045,6 +1045,10 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("reason");
 
+                    b.Property<Guid?>("ReceiptRequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("receipt_request_id");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("updated_at");
@@ -1065,6 +1069,11 @@ namespace TechStore.Api.Common.Data.Migrations
 
                     b.HasIndex("InventoryStockId", "CreatedAt")
                         .HasDatabaseName("idx_inventory_movements_stock_created_at");
+
+                    b.HasIndex("ReceiptRequestId", "PurchaseOrderItemId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_inventory_movements_receipt_request_item")
+                        .HasFilter("receipt_request_id IS NOT NULL");
 
                     b.ToTable("inventory_movements", null, t =>
                         {
@@ -1151,6 +1160,14 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cancelled_by_user_id");
+
                     b.Property<Guid?>("ClientRequestId")
                         .HasColumnType("uuid")
                         .HasColumnName("client_request_id");
@@ -1213,6 +1230,9 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CancelledByUserId")
+                        .HasDatabaseName("idx_purchase_orders_cancelled_by");
 
                     b.HasIndex("ClientRequestId")
                         .IsUnique()
@@ -1285,6 +1305,10 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("variant_id");
 
+                    b.Property<int?>("WarrantyMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("warranty_months");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId")
@@ -1311,6 +1335,8 @@ namespace TechStore.Api.Common.Data.Migrations
                             t.HasCheckConstraint("ck_po_items_received_qty_valid", "received_quantity >= 0 AND received_quantity <= ordered_quantity");
 
                             t.HasCheckConstraint("ck_po_items_unit_cost_ge_zero", "unit_cost >= 0");
+
+                            t.HasCheckConstraint("ck_po_items_warranty_months", "warranty_months BETWEEN 0 AND 120");
                         });
                 });
 
@@ -2228,6 +2254,11 @@ namespace TechStore.Api.Common.Data.Migrations
 
             modelBuilder.Entity("TechStore.Api.Inventory.Entities.PurchaseOrder", b =>
                 {
+                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TechStore.Api.Identity.Entities.User", "CreatedByUser")
                         .WithMany()
                         .HasForeignKey("CreatedByUserId")

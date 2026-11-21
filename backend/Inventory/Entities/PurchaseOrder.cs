@@ -6,6 +6,8 @@ namespace TechStore.Api.Inventory.Entities;
 
 public class PurchaseOrder : BaseEntity
 {
+    public DateTime? CancelledAt { get; set; }
+    public Guid? CancelledByUserId { get; set; }
     public Guid SupplierId { get; set; }
     public Guid CreatedByUserId { get; set; }
     public Guid? ReceivedByUserId { get; set; }

@@ -18,7 +18,7 @@ The POS page SHALL load the current shift. Without an open shift it SHALL show a
 - **THEN** the page shows the open shift and enables the sale controls
 
 ### Requirement: Scan and cart
-The POS page SHALL accept a barcode, SKU or Serial/IMEI scanned or typed, add a line, let the user remove a line and change quantity of non-serial lines. Sales are walk-in until the Customers API is opened to SalesStaff (Vy); the request already accepts `customerId`. An IMEI already in the cart or already sold SHALL be refused with a message. Totals shown SHALL come from server values; the client SHALL NOT send prices.
+The POS page SHALL accept a barcode, SKU or Serial/IMEI scanned or typed, add a line, let the user remove a line and change quantity of non-serial lines. SalesStaff SHALL be able to choose or create a customer or sell to a walk-in guest. Scanning SHALL require an exact product, variant or device identifier. An IMEI already in the cart or already sold SHALL be refused with a message. Totals shown SHALL come from server values; the client SHALL NOT send prices.
 
 #### Scenario: Duplicate IMEI
 - **WHEN** the same IMEI is scanned twice

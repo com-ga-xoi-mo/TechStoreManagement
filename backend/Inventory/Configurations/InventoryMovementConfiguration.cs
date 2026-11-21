@@ -28,6 +28,11 @@ public class InventoryMovementConfiguration : IEntityTypeConfiguration<Inventory
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz");
 
+        builder.Property(x => x.ReceiptRequestId).HasColumnName("receipt_request_id");
+        builder.HasIndex(x => new { x.ReceiptRequestId, x.PurchaseOrderItemId })
+            .IsUnique().HasFilter("receipt_request_id IS NOT NULL")
+            .HasDatabaseName("uq_inventory_movements_receipt_request_item");
+
         // Indexes
         builder.HasIndex(x => new { x.InventoryStockId, x.CreatedAt }).HasDatabaseName("idx_inventory_movements_stock_created_at");
         builder.HasIndex(x => x.PerformedByUserId).HasDatabaseName("idx_inventory_movements_user_id");

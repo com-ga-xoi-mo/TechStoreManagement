@@ -28,6 +28,12 @@ Lets staff and client applications find products, inspect a product with its har
 ### Requirement: Keyword search
 The `q` parameter SHALL be trimmed and split on whitespace into at most 8 words. A product SHALL match when every word matches, case-insensitively and as a substring, at least one of the product name, product SKU, product brand, product barcode, product description, or the SKU, barcode or variant name of any of the product's variants. A product SHALL also match when the whole trimmed `q` equals, case-insensitively, either the serial number or the IMEI of one of its Serial/IMEI records. An empty `q` applies no keyword filter. The keyword filter SHALL combine with every other filter, and paging SHALL stay stable.
 
+The optional `exactCode` filter SHALL match the entire product SKU, product barcode, active variant SKU or active variant barcode case-insensitively, treating wildcard characters literally. It SHALL combine with the other filters before pagination.
+
+#### Scenario: Scan a prefix of a variant barcode
+- **WHEN** a cashier sends `exactCode=VAR-BA` and the only catalog barcode is `VAR-BAR`
+- **THEN** the result contains no products
+
 #### Scenario: Search by product name
 - **WHEN** a client calls `GET /api/products?q=iphone`
 - **THEN** products whose name contains "iPhone" in any letter case are returned

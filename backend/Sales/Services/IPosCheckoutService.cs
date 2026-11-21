@@ -10,6 +10,8 @@ public record PosCheckoutOutcome(OrderDto Order, bool Replayed);
 // Cash checkout: order, payment, stock, warranty and shift cash in one transaction.
 public interface IPosCheckoutService
 {
+    Task<PosResult<PosQuoteDto>> QuoteAsync(PosCheckoutRequest request, AuthenticatedUser actor, CancellationToken cancellationToken);
+
     Task<PosResult<PosCheckoutOutcome>> CheckoutAsync(
         PosCheckoutRequest request,
         AuthenticatedUser actor,

@@ -13,6 +13,9 @@ public sealed class PurchaseReceiptsControllerTests
 {
     private class FakePurchaseReceiptService : IPurchaseReceiptService
     {
+        public Task<PurchaseReceiptResult> ReceiveAsync(Guid id, ReceivePurchaseDeliveryRequest delivery, Guid actorUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PurchaseReceiptResult> CancelRemainderAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public PurchaseReceiptDto ExistingReceipt { get; set; } = new()
         {
             Id = Guid.NewGuid(),

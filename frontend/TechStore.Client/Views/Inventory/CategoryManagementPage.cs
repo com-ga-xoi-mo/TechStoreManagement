@@ -482,7 +482,7 @@ public sealed class CategoryManagementPage : Page, IRoutePage
 
     private async Task ShowReceiptDetailAsync(PurchaseReceiptSummary summary)
     {
-        var vm = new PurchaseReceiptDetailDialogViewModel(_receiptRepository);
+        var vm = new PurchaseReceiptDetailDialogViewModel(_receiptRepository, _receiptViewModel.CanWrite);
         _ = vm.LoadAsync(summary.Id);
         var root = XamlRoot ?? _receiptListView.XamlRoot;
         try
@@ -493,6 +493,12 @@ public sealed class CategoryManagementPage : Page, IRoutePage
             {
                 var dialog = new PurchaseReceiptDetailDialog(vm) { XamlRoot = root };
                 await dialog.ShowAsync();
+            }
+            if (vm.Changed)
+            {
+                await _receiptViewModel.LoadCommand.ExecuteAsync(null);
+                await ViewModel.Inventory.LoadCommand.ExecuteAsync(null);
+                await ViewModel.Serials.LoadCommand.ExecuteAsync(null);
             }
         }
         catch (Exception ex)

@@ -13,6 +13,17 @@ public sealed class PurchaseReceiptViewModelTests
 {
     private sealed class FakeReceiptRepository : IPurchaseReceiptRepository
     {
+        public List<ReceivePurchaseDeliveryRequest> Deliveries { get; } = [];
+        public Task<PurchaseReceiptDetailResult> ReceiveAsync(Guid id, ReceivePurchaseDeliveryRequest delivery, CancellationToken cancellationToken = default)
+        {
+            Deliveries.Add(delivery);
+            return Task.FromResult(Deliveries.Count == 1
+                ? PurchaseReceiptDetailResult.Failed(ReceiptFailureKind.Network)
+                : new PurchaseReceiptDetailResult(true, DetailItem! with { Status = PurchaseOrderStatus.PartiallyReceived }));
+        }
+        public Task<PurchaseReceiptDetailResult> CancelRemainderAsync(Guid id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PurchaseReceiptDetailResult(true, DetailItem! with { Status = PurchaseOrderStatus.Cancelled }));
+
         public List<PurchaseReceiptSummary> Items { get; } = [];
         public PurchaseReceiptDetail? DetailItem { get; set; }
         public PurchaseReceiptSearchResult? CustomSearchResult { get; set; }
@@ -85,6 +96,40 @@ public sealed class PurchaseReceiptViewModelTests
         public Task<SupplierMutationResult> CreateAsync(SaveSupplierRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<SupplierMutationResult> UpdateAsync(Guid id, SaveSupplierRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<SupplierMutationResult> SetStatusAsync(Guid id, bool isActive, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public async Task PartialDelivery_RetryPreservesBatchAndCancellationRequiresConfirmationAndWritePermission()
+    {
+        var line = new PurchaseReceiptLine(Guid.NewGuid(), Guid.NewGuid(), "Phone", "P", null, null, null, 0, 100, 0, true, 12, [], 3);
+        var receipt = new PurchaseReceiptDetail(Guid.NewGuid(), "PN", Guid.NewGuid(), "Supplier", null, null, null, null, null, null, 0, [line], PurchaseOrderStatus.Ordered);
+        var repo = new FakeReceiptRepository { DetailItem = receipt };
+        var reader = new PurchaseReceiptDetailDialogViewModel(repo);
+        await reader.LoadAsync(receipt.Id);
+        Assert.False(reader.IsOpenForDelivery);
+        await reader.ReceiveCommand.ExecuteAsync(null);
+        Assert.Empty(repo.Deliveries);
+
+        var vm = new PurchaseReceiptDetailDialogViewModel(repo, true);
+        await vm.LoadAsync(receipt.Id);
+        var input = Assert.Single(vm.DeliveryLines);
+        input.QuantityText = "1";
+        await vm.ReceiveCommand.ExecuteAsync(null);
+        Assert.Empty(repo.Deliveries);
+        input.Codes = "TEST-SERIAL";
+        await vm.ReceiveCommand.ExecuteAsync(null);
+        Assert.False(vm.CanEdit);
+        Assert.True(vm.CanReceive);
+        await vm.ReceiveCommand.ExecuteAsync(null);
+        Assert.Same(repo.Deliveries[0], repo.Deliveries[1]);
+        Assert.Equal("TEST-SERIAL", Assert.Single(repo.Deliveries[0].Lines.Single().Devices).SerialNumber);
+        Assert.Equal(PurchaseOrderStatus.PartiallyReceived, vm.Receipt!.Status);
+        await vm.CancelRemainderCommand.ExecuteAsync(null);
+        Assert.False(vm.CanCancel);
+        vm.ConfirmCancel = true;
+        await vm.CancelRemainderCommand.ExecuteAsync(null);
+        Assert.Equal(PurchaseOrderStatus.Cancelled, vm.Receipt.Status);
+        Assert.False(vm.CanReceive);
     }
 
     [Fact]

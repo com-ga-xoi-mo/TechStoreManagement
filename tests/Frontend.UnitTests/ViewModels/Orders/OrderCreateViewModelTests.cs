@@ -627,6 +627,10 @@ public sealed class OrderCreateViewModelTests
         // Arrange
         var (rig, _, _) = await RigWithOneDevice();
         rig.ViewModel.SelectedPayment = rig.ViewModel.PaymentOptions.Single(p => p.Method == PaymentMethod.VietQr);
+        Assert.False(rig.ViewModel.PayAndCompleteCommand.CanExecute(null));
+        await rig.ViewModel.PayAndCompleteCommand.ExecuteAsync(null);
+        Assert.Empty(rig.Orders.Created);
+        rig.ViewModel.SelectedPayment = rig.ViewModel.PaymentOptions.Single(p => p.Method == PaymentMethod.Cash);
         Guid createdId = default;
         rig.Orders.OnCreate = (_, _) =>
         {
@@ -638,7 +642,7 @@ public sealed class OrderCreateViewModelTests
         await rig.ViewModel.PayAndCompleteCommand.ExecuteAsync(null);
 
         // Assert
-        Assert.Equal("VietQr", Assert.Single(rig.Orders.Created).PaymentMethod);
+        Assert.Equal("Cash", Assert.Single(rig.Orders.Created).PaymentMethod);
         Assert.Equal((createdId, OrderStatus.Completed), Assert.Single(rig.Orders.Updates));
         Assert.Equal(AppRoute.Root(ShellDestination.Orders), Assert.Single(rig.Navigation.Routes));
         Assert.Contains("đã hoàn tất", Assert.Single(rig.Dialogs.Requests).Message);

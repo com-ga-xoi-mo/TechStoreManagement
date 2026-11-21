@@ -54,6 +54,8 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
         new("GET", "api/inventory/purchase-receipts", PurchaseRead),
         new("GET", "api/inventory/purchase-receipts/{id:guid}", PurchaseRead),
         new("POST", "api/inventory/purchase-receipts", StockWrite),
+        new("POST", "api/inventory/purchase-receipts/{id:guid}/deliveries", StockWrite),
+        new("POST", "api/inventory/purchase-receipts/{id:guid}/cancel-remainder", StockWrite),
         new("POST", "api/inventory/serials/{id:guid}/defective", StockWrite),
         new("POST", "api/inventory/serials/{id:guid}/restore", StockWrite),
         new("GET", "api/orders", OrderRead), new("GET", "api/orders/{id:guid}", OrderRead),
@@ -72,6 +74,7 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
         new("POST", "api/users/{id:guid}/reset-password", "Admin"),
         new("POST", "api/pos/shifts", OrderWrite), new("GET", "api/pos/shifts/current", OrderWrite),
         new("GET", "api/pos/shifts", OrderRead), new("GET", "api/pos/shifts/{id:guid}", OrderRead),
+        new("POST", "api/pos/quote", OrderWrite),
         new("POST", "api/pos/shifts/{id:guid}/close", OrderRead), new("POST", "api/pos/checkout", OrderWrite)
     ];
 

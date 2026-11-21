@@ -4,6 +4,18 @@ using TechStore.Shared.Enums;
 
 namespace TechStore.Client.Models.Inventory;
 
+public static class ReceiptStatusLabels
+{
+    public static string Format(PurchaseOrderStatus status) => status switch
+    {
+        PurchaseOrderStatus.Ordered => "Chờ nhận",
+        PurchaseOrderStatus.PartiallyReceived => "Đã nhận một phần",
+        PurchaseOrderStatus.Received => "Đã nhận đủ",
+        PurchaseOrderStatus.Cancelled => "Đã hủy phần còn lại",
+        _ => "Nháp"
+    };
+}
+
 public sealed record PurchaseReceiptSummary(
     Guid Id,
     string PoNumber,
@@ -15,7 +27,8 @@ public sealed record PurchaseReceiptSummary(
     string? ReceivedByName,
     int LineCount,
     int TotalQuantity,
-    decimal TotalCost)
+    decimal TotalCost,
+    PurchaseOrderStatus Status = PurchaseOrderStatus.Received)
 {
     private static readonly CultureInfo ViCulture = new("vi-VN");
 
@@ -36,7 +49,7 @@ public sealed record PurchaseReceiptSummary(
             dto.ReceivedByName,
             dto.LineCount,
             dto.TotalQuantity,
-            dto.TotalCost);
+            dto.TotalCost, dto.Status);
 }
 
 public sealed record PurchaseReceiptDevice(
@@ -79,7 +92,8 @@ public sealed record PurchaseReceiptLine(
     decimal LineTotal,
     bool IsSerialTracked,
     int WarrantyMonths,
-    IReadOnlyList<PurchaseReceiptDevice> Devices)
+    IReadOnlyList<PurchaseReceiptDevice> Devices,
+    int OrderedQuantity = 0)
 {
     private static readonly CultureInfo ViCulture = new("vi-VN");
 
@@ -102,7 +116,8 @@ public sealed record PurchaseReceiptLine(
             dto.LineTotal,
             dto.IsSerialTracked,
             dto.WarrantyMonths,
-            dto.Devices.Select(PurchaseReceiptDevice.FromDto).ToList());
+            dto.Devices.Select(PurchaseReceiptDevice.FromDto).ToList(),
+            dto.OrderedQuantity > 0 ? dto.OrderedQuantity : dto.Quantity);
 }
 
 public sealed record PurchaseReceiptDetail(
@@ -117,7 +132,8 @@ public sealed record PurchaseReceiptDetail(
     Guid? ReceivedByUserId,
     string? ReceivedByName,
     decimal TotalCost,
-    IReadOnlyList<PurchaseReceiptLine> Lines)
+    IReadOnlyList<PurchaseReceiptLine> Lines,
+    PurchaseOrderStatus Status = PurchaseOrderStatus.Received)
 {
     private static readonly CultureInfo ViCulture = new("vi-VN");
 
@@ -139,5 +155,5 @@ public sealed record PurchaseReceiptDetail(
             dto.ReceivedByUserId,
             dto.ReceivedByName,
             dto.TotalCost,
-            dto.Lines.Select(PurchaseReceiptLine.FromDto).ToList());
+            dto.Lines.Select(PurchaseReceiptLine.FromDto).ToList(), dto.Status);
 }

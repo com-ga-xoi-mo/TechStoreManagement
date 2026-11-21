@@ -5,6 +5,9 @@ namespace TechStore.Api.Inventory.Repositories;
 
 public interface IPurchaseOrderRepository
 {
+    Task<PurchaseOrder?> LockReceiptAsync(Guid id, CancellationToken cancellationToken);
+    Task<bool> HasDeliveryAsync(Guid receiptId, Guid requestId, CancellationToken cancellationToken);
+
     // Stages the purchase order together with the lines in its Items collection.
     void Add(PurchaseOrder purchaseOrder);
 

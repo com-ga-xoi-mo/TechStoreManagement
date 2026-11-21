@@ -89,3 +89,11 @@ ViewModels and client repositories of both tabs and their dialogs SHALL be cover
 #### Scenario: Headless tests
 - **WHEN** the frontend unit tests run
 - **THEN** they exercise the receipt and supplier ViewModels and repositories without a UI thread and pass
+
+### Requirement: Receive deliveries against an open receipt
+
+The form SHALL offer immediate receipt and creation of an ordered receipt. The detail dialog SHALL show status and received versus ordered quantities. Admin and WarehouseStaff SHALL be able to enter the delivered quantities and identifiers, retry the same batch after a network error and explicitly confirm cancellation of the remainder.
+
+#### Scenario: Partial delivery and cancellation from the workspace
+- **WHEN** WarehouseStaff opens a five-unit ordered receipt, records two units and confirms cancellation
+- **THEN** the detail shows two received out of five, the list shows a cancelled receipt, and further delivery actions are unavailable

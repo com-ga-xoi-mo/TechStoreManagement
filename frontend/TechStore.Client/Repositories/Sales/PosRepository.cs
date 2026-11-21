@@ -46,6 +46,9 @@ public sealed class PosRepository(IApiClient apiClient) : IPosRepository
         return ParseShift(json);
     }
 
+    public Task<PosQuoteDto> QuoteAsync(PosCheckoutRequest request, CancellationToken cancellationToken = default) =>
+        apiClient.PostAsync<PosCheckoutRequest, PosQuoteDto>("api/pos/quote", request, cancellationToken);
+
     public async Task<OrderDetail> CheckoutAsync(PosCheckoutRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);

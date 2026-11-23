@@ -20,13 +20,13 @@
 ## 4. API
 
 - [x] 4.1 DTO/request trong `shared`, `VouchersController`, `loyalty-summary`, quyền, `docs/API_PERMISSIONS.md`, `ApiAuthorizationCoverageTests`.
-- [ ] 4.2 DI trong `Program.cs`; `backend/Customers/README.md` ghi cách gọi cho Đạt/An, lỗi trả về, ví dụ M4.
+- [x] 4.2 DI trong `Program.cs`; `backend/Customers/README.md` ghi cách gọi cho Đạt/An, lỗi trả về, ví dụ M4.
 
 ## 5. Kiểm thử (AI tự chạy, ghi lệnh và kết quả thật)
 
 - [ ] 5.1 Build 0 warning, backend và frontend unit tests.
-- [ ] 5.2 PostgreSQL thật: migration trên dữ liệu cũ, ràng buộc DB, hai giao dịch đồng thời tranh lượt voucher cuối, đảo điểm theo ví dụ M4.
-- [ ] 5.3 HTTP thật: quyền theo bốn role, tạo đơn với VIP/voucher/thủ công, hai nguồn cùng lúc, tóm tắt điểm.
+- [x] 5.2 PostgreSQL thật: migration trên dữ liệu cũ, ràng buộc DB, hai giao dịch đồng thời tranh lượt voucher cuối, đảo điểm theo ví dụ M4.
+- [x] 5.3 HTTP thật: quyền theo bốn role, tạo đơn với VIP/voucher/thủ công, hai nguồn cùng lúc, tóm tắt điểm.
 
 ## 6. Hoàn tất
 

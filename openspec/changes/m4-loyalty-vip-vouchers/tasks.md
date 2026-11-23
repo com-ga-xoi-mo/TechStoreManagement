@@ -2,8 +2,8 @@
 
 ## 1. Công thức thuần (TDD: test trước)
 
-- [ ] 1.1 `LoyaltyRules`: `PointsFor`, `TierFor`, `DiscountPercentFor`, `NextTier`; test mốc 499/500/1.499/1.500/4.999/5.000, 99.999/100.000, ví dụ 18 điểm.
-- [ ] 1.2 `OrderDiscountCalculator`: VIP, voucher phần trăm/số tiền, trần giảm, không vượt tiền hàng, điều kiện voucher; test từng ca.
+- [x] 1.1 `LoyaltyRules`: `PointsFor`, `TierFor`, `DiscountPercentFor`, `VipDiscount`, `NextTier`; test mốc 499/500/1.499/1.500/4.999/5.000, 99.999/100.000, ví dụ 18 điểm.
+- [x] 1.2 `VoucherRules.Evaluate`: voucher phần trăm/số tiền, trần giảm, không vượt tiền hàng, điều kiện (hoạt động, hạn, đơn tối thiểu, lượt); test từng ca.
 
 ## 2. Lưu trữ
 

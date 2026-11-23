@@ -19,7 +19,7 @@ Theo M4: mỗi luồng chỉ một nơi mở/commit transaction, service đượ
 
 ## D4. Một ưu đãi cấp đơn
 
-`CreateOrderRequest` có ba nguồn: `orderDiscountAmount > 0` (thủ công), `voucherCode`, `applyVipDiscount = true`. Quá một nguồn → 400 lỗi `orderDiscount`. Số tiền ưu đãi được tính trong `OrderDiscountCalculator` (hàm thuần), rồi đi vào `OrderPricingHelper.Calculate` như `orderDiscount` hiện tại. Công thức M3 không đổi.
+`CreateOrderRequest` có ba nguồn: `orderDiscountAmount > 0` (thủ công), `voucherCode`, `applyVipDiscount = true`. Quá một nguồn → 400 lỗi `orderDiscount`. Số tiền ưu đãi được tính bằng `LoyaltyRules.VipDiscount` và `VoucherRules.Evaluate` (hàm thuần), rồi đi vào `OrderPricingHelper.Calculate` như `orderDiscount` hiện tại. Công thức M3 không đổi.
 
 - VIP: `round(subtotal × percent / 100)`, cần khách; Standard = 0 thì từ chối bằng 400 "no VIP discount" để Sales không gửi nhầm.
 - Voucher phần trăm: `round(subtotal × value / 100)`, tối đa `max_discount_amount`, tối đa `subtotal`. Voucher số tiền: `min(value, subtotal)`. Làm tròn đồng, nửa ra xa 0.

@@ -30,7 +30,7 @@ M4 Sprint 1 (Vy): "Điểm thưởng, VIP và voucher. Làm service tính tiền
 
 ## Impact
 
-- Backend: `Customers/Services` (`LoyaltyRules`, `LoyaltyService`, `VoucherService`), `Customers/Repositories` (voucher, loyalty), `Customers/VouchersController.cs`, `CustomersController` (tóm tắt điểm), `Orders/Services/OrderService.cs` (phần định giá ưu đãi), `OrderDiscountCalculator`, entities/configurations, migration, `Program.cs` (DI).
+- Backend: `Customers/Services` (`LoyaltyRules`, `LoyaltyService`, `VoucherService`), `Customers/Repositories` (voucher, loyalty), `Customers/VouchersController.cs`, `CustomersController` (tóm tắt điểm), `Orders/Services/OrderService.cs` (phần định giá ưu đãi), `LoyaltyRules`, `VoucherRules`, entities/configurations, migration, `Program.cs` (DI).
 - Shared: `VoucherDto`, `CreateVoucherRequest`, `UpdateVoucherRequest`, `VoucherSearchRequest`, `LoyaltySummaryDto`, `OrderDiscountSource`, `CreateOrderRequest.VoucherCode/ApplyVipDiscount`, `OrderDto.DiscountSource`.
 - Docs: `docs/database/schema.dbml`, `docs/API_PERMISSIONS.md`, `backend/Customers/README.md` (cách gọi cho Đạt/An).
 - Tests: công thức điểm/hạng/voucher, service với fake, quyền HTTP, tranh lượt cuối và đảo điểm trên PostgreSQL thật.

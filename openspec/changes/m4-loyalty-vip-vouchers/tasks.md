@@ -19,7 +19,7 @@
 
 ## 4. API
 
-- [ ] 4.1 DTO/request trong `shared`, `VouchersController`, `loyalty-summary`, quyền, `docs/API_PERMISSIONS.md`, `ApiAuthorizationCoverageTests`.
+- [x] 4.1 DTO/request trong `shared`, `VouchersController`, `loyalty-summary`, quyền, `docs/API_PERMISSIONS.md`, `ApiAuthorizationCoverageTests`.
 - [ ] 4.2 DI trong `Program.cs`; `backend/Customers/README.md` ghi cách gọi cho Đạt/An, lỗi trả về, ví dụ M4.
 
 ## 5. Kiểm thử (AI tự chạy, ghi lệnh và kết quả thật)

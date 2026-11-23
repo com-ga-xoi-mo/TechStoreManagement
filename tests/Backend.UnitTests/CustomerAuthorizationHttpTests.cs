@@ -167,6 +167,9 @@ public sealed class CustomerApiFactory : WebApplicationFactory<Program>
             services.AddTestIdentities();
             services.RemoveAll<ICustomerService>();
             services.AddSingleton<ICustomerService, TestCustomerService>();
+            // The customers controller also serves the loyalty summary; keep it off the database here.
+            services.RemoveAll<ILoyaltyService>();
+            services.AddSingleton<ILoyaltyService, TestLoyaltyService>();
         });
     }
 }

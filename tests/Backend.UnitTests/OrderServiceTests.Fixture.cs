@@ -19,6 +19,7 @@ public partial class OrderServiceTests
     private readonly FakeOrderRepository _orders = new();
     private readonly FakeProductRepository _products = new();
     private readonly FakeCustomerRepository _customers = new();
+    private readonly FakeVoucherRepository _vouchers = new();
     private readonly FakeInventoryFulfillmentService _fulfillment = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
     // Production defaults (VAT 10%, Sales discount limit 10%); a test may change them before acting.
@@ -34,7 +35,8 @@ public partial class OrderServiceTests
             _fulfillment,
             _unitOfWork,
             new FixedTimeProvider(new DateTimeOffset(Now)),
-            Options.Create(_pricing));
+            Options.Create(_pricing),
+            _vouchers);
     }
 
     private Product AddProduct(
@@ -78,9 +80,9 @@ public partial class OrderServiceTests
         return variant;
     }
 
-    private Customer AddCustomer(bool active = true, string name = "Nguyen Van A", string phone = "0901234567")
+    private Customer AddCustomer(bool active = true, string name = "Nguyen Van A", string phone = "0901234567", CustomerTier tier = CustomerTier.Standard)
     {
-        var customer = new Customer { FullName = name, Phone = phone, IsActive = active };
+        var customer = new Customer { FullName = name, Phone = phone, IsActive = active, Tier = tier };
         _customers.Customers[customer.Id] = customer;
         return customer;
     }

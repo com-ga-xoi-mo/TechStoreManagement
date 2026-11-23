@@ -12,10 +12,10 @@
 
 ## 3. Service
 
-- [ ] 3.1 Repository voucher/loyalty (khóa dòng `FOR UPDATE`), fake tương ứng cho test.
-- [ ] 3.2 `LoyaltyService`: cộng điểm, đảo điểm, tóm tắt; test lặp, số dư không âm, đổi hạng hai chiều.
-- [ ] 3.3 `VoucherService`: quản lý, `Reserve`/`Redeem`/`Release`; test lặp, hết hạn, hết lượt, không trả lượt đã tiêu.
-- [ ] 3.4 `OrderService.PrepareAsync`: một nguồn ưu đãi, quyền giảm giá cách A, lưu `discountSource`/`voucherId`; test các ca spec.
+- [x] 3.1 Repository voucher/loyalty (khóa dòng `FOR UPDATE`), fake tương ứng cho test.
+- [x] 3.2 `LoyaltyService`: cộng điểm, đảo điểm, tóm tắt; test lặp, số dư không âm, đổi hạng hai chiều.
+- [x] 3.3 `VoucherService`: quản lý, `Reserve`/`Redeem`/`Release`; test lặp, hết hạn, hết lượt, không trả lượt đã tiêu.
+- [x] 3.4 `OrderService.PrepareAsync`: một nguồn ưu đãi, quyền giảm giá cách A, lưu `discountSource`/`voucherId`; test các ca spec.
 
 ## 4. API
 

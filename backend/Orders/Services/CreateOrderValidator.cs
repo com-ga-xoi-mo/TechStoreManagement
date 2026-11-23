@@ -8,6 +8,7 @@ public static class CreateOrderValidator
     public const int MaxLines = 100;
     public const int MaxNotesLength = 500;
     public const int MaxQuantity = 10_000;
+    public const int MaxVoucherCodeLength = 50;
 
     public static Dictionary<string, string[]> Validate(CreateOrderRequest? request)
     {
@@ -49,6 +50,11 @@ public static class CreateOrderValidator
             && (request.OrderDiscountAmount.Value < 0 || request.OrderDiscountAmount.Value != decimal.Truncate(request.OrderDiscountAmount.Value)))
         {
             AddError("orderDiscountAmount", "Order discount must be a whole, non-negative number of đồng.");
+        }
+
+        if (request.VoucherCode != null && request.VoucherCode.Trim().Length > MaxVoucherCodeLength)
+        {
+            AddError("voucherCode", $"Voucher code cannot exceed {MaxVoucherCodeLength} characters.");
         }
 
         if (request.Items == null || request.Items.Count == 0)

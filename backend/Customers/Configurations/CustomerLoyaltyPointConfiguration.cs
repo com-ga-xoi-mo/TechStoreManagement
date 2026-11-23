@@ -21,12 +21,17 @@ public class CustomerLoyaltyPointConfiguration : IEntityTypeConfiguration<Custom
         builder.Property(x => x.PointsChange).HasColumnName("points_change").IsRequired();
         builder.Property(x => x.BalanceAfter).HasColumnName("balance_after").IsRequired();
         builder.Property(x => x.Reason).HasColumnName("reason").IsRequired();
+        builder.Property(x => x.ReferenceKey).HasColumnName("reference_key").HasMaxLength(100);
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz");
 
         // Indexes
         builder.HasIndex(x => x.CustomerId).HasDatabaseName("idx_cust_loyalty_customer_id");
         builder.HasIndex(x => x.OrderId).HasDatabaseName("idx_cust_loyalty_order_id");
+        builder.HasIndex(x => x.ReferenceKey)
+            .IsUnique()
+            .HasFilter("reference_key IS NOT NULL")
+            .HasDatabaseName("idx_cust_loyalty_reference_key");
 
         // Relationships
         builder.HasOne(x => x.Customer)

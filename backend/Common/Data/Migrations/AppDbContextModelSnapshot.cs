@@ -630,6 +630,11 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("reason");
 
+                    b.Property<string>("ReferenceKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("reference_key");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("updated_at");
@@ -641,6 +646,11 @@ namespace TechStore.Api.Common.Data.Migrations
 
                     b.HasIndex("OrderId")
                         .HasDatabaseName("idx_cust_loyalty_order_id");
+
+                    b.HasIndex("ReferenceKey")
+                        .IsUnique()
+                        .HasDatabaseName("idx_cust_loyalty_reference_key")
+                        .HasFilter("reference_key IS NOT NULL");
 
                     b.ToTable("customer_loyalty_points", null, t =>
                         {
@@ -707,6 +717,12 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasDefaultValue(0m)
                         .HasColumnName("min_order_amount");
 
+                    b.Property<int>("ReservedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("reserved_count");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("updated_at");
@@ -745,7 +761,63 @@ namespace TechStore.Api.Common.Data.Migrations
 
                             t.HasCheckConstraint("ck_vouchers_usage_limit_gt_zero", "usage_limit > 0");
 
-                            t.HasCheckConstraint("ck_vouchers_used_count_valid", "used_count >= 0 AND used_count <= usage_limit");
+                            t.HasCheckConstraint("ck_vouchers_used_count_valid", "used_count >= 0 AND reserved_count >= 0 AND used_count + reserved_count <= usage_limit");
+                        });
+                });
+
+            modelBuilder.Entity("TechStore.Api.Customers.Entities.VoucherRedemption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<DateTime?>("RedeemedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("redeemed_at");
+
+                    b.Property<DateTime?>("ReleasedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("released_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("Reserved")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("voucher_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique()
+                        .HasDatabaseName("idx_voucher_redemptions_order_id");
+
+                    b.HasIndex("VoucherId")
+                        .HasDatabaseName("idx_voucher_redemptions_voucher_id");
+
+                    b.ToTable("voucher_redemptions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_voucher_redemptions_status_valid", "status IN ('Reserved', 'Redeemed', 'Released')");
                         });
                 });
 
@@ -1546,6 +1618,13 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasDefaultValue(0m)
                         .HasColumnName("discount_amount");
 
+                    b.Property<string>("DiscountSource")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("None")
+                        .HasColumnName("discount_source");
+
                     b.Property<string>("Notes")
                         .HasColumnType("text")
                         .HasColumnName("notes");
@@ -2175,6 +2254,25 @@ namespace TechStore.Api.Common.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("TechStore.Api.Customers.Entities.VoucherRedemption", b =>
+                {
+                    b.HasOne("TechStore.Api.Orders.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Customers.Entities.Voucher", "Voucher")
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Voucher");
                 });
 
             modelBuilder.Entity("TechStore.Api.Identity.Entities.RefreshToken", b =>

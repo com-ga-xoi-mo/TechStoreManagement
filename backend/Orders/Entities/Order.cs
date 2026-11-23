@@ -20,6 +20,8 @@ public class Order : BaseEntity
     public decimal TaxRate { get; set; } = 0;
     public decimal TotalAmount { get; set; }
     public Guid? VoucherId { get; set; }
+    /// <summary>Where the order-level discount came from; at most one source per order.</summary>
+    public OrderDiscountSource DiscountSource { get; set; } = OrderDiscountSource.None;
     public decimal? CashTendered { get; set; }
     public decimal? ChangeGiven { get; set; }
     public Guid? CheckoutKey { get; set; }

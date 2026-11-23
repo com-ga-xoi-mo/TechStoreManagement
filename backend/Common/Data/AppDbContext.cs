@@ -37,6 +37,7 @@ public class AppDbContext : DbContext
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerLoyaltyPoint> CustomerLoyaltyPoints => Set<CustomerLoyaltyPoint>();
     public DbSet<Voucher> Vouchers => Set<Voucher>();
+    public DbSet<VoucherRedemption> VoucherRedemptions => Set<VoucherRedemption>();
 
     // Sales Module (2 tables)
     public DbSet<PosSession> PosSessions => Set<PosSession>();

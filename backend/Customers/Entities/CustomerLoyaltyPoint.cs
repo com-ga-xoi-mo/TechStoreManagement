@@ -9,6 +9,8 @@ public class CustomerLoyaltyPoint : BaseEntity
     public int PointsChange { get; set; }
     public int BalanceAfter { get; set; }
     public string Reason { get; set; } = string.Empty;
+    /// <summary>Idempotency key such as <c>earn:{orderId}</c> or <c>reverse:{returnId}</c>; unique when set.</summary>
+    public string? ReferenceKey { get; set; }
 
     // Navigation properties
     public virtual Customer Customer { get; set; } = null!;

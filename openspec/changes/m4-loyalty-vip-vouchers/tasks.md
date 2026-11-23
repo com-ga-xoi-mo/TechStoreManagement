@@ -7,8 +7,8 @@
 
 ## 2. Lưu trữ
 
-- [ ] 2.1 Entities/configurations: `reference_key`, `reserved_count`, `VoucherRedemption`, `Order.DiscountSource`, enum `OrderDiscountSource`.
-- [ ] 2.2 Migration bằng `dotnet ef migrations add AddLoyaltyVoucherLifecycle`, cập nhật `schema.dbml`, kiểm `has-pending-model-changes`.
+- [x] 2.1 Entities/configurations: `reference_key`, `reserved_count`, `VoucherRedemption`, `Order.DiscountSource`, enum `OrderDiscountSource`.
+- [x] 2.2 Migration bằng `dotnet ef migrations add AddLoyaltyVoucherLifecycle`, cập nhật `schema.dbml`, kiểm `has-pending-model-changes`.
 
 ## 3. Service
 

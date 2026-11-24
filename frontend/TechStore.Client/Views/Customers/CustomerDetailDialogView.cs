@@ -268,27 +268,42 @@ public sealed class CustomerDetailDialogView : UserControl
             .BorderBrush(ThemeResource.Get<Brush>(Stroke));
     }
 
-    // Tier discount and the way to the next tier. It is hidden when the summary request failed; the profile still shows.
+    // Tier discount and the way to the next tier, kept to one thin strip (about 50 px): the dialog height follows the window, and a
+    // taller card pushed the history tabs below the visible area. It is hidden when the summary request failed; the profile still shows.
     private UIElement BuildLoyaltySummary()
     {
-        var title = new TextBlock { Text = "Ưu đãi theo hạng", FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold }
+        var title = new TextBlock { Text = "Ưu đãi theo hạng", FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center }
             .Foreground(ThemeResource.Get<Brush>(SecondaryText));
-        var discount = new TextBlock { FontSize = 15, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold }
+        var discount = new TextBlock { FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center }
             .Foreground(ThemeResource.Get<Brush>(Text))
             .Text(x => x.Binding(() => ViewModel.TierDiscountLabel));
-        var progress = new ProgressBar { Minimum = 0, Maximum = 1, Height = 6 }
+        var next = new TextBlock { FontSize = 12, TextAlignment = TextAlignment.Right, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center }
+            .Foreground(ThemeResource.Get<Brush>(SecondaryText))
+            .Text(x => x.Binding(() => ViewModel.NextTierLabel));
+        var progress = new ProgressBar { Minimum = 0, Maximum = 1, Height = 4 }
             .Foreground(ThemeResource.Get<Brush>(Primary))
             .Value(x => x.Binding(() => ViewModel.TierProgress));
         AutomationProperties.SetName(progress, "Tiến độ lên hạng kế tiếp");
-        var next = new TextBlock { FontSize = 12 }
-            .Foreground(ThemeResource.Get<Brush>(SecondaryText))
-            .Text(x => x.Binding(() => ViewModel.NextTierLabel));
-        var content = new StackPanel { Spacing = 6, Children = { title, discount, progress, next } };
+
+        var row = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = GridLength.Auto },
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
+            },
+            ColumnSpacing = 12
+        };
+        var left = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { title, discount } };
+        row.Children.Add(left);
+        Grid.SetColumn(next, 1);
+        row.Children.Add(next);
+
         return new Border
         {
             BorderThickness = new Thickness(0, 0, 0, 1),
-            Padding = new Thickness(20, 12, 20, 14),
-            Child = content
+            Padding = new Thickness(20, 10, 20, 10),
+            Child = new StackPanel { Spacing = 6, Children = { row, progress } }
         }.Background(ThemeResource.Get<Brush>(Surface))
             .BorderBrush(ThemeResource.Get<Brush>(Stroke))
             .Visibility(x => x.Binding(() => ViewModel.HasLoyaltySummary)

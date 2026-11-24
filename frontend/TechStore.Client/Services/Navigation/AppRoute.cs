@@ -11,7 +11,8 @@ public enum AppRouteKind
     Pos,
     ProductCreate,
     ProductEdit,
-    UserManagement
+    UserManagement,
+    VoucherList
 }
 
 /// <summary>Value-only route state. It deliberately carries no page, ViewModel, service, or scope.</summary>
@@ -29,6 +30,8 @@ public sealed class AppRoute : IEquatable<AppRoute>
             throw new ArgumentException("Catalog routes must stay under the Products Shell destination.", nameof(destination));
         if (kind == AppRouteKind.UserManagement && destination != ShellDestination.Settings)
             throw new ArgumentException("Account management stays under Settings.", nameof(destination));
+        if (kind == AppRouteKind.VoucherList && destination != ShellDestination.Customers)
+            throw new ArgumentException("Voucher management stays under Customers.", nameof(destination));
         if (kind is AppRouteKind.OrderCreate or AppRouteKind.Pos && destination != ShellDestination.Orders)
             throw new ArgumentException("The order create and POS routes must stay under the Orders Shell destination.", nameof(destination));
         if (kind is AppRouteKind.ProductDetail or AppRouteKind.ProductEdit && (!productId.HasValue || productId.Value == Guid.Empty))
@@ -59,6 +62,7 @@ public sealed class AppRoute : IEquatable<AppRoute>
     public static AppRoute Products(ProductQuery? returnQuery = null, Guid? focusProductId = null) =>
         new(ShellDestination.Products, AppRouteKind.ProductList, returnQuery: returnQuery, focusProductId: focusProductId);
     public static AppRoute UserManagement() => new(ShellDestination.Settings, AppRouteKind.UserManagement);
+    public static AppRoute Vouchers() => new(ShellDestination.Customers, AppRouteKind.VoucherList);
     public static AppRoute OrderCreate() => new(ShellDestination.Orders, AppRouteKind.OrderCreate);
     public static AppRoute Pos() => new(ShellDestination.Orders, AppRouteKind.Pos);
     public static AppRoute ProductDetail(Guid productId, ProductQuery? returnQuery = null, Guid? focusProductId = null) =>

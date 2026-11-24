@@ -106,13 +106,8 @@ internal static class DemoSeedManifest
             $"demo.customer{i:00}@techstore.test",
             new DateOnly(1985 + i, 1 + i, 10 + i),
             AtDays(-40 - i),
-            (i % 4) switch
-            {
-                0 => CustomerTier.Gold,
-                1 => CustomerTier.Standard,
-                2 => CustomerTier.Silver,
-                _ => CustomerTier.Platinum
-            },
+            // Points are i * 100 (100..800), so the tier they earn is Standard below 500 and Silver from 500.
+            i * 100 >= 500 ? CustomerTier.Silver : CustomerTier.Standard,
             i * 100)))
         .ToArray();
 

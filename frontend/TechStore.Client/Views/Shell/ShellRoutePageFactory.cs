@@ -13,6 +13,7 @@ using TechStore.Client.Views.Dashboard;
 using TechStore.Client.Views.Orders;
 using TechStore.Client.Views.Sales;
 using TechStore.Client.Views.Settings;
+using TechStore.Client.Views.Vouchers;
 
 namespace TechStore.Client.Views.Shell;
 
@@ -70,6 +71,7 @@ public sealed class ShellRoutePageFactory(
         _ = ResolvePage(AppRoute.Products(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.ProductDetail(Guid.NewGuid()), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.UserManagement(), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.Vouchers(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.OrderCreate(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.Pos(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.ProductCreate(), scope.ServiceProvider);
@@ -82,6 +84,7 @@ public sealed class ShellRoutePageFactory(
         AppRouteKind.ProductList => services.GetRequiredService<ProductListPage>(),
         AppRouteKind.ProductDetail => services.GetRequiredService<ProductDetailPage>(),
         AppRouteKind.UserManagement => services.GetRequiredService<UserManagementPage>(),
+        AppRouteKind.VoucherList => services.GetRequiredService<VoucherListPage>(),
         AppRouteKind.OrderCreate => services.GetRequiredService<OrderCreatePage>(),
         AppRouteKind.Pos => services.GetRequiredService<PosPage>(),
         AppRouteKind.ProductCreate or AppRouteKind.ProductEdit => services.GetRequiredService<ProductEditorPage>(),

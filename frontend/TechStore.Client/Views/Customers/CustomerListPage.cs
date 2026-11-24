@@ -78,9 +78,26 @@ public sealed class CustomerListPage : Page, IRoutePage
                 .Convert((bool visible) => visible ? Visibility.Visible : Visibility.Collapsed));
         // Modal lifetime commands belong to this View, not its data-context ViewModel.
         addButton.Command(ShowCreateDialogCommand);
-        Grid.SetColumn(addButton, 1);
+        // Admin and Manager reach voucher management from here; the page stays under Customers.
+        var voucherButton = new Button
+        {
+            Content = Text("Voucher", 13, AppColors.Text, true),
+            Padding = new Thickness(16, 10, 16, 10),
+            CornerRadius = new CornerRadius(7),
+            BorderThickness = new Thickness(1),
+            HorizontalAlignment = HorizontalAlignment.Right
+        }.Background(AppColors.Brushes.Surface)
+            .BorderBrush(AppColors.Brushes.Stroke)
+            .Visibility(x => x.Binding(() => ViewModel.CanOpenVouchers)
+                .Convert((bool visible) => visible ? Visibility.Visible : Visibility.Collapsed));
+        AutomationProperties.SetName(voucherButton, "Quản lý voucher");
+        voucherButton.Command(x => x.Binding(() => ViewModel.OpenVouchersCommand));
+        var titleActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+        titleActions.Children.Add(voucherButton);
+        titleActions.Children.Add(addButton);
+        Grid.SetColumn(titleActions, 1);
         titleRow.Children.Add(heading);
-        titleRow.Children.Add(addButton);
+        titleRow.Children.Add(titleActions);
 
         _searchBox = new TextBox()
             .PlaceholderText("Tìm theo tên hoặc số điện thoại...")

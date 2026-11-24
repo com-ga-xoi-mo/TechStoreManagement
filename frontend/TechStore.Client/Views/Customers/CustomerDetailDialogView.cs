@@ -60,6 +60,7 @@ public sealed class CustomerDetailDialogView : UserControl
 
         var scrollingBody = new StackPanel { Spacing = 0 };
         scrollingBody.Children.Add(BuildMetrics());
+        scrollingBody.Children.Add(BuildLoyaltySummary());
         scrollingBody.Children.Add(BuildActivityError());
         // History is Admin/Manager only (SalesStaff gets 403 from the server and the ViewModel never asks).
         scrollingBody.Children.Add(BuildHistoryTabs()
@@ -265,6 +266,33 @@ public sealed class CustomerDetailDialogView : UserControl
             Child = cards
         }.Background(ThemeResource.Get<Brush>(Subtle))
             .BorderBrush(ThemeResource.Get<Brush>(Stroke));
+    }
+
+    // Tier discount and the way to the next tier. It is hidden when the summary request failed; the profile still shows.
+    private UIElement BuildLoyaltySummary()
+    {
+        var title = new TextBlock { Text = "Ưu đãi theo hạng", FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold }
+            .Foreground(ThemeResource.Get<Brush>(SecondaryText));
+        var discount = new TextBlock { FontSize = 15, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold }
+            .Foreground(ThemeResource.Get<Brush>(Text))
+            .Text(x => x.Binding(() => ViewModel.TierDiscountLabel));
+        var progress = new ProgressBar { Minimum = 0, Maximum = 1, Height = 6 }
+            .Foreground(ThemeResource.Get<Brush>(Primary))
+            .Value(x => x.Binding(() => ViewModel.TierProgress));
+        AutomationProperties.SetName(progress, "Tiến độ lên hạng kế tiếp");
+        var next = new TextBlock { FontSize = 12 }
+            .Foreground(ThemeResource.Get<Brush>(SecondaryText))
+            .Text(x => x.Binding(() => ViewModel.NextTierLabel));
+        var content = new StackPanel { Spacing = 6, Children = { title, discount, progress, next } };
+        return new Border
+        {
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            Padding = new Thickness(20, 12, 20, 14),
+            Child = content
+        }.Background(ThemeResource.Get<Brush>(Surface))
+            .BorderBrush(ThemeResource.Get<Brush>(Stroke))
+            .Visibility(x => x.Binding(() => ViewModel.HasLoyaltySummary)
+                .Convert((bool value) => value ? Visibility.Visible : Visibility.Collapsed));
     }
 
     private static Border MetricCard(string title, TextBlock value, TextBlock caption, string glyph, string fill, string foreground)

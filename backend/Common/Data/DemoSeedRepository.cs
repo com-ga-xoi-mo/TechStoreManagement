@@ -16,7 +16,6 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
 {
     private const string SupplierName = "FPT Synnex Distribution";
     private const string PurchaseOrderNumber = "PO-DEMO-202610-001";
-    private const string VoucherCode = "DEMO-OCT26";
 
     public async Task AcquireSeedLockAsync(CancellationToken cancellationToken)
     {
@@ -36,7 +35,7 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
         var supplier = await EnsureSupplierAsync(cancellationToken);
         var purchaseOrder = await EnsurePurchaseOrderAsync(supplier, users.Warehouse, products, cancellationToken);
         var customers = await EnsureCustomersAsync(cancellationToken);
-        await EnsureVoucherAsync(cancellationToken);
+        await EnsureVouchersAsync(cancellationToken);
         var session = await EnsureSessionAsync(users.Cashier, cancellationToken);
         var serials = await EnsureInventoryAsync(purchaseOrder, users.Warehouse, users.Cashier, products, cancellationToken);
         await EnsureLoyaltyAsync(customers, cancellationToken);
@@ -320,26 +319,24 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
         return result;
     }
 
-    private async Task<Voucher> EnsureVoucherAsync(CancellationToken ct)
+    // Adds the demo vouchers that are missing. A voucher that exists is left as it is, whatever its state: Admin and Manager can
+    // switch off, edit and spend a seeded voucher, so its values and uses are not a conflict.
+    private async Task EnsureVouchersAsync(CancellationToken ct)
     {
         var rows = await dbContext.Vouchers.ToListAsync(ct);
-        var voucher = OneByKey(rows, x => x.Code, VoucherCode, "voucher");
-        if (voucher is not null)
+        foreach (var seed in DemoSeedManifest.Vouchers)
         {
-            if (!voucher.IsActive || voucher.DiscountType != VoucherType.FixedAmount || voucher.DiscountValue != 100000m || voucher.UsedCount != 0)
-                throw Conflict("voucher", VoucherCode, "active state, discount, or usage conflicts with fixture");
-            return voucher;
+            if (OneByKey(rows, x => x.Code, seed.Code, "voucher") is not null) continue;
+            var voucher = new Voucher
+            {
+                Id = DemoSeedManifest.Id($"voucher:{seed.Code}"), Code = seed.Code, Description = seed.Description,
+                DiscountType = seed.DiscountType, DiscountValue = seed.DiscountValue, MinOrderAmount = seed.MinOrderAmount,
+                MaxDiscountAmount = seed.MaxDiscountAmount, UsageLimit = seed.UsageLimit, UsedCount = seed.UsedCount,
+                ExpiresAt = seed.ExpiresAt, IsActive = seed.IsActive, CreatedAt = seed.CreatedAt
+            };
+            dbContext.Vouchers.Add(voucher);
+            rows.Add(voucher);
         }
-        voucher = new Voucher
-        {
-            Id = DemoSeedManifest.Id($"voucher:{VoucherCode}"), Code = VoucherCode,
-            Description = "Demo fixture voucher", DiscountType = VoucherType.FixedAmount,
-            DiscountValue = 100000m, MinOrderAmount = 1000000m, UsageLimit = 100, UsedCount = 0,
-            ExpiresAt = DemoSeedManifest.AnchorUtc.AddYears(2), IsActive = true,
-            CreatedAt = DemoSeedManifest.AnchorUtc.AddDays(-10)
-        };
-        dbContext.Vouchers.Add(voucher);
-        return voucher;
     }
 
     private async Task<PosSession> EnsureSessionAsync(User cashier, CancellationToken ct)

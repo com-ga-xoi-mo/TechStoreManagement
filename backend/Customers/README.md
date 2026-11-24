@@ -69,3 +69,16 @@ Ví dụ M4 (2 sản phẩm 1.000.000đ, giảm đơn 200.000đ, VAT 10%): thu 1
 
 ### Dữ liệu
 `customer_loyalty_points.reference_key` (duy nhất khi có giá trị), `vouchers.reserved_count` (ràng buộc `used_count + reserved_count ≤ usage_limit`), bảng `voucher_redemptions` (một dòng mỗi đơn), `orders.discount_source`. Chi tiết: [schema.dbml](../../docs/database/schema.dbml).
+
+### Voucher demo (seed)
+Seed thêm đủ các trạng thái để thử màn Voucher và luật kiểm tra khi bán. Chỉ mã (`code`) nhận dạng một dòng; dòng đã có thì seed **không** sửa và **không** báo xung đột, vì Admin/Manager có thể tắt, sửa hoặc dùng hết voucher đã seed. Dòng bị xóa sẽ được thêm lại ở lần chạy sau.
+
+| Mã | Loại | Điều kiện | Trạng thái |
+| --- | --- | --- | --- |
+| `DEMO-OCT26` | 100.000đ | đơn từ 1.000.000đ, 100 lượt | đang hoạt động |
+| `DEMO-VIP10` | 10% | đơn từ 5.000.000đ, tối đa 500.000đ, 50 lượt | đang hoạt động |
+| `DEMO-EXPIRED` | 50.000đ | 12/100 lượt | hết hạn (17/10/2026) |
+| `DEMO-SOLDOUT` | 5% | tối đa 100.000đ, 20/20 lượt | hết lượt |
+| `DEMO-OFF` | 200.000đ | đơn từ 2.000.000đ | đã tắt |
+
+Số lượt dùng của `DEMO-EXPIRED` và `DEMO-SOLDOUT` là số cố định, chưa có dòng `voucher_redemptions` đi kèm.

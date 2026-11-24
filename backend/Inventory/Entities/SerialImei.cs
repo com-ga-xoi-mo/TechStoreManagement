@@ -17,6 +17,10 @@ public class SerialImei : BaseEntity
     public DateTime? WarrantyStartAt { get; set; }
     public DateTime? WarrantyEndAt { get; set; }
 
+    public Guid? SaleOrderItemId { get; set; }
+    public Guid? WarrantyCaseId { get; set; }
+    public bool AfterSaleQuarantine { get; set; }
+
     // Navigation properties
     public virtual Product Product { get; set; } = null!;
     public virtual ProductVariant? Variant { get; set; }

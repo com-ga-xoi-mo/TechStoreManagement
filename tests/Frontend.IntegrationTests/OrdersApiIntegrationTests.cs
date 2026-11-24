@@ -25,6 +25,25 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
     private const string HeadphonesKeyword = "SONY-WH1000XM5";
 
     [OptInFact]
+    public async Task LiveReturns_OrderHistoryMatchesWarehouseQueueAfterPartialRestock()
+    {
+        using var rig = await LiveRig.CreateAsync();
+        var orders = await rig.OrderRepository.SearchAsync(new OrderQuery { Query = "M4-202610-0001" });
+        var order = Assert.Single(orders.Items);
+        var history = await rig.Returns.OrderAsync(order.Id, CancellationToken.None);
+        var refund = Assert.Single(history.History);
+        var queue = await rig.Returns.InspectionsAsync(CancellationToken.None);
+        var inspection = Assert.Single(queue, row => row.RequestId == refund.Id);
+        Assert.Equal("Refunded", refund.Status);
+        Assert.Equal(1_980_000m, refund.Amount);
+        Assert.Equal((2, 1, 1), (inspection.Quantity, inspection.Restocked, inspection.Pending));
+        var line = Assert.Single(history.Balances);
+        Assert.Equal(0, line.Remaining);
+        Assert.Equal("M4-CABLE-PACK", line.Sku);
+        Assert.Equal("Bộ cáp USB-C 100W", line.VariantName);
+    }
+
+    [OptInFact]
     public async Task LiveOrders_CounterFlowWorksThroughTheViewModels()
     {
         using var rig = await LiveRig.CreateAsync();
@@ -168,6 +187,7 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
         private readonly HttpClient _http;
         private readonly ApiClient _api;
         public IOrderRepository OrderRepository { get; }
+        public IReturnRepository Returns { get; }
         public IOrderDeviceRepository DeviceRepository { get; }
         private readonly IProductRepository _products;
         public RecordingNavigation Navigation { get; } = new();
@@ -179,6 +199,7 @@ public sealed class OrdersApiIntegrationTests(ITestOutputHelper output)
             _http = http;
             _api = api;
             OrderRepository = new OrderRepository(api);
+            Returns = new ReturnRepository(api);
             DeviceRepository = new OrderDeviceRepository(api);
             _products = new ProductRepository(api);
         }

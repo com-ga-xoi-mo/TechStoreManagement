@@ -14,6 +14,7 @@ public class PosSessionConfiguration : IEntityTypeConfiguration<PosSession>
         {
             t.HasCheckConstraint("ck_pos_sessions_opening_ge_zero", "opening_balance >= 0");
             t.HasCheckConstraint("ck_pos_sessions_cash_sales_ge_zero", "cash_sales_total >= 0");
+            t.HasCheckConstraint("ck_pos_sessions_cash_refunds_ge_zero", "cash_refund_total >= 0");
             t.HasCheckConstraint("ck_pos_sessions_vietqr_sales_ge_zero", "vietqr_sales_total >= 0");
             t.HasCheckConstraint("ck_pos_sessions_card_sales_ge_zero", "card_sales_total >= 0");
             t.HasCheckConstraint("ck_pos_sessions_closing_ge_zero", "closing_balance IS NULL OR closing_balance >= 0");
@@ -28,6 +29,7 @@ public class PosSessionConfiguration : IEntityTypeConfiguration<PosSession>
         builder.Property(x => x.ClosingNote).HasColumnName("closing_note").HasMaxLength(500);
         builder.Property(x => x.ClosedByUserId).HasColumnName("closed_by_user_id");
         builder.Property(x => x.CashSalesTotal).HasColumnName("cash_sales_total").HasPrecision(18, 2).HasDefaultValue(0);
+        builder.Property(x => x.CashRefundTotal).HasColumnName("cash_refund_total").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.VietQrSalesTotal).HasColumnName("vietqr_sales_total").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.CardSalesTotal).HasColumnName("card_sales_total").HasPrecision(18, 2).HasDefaultValue(0);
         builder.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasDefaultValue(PosSessionStatus.Open).IsRequired();

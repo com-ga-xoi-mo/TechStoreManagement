@@ -30,9 +30,11 @@ public sealed class VoucherRouteTests
     [Fact]
     public void Vouchers_DoesNotAddAMenuEntry()
     {
-        // Assert
-        Assert.Equal(6, ShellDestinations.All.Count);
-        Assert.DoesNotContain(RoleAccess.Destinations("Admin"), item => item.Title.Contains("Voucher"));
+        // Assert: the page is reached from Customers, so no destination of the menu is about vouchers, for any role.
+        Assert.DoesNotContain(ShellDestinations.All, item => item.Title.Contains("Voucher"));
+        Assert.DoesNotContain(Enum.GetNames<ShellDestination>(), name => name.Contains("Voucher"));
+        foreach (var role in new[] { "Admin", "Manager", "SalesStaff", "WarehouseStaff" })
+            Assert.DoesNotContain(RoleAccess.Destinations(role), item => item.Title.Contains("Voucher"));
     }
 
     [Theory]

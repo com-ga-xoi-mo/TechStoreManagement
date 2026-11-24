@@ -14,7 +14,6 @@ namespace TechStore.Api.Sales;
 public class PosController(IPosShiftService shiftService, IPosCheckoutService checkoutService) : ControllerBase
 {
     [HttpPost("shifts")]
-    [Authorize(Roles = "Admin,SalesStaff")]
     public async Task<IActionResult> OpenShift([FromBody] OpenShiftRequest request, CancellationToken cancellationToken)
     {
         if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
@@ -23,7 +22,6 @@ public class PosController(IPosShiftService shiftService, IPosCheckoutService ch
     }
 
     [HttpGet("shifts/current")]
-    [Authorize(Roles = "Admin,SalesStaff")]
     public async Task<IActionResult> GetCurrentShift(CancellationToken cancellationToken)
     {
         if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();

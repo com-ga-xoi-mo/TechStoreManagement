@@ -6,6 +6,8 @@ public class CustomerLoyaltyPoint : BaseEntity
 {
     public Guid CustomerId { get; set; }
     public Guid? OrderId { get; set; }
+    public bool IsSaleAccrual { get; set; }
+    public Guid? RefundCaseId { get; set; }
     public int PointsChange { get; set; }
     public int BalanceAfter { get; set; }
     public string Reason { get; set; } = string.Empty;

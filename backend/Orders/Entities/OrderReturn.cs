@@ -16,6 +16,13 @@ public class OrderReturn : BaseEntity
     public Guid? RefundPosSessionId { get; set; }
     public DateTime RefundedAt { get; set; } = DateTime.UtcNow;
     public bool IsRestocked { get; set; } = false;
+    public Guid? CaseLineId { get; set; }
+    public decimal? NetAmount { get; set; }
+    public decimal? DiscountAmount { get; set; }
+    public decimal? TaxAmount { get; set; }
+    public string? Disposition { get; set; }
+    public Guid? InspectionId { get; set; }
+    public DateTime? InspectedAt { get; set; }
 
     // Navigation properties
     public virtual Order Order { get; set; } = null!;

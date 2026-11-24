@@ -617,6 +617,12 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("customer_id");
 
+                    b.Property<bool>("IsSaleAccrual")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_sale_accrual");
+
                     b.Property<Guid?>("OrderId")
                         .HasColumnType("uuid")
                         .HasColumnName("order_id");
@@ -635,6 +641,10 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("reference_key");
 
+                    b.Property<Guid?>("RefundCaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("refund_case_id");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("updated_at");
@@ -651,12 +661,23 @@ namespace TechStore.Api.Common.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("idx_cust_loyalty_reference_key")
                         .HasFilter("reference_key IS NOT NULL");
+                    b.HasIndex("RefundCaseId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_cust_loyalty_refund_case")
+                        .HasFilter("refund_case_id IS NOT NULL");
+
+                    b.HasIndex(new[] { "OrderId" }, "SaleCreditPerOrder")
+                        .IsUnique()
+                        .HasDatabaseName("uq_cust_loyalty_sale_order")
+                        .HasFilter("is_sale_accrual");
 
                     b.ToTable("customer_loyalty_points", null, t =>
                         {
                             t.HasCheckConstraint("ck_cust_loyalty_balance_after_ge_zero", "balance_after >= 0");
 
                             t.HasCheckConstraint("ck_cust_loyalty_points_change_not_zero", "points_change <> 0");
+
+                            t.HasCheckConstraint("ck_cust_loyalty_source", "(NOT is_sale_accrual OR (order_id IS NOT NULL AND refund_case_id IS NULL AND points_change > 0)) AND (refund_case_id IS NULL OR (order_id IS NOT NULL AND points_change < 0))");
                         });
                 });
 
@@ -1155,6 +1176,74 @@ namespace TechStore.Api.Common.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TechStore.Api.Inventory.Entities.InventoryOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("InspectionReturnId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inspection_return_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid?>("MovementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("movement_id");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("payload");
+
+                    b.Property<decimal?>("UnitCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("unit_cost");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InspectionReturnId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_inventory_operations_inspection_return");
+
+                    b.HasIndex("MovementId")
+                        .HasDatabaseName("idx_inventory_operations_movement_id");
+
+                    b.ToTable("inventory_operations", (string)null);
+                });
+
+            modelBuilder.Entity("TechStore.Api.Inventory.Entities.InventoryReservation", b =>
+                {
+                    b.Property<Guid>("OrderItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_item_id");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.HasKey("OrderItemId");
+
+                    b.ToTable("inventory_reservations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_inventory_reservations_quantity", "quantity > 0");
+                        });
+                });
+
             modelBuilder.Entity("TechStore.Api.Inventory.Entities.InventoryStock", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1420,6 +1509,12 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
+                    b.Property<bool>("AfterSaleQuarantine")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("after_sale_quarantine");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamptz")
@@ -1437,6 +1532,10 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.Property<Guid?>("PurchaseOrderId")
                         .HasColumnType("uuid")
                         .HasColumnName("purchase_order_id");
+
+                    b.Property<Guid?>("SaleOrderItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sale_order_item_id");
 
                     b.Property<string>("SerialNumber")
                         .HasColumnType("text")
@@ -1461,6 +1560,10 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.Property<Guid?>("VariantId")
                         .HasColumnType("uuid")
                         .HasColumnName("variant_id");
+
+                    b.Property<Guid?>("WarrantyCaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("warranty_case_id");
 
                     b.Property<DateTime?>("WarrantyEndAt")
                         .HasColumnType("timestamptz")
@@ -1487,6 +1590,9 @@ namespace TechStore.Api.Common.Data.Migrations
 
                     b.HasIndex("PurchaseOrderId")
                         .HasDatabaseName("idx_serial_imeis_po_id");
+
+                    b.HasIndex("SaleOrderItemId")
+                        .HasDatabaseName("idx_serial_imeis_sale_order_item_id");
 
                     b.HasIndex("SerialNumber")
                         .IsUnique()
@@ -1569,6 +1675,123 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasDatabaseName("idx_suppliers_phone");
 
                     b.ToTable("suppliers", (string)null);
+                });
+
+            modelBuilder.Entity("TechStore.Api.Inventory.Entities.WarrantyCase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("closed_at");
+
+                    b.Property<Guid?>("ClosedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("closed_by_id");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<Guid?>("MovementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("movement_id");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("opened_at");
+
+                    b.Property<Guid>("OpenedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("opened_by_id");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<Guid>("OrderItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_item_id");
+
+                    b.Property<Guid>("ReceiveOperationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("receive_operation_id");
+
+                    b.Property<Guid?>("ReplacementDeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replacement_device_id");
+
+                    b.Property<decimal?>("ReplacementUnitCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("replacement_unit_cost");
+
+                    b.Property<Guid?>("ResolutionOperationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolution_operation_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("WarrantyEndAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("warranty_end_at");
+
+                    b.Property<DateTime>("WarrantyStartAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("warranty_start_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClosedById")
+                        .HasDatabaseName("idx_warranty_cases_closed_by");
+
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("idx_warranty_cases_customer");
+
+                    b.HasIndex("DeviceId")
+                        .HasDatabaseName("idx_warranty_cases_device");
+
+                    b.HasIndex("MovementId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_warranty_cases_movement");
+
+                    b.HasIndex("OpenedById")
+                        .HasDatabaseName("idx_warranty_cases_opened_by");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("idx_warranty_cases_order");
+
+                    b.HasIndex("ReceiveOperationId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_warranty_cases_receive_op");
+
+                    b.HasIndex("ReplacementDeviceId")
+                        .HasDatabaseName("idx_warranty_cases_replacement");
+
+                    b.HasIndex("ResolutionOperationId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_warranty_cases_resolution_op");
+
+                    b.HasIndex("OrderItemId", "OrderId")
+                        .HasDatabaseName("idx_warranty_cases_item_order");
+
+                    b.ToTable("warranty_cases", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_warranty_cases_cost", "replacement_unit_cost IS NULL OR replacement_unit_cost >= 0");
+
+                            t.HasCheckConstraint("ck_warranty_cases_dates", "warranty_start_at <= opened_at AND opened_at < warranty_end_at AND (closed_at IS NULL OR closed_at >= opened_at)");
+
+                            t.HasCheckConstraint("ck_warranty_cases_outcome", "(status = 'UnderRepair' AND closed_by_id IS NULL AND closed_at IS NULL AND resolution_operation_id IS NULL\n    AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)\nOR (status IN ('ReturnedToCustomer','Replaced') AND closed_by_id IS NOT NULL AND closed_at IS NOT NULL AND resolution_operation_id IS NOT NULL\n    AND ((status = 'ReturnedToCustomer' AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)\n      OR (status = 'Replaced' AND replacement_device_id IS NOT NULL AND replacement_device_id <> device_id AND movement_id IS NOT NULL)))");
+                        });
                 });
 
             modelBuilder.Entity("TechStore.Api.Orders.Entities.Order", b =>
@@ -1879,17 +2102,44 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
+                    b.Property<Guid?>("CaseLineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("case_line_id");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamptz")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<decimal?>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("discount_amount");
+
+                    b.Property<string>("Disposition")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("disposition");
+
+                    b.Property<DateTime?>("InspectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("inspected_at");
+
+                    b.Property<Guid?>("InspectionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inspection_id");
+
                     b.Property<bool>("IsRestocked")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("is_restocked");
+
+                    b.Property<decimal?>("NetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("net_amount");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uuid")
@@ -1930,11 +2180,23 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnType("timestamptz")
                         .HasColumnName("refunded_at");
 
+                    b.Property<decimal?>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("tax_amount");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CaseLineId")
+                        .HasDatabaseName("idx_order_returns_case_line");
+
+                    b.HasIndex("InspectionId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_order_returns_inspection");
 
                     b.HasIndex("OrderId")
                         .HasDatabaseName("idx_order_returns_order_id");
@@ -1961,6 +2223,179 @@ namespace TechStore.Api.Common.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TechStore.Api.Orders.Entities.ReturnCase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("BankApprovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("bank_approved_at");
+
+                    b.Property<string>("BankReference")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("bank_reference");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Method")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("method");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<Guid?>("PayoutActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payout_actor_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTime?>("RefundedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refunded_at");
+
+                    b.Property<Guid?>("ReplacementOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replacement_order_id");
+
+                    b.Property<Guid>("RequestedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<bool>("WasUndelivered")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("was_undelivered");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankReference")
+                        .IsUnique()
+                        .HasDatabaseName("uq_return_cases_bank_ref");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("idx_return_cases_order_id");
+
+                    b.HasIndex("PayoutActorId")
+                        .HasDatabaseName("idx_return_cases_payout_actor_id");
+
+                    b.HasIndex("ReplacementOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_return_cases_replacement");
+
+                    b.HasIndex("RequestedById")
+                        .HasDatabaseName("idx_return_cases_requested_by_id");
+
+                    b.ToTable("return_cases", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_return_cases_status", "status IN ('Pending','AwaitingBank','Refunded','Failed')");
+                        });
+                });
+
+            modelBuilder.Entity("TechStore.Api.Orders.Entities.ReturnCaseLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("case_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("discount_amount");
+
+                    b.Property<decimal>("NetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("net_amount");
+
+                    b.Property<Guid>("OrderItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_item_id");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("tax_amount");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderItemId")
+                        .HasDatabaseName("idx_return_case_lines_item");
+
+                    b.HasIndex("CaseId", "OrderItemId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_return_case_lines_case_item");
+
+                    b.ToTable("return_case_lines", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_return_case_lines_amount", "quantity > 0 AND net_amount >= 0 AND discount_amount >= 0 AND tax_amount >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("TechStore.Api.Sales.Entities.CashRefundPayout", b =>
+                {
+                    b.Property<Guid>("RefundId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("refund_id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid>("ShiftId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("shift_id");
+
+                    b.HasKey("RefundId");
+
+                    b.HasIndex("ShiftId")
+                        .HasDatabaseName("idx_cash_refund_payouts_shift");
+
+                    b.ToTable("cash_refund_payouts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_cash_refund_amount", "amount >= 0");
+                        });
+                });
+
             modelBuilder.Entity("TechStore.Api.Sales.Entities.PosSession", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1975,6 +2410,13 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasDefaultValue(0m)
                         .HasColumnName("card_sales_total");
+
+                    b.Property<decimal>("CashRefundTotal")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("cash_refund_total");
 
                     b.Property<decimal>("CashSalesTotal")
                         .ValueGeneratedOnAdd()
@@ -2066,6 +2508,8 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.ToTable("pos_sessions", null, t =>
                         {
                             t.HasCheckConstraint("ck_pos_sessions_card_sales_ge_zero", "card_sales_total >= 0");
+
+                            t.HasCheckConstraint("ck_pos_sessions_cash_refunds_ge_zero", "cash_refund_total >= 0");
 
                             t.HasCheckConstraint("ck_pos_sessions_cash_sales_ge_zero", "cash_sales_total >= 0");
 
@@ -2253,6 +2697,11 @@ namespace TechStore.Api.Common.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TechStore.Api.Orders.Entities.ReturnCase", null)
+                        .WithMany()
+                        .HasForeignKey("RefundCaseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Customer");
                 });
 
@@ -2313,6 +2762,11 @@ namespace TechStore.Api.Common.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("TechStore.Api.Orders.Entities.OrderReturn", null)
+                        .WithMany()
+                        .HasForeignKey("OrderReturnId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TechStore.Api.Identity.Entities.User", "PerformedByUser")
                         .WithMany()
                         .HasForeignKey("PerformedByUserId")
@@ -2329,6 +2783,28 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.Navigation("PerformedByUser");
 
                     b.Navigation("PurchaseOrderItem");
+                });
+
+            modelBuilder.Entity("TechStore.Api.Inventory.Entities.InventoryOperation", b =>
+                {
+                    b.HasOne("TechStore.Api.Orders.Entities.OrderReturn", null)
+                        .WithMany()
+                        .HasForeignKey("InspectionReturnId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.InventoryMovement", null)
+                        .WithMany()
+                        .HasForeignKey("MovementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("TechStore.Api.Inventory.Entities.InventoryReservation", b =>
+                {
+                    b.HasOne("TechStore.Api.Orders.Entities.OrderItem", null)
+                        .WithMany()
+                        .HasForeignKey("OrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TechStore.Api.Inventory.Entities.InventoryStock", b =>
@@ -2421,6 +2897,11 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasForeignKey("PurchaseOrderId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("TechStore.Api.Orders.Entities.OrderItem", null)
+                        .WithMany()
+                        .HasForeignKey("SaleOrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TechStore.Api.Catalog.Entities.ProductVariant", "Variant")
                         .WithMany()
                         .HasForeignKey("VariantId", "ProductId")
@@ -2432,6 +2913,59 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.Navigation("PurchaseOrder");
 
                     b.Navigation("Variant");
+                });
+
+            modelBuilder.Entity("TechStore.Api.Inventory.Entities.WarrantyCase", b =>
+                {
+                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ClosedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Customers.Entities.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.SerialImei", null)
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.InventoryMovement", null)
+                        .WithMany()
+                        .HasForeignKey("MovementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("OpenedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.InventoryOperation", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiveOperationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.SerialImei", null)
+                        .WithMany()
+                        .HasForeignKey("ReplacementDeviceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.InventoryOperation", null)
+                        .WithMany()
+                        .HasForeignKey("ResolutionOperationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Orders.Entities.OrderItem", null)
+                        .WithMany()
+                        .HasForeignKey("OrderItemId", "OrderId")
+                        .HasPrincipalKey("Id", "OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TechStore.Api.Orders.Entities.Order", b =>
@@ -2501,6 +3035,11 @@ namespace TechStore.Api.Common.Data.Migrations
 
             modelBuilder.Entity("TechStore.Api.Orders.Entities.OrderReturn", b =>
                 {
+                    b.HasOne("TechStore.Api.Orders.Entities.ReturnCaseLine", null)
+                        .WithMany("Settlements")
+                        .HasForeignKey("CaseLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TechStore.Api.Orders.Entities.Order", "Order")
                         .WithMany("Returns")
                         .HasForeignKey("OrderId")
@@ -2525,6 +3064,63 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.Navigation("OrderItem");
 
                     b.Navigation("ProcessedByUser");
+                });
+
+            modelBuilder.Entity("TechStore.Api.Orders.Entities.ReturnCase", b =>
+                {
+                    b.HasOne("TechStore.Api.Orders.Entities.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("PayoutActorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Orders.Entities.Order", null)
+                        .WithMany()
+                        .HasForeignKey("ReplacementOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TechStore.Api.Orders.Entities.ReturnCaseLine", b =>
+                {
+                    b.HasOne("TechStore.Api.Orders.Entities.ReturnCase", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Orders.Entities.OrderItem", "Item")
+                        .WithMany()
+                        .HasForeignKey("OrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+                });
+
+            modelBuilder.Entity("TechStore.Api.Sales.Entities.CashRefundPayout", b =>
+                {
+                    b.HasOne("TechStore.Api.Orders.Entities.ReturnCase", null)
+                        .WithMany()
+                        .HasForeignKey("RefundId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Sales.Entities.PosSession", null)
+                        .WithMany()
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TechStore.Api.Sales.Entities.PosSession", b =>
@@ -2619,6 +3215,16 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("Returns");
+                });
+
+            modelBuilder.Entity("TechStore.Api.Orders.Entities.ReturnCase", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("TechStore.Api.Orders.Entities.ReturnCaseLine", b =>
+                {
+                    b.Navigation("Settlements");
                 });
 
             modelBuilder.Entity("TechStore.Api.Sales.Entities.PosSession", b =>

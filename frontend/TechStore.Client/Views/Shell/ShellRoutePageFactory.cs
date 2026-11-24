@@ -38,6 +38,10 @@ public sealed class ShellRoutePageFactory(
             if (page is not IRoutePage routePage)
                 throw new InvalidOperationException($"The page for {route} does not expose its ViewModel.");
 
+            if (page is OrderReturnsPage returnsPage)
+                returnsPage.ViewModel.OrderId = route.OrderId!.Value;
+            if (page is PosPage posPage)
+                posPage.ViewModel.ExchangeRequestId = route.ExchangeRequestId;
             if (page is ProductListPage listPage)
                 listPage.SetRoute(route.ReturnQuery, route.FocusProductId);
             if (page is ProductDetailPage detailPage)
@@ -72,6 +76,7 @@ public sealed class ShellRoutePageFactory(
         _ = ResolvePage(AppRoute.ProductDetail(Guid.NewGuid()), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.UserManagement(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.Vouchers(), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.OrderReturns(Guid.NewGuid()), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.OrderCreate(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.Pos(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.ProductCreate(), scope.ServiceProvider);
@@ -85,6 +90,7 @@ public sealed class ShellRoutePageFactory(
         AppRouteKind.ProductDetail => services.GetRequiredService<ProductDetailPage>(),
         AppRouteKind.UserManagement => services.GetRequiredService<UserManagementPage>(),
         AppRouteKind.VoucherList => services.GetRequiredService<VoucherListPage>(),
+        AppRouteKind.OrderReturns => services.GetRequiredService<OrderReturnsPage>(),
         AppRouteKind.OrderCreate => services.GetRequiredService<OrderCreatePage>(),
         AppRouteKind.Pos => services.GetRequiredService<PosPage>(),
         AppRouteKind.ProductCreate or AppRouteKind.ProductEdit => services.GetRequiredService<ProductEditorPage>(),
@@ -96,6 +102,7 @@ public sealed class ShellRoutePageFactory(
         ShellDestination.Dashboard => services.GetRequiredService<DashboardPage>(),
         ShellDestination.Products => services.GetRequiredService<ProductListPage>(),
         ShellDestination.Inventory => services.GetRequiredService<CategoryManagementPage>(),
+        ShellDestination.ReturnInspections => services.GetRequiredService<ReturnInspectionsPage>(),
         ShellDestination.Orders => services.GetRequiredService<OrderListPage>(),
         ShellDestination.Customers => services.GetRequiredService<CustomerListPage>(),
         ShellDestination.Settings => services.GetRequiredService<SettingsPage>(),

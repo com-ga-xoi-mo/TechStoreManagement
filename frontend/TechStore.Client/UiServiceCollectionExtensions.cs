@@ -68,6 +68,8 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ProductDetailViewModel>();
         services.AddTransient<ProductEditorViewModel>();
         services.AddTransient<OrderListViewModel>();
+        services.AddTransient<ReturnInspectionsViewModel>();
+        services.AddTransient<OrderReturnsViewModel>();
         services.AddTransient<OrderCreateViewModel>();
         services.AddTransient<PosViewModel>();
         services.AddTransient<CustomerListViewModel>();
@@ -107,6 +109,8 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ProductDetailPage>();
         services.AddTransient<ProductEditorPage>();
         services.AddTransient<OrderListPage>();
+        services.AddTransient<OrderReturnsPage>();
+        services.AddTransient<ReturnInspectionsPage>();
         services.AddTransient<OrderCreatePage>();
         services.AddTransient<PosPage>();
         services.AddSingleton<IOrderDetailPresenter, OrderDetailDialogPresenter>();
@@ -145,6 +149,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ILoyaltyRepository, LoyaltyRepository>();
         services.AddTransient<IVoucherRepository, VoucherRepository>();
         services.AddTransient<IOrderRepository, OrderRepository>();
+        services.AddTransient<IReturnRepository, ReturnRepository>();
         services.AddTransient<IOrderDeviceRepository, OrderDeviceRepository>();
         services.AddTransient<IPosRepository, PosRepository>();
         services.AddSingleton<IPosDraftStore, PosDraftStore>();

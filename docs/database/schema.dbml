@@ -52,6 +52,7 @@ Enum inventory_movement_type {
   PurchaseReceipt [note: 'Stock received from a supplier purchase order (+)']
   Sale            [note: 'Stock deducted for a completed sale (-)']
   CustomerReturn  [note: 'Inspected customer return added back to sellable stock (+)']
+  WarrantyReplacement [note: 'Approved replacement device issued (-)']
   Adjustment      [note: 'Manual correction after stocktaking or loss (+/-)']
   Defective       [note: 'Damaged or defective stock written off (-)']
 }
@@ -377,6 +378,9 @@ Table purchase_order_items {
 }
 
 Table serial_imeis {
+  sale_order_item_id uuid [ref: > order_items.id]
+  warranty_case_id uuid
+  after_sale_quarantine boolean [not null, default: false]
   id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   product_id uuid [not null, note: 'FK -> products.id']
   variant_id uuid [null, note: 'FK -> product_variants.id (NULL for standalone devices)']
@@ -394,6 +398,7 @@ Table serial_imeis {
   indexes {
     product_id [name: 'idx_serial_imeis_product_id', note: 'FK index']
     variant_id [name: 'idx_serial_imeis_variant_id', note: 'FK index']
+    sale_order_item_id [name: 'idx_serial_imeis_sale_order_item_id']
     purchase_order_id [name: 'idx_serial_imeis_po_id', note: 'FK index']
     (id, product_id) [unique, name: 'uq_serial_imeis_id_product', note: 'Target key for the order item device/product composite FK']
     serial_number [unique, name: 'idx_serial_imeis_serial', note: 'Unique serial constraint where not null']
@@ -499,7 +504,108 @@ Table order_items {
   '''
 }
 
+Table return_cases {
+  id uuid [pk]
+  order_id uuid [not null, ref: > orders.id]
+  requested_by_id uuid [not null, ref: > users.id]
+  was_undelivered boolean [not null, default: false]
+  payout_actor_id uuid [ref: > users.id]
+  reason varchar(500) [not null]
+  status varchar(20) [not null, note: 'Pending, AwaitingBank, Refunded or Failed']
+  method varchar(16)
+  bank_reference varchar(128)
+  bank_approved_at timestamptz
+  replacement_order_id uuid [ref: > orders.id]
+  refunded_at timestamptz
+  created_at timestamptz [not null]
+  updated_at timestamptz
+  indexes {
+    order_id [name: 'idx_return_cases_order_id']
+    requested_by_id [name: 'idx_return_cases_requested_by_id']
+    payout_actor_id [name: 'idx_return_cases_payout_actor_id']
+    bank_reference [unique, name: 'uq_return_cases_bank_ref']
+    replacement_order_id [unique, name: 'uq_return_cases_replacement']
+  }
+}
+
+Table return_case_lines {
+  id uuid [pk]
+  case_id uuid [not null, ref: > return_cases.id]
+  order_item_id uuid [not null, ref: > order_items.id]
+  quantity integer [not null]
+  net_amount "numeric(18, 2)" [not null]
+  discount_amount "numeric(18, 2)" [not null]
+  tax_amount "numeric(18, 2)" [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz
+  indexes {
+    order_item_id [name: 'idx_return_case_lines_item']
+    (case_id, order_item_id) [unique, name: 'uq_return_case_lines_case_item']
+  }
+}
+
+Table warranty_cases {
+  id uuid [pk]
+  order_id uuid [not null]
+  order_item_id uuid [not null]
+  customer_id uuid [ref: > customers.id]
+  device_id uuid [not null, ref: > serial_imeis.id]
+  opened_by_id uuid [not null, ref: > users.id]
+  opened_at timestamptz [not null]
+  warranty_start_at timestamptz [not null]
+  warranty_end_at timestamptz [not null]
+  status text [not null]
+  receive_operation_id uuid [not null, ref: > inventory_operations.id]
+  resolution_operation_id uuid [ref: > inventory_operations.id]
+  closed_by_id uuid [ref: > users.id]
+  closed_at timestamptz
+  replacement_device_id uuid [ref: > serial_imeis.id]
+  movement_id uuid [ref: > inventory_movements.id]
+  replacement_unit_cost "numeric(18, 2)"
+  indexes {
+    order_id [name: 'idx_warranty_cases_order']
+    (order_item_id, order_id) [name: 'idx_warranty_cases_item_order']
+    customer_id [name: 'idx_warranty_cases_customer']
+    device_id [name: 'idx_warranty_cases_device']
+    opened_by_id [name: 'idx_warranty_cases_opened_by']
+    closed_by_id [name: 'idx_warranty_cases_closed_by']
+    replacement_device_id [name: 'idx_warranty_cases_replacement']
+    receive_operation_id [unique, name: 'uq_warranty_cases_receive_op']
+    resolution_operation_id [unique, name: 'uq_warranty_cases_resolution_op']
+    movement_id [unique, name: 'uq_warranty_cases_movement']
+  }
+}
+
+Ref: warranty_cases.(order_item_id, order_id) > order_items.(id, order_id) [delete: restrict]
+
+Table inventory_reservations {
+  order_item_id uuid [pk, ref: > order_items.id]
+  quantity integer [not null]
+  state text [not null]
+}
+
+Table inventory_operations {
+  id uuid [pk]
+  kind text [not null]
+  payload text [not null]
+  inspection_return_id uuid [ref: > order_returns.id]
+  movement_id uuid [ref: > inventory_movements.id]
+  unit_cost "numeric(18, 2)"
+  created_at timestamptz [not null]
+  indexes {
+    inspection_return_id [unique, name: 'uq_inventory_operations_inspection_return']
+    movement_id [name: 'idx_inventory_operations_movement_id']
+  }
+}
+
 Table order_returns {
+  case_line_id uuid [ref: > return_case_lines.id]
+  net_amount "numeric(18, 2)"
+  discount_amount "numeric(18, 2)"
+  tax_amount "numeric(18, 2)"
+  disposition varchar(20)
+  inspected_at timestamptz
+  inspection_id uuid
   id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   order_id uuid [not null, note: 'FK -> orders.id']
   order_item_id uuid [not null, note: 'Composite FK with order_id ensures this line belongs to the returned order']
@@ -515,6 +621,8 @@ Table order_returns {
   updated_at timestamptz [null]
 
   indexes {
+    case_line_id [name: 'idx_order_returns_case_line']
+    inspection_id [unique, name: 'uq_order_returns_inspection']
     order_id [name: 'idx_order_returns_order_id', note: 'FK index']
     order_item_id [name: 'idx_order_returns_item_id', note: 'FK index']
     processed_by_user_id [name: 'idx_order_returns_user_id', note: 'FK index']
@@ -556,6 +664,8 @@ Table customers {
 }
 
 Table customer_loyalty_points {
+  is_sale_accrual boolean [not null, default: false]
+  refund_case_id uuid [ref: > return_cases.id]
   id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   customer_id uuid [not null, note: 'FK -> customers.id (ON DELETE CASCADE)']
   order_id uuid [null, note: 'FK -> orders.id (Order that awarded or spent points)']
@@ -570,6 +680,8 @@ Table customer_loyalty_points {
     customer_id [name: 'idx_cust_loyalty_customer_id', note: 'FK index: loyalty ledger query']
     order_id [name: 'idx_cust_loyalty_order_id', note: 'FK index']
     reference_key [unique, name: 'idx_cust_loyalty_reference_key', note: 'Partial unique index WHERE reference_key IS NOT NULL: no double earn or reverse']
+    order_id [unique, name: 'uq_cust_loyalty_sale_order', note: 'WHERE is_sale_accrual']
+    refund_case_id [unique, name: 'uq_cust_loyalty_refund_case', note: 'WHERE refund_case_id IS NOT NULL']
   }
 
   Note: 'Auditable ledger of customer reward point transactions'
@@ -618,7 +730,17 @@ Table voucher_redemptions {
   Note: 'Lifecycle of one voucher use: Reserved -> Redeemed or Released'
 }
 
+Table cash_refund_payouts {
+  refund_id uuid [pk, ref: - return_cases.id]
+  shift_id uuid [not null, ref: > pos_sessions.id]
+  amount "numeric(18, 2)" [not null]
+  indexes {
+    shift_id [name: 'idx_cash_refund_payouts_shift']
+  }
+}
+
 Table pos_sessions {
+  cash_refund_total "numeric(18, 2)" [not null, default: 0]
   id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
   cashier_user_id uuid [not null, note: 'FK -> users.id: Cashier who operated shift']
   opening_balance "numeric(18, 2)" [not null, default: 0, note: 'CHECK opening_balance >= 0: Drawer initial cash']
@@ -841,6 +963,9 @@ TableGroup Catalog {
 }
 
 TableGroup Inventory {
+  warranty_cases
+  inventory_operations
+  inventory_reservations
   inventory_stocks
   inventory_movements
   suppliers
@@ -850,6 +975,8 @@ TableGroup Inventory {
 }
 
 TableGroup Orders {
+  return_cases
+  return_case_lines
   orders
   order_items
   order_returns
@@ -863,6 +990,7 @@ TableGroup Customers {
 }
 
 TableGroup Sales {
+  cash_refund_payouts
   pos_sessions
   vietqr_transactions
 }

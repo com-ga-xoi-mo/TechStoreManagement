@@ -244,6 +244,7 @@ internal sealed class MovementTypeConverter : IValueConverter
     {
         "Sale" => "Bán hàng",
         "CustomerReturn" => "Trả hàng",
+        "WarrantyReplacement" => "Xuất máy thay bảo hành",
         "Adjustment" => "Điều chỉnh",
         "PurchaseReceipt" => "Nhập kho",
         "Defective" => "Báo lỗi máy",

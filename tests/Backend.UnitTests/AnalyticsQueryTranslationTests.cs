@@ -20,7 +20,7 @@ public sealed class AnalyticsQueryTranslationTests
             SELECT ((completed_at AT TIME ZONE 'UTC') + INTERVAL '7 hours')::date AS "Date",
                    SUM(total_amount) AS "Revenue"
             FROM orders
-            WHERE status = {"Completed"}
+            WHERE status IN ('Completed', 'PartiallyRefunded', 'Refunded')
               AND completed_at >= {fromUtc}
               AND completed_at < {asOfUtc}
             GROUP BY ((completed_at AT TIME ZONE 'UTC') + INTERVAL '7 hours')::date

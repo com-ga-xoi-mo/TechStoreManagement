@@ -40,6 +40,8 @@
 - `WarehouseStaff`: 403 mọi endpoint. Bảng đầy đủ: [API_PERMISSIONS](../../docs/API_PERMISSIONS.md).
 - Client dùng chung `CustomerPickerViewModel` + `CustomerPickerView` để chọn/tạo khách khi bán (trang tạo đơn, POS).
 
+Tổng mua (`totalSpent`) cộng `TotalAmount` gốc gồm thuế của các đơn đã giao. Hồ sơ giữ ngày mua gần nhất và lịch sử sản phẩm/IMEI khi đơn được hoàn một phần hoặc toàn bộ. Đơn đã trả tiền nhưng được hoàn trước khi giao chỉ được tính vào tổng số đơn.
+
 ## 6. Điểm thưởng, VIP và voucher (M4, change `m4-loyalty-vip-vouchers`, người sở hữu: Vy)
 
 Đạt (checkout) và An (hoàn tiền) **gọi** các service dưới đây, không tự tính điểm, ưu đãi hay lượt voucher. Các hàm giữ/tiêu/trả voucher và cộng/đảo điểm **không** mở transaction, không `SaveChanges`, không `Commit`: người gọi mở transaction, gọi service, lưu một lần. Chúng khóa dòng (`FOR UPDATE`) nên bắt buộc có transaction đang mở, và người gọi đã giữ khóa đơn của mình.

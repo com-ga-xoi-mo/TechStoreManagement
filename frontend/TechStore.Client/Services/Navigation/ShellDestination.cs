@@ -7,7 +7,8 @@ public enum ShellDestination
     Inventory,
     Orders,
     Customers,
-    Settings
+    Settings,
+    ReturnInspections
 }
 
 public sealed record ShellDestinationInfo(
@@ -25,6 +26,7 @@ public static class ShellDestinations
         new(ShellDestination.Products, "Sản phẩm", "Chính", "Shop"),
         new(ShellDestination.Inventory, "Danh mục và Kho", "Chính", "AllApps"),
         new(ShellDestination.Orders, "Đơn hàng", "Chính", "Document"),
+        new(ShellDestination.ReturnInspections, "Kiểm định hàng trả", "Chính", "Repair"),
         new(ShellDestination.Customers, "Khách hàng", "Chính", "Contact"),
         new(ShellDestination.Settings, "Cài đặt", "Footer", "Setting", IsFooterItem: true)
     ]);

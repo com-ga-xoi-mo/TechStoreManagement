@@ -82,7 +82,7 @@ A missing, expired, forged or revoked token, missing/malformed/empty user identi
 - **THEN** the response is 403 without exposing order data
 
 ### Requirement: POS endpoints authorization
-The permission table SHALL list: `POST /api/pos/shifts`, `POST /api/pos/checkout` for Admin and SalesStaff; `POST /api/pos/shifts/{id}/close` for Admin and SalesStaff (SalesStaff own shift only) and Manager; `GET /api/pos/shifts/current` for Admin and SalesStaff; `GET /api/pos/shifts`, `GET /api/pos/shifts/{id}` for Admin, Manager and SalesStaff (own only). WarehouseStaff SHALL receive 403 and a missing or invalid token 401 on every `/api/pos` endpoint. The actor SHALL come from the token.
+Admin, Manager and SalesStaff SHALL open and read their own current shift. Admin and SalesStaff SHALL quote and check out sales and cancel or expire a pending QR hold. SalesStaff SHALL access only their own QR holds and shifts. Admin/Manager SHALL list and close any shift. Missing or invalid authentication SHALL yield 401. WarehouseStaff SHALL receive 403 on POS routes. The actor SHALL come from the token.
 
 #### Scenario: Warehouse blocked
 - **WHEN** WarehouseStaff calls any `/api/pos` endpoint
@@ -95,6 +95,17 @@ The permission table SHALL list: `POST /api/pos/shifts`, `POST /api/pos/checkout
 #### Scenario: Anonymous
 - **WHEN** a request without a token calls `/api/pos/shifts/current`
 - **THEN** the response is 401
+
+#### Scenario: Sales ends a pending QR hold
+- **WHEN** the cashier cancels an existing unpaid QR hold before expiry or marks it expired when due
+- **THEN** the order is cancelled and its reservation is released once. A different cashier receives 404. An unresolved payment or voucher hold returns 409 and keeps the reservation.
+
+### Requirement: Warranty case authorization
+The API SHALL restrict warranty case intake, lookup, repair handback and replacement to Admin and Manager.
+
+#### Scenario: Sales and Warehouse cannot authorize warranty operations
+- **WHEN** SalesStaff or WarehouseStaff calls a warranty case endpoint
+- **THEN** the API returns 403.
 
 ### Requirement: Voucher and loyalty summary roles
 Every `/api/vouchers` endpoint SHALL require Admin or Manager; a missing token returns 401 and any other role returns 403 with nothing read or changed. `GET /api/customers/{id}/loyalty-summary` SHALL allow Admin, Manager and SalesStaff and return 403 to WarehouseStaff.

@@ -12,7 +12,8 @@ public enum AppRouteKind
     ProductCreate,
     ProductEdit,
     UserManagement,
-    VoucherList
+    VoucherList,
+    OrderReturns
 }
 
 /// <summary>Value-only route state. It deliberately carries no page, ViewModel, service, or scope.</summary>
@@ -23,7 +24,8 @@ public sealed class AppRoute : IEquatable<AppRoute>
         AppRouteKind kind,
         Guid? productId = null,
         ProductQuery? returnQuery = null,
-        Guid? focusProductId = null)
+        Guid? focusProductId = null,
+        Guid? orderId = null, Guid? exchangeRequestId = null)
     {
         if (!Enum.IsDefined(destination)) throw new ArgumentOutOfRangeException(nameof(destination));
         if (kind is AppRouteKind.ProductList or AppRouteKind.ProductDetail or AppRouteKind.ProductCreate or AppRouteKind.ProductEdit && destination != ShellDestination.Products)
@@ -43,6 +45,13 @@ public sealed class AppRoute : IEquatable<AppRoute>
         if (returnQuery is not null && returnQuery.Specs is null)
             throw new ArgumentException("The Catalog return query must contain a spec collection.", nameof(returnQuery));
 
+        if (kind == AppRouteKind.OrderReturns && (destination != ShellDestination.Orders || !orderId.HasValue || orderId == Guid.Empty))
+            throw new ArgumentException("A return route requires an order.", nameof(orderId));
+        if (exchangeRequestId == Guid.Empty)
+            throw new ArgumentException("An exchange requires a return request.", nameof(exchangeRequestId));
+
+        OrderId = orderId;
+        ExchangeRequestId = exchangeRequestId;
         Destination = destination;
         Kind = kind;
         ProductId = productId;
@@ -54,6 +63,8 @@ public sealed class AppRoute : IEquatable<AppRoute>
 
     public ShellDestination Destination { get; }
     public AppRouteKind Kind { get; }
+    public Guid? OrderId { get; }
+    public Guid? ExchangeRequestId { get; }
     public Guid? ProductId { get; }
     public ProductQuery? ReturnQuery { get; }
     public Guid? FocusProductId { get; }
@@ -65,6 +76,8 @@ public sealed class AppRoute : IEquatable<AppRoute>
     public static AppRoute Vouchers() => new(ShellDestination.Customers, AppRouteKind.VoucherList);
     public static AppRoute OrderCreate() => new(ShellDestination.Orders, AppRouteKind.OrderCreate);
     public static AppRoute Pos() => new(ShellDestination.Orders, AppRouteKind.Pos);
+    public static AppRoute OrderReturns(Guid orderId) => new(ShellDestination.Orders, AppRouteKind.OrderReturns, orderId: orderId);
+    public static AppRoute PosExchange(Guid requestId) => new(ShellDestination.Orders, AppRouteKind.Pos, exchangeRequestId: requestId);
     public static AppRoute ProductDetail(Guid productId, ProductQuery? returnQuery = null, Guid? focusProductId = null) =>
         new(ShellDestination.Products, AppRouteKind.ProductDetail, productId, returnQuery, focusProductId);
     public static AppRoute ProductCreate(ProductQuery? returnQuery = null) =>
@@ -75,6 +88,7 @@ public sealed class AppRoute : IEquatable<AppRoute>
     public bool Equals(AppRoute? other) => other is not null
         && Destination == other.Destination
         && Kind == other.Kind
+        && OrderId == other.OrderId && ExchangeRequestId == other.ExchangeRequestId
         && ProductId == other.ProductId
         && FocusProductId == other.FocusProductId
         && ProductQueryValueComparer.Equals(ReturnQuery, other.ReturnQuery);
@@ -87,6 +101,8 @@ public sealed class AppRoute : IEquatable<AppRoute>
         hash.Add(Destination);
         hash.Add(Kind);
         hash.Add(ProductId);
+        hash.Add(OrderId);
+        hash.Add(ExchangeRequestId);
         hash.Add(FocusProductId);
         ProductQueryValueComparer.AddToHashCode(ref hash, ReturnQuery);
         return hash.ToHashCode();

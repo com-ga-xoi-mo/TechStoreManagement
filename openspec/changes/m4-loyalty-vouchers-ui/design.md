@@ -18,7 +18,7 @@ ViewModel phát sự kiện `EditorRequested(VoucherItem?)` và `StatusRequested
 
 ## D5. Thẻ tóm tắt điểm
 
-`CustomerDetailViewModel` gọi `GetLoyaltySummaryAsync` song song với hồ sơ. Lỗi của riêng thẻ này không làm hỏng hồ sơ: thẻ ẩn và hồ sơ vẫn hiện. Tỉ lệ thanh tiến độ tính từ mốc hạng hiện tại tới hạng kế tiếp (500/1.500/5.000), ở hạng Platinum hiện "Đã đạt hạng cao nhất". Các mốc nằm trong `LoyaltyTierThresholds` phía client, có test khớp với mốc server. Hạng và điểm vẫn lấy từ hồ sơ; summary chỉ bổ sung mức giảm, hạng kế tiếp và điểm thiếu.
+Tóm tắt điểm có repository riêng `ILoyaltyRepository` (không thêm hàm vào `ICustomerRepository`, vì nhiều test của người khác có fake implement interface đó). `CustomerDetailViewModel` nhận `ILoyaltyRepository` là tham số tùy chọn cuối của constructor (các test hiện có không đổi) và gọi `GetSummaryAsync` song song với hồ sơ. Lỗi của riêng thẻ này không làm hỏng hồ sơ: thẻ ẩn và hồ sơ vẫn hiện. Tỉ lệ thanh tiến độ tính từ mốc hạng hiện tại tới hạng kế tiếp (500/1.500/5.000), ở hạng Platinum hiện "Đã đạt hạng cao nhất". Các mốc (0/500/1.500/5.000, cùng số với `LoyaltyRules` ở server) nằm trong `LoyaltyTierThresholds` phía client chỉ để vẽ thanh tiến độ và có test ghim số; hạng kế tiếp lạ thì dùng số điểm còn thiếu do server trả. Hạng và điểm vẫn lấy từ hồ sơ; summary chỉ bổ sung mức giảm, hạng kế tiếp và điểm thiếu.
 
 ## D6. Màu và kiểu chữ
 

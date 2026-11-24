@@ -2,15 +2,15 @@
 
 ## 1. Điều hướng và quyền (TDD: test trước)
 
-- [ ] 1.1 `AppRouteKind.VoucherList`, `AppRoute.Vouchers()` dưới `ShellDestination.Customers`; test tạo route, so sánh, chặn sai destination.
-- [ ] 1.2 `RoleAccess.CanManageVouchers`, `CanOpen(VoucherList)` chỉ Admin/Manager; test bốn vai trò; menu vẫn sáu mục.
+- [x] 1.1 `AppRouteKind.VoucherList`, `AppRoute.Vouchers()` dưới `ShellDestination.Customers`; test tạo route, so sánh, chặn sai destination.
+- [x] 1.2 `RoleAccess.CanManageVouchers`, `CanOpen(VoucherList)` chỉ Admin/Manager; test bốn vai trò; menu vẫn sáu mục.
 - [ ] 1.3 `ShellRoutePageFactory` và `VerifyAllRoutesResolve` biết route mới.
 
 ## 2. Dữ liệu client
 
-- [ ] 2.1 Models: `VoucherItem`, `VoucherPage`, `VoucherQuery`, `VoucherPresentation` (trạng thái, chuỗi giảm, lượt), `LoyaltySummary`, `LoyaltyTierThresholds`; test trạng thái Inactive/Expired/Exhausted/Active và mốc hạng khớp server.
-- [ ] 2.2 `IVoucherRepository`/`VoucherRepository`: list, create, update, activate/deactivate; test đường dẫn, query, map, kiểm tra phản hồi sai, lỗi HTTP.
-- [ ] 2.3 `ICustomerRepository.GetLoyaltySummaryAsync`; test đường dẫn, map, 404.
+- [x] 2.1 Models: `VoucherItem`, `VoucherPage`, `VoucherQuery`, `VoucherPresentation` (trạng thái, chuỗi giảm, lượt), `LoyaltySummary`, `LoyaltyTierThresholds`; test trạng thái Inactive/Expired/Exhausted/Active, chuỗi hiển thị và mốc hạng/tiến độ.
+- [x] 2.2 `IVoucherRepository`/`VoucherRepository`: list, create, update, activate/deactivate; test đường dẫn, query, map, kiểm tra phản hồi sai, lỗi HTTP.
+- [x] 2.3 `ILoyaltyRepository`/`LoyaltyRepository.GetSummaryAsync` (tách khỏi `ICustomerRepository` để không phá các fake trong test của người khác); test đường dẫn, map, kiểm tra phản hồi, 404.
 
 ## 3. ViewModel
 

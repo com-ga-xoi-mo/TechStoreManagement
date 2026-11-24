@@ -40,6 +40,9 @@ public sealed partial class VoucherEditorDialogViewModel : ObservableObject
     [ObservableProperty] private bool isSaving;
     [ObservableProperty] private VoucherItem? savedVoucher;
 
+    /// <summary>Raised when the dialog should close: after a successful save, or on cancel.</summary>
+    public event EventHandler? RequestClose;
+
     public VoucherEditorDialogViewModel(IVoucherRepository vouchers, TimeProvider? timeProvider = null)
     {
         _vouchers = vouchers ?? throw new ArgumentNullException(nameof(vouchers));
@@ -85,6 +88,9 @@ public sealed partial class VoucherEditorDialogViewModel : ObservableObject
 
     private bool CanSave() => !IsSaving;
 
+    [RelayCommand]
+    private void Cancel() => RequestClose?.Invoke(this, EventArgs.Empty);
+
     [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync(CancellationToken cancellationToken)
     {
@@ -116,6 +122,7 @@ public sealed partial class VoucherEditorDialogViewModel : ObservableObject
                     UsageLimit = input.UsageLimit,
                     ExpiresAt = input.ExpiresAtUtc
                 }, cancellationToken);
+            RequestClose?.Invoke(this, EventArgs.Empty);
         }
         catch (OperationCanceledException)
         {

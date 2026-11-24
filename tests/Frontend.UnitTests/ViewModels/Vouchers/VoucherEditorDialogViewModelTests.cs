@@ -527,6 +527,57 @@ public sealed class VoucherEditorDialogViewModelTests
         Assert.Equal(string.Empty, viewModel.Code);
     }
 
+    [Fact]
+    public async Task Save_Success_AsksTheDialogToCloseOnce()
+    {
+        // Arrange
+        var viewModel = Create(new FakeVouchers());
+        viewModel.Initialize(null);
+        Fill(viewModel);
+        var closed = 0;
+        viewModel.RequestClose += (_, _) => closed++;
+
+        // Act
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal(1, closed);
+    }
+
+    [Fact]
+    public async Task Save_Failure_KeepsTheDialogOpen()
+    {
+        // Arrange
+        var viewModel = Create(new FakeVouchers { Failure = new ApiException(ApiErrorKind.Http, "x", 409) });
+        viewModel.Initialize(null);
+        Fill(viewModel);
+        var closed = 0;
+        viewModel.RequestClose += (_, _) => closed++;
+
+        // Act
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal(0, closed);
+    }
+
+    [Fact]
+    public void Cancel_AsksTheDialogToCloseWithoutASavedVoucher()
+    {
+        // Arrange
+        var viewModel = Create(new FakeVouchers());
+        viewModel.Initialize(null);
+        var closed = 0;
+        viewModel.RequestClose += (_, _) => closed++;
+
+        // Act
+        viewModel.CancelCommand.Execute(null);
+
+        // Assert
+        Assert.Equal(1, closed);
+        Assert.Null(viewModel.SavedVoucher);
+    }
+
     private static VoucherEditorDialogViewModel Create(FakeVouchers repository) => new(repository, new FixedClock(Now));
 
     private static void Fill(

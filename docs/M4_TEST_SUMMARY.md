@@ -59,3 +59,16 @@ Trong lượt chạy song song, test thu hồi quyền gặp timeout lúc xóa d
 Dùng `docker compose up -d` và chỉ định PostgreSQL test cho `TECHSTORE_TEST_CONNECTION`. Suite backend unit tự tạo/xóa database riêng cho từng ca. Seed integration cần `TECHSTORE_SEED_TEST_POSTGRES` và `TECHSTORE_SEED_TEST_ALLOW_SCHEMA=YES`. Analytics integration cần **một database test riêng** cho `TECHSTORE_ANALYTICS_TEST_POSTGRES` và `TECHSTORE_ANALYTICS_ALLOW_DATABASE_RESET=YES`. Frontend integration cần API Kestrel đã seed, đăng nhập được, tại `TECHSTORE_API_BASE_URL`. Chạy `dotnet test <project> -c Release` với từng csproj dưới tests. Xem baseline và input M2/M3 trong [báo cáo hồi quy M3](M3_TEST_SUMMARY.md).
 
 Chạy probe UI bằng `dotnet run -c Release --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop -- --probe-returns`. Clip riêng của An là bản ghi giao diện Skia dùng fixture. Hoàn chuyển khoản trong sản phẩm dùng đối soát thủ công. Khi gặp kết quả chưa rõ, giữ yêu cầu chờ để tra mã giao dịch.
+
+## Bảo hành
+
+Ngày 25/11/2026, bản Uno Skia Release `net10.0-desktop` chạy trên Ubuntu 24.04 x64 với API ASP.NET Core và PostgreSQL 16 thật trong DB thử riêng. Probe mở danh sách và chi tiết bằng bốn tài khoản demo, xác nhận dữ liệu, binding và màu chữ/nền khi đổi Sáng/Tối ngay trên trang.
+
+| Tài khoản | Thao tác đã kiểm tra |
+|---|---|
+| `admin` | Mở chi tiết, đổi kết luận kiểm định qua bộ chọn và chuyển từ Chờ kiểm định sang Đang sửa. |
+| `warehouse1` | Mở chi tiết, báo sửa xong và xác nhận nút Tiếp nhận ẩn. |
+| `cashier1` | Trả máy đã sửa. Mở tiếp nhận, tra theo IMEI và mã đơn, nhận sẵn liên hệ, nhập lỗi và ghi hồ sơ mới. |
+| `manager1` | Tải các máy thay còn kho, từ chối đề nghị đổi và chuyển hồ sơ về Đang sửa. |
+
+Chạy seed hai lần cho kết quả 5 hồ sơ demo với đúng số sự kiện. Truy vấn đối soát tồn trả 0 dòng. Kiểm thử local đạt 965 backend unit và HTTP/PostgreSQL, 4 backend integration, 1.174 frontend unit và 4 frontend integration với API thật. Clip Linux và log từng vai trò ở `.local/m4-warranty-repair/runtime/warranty-skia.mp4` và `.local/m4-warranty-repair/runtime/skia-recorded.log`. Bản Windows native còn chờ nghiệm thu trên máy Windows.

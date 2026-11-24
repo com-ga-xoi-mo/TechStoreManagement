@@ -18,6 +18,7 @@ using TechStore.Api.Identity.Entities;
 using TechStore.Api.Inventory.Entities;
 using TechStore.Api.Orders.Entities;
 using TechStore.Api.Sales.Entities;
+using TechStore.Api.Warranty.Entities;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
@@ -298,9 +299,9 @@ public sealed class DataSeederPostgresIntegrationTests(ITestOutputHelper output)
         Assert.Equal(10, await db.InventoryMovements.CountAsync(x => x.MovementType == InventoryMovementType.PurchaseReceipt && x.PurchaseOrderItemId != null && x.InventoryStock.Product.IsSerialTracked));
         Assert.Equal(12, await db.InventoryMovements.CountAsync(x => x.MovementType == InventoryMovementType.Sale && x.OrderItemId != null && x.InventoryStock.Product.IsSerialTracked));
         Assert.Equal(6, await db.VietQrTransactions.CountAsync(x => x.TransactionCode.StartsWith("DQR-DEMO-")));
-        Assert.Equal(12, await db.SerialImeis.CountAsync(x => x.Imei != null && x.Imei.StartsWith("490000000") && x.Status == SerialImeiStatus.Sold && x.WarrantyStartAt != null && x.WarrantyEndAt != null));
+        Assert.Equal(9, await db.SerialImeis.CountAsync(x => x.Imei != null && x.Imei.StartsWith("490000000") && x.Status == SerialImeiStatus.Sold && x.WarrantyStartAt != null && x.WarrantyEndAt != null));
         Assert.Equal(2, await db.SerialImeis.CountAsync(x => x.Imei != null && x.Imei.StartsWith("490000000") && x.Status == SerialImeiStatus.Reserved));
-        Assert.Equal(36, await db.SerialImeis.CountAsync(x => x.Imei != null && x.Imei.StartsWith("490000000") && x.Status == SerialImeiStatus.InStock));
+        Assert.Equal(35, await db.SerialImeis.CountAsync(x => x.Imei != null && x.Imei.StartsWith("490000000") && x.Status == SerialImeiStatus.InStock));
         await AssertLifecycleLinksAsync(db);
         await AssertAfterSaleDemoAsync(db);
     }
@@ -323,11 +324,28 @@ public sealed class DataSeederPostgresIntegrationTests(ITestOutputHelper output)
         var movement = await db.InventoryMovements.SingleAsync(m => m.OrderReturnId == restocked.Id);
         Assert.Equal(restocked.RefundedAt.AddDays(1), movement.CreatedAt);
         Assert.Equal((InventoryMovementType.CustomerReturn, 3, 1), (movement.MovementType, movement.QuantityAfter, movement.QuantityChange));
-        var warranty = await db.Set<WarrantyCase>().AsNoTracking().SingleAsync();
+        var warranty = await db.Set<WarrantyCase>().AsNoTracking().Include(x => x.Events).SingleAsync(x => x.CaseCode == "BH-202610-0001");
         Assert.Equal(WarrantyCaseStatus.ReturnedToCustomer, warranty.Status);
+        Assert.Equal("BH-202610-0001", warranty.CaseCode);
+        Assert.False(string.IsNullOrWhiteSpace(warranty.ContactName));
+        Assert.False(string.IsNullOrWhiteSpace(warranty.ContactPhone));
+        Assert.Collection(warranty.Events.OrderBy(x => x.CreatedAt),
+            opened => Assert.Equal((null, WarrantyCaseStatus.Received, warranty.OpenedById, warranty.OpenedAt),
+                (opened.FromStatus, opened.ToStatus, opened.ActorId, opened.CreatedAt)),
+            closed => Assert.Equal(((WarrantyCaseStatus?)WarrantyCaseStatus.Received, WarrantyCaseStatus.ReturnedToCustomer, warranty.ClosedById!.Value, warranty.ClosedAt!.Value),
+                (closed.FromStatus, closed.ToStatus, closed.ActorId, closed.CreatedAt)));
         Assert.Equal(2, await db.Set<InventoryOperation>().CountAsync(x => x.Kind == "Warranty" &&
             (x.Id == warranty.ReceiveOperationId || x.Id == warranty.ResolutionOperationId)));
-        Assert.Equal(4, await db.Set<InventoryOperation>().CountAsync());
+        Assert.Equal(9, await db.Set<InventoryOperation>().CountAsync());
+        var demoCases = await db.Set<WarrantyCase>().AsNoTracking().Include(x => x.Events)
+            .Where(x => x.CaseCode != "BH-202610-0001").OrderBy(x => x.CaseCode).ToListAsync();
+        Assert.Equal(new[] { WarrantyCaseStatus.Received, WarrantyCaseStatus.Repairing,
+            WarrantyCaseStatus.PendingReplacement, WarrantyCaseStatus.Replaced }, demoCases.Select(x => x.Status));
+        Assert.Equal(new[] { 1, 2, 2, 3 }, demoCases.Select(x => x.Events.Count));
+        var replaced = demoCases[^1];
+        Assert.NotNull(replaced.MovementId);
+        Assert.Equal(replaced.OrderItemId, await db.SerialImeis.Where(d => d.Id == replaced.ReplacementDeviceId)
+            .Select(d => d.SaleOrderItemId).SingleAsync());
         Assert.Single(await db.Set<InventoryOperation>().Where(x => x.Id == restocked.InspectionId && x.MovementId == movement.Id).ToListAsync());
     }
 
@@ -359,7 +377,7 @@ public sealed class DataSeederPostgresIntegrationTests(ITestOutputHelper output)
             Assert.Equal(receipt.ReceivedQuantity, movement.QuantityAfter);
 
             var balance = receipt.ReceivedQuantity;
-            foreach (var sale in ledger.Where(x => x.InventoryStockId == stock.Id && x.MovementType == InventoryMovementType.Sale)
+            foreach (var sale in ledger.Where(x => x.InventoryStockId == stock.Id && (x.MovementType is InventoryMovementType.Sale or InventoryMovementType.WarrantyReplacement))
                          .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id))
             {
                 Assert.Equal(--balance, sale.QuantityAfter);
@@ -375,7 +393,7 @@ public sealed class DataSeederPostgresIntegrationTests(ITestOutputHelper output)
             var item = Assert.Single(order.Items);
             Assert.Equal(item.TotalPrice, order.TotalAmount);
             var payment = vietQr.Where(x => x.OrderId == order.Id);
-            var sales = ledger.Where(x => x.OrderItemId == item.Id);
+            var sales = ledger.Where(x => x.OrderItemId == item.Id && x.MovementType == InventoryMovementType.Sale);
             if (order.Status == OrderStatus.Completed && order.PaymentMethod == PaymentMethod.VietQr)
             {
                 var qr = Assert.Single(payment);
@@ -397,7 +415,15 @@ public sealed class DataSeederPostgresIntegrationTests(ITestOutputHelper output)
                 Assert.NotNull(item.SerialImei);
                 Assert.Equal(item.ProductId, item.SerialImei.ProductId);
                 Assert.Equal(item.VariantId, item.SerialImei.VariantId);
-                Assert.Equal(SerialImeiStatus.Sold, item.SerialImei.Status);
+                var warranty = await db.Set<WarrantyCase>().AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.OrderItemId == item.Id && x.DeviceId == item.SerialImeiId && x.Status != WarrantyCaseStatus.ReturnedToCustomer);
+                var expectedStatus = warranty?.Status switch
+                {
+                    null => SerialImeiStatus.Sold,
+                    WarrantyCaseStatus.Replaced => SerialImeiStatus.Defective,
+                    _ => SerialImeiStatus.UnderRepair
+                };
+                Assert.Equal(expectedStatus, item.SerialImei.Status);
                 Assert.Equal(order.CompletedAt, item.SerialImei.WarrantyStartAt);
                 Assert.Equal(order.CompletedAt.Value.AddMonths(12), item.SerialImei.WarrantyEndAt);
                 var sale = Assert.Single(sales);
@@ -493,7 +519,7 @@ public sealed class DataSeederPostgresIntegrationTests(ITestOutputHelper output)
             Assert.Equal(start, actual.StartDate);
             Assert.Equal(end, actual.EndDate);
             Assert.Equal("UTC+07:00", actual.TimeZone);
-            Assert.Equal(new AdminDashboardSummaryDto(revenue, count, 20, 7, null, null), actual.Summary);
+            Assert.Equal(new AdminDashboardSummaryDto(revenue, count, 20, 8, null, null), actual.Summary);
             Assert.Equal(daily.Select((amount, index) => new AdminDashboardDailyRevenueDto(start.AddDays(index), amount)),
                 actual.DailyRevenue);
             Assert.Equal(actual.Summary.Revenue, actual.DailyRevenue.Sum(x => x.Revenue));

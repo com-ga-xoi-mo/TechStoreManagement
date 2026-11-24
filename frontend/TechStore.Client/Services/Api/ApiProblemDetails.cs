@@ -10,7 +10,9 @@ public sealed record ApiProblemDetails(
     string? Code,
     string? TraceId,
     IReadOnlyDictionary<string, IReadOnlyList<string>> FieldErrors,
-    IReadOnlyList<string>? DuplicateIdentifiers = null)
+    IReadOnlyList<string>? DuplicateIdentifiers = null,
+    IReadOnlyList<string>? Reasons = null,
+    string? CurrentStatus = null)
 {
     public static ApiProblemDetails? TryParse(JsonElement root)
     {
@@ -27,13 +29,15 @@ public sealed record ApiProblemDetails(
         var traceId = GetString(root, "traceId") ?? GetString(root, "traceIdentifier");
         var errors = ParseFieldErrors(root);
         var duplicateIdentifiers = ParseStringArray(root, "duplicateIdentifiers");
+        var reasons = ParseStringArray(root, "reasons");
+        var currentStatus = GetString(root, "currentStatus");
         if (type is null && title is null && detail is null && status is null
-            && code is null && traceId is null && errors.Count == 0 && duplicateIdentifiers is null)
+            && code is null && traceId is null && errors.Count == 0 && duplicateIdentifiers is null && reasons is null && currentStatus is null)
         {
             return null;
         }
 
-        return new ApiProblemDetails(type, title, detail, status, code, traceId, errors, duplicateIdentifiers);
+        return new ApiProblemDetails(type, title, detail, status, code, traceId, errors, duplicateIdentifiers, reasons, currentStatus);
     }
 
     private static string? GetString(JsonElement root, string name) =>

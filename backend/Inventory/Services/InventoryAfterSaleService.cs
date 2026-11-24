@@ -215,6 +215,7 @@ public class InventoryAfterSaleService(IInventoryAfterSaleRepository repository,
             operation.MovementId = movement.Id;
             operation.UnitCost = replacement.UnitCost;
             replacement.SaleOrderItemId = orderItemId;
+            replacement.WarrantyMonths = device.WarrantyMonths;
             replacement.WarrantyStartAt = device.WarrantyStartAt;
             replacement.WarrantyEndAt = device.WarrantyEndAt;
             replacement.Status = SerialImeiStatus.Sold;

@@ -546,6 +546,7 @@ Table return_case_lines {
 
 Table warranty_cases {
   id uuid [pk]
+  case_code text [not null, note: 'BH-yyyyMM-NNNN using the UTC intake month']
   order_id uuid [not null]
   order_item_id uuid [not null]
   customer_id uuid [ref: > customers.id]
@@ -562,7 +563,13 @@ Table warranty_cases {
   replacement_device_id uuid [ref: > serial_imeis.id]
   movement_id uuid [ref: > inventory_movements.id]
   replacement_unit_cost "numeric(18, 2)"
+  issue_description varchar(1000)
+  contact_name varchar(100)
+  contact_phone varchar(20)
+  inspection_note varchar(1000)
+  rejection_reason varchar(500)
   indexes {
+    case_code [unique, name: 'idx_warranty_cases_code']
     order_id [name: 'idx_warranty_cases_order']
     (order_item_id, order_id) [name: 'idx_warranty_cases_item_order']
     customer_id [name: 'idx_warranty_cases_customer']
@@ -574,9 +581,45 @@ Table warranty_cases {
     resolution_operation_id [unique, name: 'uq_warranty_cases_resolution_op']
     movement_id [unique, name: 'uq_warranty_cases_movement']
   }
+
+  checks {
+    `warranty_start_at <= opened_at AND opened_at < warranty_end_at AND (closed_at IS NULL OR closed_at >= opened_at)` [name: 'ck_warranty_cases_dates']
+    `replacement_unit_cost IS NULL OR replacement_unit_cost >= 0` [name: 'ck_warranty_cases_cost']
+    `(status IN ('Received','Repairing','PendingReplacement','Repaired','Rejected') AND closed_by_id IS NULL AND closed_at IS NULL AND resolution_operation_id IS NULL AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL AND (status <> 'Rejected' OR rejection_reason IS NOT NULL)) OR (status IN ('ReturnedToCustomer','Replaced') AND closed_by_id IS NOT NULL AND closed_at IS NOT NULL AND resolution_operation_id IS NOT NULL AND ((status = 'ReturnedToCustomer' AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL) OR (status = 'Replaced' AND replacement_device_id IS NOT NULL AND replacement_device_id <> device_id AND movement_id IS NOT NULL)))` [name: 'ck_warranty_cases_outcome']
+  }
+
+  Note: '''
+    PostgreSQL partial unique index uq_warranty_cases_open_device on device_id
+    WHERE status IN ('Received','Repairing','PendingReplacement','Repaired','Rejected').
+  '''
 }
 
 Ref: warranty_cases.(order_item_id, order_id) > order_items.(id, order_id) [delete: restrict]
+
+Table warranty_case_events {
+  id uuid [pk]
+  case_id uuid [not null]
+  from_status text
+  to_status text [not null]
+  actor_id uuid [not null]
+  note varchar(1000)
+  created_at timestamptz [not null]
+
+  indexes {
+    (case_id, created_at) [name: 'idx_warranty_case_events_case_id']
+    actor_id [name: 'idx_warranty_case_events_actor_id']
+  }
+
+  checks {
+    `from_status IN ('Received','Repairing','PendingReplacement','Repaired','Rejected','ReturnedToCustomer','Replaced')` [name: 'ck_warranty_case_events_from_status']
+    `to_status IN ('Received','Repairing','PendingReplacement','Repaired','Rejected','ReturnedToCustomer','Replaced')` [name: 'ck_warranty_case_events_to_status']
+  }
+
+  Note: 'Append-only warranty case history. Intake has no from_status.'
+}
+
+Ref FK_warranty_case_events_warranty_cases_case_id: warranty_case_events.case_id > warranty_cases.id [delete: restrict]
+Ref FK_warranty_case_events_users_actor_id: warranty_case_events.actor_id > users.id [delete: restrict]
 
 Table inventory_reservations {
   order_item_id uuid [pk, ref: > order_items.id]
@@ -963,7 +1006,6 @@ TableGroup Catalog {
 }
 
 TableGroup Inventory {
-  warranty_cases
   inventory_operations
   inventory_reservations
   inventory_stocks
@@ -972,6 +1014,11 @@ TableGroup Inventory {
   purchase_orders
   purchase_order_items
   serial_imeis
+}
+
+TableGroup Warranty {
+  warranty_cases
+  warranty_case_events
 }
 
 TableGroup Orders {

@@ -14,9 +14,9 @@
 
 ## 3. ViewModel
 
-- [ ] 3.1 `VoucherListViewModel`: tải, tìm có chờ gõ, lọc trạng thái, phân trang, hủy khi rời trang, lỗi an toàn; test.
-- [ ] 3.2 `VoucherEditorDialogViewModel`: tạo/sửa, kiểm tra nhập, lỗi theo trường, 409, khóa mã và loại khi sửa; test.
-- [ ] 3.3 Bật/tắt voucher trong danh sách, cập nhật dòng, lỗi 403; test.
+- [x] 3.1 `VoucherListViewModel`: tải, tìm có chờ gõ, lọc trạng thái, phân trang, hủy khi rời trang, lỗi an toàn; test.
+- [x] 3.2 `VoucherEditorDialogViewModel`: tạo/sửa, kiểm tra nhập, lỗi theo trường, 409, khóa mã và loại khi sửa; test.
+- [x] 3.3 Bật/tắt voucher trong danh sách, cập nhật dòng, lỗi 403; test.
 - [ ] 3.4 `CustomerDetailViewModel`: tải tóm tắt điểm song song, lỗi thẻ không làm hỏng hồ sơ, tiến độ hạng; test.
 
 ## 4. View (C# Markup, token giao diện)

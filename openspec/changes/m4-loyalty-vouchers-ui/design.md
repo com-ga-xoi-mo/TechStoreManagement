@@ -14,7 +14,7 @@ Theo `CustomerRepository` (M3): repository kiểm tra và map JSON, lỗi HTTP n
 
 ## D4. Hộp thoại tạo/sửa theo mẫu nhà cung cấp
 
-ViewModel phát sự kiện `EditorRequested(VoucherItem?)` và `StatusRequested(VoucherItem)`; Page mở `ContentDialog` (như `SupplierEditorDialog`). Hộp thoại sửa khóa mã và loại giảm (server không cho đổi). Đây là ngoại lệ "C# event yêu cầu mở dialog" đã được AGENTS.md cho phép; thêm hai tên sự kiện `VoucherEditorRequested`, `VoucherStatusRequested` vào danh sách ngoại lệ ở tài liệu này (không thêm ngoại lệ mới về cơ chế).
+`VoucherListViewModel` phát sự kiện `VoucherEditorRequested(VoucherItem?)` (null là tạo mới); Page mở `ContentDialog` (như `SupplierEditorDialog`) và gọi `NotifySavedAsync()` khi hộp thoại lưu xong. Hộp thoại sửa khóa mã và loại giảm (server không cho đổi). Đây là ngoại lệ "C# event yêu cầu mở dialog" đã được AGENTS.md cho phép; tên sự kiện mới `VoucherEditorRequested` được ghi ở đây (không thêm ngoại lệ mới về cơ chế). Bật/tắt voucher không cần xác nhận (đảo ngược được) nên là lệnh trực tiếp `ToggleActiveCommand`, không có sự kiện.
 
 ## D5. Thẻ tóm tắt điểm
 

@@ -384,6 +384,12 @@ public class SerialImeiService(
                 return DeviceStatusResult.NotFound();
             }
 
+            if (device.AfterSaleQuarantine)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return DeviceStatusResult.Conflict("Thiết bị thuộc hồ sơ trả hàng hoặc bảo hành. Không thể khôi phục qua báo lỗi kho.");
+            }
+
             if (device.Status != SerialImeiStatus.Defective)
             {
                 await unitOfWork.RollbackAsync(cancellationToken);

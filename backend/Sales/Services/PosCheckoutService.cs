@@ -18,7 +18,9 @@ public class PosCheckoutService(
     IPosSessionRepository sessionRepository,
     IInventoryFulfillmentService fulfillmentService,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider) : IPosCheckoutService
+    TimeProvider timeProvider,
+    IReturnExchangeService? exchanges = null,
+    TechStore.Api.Customers.Services.IRefundLoyaltyService? loyalty = null) : IPosCheckoutService
 {
     private const int MaxCodeAttempts = 5;
     private const string OrderCodeConstraint = "idx_orders_code";
@@ -141,6 +143,11 @@ public class PosCheckoutService(
 
                 var lastCode = await orderRepository.GetLastOrderCodeAsync(OrderCodeGenerator.GetPrefix(now), cancellationToken);
                 order.OrderCode = OrderCodeGenerator.Next(now, lastCode);
+                if (exchanges != null && await exchanges.LinkCheckoutAsync(key, order, actor, cancellationToken) is string conflict)
+                {
+                    await unitOfWork.RollbackAsync(cancellationToken);
+                    return PosResult<PosCheckoutOutcome>.Conflict(conflict);
+                }
                 orderRepository.Add(order);
 
                 var items = order.Items
@@ -180,6 +187,8 @@ public class PosCheckoutService(
                 order.ChangeGiven = request.CashTendered.Value - order.TotalAmount;
                 order.PaidAt = now;
                 order.CompletedAt = now;
+                if (loyalty != null && order.CustomerId is Guid customerId)
+                    await loyalty.StageSaleAsync(order.Id, customerId, order.Subtotal - order.DiscountAmount, cancellationToken);
                 shift.CashSalesTotal += order.TotalAmount;
                 shift.UpdatedAt = now;
 

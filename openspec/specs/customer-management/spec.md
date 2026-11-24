@@ -30,7 +30,7 @@ Every `/api/customers` endpoint SHALL require an authenticated, active account; 
 - **THEN** the response is 401 or 403 respectively and no customer data is changed or exposed
 
 ### Requirement: Paginated customer search
-`GET /api/customers` SHALL return paginated items and metadata, matching name/phone by case-insensitive literal substring and combining tier/activity with AND; omitting `isActive` includes both states. Defaults: page 1, size 20, capped at 100, newest first then ID. Each item SHALL include all-order count, completed-order spending and latest completed time (zero and null without completed orders). For SalesStaff the server SHALL return only active customers whatever `isActive` is sent.
+`GET /api/customers` SHALL return paginated items and metadata, matching name/phone by case-insensitive literal substring and combining tier/activity with AND; omitting `isActive` includes both states. Defaults: page 1, size 20, capped at 100, newest first then ID. Each item SHALL include all-order count, gross delivered spending including tax and the latest delivery time (zero and null without delivered orders). For SalesStaff the server SHALL return only active customers whatever `isActive` is sent.
 
 #### Scenario: Search by Vietnamese name or phone
 - **WHEN** an Admin searches with a name fragment or a phone fragment
@@ -54,11 +54,16 @@ Every `/api/customers` endpoint SHALL require an authenticated, active account; 
 
 #### Scenario: Customer order aggregates
 - **WHEN** an Admin lists a customer with completed, pending, or cancelled orders
-- **THEN** `orderCount` counts all of those orders, `totalSpent` sums only completed-order totals, and `lastPurchaseAt` is the latest completed timestamp
+- **THEN** `orderCount` counts all of those orders, `totalSpent` sums original delivered order totals, and `lastPurchaseAt` is the latest delivery timestamp
 
 #### Scenario: Customer with no completed orders
 - **WHEN** an Admin lists a customer who has no completed orders
 - **THEN** `totalSpent` is zero and `lastPurchaseAt` is null
+
+#### Scenario: Order later returned
+
+- **WHEN** the customer has a delivered order with status `PartiallyRefunded` or `Refunded` and a separate order refunded before delivery
+- **THEN** the list and profile preserve the delivered order's original tax-inclusive `TotalAmount` in `totalSpent` and its `CompletedAt` in `lastPurchaseAt`. Both orders count toward `orderCount` and only the delivered order counts toward the profile's `completedOrderCount`.
 
 ### Requirement: Customer profile and persisted loyalty history
 `GET /api/customers/{id}` SHALL return the profile, persisted points, tier, activity state and timestamps, or 404 for an unknown ID. `GET /api/customers/{id}/loyalty-points` SHALL return newest-first paginated history with point change, balance after, reason, order ID and timestamp. These reads SHALL NOT calculate or change loyalty data. Admin and Manager can read an inactive customer; for SalesStaff an inactive customer SHALL return 404 like an unknown ID.
@@ -125,7 +130,7 @@ Every `/api/customers` endpoint SHALL require an authenticated, active account; 
 - **THEN** the primary product, variant, and category fields are null without fabricating display data
 
 ### Requirement: Customer purchased-device history
-`GET /api/customers/{id}/purchased-items` SHALL return a newest-first paginated history of completed-order items for that customer, including product and variant names, order reference and completion time, and linked serial/IMEI details when present. Unknown customers SHALL return 404, and this query SHALL NOT change order, inventory, or customer data.
+`GET /api/customers/{id}/purchased-items` SHALL return a newest-first paginated history of historically delivered order items for that customer, including items from orders later partially or wholly refunded, including product and variant names, order reference and completion time, and linked serial/IMEI details when present. Unknown customers SHALL return 404, and this query SHALL NOT change order, inventory, or customer data.
 
 #### Scenario: Customer has tracked completed purchases
 - **WHEN** an Admin requests purchased items for a customer with completed orders containing tracked devices
@@ -142,6 +147,11 @@ Every `/api/customers` endpoint SHALL require an authenticated, active account; 
 #### Scenario: Unknown customer purchased-item history
 - **WHEN** an Admin requests purchased items for an unknown customer ID
 - **THEN** the response is 404
+
+#### Scenario: A refund preserves historical device purchases
+
+- **WHEN** a customer returns part or all of a delivered order
+- **THEN** every original delivered item remains in purchase history with its sale reference and linked serial/IMEI. Items from an order refunded before delivery are excluded.
 
 ### Requirement: Deactivate customer without data loss
 `PATCH /api/customers/{id}/deactivate` SHALL set `isActive=false` rather than remove the row. It SHALL return 204 for an existing customer, including one already inactive, and 404 for an unknown ID. The customer, point ledger, and linked orders SHALL remain stored; new orders SHALL reject an inactive customer. The API SHALL NOT expose `DELETE /api/customers/{id}`.

@@ -169,8 +169,7 @@ public class PosShiftService(
                 return PosResult<PosShiftDto>.Conflict("The shift is already closed.");
             }
 
-            // Cash refunds are subtracted here from M4 on.
-            var expected = shift.OpeningBalance + shift.CashSalesTotal;
+            var expected = shift.OpeningBalance + shift.CashSalesTotal - shift.CashRefundTotal;
             if (counted != expected && note == null)
             {
                 await unitOfWork.RollbackAsync(cancellationToken);
@@ -232,8 +231,9 @@ public class PosShiftService(
         Status = shift.Status.ToString(),
         OpeningBalance = shift.OpeningBalance,
         CashSalesTotal = shift.CashSalesTotal,
+        CashRefundTotal = shift.CashRefundTotal,
         ExpectedClosingBalance = shift.ExpectedClosingBalance
-            ?? (shift.Status == PosSessionStatus.Open ? shift.OpeningBalance + shift.CashSalesTotal : null),
+            ?? (shift.Status == PosSessionStatus.Open ? shift.OpeningBalance + shift.CashSalesTotal - shift.CashRefundTotal : null),
         ClosingBalance = shift.ClosingBalance,
         Discrepancy = shift.ClosingBalance - shift.ExpectedClosingBalance,
         ClosingNote = shift.ClosingNote,

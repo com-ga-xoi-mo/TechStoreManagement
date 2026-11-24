@@ -13,7 +13,7 @@
   - `pos_sessions`: `cashier_user_id` (FK -> users.id).
   - `vietqr_transactions`: `order_id` (FK -> orders.id), `pos_session_id` (FK -> pos_sessions.id).
 - **Ca làm việc (PosSession):**
-  - Ràng buộc: `opening_balance >= 0`, `cash_sales_total >= 0`, `vietqr_sales_total >= 0`.
+  - Ràng buộc: `opening_balance >= 0`, `cash_sales_total >= 0`, `cash_refund_total >= 0`, `vietqr_sales_total >= 0`.
   - Indexes: `idx_pos_sessions_cashier_id`, `idx_pos_sessions_status`, `idx_pos_sessions_opened_at`.
 - **Thanh toán VietQR động (VietQrTransaction):**
   - `transaction_code` là duy nhất trên toàn hệ thống (Unique index `idx_vietqr_tx_code`).
@@ -34,10 +34,10 @@
 |Endpoint|Quyền|Ghi chú|
 |:---|:---|:---|
 |`POST /api/pos/quote`|Admin, SalesStaff|Định giá giỏ theo giá hiện hành, giảm dòng, `orderDiscountAmount` và VAT. Trả `subtotal`, `discountAmount`, `taxAmount`, `totalAmount`. Không ghi đơn hoặc giữ hàng.|
-|`POST /api/pos/shifts`|Admin, SalesStaff|Mở ca với `openingBalance` (≥ 0, 2 chữ số thập phân). Mỗi người một ca `Open` (index `uq_pos_sessions_cashier_open`); mở lần hai trả 409.|
+|`POST /api/pos/shifts`|Admin, Manager, SalesStaff|Mở ca với `openingBalance` (≥ 0, 2 chữ số thập phân). Mỗi người một ca `Open` (index `uq_pos_sessions_cashier_open`); mở lần hai trả 409.|
 |`GET /api/pos/shifts/current`|Admin, SalesStaff|Ca `Open` của chính mình hoặc 404.|
 |`GET /api/pos/shifts`, `GET /api/pos/shifts/{id}`|Admin, Manager, SalesStaff|Admin/Manager xem mọi ca; SalesStaff chỉ ca của mình (ca người khác trả 404).|
-|`POST /api/pos/shifts/{id}/close`|Admin, Manager, SalesStaff|Đóng ca với `closingBalance` (tiền thực đếm) và `note`. Tiền dự kiến = `openingBalance + cashSalesTotal` (M4 trừ thêm hoàn tiền mặt); `note` bắt buộc khi chênh lệch khác 0. SalesStaff chỉ đóng ca của mình; Manager/Admin đóng được mọi ca và `closedByUserId` ghi người đóng.|
+|`POST /api/pos/shifts/{id}/close`|Admin, Manager, SalesStaff|Đóng ca với `closingBalance` (tiền thực đếm) và `note`. Tiền dự kiến = `openingBalance + cashSalesTotal - cashRefundTotal`; `note` bắt buộc khi chênh lệch khác 0. SalesStaff chỉ đóng ca của mình; Manager/Admin đóng được mọi ca và `closedByUserId` ghi người đóng.|
 |`POST /api/pos/checkout`|Admin, SalesStaff|Bán tiền mặt vào ca `Open` của chính người gọi. 201 khi tạo mới, 200 khi `checkoutKey` đã được lưu.|
 
 ### Luồng checkout (một transaction)

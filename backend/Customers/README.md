@@ -39,3 +39,5 @@
 - Sửa, vô hiệu hóa/kích hoạt, lịch sử đơn/thiết bị/điểm: `Admin`, `Manager`.
 - `WarehouseStaff`: 403 mọi endpoint. Bảng đầy đủ: [API_PERMISSIONS](../../docs/API_PERMISSIONS.md).
 - Client dùng chung `CustomerPickerViewModel` + `CustomerPickerView` để chọn/tạo khách khi bán (trang tạo đơn, POS).
+
+Tổng mua (`totalSpent`) cộng `TotalAmount` gốc gồm thuế của các đơn đã giao. Hồ sơ giữ ngày mua gần nhất và lịch sử sản phẩm/IMEI khi đơn được hoàn một phần hoặc toàn bộ. Đơn đã trả tiền nhưng được hoàn trước khi giao chỉ được tính vào tổng số đơn.

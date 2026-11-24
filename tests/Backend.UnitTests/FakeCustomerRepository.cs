@@ -13,13 +13,16 @@ public class FakeCustomerRepository : ICustomerRepository
     public List<Order> Orders { get; } = [];
     public List<(Guid CustomerId, CustomerPurchasedItemDto Item)> PurchasedItems { get; } = [];
 
+    private static bool WasDelivered(Order order) => order.CompletedAt.HasValue
+        && order.Status is OrderStatus.Completed or OrderStatus.PartiallyRefunded or OrderStatus.Refunded;
+
     public Task<Customer?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default) => GetByIdAsync(id, cancellationToken);
 
     public Task<CustomerOrderMetrics?> GetOrderMetricsAsync(Guid id, CancellationToken cancellationToken = default)
     {
         if (!Customers.ContainsKey(id)) return Task.FromResult<CustomerOrderMetrics?>(null);
         var orders = Orders.Where(o => o.CustomerId == id).ToList();
-        var completed = orders.Where(o => o.Status == OrderStatus.Completed).ToList();
+        var completed = orders.Where(WasDelivered).ToList();
         return Task.FromResult<CustomerOrderMetrics?>(new(
             orders.Count, completed.Count, orders.Count(o => o.Status == OrderStatus.Cancelled),
             completed.Sum(o => o.TotalAmount), completed.Max(o => (DateTime?)o.CompletedAt)));
@@ -36,7 +39,7 @@ public class FakeCustomerRepository : ICustomerRepository
             .Select(c =>
             {
                 var orders = Orders.Where(o => o.CustomerId == c.Id).ToList();
-                var completedOrders = orders.Where(o => o.Status == OrderStatus.Completed).ToList();
+                var completedOrders = orders.Where(WasDelivered).ToList();
                 return new CustomerSearchResult(
                     c,
                     orders.Count,

@@ -54,7 +54,17 @@ public sealed class AnalyticsPostgresIntegrationTests
             OrderCode = $"AN-{Guid.NewGuid():N}", CashierUserId = cashier.Id, Status = OrderStatus.Refunded,
             TotalAmount = 200m, Subtotal = 200m, CreatedAt = nowUtc.AddMinutes(-4), CompletedAt = nowUtc.AddMinutes(-3)
         };
-        db.AddRange(completed, refunded);
+        var partial = new Order
+        {
+            OrderCode = $"AN-{Guid.NewGuid():N}", CashierUserId = cashier.Id, Status = OrderStatus.PartiallyRefunded,
+            TotalAmount = 70m, Subtotal = 70m, CreatedAt = nowUtc.AddMinutes(-4), CompletedAt = nowUtc.AddMinutes(-3)
+        };
+        var undelivered = new Order
+        {
+            OrderCode = $"AN-{Guid.NewGuid():N}", CashierUserId = cashier.Id, Status = OrderStatus.Refunded,
+            TotalAmount = 500m, Subtotal = 500m, PaidAt = nowUtc.AddMinutes(-3), CreatedAt = nowUtc.AddMinutes(-4)
+        };
+        db.AddRange(completed, refunded, partial, undelivered);
         db.InventoryStocks.Add(new InventoryStock { ProductId = product.Id, Quantity = 5, ReservedQuantity = 2, MinStockAlert = 5 });
         await db.SaveChangesAsync();
 
@@ -64,15 +74,10 @@ public sealed class AnalyticsPostgresIntegrationTests
             var asOf = await repository.GetSnapshotTimeUtcAsync();
             var criteria = new DashboardAnalyticsCriteria("last7Days", nowUtc.AddDays(-7), asOf);
             var actual = await repository.GetDashboardAsync(criteria);
-            var sqlRevenue = await db.Orders.AsNoTracking()
-                .Where(order => order.Status == OrderStatus.Completed && order.CompletedAt >= criteria.FromUtc
-                    && order.CompletedAt < criteria.ToExclusiveUtc)
-                .SumAsync(order => (decimal?)order.TotalAmount) ?? 0m;
-
-            Assert.Equal(100m, actual.Revenue);
-            Assert.Equal(2, actual.OrderCount);
+            Assert.Equal(370m, actual.Revenue);
+            Assert.Equal(4, actual.OrderCount);
             Assert.Equal(1, actual.ActiveProductCount);
-            Assert.Equal(sqlRevenue, actual.DailyRevenue.Sum(row => row.Revenue));
+            Assert.Equal(actual.Revenue, actual.DailyRevenue.Sum(row => row.Revenue));
             Assert.Equal(1, actual.LowStockCount);
             Assert.Single(actual.LowStockItems);
             Assert.Equal("Historical phone", actual.RecentOrders.Single(row => row.Id == completed.Id).FirstProductName);

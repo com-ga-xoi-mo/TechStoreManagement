@@ -311,6 +311,12 @@ public sealed class OrderListPage : Page, IRoutePage
                     .CommandParameter(x => x.Binding(() => row)),
                 new Button()
                     .Style(AppControlStyles.Styles.Button)
+                    .Content("Trả hàng")
+                    .Visibility(x => x.Binding(() => row.HasReturns).Convert((bool v) => ShowIf(v)))
+                    .Command(ViewModel.OpenReturnsCommand)
+                    .CommandParameter(x => x.Binding(() => row)),
+                new Button()
+                    .Style(AppControlStyles.Styles.Button)
                     .Content("Xác nhận TT")
                     .Visibility(x => x.Binding(() => row.HasPayAction).Convert((bool v) => ShowIf(v && ViewModel.CanManageOrders)))
                     .Command(ViewModel.ChangeStatusCommand)

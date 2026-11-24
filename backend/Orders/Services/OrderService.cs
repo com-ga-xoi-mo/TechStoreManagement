@@ -22,7 +22,8 @@ public class OrderService(
     IInventoryFulfillmentService fulfillmentService,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
-    IOptions<PricingOptions> pricingOptions) : IOrderService
+    IOptions<PricingOptions> pricingOptions,
+    TechStore.Api.Customers.Services.IRefundLoyaltyService? loyalty = null) : IOrderService
 {
     private const int MaxCodeAttempts = 5;
     private const string OrderCodeConstraint = "idx_orders_code";
@@ -470,6 +471,18 @@ public class OrderService(
                 });
             }
 
+            if (await orderRepository.HasBankRefundInProgressAsync(order.Id, cancellationToken))
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return OrderTransitionResult.Conflict("Đơn đang chờ đối soát khoản hoàn ngân hàng.");
+            }
+
+            if (target == OrderStatus.Cancelled && await orderRepository.HasActiveVietQrAsync(order.Id, cancellationToken))
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                return OrderTransitionResult.Conflict("Cần xử lý giao dịch VietQR trước khi hủy đơn.");
+            }
+
             if (!OrderStatusTransitions.IsAllowed(order.Status, target))
             {
                 await unitOfWork.RollbackAsync(cancellationToken);
@@ -550,6 +563,8 @@ public class OrderService(
                 if (target == OrderStatus.Completed)
                 {
                     order.CompletedAt = now;
+                    if (loyalty != null && order.CustomerId is Guid customerId)
+                        await loyalty.StageSaleAsync(order.Id, customerId, order.Subtotal - order.DiscountAmount, cancellationToken);
                 }
 
                 order.Status = target;

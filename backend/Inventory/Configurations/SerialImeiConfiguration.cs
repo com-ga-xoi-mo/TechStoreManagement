@@ -33,6 +33,13 @@ public class SerialImeiConfiguration : IEntityTypeConfiguration<SerialImei>
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz");
 
+        builder.Property(x => x.SaleOrderItemId).HasColumnName("sale_order_item_id");
+        builder.HasOne<TechStore.Api.Orders.Entities.OrderItem>().WithMany().HasForeignKey(x => x.SaleOrderItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => x.SaleOrderItemId).HasDatabaseName("idx_serial_imeis_sale_order_item_id");
+        builder.Property(x => x.WarrantyCaseId).HasColumnName("warranty_case_id");
+        builder.Property(x => x.AfterSaleQuarantine).HasColumnName("after_sale_quarantine").HasDefaultValue(false);
+
         // Indexes
         builder.HasIndex(x => x.ProductId).HasDatabaseName("idx_serial_imeis_product_id");
         builder.HasIndex(x => x.VariantId).HasDatabaseName("idx_serial_imeis_variant_id");

@@ -12,7 +12,7 @@ using TechStore.Shared.Enums;
 
 namespace TechStore.Api.Common.Data;
 
-internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepository
+internal sealed partial class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepository
 {
     private const string SupplierName = "FPT Synnex Distribution";
     private const string PurchaseOrderNumber = "PO-DEMO-202610-001";
@@ -42,6 +42,7 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
         await EnsureLoyaltyAsync(customers, cancellationToken);
         await EnsureOrdersAsync(users, customers, session, products, serials, cancellationToken);
         await EnsureSessionTotalsAsync(session, cancellationToken);
+        await EnsureAfterSaleDemoAsync(products["DEMO-CABLE-USB-C"], supplier, users, cancellationToken);
         return products;
     }
 
@@ -399,9 +400,9 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
                 dbContext.SerialImeis.Add(serial);
                 serialRows.Add(serial);
             }
-            else if (serial.ProductId != product.Id || serial.Status != status || serial.VariantId != variant?.Id)
+            else if (serial.ProductId != product.Id || serial.VariantId != variant?.Id)
             {
-                throw Conflict("IMEI", seed.Imei, "product, variant, or lifecycle status conflicts with fixture");
+                throw Conflict("IMEI", seed.Imei, "product or variant conflicts with fixture");
             }
             serials[(seed.ProductSku, unit)] = serial;
         }
@@ -430,9 +431,13 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
                 dbContext.InventoryStocks.Add(stock);
                 stocks.Add(stock);
             }
-            else if (stock.Quantity != finalQuantity || stock.ReservedQuantity != reservations)
+            else
             {
-                throw Conflict("inventory stock", seed.Sku, $"expected quantity/reserved {finalQuantity}/{reservations}, found {stock.Quantity}/{stock.ReservedQuantity}");
+                var currentDevices = serialRows.Where(x => x.ProductId == product.Id && x.VariantId == variant?.Id).ToList();
+                var onHand = currentDevices.Count(x => x.Status is SerialImeiStatus.InStock or SerialImeiStatus.Reserved);
+                var held = currentDevices.Count(x => x.Status == SerialImeiStatus.Reserved);
+                if (stock.Quantity != onHand || stock.ReservedQuantity != held)
+                    throw Conflict("inventory stock", seed.Sku, $"current IMEIs require quantity/reserved {onHand}/{held}, found {stock.Quantity}/{stock.ReservedQuantity}");
             }
 
             var purchaseItem = _purchaseItemsBySku[seed.Sku];
@@ -462,7 +467,7 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
             foreach (var sale in completedSales)
             {
                 var orderItemId = orderItemIds[sale.OrderCode];
-                var saleMatches = movements.Where(x => x.OrderItemId == orderItemId).Take(2).ToList();
+                var saleMatches = movements.Where(x => x.OrderItemId == orderItemId && x.MovementType == InventoryMovementType.Sale).Take(2).ToList();
                 if (saleMatches.Count > 1)
                     throw Conflict("sale movement", sale.OrderCode, "duplicate order-item ledger rows");
                 if (saleMatches.Count == 1)
@@ -517,11 +522,15 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
             var seed = DemoSeedManifest.Customers[i];
             var customer = customers[seed.Phone];
             var reason = "Initial Sprint 2 demo loyalty balance";
-            if (customer.LoyaltyPoints != seed.LoyaltyPoints)
-                throw Conflict("customer loyalty", seed.Phone, $"balance {customer.LoyaltyPoints} differs from fixture {seed.LoyaltyPoints}");
+            var laterChanges = rows.Where(x => x.CustomerId == customer.Id && x.Reason != reason)
+                .Sum(x => (long)x.PointsChange);
+            if (customer.LoyaltyPoints != seed.LoyaltyPoints + laterChanges)
+                throw Conflict("customer loyalty", seed.Phone, "balance disagrees with the initial balance and subsequent ledger entries");
             var matches = rows.Where(x => x.CustomerId == customer.Id && x.Reason == reason).Take(2).ToList();
             if (matches.Count > 1) throw Conflict("customer loyalty", seed.Phone, "duplicate seed ledger key");
             var match = matches.SingleOrDefault();
+            if (match != null && (match.PointsChange != seed.LoyaltyPoints || match.BalanceAfter != seed.LoyaltyPoints))
+                throw Conflict("customer loyalty", seed.Phone, "initial ledger amount differs from the fixture");
             if (match is null)
             {
                 dbContext.CustomerLoyaltyPoints.Add(new CustomerLoyaltyPoint
@@ -546,6 +555,7 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
         var items = await dbContext.OrderItems.ToListAsync(ct);
         var variants = await dbContext.ProductVariants.ToListAsync(ct);
         var qrRows = await dbContext.VietQrTransactions.ToListAsync(ct);
+        var refundedOrders = (await dbContext.OrderReturns.AsNoTracking().Select(r => r.OrderId).Distinct().ToListAsync(ct)).ToHashSet();
         foreach (var seed in DemoSeedManifest.Orders)
         {
             var productSeed = DemoSeedManifest.Products[seed.ProductIndex];
@@ -567,7 +577,9 @@ internal sealed class DemoSeedRepository(AppDbContext dbContext) : IDemoSeedRepo
                 dbContext.Orders.Add(order);
                 orders.Add(order);
             }
-            else if (order.Status != seed.Status || order.TotalAmount != amount || order.CreatedAt != seed.CreatedAt ||
+            else if ((order.Status != seed.Status &&
+                     !(refundedOrders.Contains(order.Id) && order.Status is OrderStatus.PartiallyRefunded or OrderStatus.Refunded)) ||
+                     order.TotalAmount != amount || order.CreatedAt != seed.CreatedAt ||
                      order.PaymentMethod != seed.PaymentMethod || order.PaidAt != seed.PaidAt || order.CompletedAt != seed.CompletedAt ||
                      order.CustomerId != customers[DemoSeedManifest.Customers[seed.CustomerIndex].Phone].Id ||
                      order.CashierUserId != users.Cashier.Id || order.PosSessionId != session.Id)

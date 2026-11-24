@@ -4,6 +4,7 @@ public static class RoleAccess
 {
     public static bool CanManageCategories(string? role) => role == "Admin";
     public static bool CanManageStock(string? role) => role is "Admin" or "WarehouseStaff";
+    public static bool CanSettleReturns(string? role) => role is "Admin" or "Manager";
     public static bool CanManageOrders(string? role) => role is "Admin" or "SalesStaff";
     public static bool CanManageCatalog(string? role) => role is "Admin" or "Manager";
     public static bool CanEditStoreSettings(string? role) => role is "Admin" or "Manager";
@@ -26,11 +27,13 @@ public static class RoleAccess
             ShellDestination.Customers => CanCreateCustomers(role),
             ShellDestination.Products => role is "Admin" or "Manager" or "SalesStaff" or "WarehouseStaff",
             ShellDestination.Inventory => role is "Admin" or "Manager" or "WarehouseStaff",
+            ShellDestination.ReturnInspections => CanManageStock(role),
             ShellDestination.Orders => role is "Admin" or "Manager" or "SalesStaff",
             _ => false
         },
         AppRouteKind.ProductList or AppRouteKind.ProductDetail => CanOpen(AppRoute.Root(ShellDestination.Products), role),
         AppRouteKind.ProductCreate or AppRouteKind.ProductEdit => CanManageCatalog(role),
+        AppRouteKind.OrderReturns => CanOpen(AppRoute.Root(ShellDestination.Orders), role),
         AppRouteKind.OrderCreate or AppRouteKind.Pos => CanManageOrders(role),
         AppRouteKind.UserManagement => role == "Admin",
         _ => false

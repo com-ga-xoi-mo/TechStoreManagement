@@ -161,6 +161,25 @@ public sealed class PosViewModelTests
         Assert.Equal(5_000m, sent.OrderDiscountAmount);
     }
 
+    [Fact]
+    public async Task Exchange_SendsRefundIdAsCheckoutKey_AfterCartChangesAndKeepsNormalDraftSeparate()
+    {
+        var rig = await OpenRig();
+        var item = rig.Accessory(price: 100m);
+        await rig.Scan(item.Sku);
+        rig.ViewModel.Deactivate();
+        var exchange = new PosViewModel(rig.Pos, rig.Devices, rig.Products, rig.Drafts) { ExchangeRequestId = Guid.NewGuid() };
+        await exchange.ActivateAsync();
+        Assert.Empty(exchange.Lines);
+        exchange.ScanText = item.Sku;
+        await exchange.ScanCommand.ExecuteAsync(null);
+        exchange.CashText = "100";
+        await exchange.PayCommand.ExecuteAsync(null);
+        Assert.Equal(exchange.ExchangeRequestId, Assert.Single(rig.Pos.Checkouts).CheckoutKey);
+        Assert.False(exchange.CanEditCart);
+        Assert.Single(rig.Drafts.Take(rig.Pos.Current!.Id)!.Lines);
+    }
+
     // ---------- shift ----------
 
     [Fact]

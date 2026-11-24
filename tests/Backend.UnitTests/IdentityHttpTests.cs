@@ -270,6 +270,7 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
             services.AddControllers().AddApplicationPart(typeof(UnannotatedIdentityProbeController).Assembly);
             services.RemoveAll<IStoreSettingRepository>();
             services.AddSingleton<IStoreSettingRepository, FakeStoreSettingRepository>();
+            services.RemoveAll<TechStore.Api.Customers.Services.IRefundLoyaltyService>();
             services.RemoveAll<IOrderRepository>();
             services.AddSingleton<IOrderRepository>(Orders);
             services.RemoveAll<IProductRepository>();

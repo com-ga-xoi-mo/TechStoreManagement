@@ -7,5 +7,6 @@ public enum InventoryMovementType
     Sale,
     CustomerReturn,
     Adjustment,
-    Defective
+    Defective,
+    WarrantyReplacement
 }

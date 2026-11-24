@@ -1,10 +1,20 @@
-namespace TechStore.Api.Inventory.Entities;
+namespace TechStore.Api.Warranty.Entities;
 
-public enum WarrantyCaseStatus { UnderRepair, ReturnedToCustomer, Replaced }
+public enum WarrantyCaseStatus
+{
+    Received,
+    Repairing,
+    PendingReplacement,
+    Repaired,
+    Rejected,
+    ReturnedToCustomer,
+    Replaced
+}
 
 public sealed class WarrantyCase
 {
     public Guid Id { get; set; }
+    public string CaseCode { get; set; } = null!;
     public Guid OrderId { get; set; }
     public Guid OrderItemId { get; set; }
     public Guid? CustomerId { get; set; }
@@ -21,4 +31,10 @@ public sealed class WarrantyCase
     public Guid? ReplacementDeviceId { get; set; }
     public Guid? MovementId { get; set; }
     public decimal? ReplacementUnitCost { get; set; }
+    public string? IssueDescription { get; set; }
+    public string? ContactName { get; set; }
+    public string? ContactPhone { get; set; }
+    public string? InspectionNote { get; set; }
+    public string? RejectionReason { get; set; }
+    public ICollection<WarrantyCaseEvent> Events { get; } = new List<WarrantyCaseEvent>();
 }

@@ -1,3 +1,6 @@
+using TechStore.Client.Repositories.Warranty;
+using TechStore.Client.ViewModels.Warranty;
+using TechStore.Client.Views.Warranty;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TechStore.Client.Views.Inventory;
@@ -104,6 +107,12 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ProductEditorPage>();
         services.AddTransient<OrderListPage>();
         services.AddTransient<OrderReturnsPage>();
+        services.AddTransient<WarrantyCaseListPage>();
+        services.AddTransient<WarrantyCaseListViewModel>();
+        services.AddTransient<WarrantyIntakeDialog>();
+        services.AddTransient<WarrantyIntakeDialogViewModel>();
+        services.AddTransient<WarrantyCaseDetailDialog>();
+        services.AddTransient<WarrantyCaseDetailDialogViewModel>();
         services.AddTransient<ReturnInspectionsPage>();
         services.AddTransient<OrderCreatePage>();
         services.AddTransient<PosPage>();
@@ -141,6 +150,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ICustomerRepository, CustomerRepository>();
         services.AddTransient<IOrderRepository, OrderRepository>();
         services.AddTransient<IReturnRepository, ReturnRepository>();
+        services.AddTransient<IWarrantyRepository, WarrantyRepository>();
         services.AddTransient<IOrderDeviceRepository, OrderDeviceRepository>();
         services.AddTransient<IPosRepository, PosRepository>();
         services.AddSingleton<IPosDraftStore, PosDraftStore>();

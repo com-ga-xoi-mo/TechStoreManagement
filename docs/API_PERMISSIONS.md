@@ -22,7 +22,10 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | GET `/api/orders`, `/api/orders/{id}` | A M S | A/M see all; S sees only orders whose cashier is that user |
 | POST `/api/returns`, GET `/api/returns/{id}`, GET `/api/returns/order/{orderId}` | A M S | Lập yêu cầu và xem lịch sử, Sales chỉ thao tác trên đơn của mình |
 | POST `/api/returns/{id}/settle`, `/reconcile`, `/exchange` | A M | Chốt chi, xác minh chuyển khoản thủ công, liên kết đơn đổi hàng |
-| GET `/api/warranties/{caseId}`, POST `/receive`, `/return`, `/replace` dưới mã hồ sơ | A M | Tra hồ sơ, nhận máy còn bảo hành, trả máy hoặc duyệt xuất máy thay. |
+| GET `/api/warranties/lookup`, `/api/warranties`, `/api/warranties/{caseId}` | A M S W | Tra cứu, danh sách và chi tiết. Giá vốn máy thay hiển thị cho A M W, trả `null` với SalesStaff. |
+| POST `/api/warranties/{caseId}/receive`, `/api/warranties/{caseId}/return` | A M S | Tiếp nhận thiết bị hoặc trả máy cho khách. |
+| POST `/api/warranties/{caseId}/inspect`, `/api/warranties/{caseId}/repaired` | A W | Kiểm định và báo sửa xong. |
+| POST `/api/warranties/{caseId}/replace`, `/api/warranties/{caseId}/reject-replacement` | A M | Duyệt hoặc từ chối đổi máy. |
 | GET `/api/inventory/returns`, POST `/api/inventory/returns/{returnLineId}/inspections` | A W | Xem SKU của dòng bán, serial/IMEI và số lượng còn chờ để kiểm định từng phần, không trả số tiền, giá vốn hay dữ liệu khách |
 | POST `/api/orders`, PATCH `/api/orders/{id}/status` | A S | A writes all; S transitions only own orders; creator comes from token |
 | GET `/api/customers`, `/api/customers/{id}` | A M S | S chỉ thấy khách đang hoạt động (server ép `isActive=true`); khách đã vô hiệu hóa trả 404 với S |

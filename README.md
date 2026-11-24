@@ -58,6 +58,14 @@ Vào **Đơn hàng** và chọn đơn cần trả. Sales lập yêu cầu trên 
 
 Warehouse kiểm định từng phần của phiếu tại màn hình hàng trả. Phần nhập lại sinh biến động kho ở ngày thực nhập. Giá bán, thuế, điểm và giá vốn dùng để đối chiếu được mô tả trong [fixture hoàn tiền](docs/M4_REFUND_HANDOFF.md), [dữ liệu demo](docs/M4_DEMO_DATA.md) và [truy vấn đối chiếu từng đơn](docs/database/reconcile-return.sql). Xem kết quả kiểm thử trong [báo cáo hồi quy M4](docs/M4_TEST_SUMMARY.md).
 
+## Bảo hành và sửa chữa M4
+
+Mở **Bảo hành** để tìm hồ sơ và xem lịch sử, thiết bị và hạn bảo hành. Admin, Manager và Sales tiếp nhận theo IMEI hoặc số sê-ri, chứng minh lần bán bằng mã đơn hoặc khách hàng, rồi trả thiết bị sau khi xử lý. Kho kiểm định và báo sửa xong. Admin và Manager duyệt hoặc từ chối đổi sang thiết bị cùng biến thể. Máy thay giữ thời hạn còn lại của máy cũ.
+
+Tài khoản demo theo thứ tự vai trò là `admin`, `manager1`, `cashier1` và `warehouse1`. Mật khẩu demo có trong bảng tài khoản bên dưới. Khi API chạy ở môi trường Development, seed tạo các hồ sơ chờ kiểm định, đang sửa, chờ duyệt đổi, đã đổi và đã trả khách.
+
+M4 theo dõi bảo hành nội bộ theo thiết bị. Chi phí sửa, in phiếu, bảo hành của hãng và hoàn tiền khi hết máy thay nằm ngoài phạm vi. Xem [vòng đời và chi phí máy thay](backend/Warranty/README.md) và [kết quả kiểm thử](docs/M4_TEST_SUMMARY.md#bảo-hành).
+
 ## 2. Hướng dẫn Cài đặt và Chạy Dự án (How to Run)
 
 ### Yêu cầu môi trường

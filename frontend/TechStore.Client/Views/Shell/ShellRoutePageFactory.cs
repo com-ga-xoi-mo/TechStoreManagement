@@ -13,6 +13,7 @@ using TechStore.Client.Views.Dashboard;
 using TechStore.Client.Views.Orders;
 using TechStore.Client.Views.Sales;
 using TechStore.Client.Views.Settings;
+using TechStore.Client.Views.Warranty;
 
 namespace TechStore.Client.Views.Shell;
 
@@ -99,6 +100,7 @@ public sealed class ShellRoutePageFactory(
         ShellDestination.Dashboard => services.GetRequiredService<DashboardPage>(),
         ShellDestination.Products => services.GetRequiredService<ProductListPage>(),
         ShellDestination.Inventory => services.GetRequiredService<CategoryManagementPage>(),
+        ShellDestination.Warranty => services.GetRequiredService<WarrantyCaseListPage>(),
         ShellDestination.ReturnInspections => services.GetRequiredService<ReturnInspectionsPage>(),
         ShellDestination.Orders => services.GetRequiredService<OrderListPage>(),
         ShellDestination.Customers => services.GetRequiredService<CustomerListPage>(),

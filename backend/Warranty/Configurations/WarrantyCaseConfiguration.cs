@@ -4,19 +4,23 @@ using TechStore.Api.Customers.Entities;
 using TechStore.Api.Identity.Entities;
 using TechStore.Api.Inventory.Entities;
 using TechStore.Api.Orders.Entities;
+using TechStore.Api.Warranty.Entities;
 
-namespace TechStore.Api.Inventory.Configurations;
+namespace TechStore.Api.Warranty.Configurations;
 
 public sealed class WarrantyCaseConfiguration : IEntityTypeConfiguration<WarrantyCase>
 {
+    private const string OpenStatusFilter = "status IN ('Received','Repairing','PendingReplacement','Repaired','Rejected')";
+
     public void Configure(EntityTypeBuilder<WarrantyCase> b)
     {
         b.ToTable("warranty_cases", t =>
         {
             t.HasCheckConstraint("ck_warranty_cases_dates", "warranty_start_at <= opened_at AND opened_at < warranty_end_at AND (closed_at IS NULL OR closed_at >= opened_at)");
-            t.HasCheckConstraint("ck_warranty_cases_outcome", """
-                (status = 'UnderRepair' AND closed_by_id IS NULL AND closed_at IS NULL AND resolution_operation_id IS NULL
-                    AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)
+            t.HasCheckConstraint("ck_warranty_cases_outcome", $"""
+                ({OpenStatusFilter} AND closed_by_id IS NULL AND closed_at IS NULL AND resolution_operation_id IS NULL
+                    AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL
+                    AND (status <> 'Rejected' OR rejection_reason IS NOT NULL))
                 OR (status IN ('ReturnedToCustomer','Replaced') AND closed_by_id IS NOT NULL AND closed_at IS NOT NULL AND resolution_operation_id IS NOT NULL
                     AND ((status = 'ReturnedToCustomer' AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)
                       OR (status = 'Replaced' AND replacement_device_id IS NOT NULL AND replacement_device_id <> device_id AND movement_id IS NOT NULL)))
@@ -25,6 +29,7 @@ public sealed class WarrantyCaseConfiguration : IEntityTypeConfiguration<Warrant
         });
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
+        b.Property(x => x.CaseCode).HasColumnName("case_code");
         b.Property(x => x.OrderId).HasColumnName("order_id");
         b.Property(x => x.OrderItemId).HasColumnName("order_item_id");
         b.Property(x => x.CustomerId).HasColumnName("customer_id");
@@ -41,6 +46,11 @@ public sealed class WarrantyCaseConfiguration : IEntityTypeConfiguration<Warrant
         b.Property(x => x.ReplacementDeviceId).HasColumnName("replacement_device_id");
         b.Property(x => x.MovementId).HasColumnName("movement_id");
         b.Property(x => x.ReplacementUnitCost).HasColumnName("replacement_unit_cost").HasPrecision(18, 2);
+        b.Property(x => x.IssueDescription).HasColumnName("issue_description").HasMaxLength(1000);
+        b.Property(x => x.ContactName).HasColumnName("contact_name").HasMaxLength(100);
+        b.Property(x => x.ContactPhone).HasColumnName("contact_phone").HasMaxLength(20);
+        b.Property(x => x.InspectionNote).HasColumnName("inspection_note").HasMaxLength(1000);
+        b.Property(x => x.RejectionReason).HasColumnName("rejection_reason").HasMaxLength(500);
 
         b.HasOne<OrderItem>().WithMany().HasForeignKey(x => new { x.OrderItemId, x.OrderId })
             .HasPrincipalKey(x => new { x.Id, x.OrderId }).OnDelete(DeleteBehavior.Restrict);
@@ -56,6 +66,8 @@ public sealed class WarrantyCaseConfiguration : IEntityTypeConfiguration<Warrant
         b.HasIndex(x => new { x.OrderItemId, x.OrderId }).HasDatabaseName("idx_warranty_cases_item_order");
         b.HasIndex(x => x.CustomerId).HasDatabaseName("idx_warranty_cases_customer");
         b.HasIndex(x => x.DeviceId).HasDatabaseName("idx_warranty_cases_device");
+        b.HasIndex(x => x.DeviceId, "uq_warranty_cases_open_device").IsUnique().HasFilter(OpenStatusFilter);
+        b.HasIndex(x => x.CaseCode).IsUnique().HasDatabaseName("idx_warranty_cases_code");
         b.HasIndex(x => x.ReplacementDeviceId).HasDatabaseName("idx_warranty_cases_replacement");
         b.HasIndex(x => x.OpenedById).HasDatabaseName("idx_warranty_cases_opened_by");
         b.HasIndex(x => x.ClosedById).HasDatabaseName("idx_warranty_cases_closed_by");

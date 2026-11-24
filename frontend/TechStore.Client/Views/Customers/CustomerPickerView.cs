@@ -43,6 +43,7 @@ public sealed class CustomerPickerView : UserControl
         var create = new Button()
             .Style(AppControlStyles.Styles.PrimaryButton)
             .Content("＋  Khách mới")
+            .Visibility(ShowIf(ViewModel.AllowCreate))
             .HorizontalAlignment(HorizontalAlignment.Right)
             .Command(ShowCreateFormCommand);
         AutomationProperties.SetName(create, "Tạo khách hàng mới cho đơn này");

@@ -9,10 +9,10 @@ public sealed class RoleAccessTests(ITestOutputHelper output)
 {
     public static IEnumerable<object[]> Cases =>
     [
-        ["Admin", "Dashboard,Products,Inventory,Orders,ReturnInspections,Customers,Settings", ShellDestination.Dashboard, true, true, true, true],
-        ["Manager", "Dashboard,Products,Inventory,Orders,Customers,Settings", ShellDestination.Dashboard, false, false, false, true],
-        ["SalesStaff", "Products,Orders,Customers,Settings", ShellDestination.Orders, false, false, true, false],
-        ["WarehouseStaff", "Products,Inventory,ReturnInspections,Settings", ShellDestination.Inventory, false, true, false, false],
+        ["Admin", "Dashboard,Products,Inventory,Orders,ReturnInspections,Warranty,Customers,Settings", ShellDestination.Dashboard, true, true, true, true],
+        ["Manager", "Dashboard,Products,Inventory,Orders,Warranty,Customers,Settings", ShellDestination.Dashboard, false, false, false, true],
+        ["SalesStaff", "Products,Orders,Warranty,Customers,Settings", ShellDestination.Orders, false, false, true, false],
+        ["WarehouseStaff", "Products,Inventory,ReturnInspections,Warranty,Settings", ShellDestination.Inventory, false, true, false, false],
         ["Unknown", "Settings", ShellDestination.Settings, false, false, false, false],
         [null!, "Settings", ShellDestination.Settings, false, false, false, false]
     ];

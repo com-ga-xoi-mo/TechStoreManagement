@@ -1606,123 +1606,6 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.ToTable("suppliers", (string)null);
                 });
 
-            modelBuilder.Entity("TechStore.Api.Inventory.Entities.WarrantyCase", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("timestamptz")
-                        .HasColumnName("closed_at");
-
-                    b.Property<Guid?>("ClosedById")
-                        .HasColumnType("uuid")
-                        .HasColumnName("closed_by_id");
-
-                    b.Property<Guid?>("CustomerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("customer_id");
-
-                    b.Property<Guid>("DeviceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("device_id");
-
-                    b.Property<Guid?>("MovementId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("movement_id");
-
-                    b.Property<DateTime>("OpenedAt")
-                        .HasColumnType("timestamptz")
-                        .HasColumnName("opened_at");
-
-                    b.Property<Guid>("OpenedById")
-                        .HasColumnType("uuid")
-                        .HasColumnName("opened_by_id");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("order_id");
-
-                    b.Property<Guid>("OrderItemId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("order_item_id");
-
-                    b.Property<Guid>("ReceiveOperationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("receive_operation_id");
-
-                    b.Property<Guid?>("ReplacementDeviceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("replacement_device_id");
-
-                    b.Property<decimal?>("ReplacementUnitCost")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("replacement_unit_cost");
-
-                    b.Property<Guid?>("ResolutionOperationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("resolution_operation_id");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("status");
-
-                    b.Property<DateTime>("WarrantyEndAt")
-                        .HasColumnType("timestamptz")
-                        .HasColumnName("warranty_end_at");
-
-                    b.Property<DateTime>("WarrantyStartAt")
-                        .HasColumnType("timestamptz")
-                        .HasColumnName("warranty_start_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClosedById")
-                        .HasDatabaseName("idx_warranty_cases_closed_by");
-
-                    b.HasIndex("CustomerId")
-                        .HasDatabaseName("idx_warranty_cases_customer");
-
-                    b.HasIndex("DeviceId")
-                        .HasDatabaseName("idx_warranty_cases_device");
-
-                    b.HasIndex("MovementId")
-                        .IsUnique()
-                        .HasDatabaseName("uq_warranty_cases_movement");
-
-                    b.HasIndex("OpenedById")
-                        .HasDatabaseName("idx_warranty_cases_opened_by");
-
-                    b.HasIndex("OrderId")
-                        .HasDatabaseName("idx_warranty_cases_order");
-
-                    b.HasIndex("ReceiveOperationId")
-                        .IsUnique()
-                        .HasDatabaseName("uq_warranty_cases_receive_op");
-
-                    b.HasIndex("ReplacementDeviceId")
-                        .HasDatabaseName("idx_warranty_cases_replacement");
-
-                    b.HasIndex("ResolutionOperationId")
-                        .IsUnique()
-                        .HasDatabaseName("uq_warranty_cases_resolution_op");
-
-                    b.HasIndex("OrderItemId", "OrderId")
-                        .HasDatabaseName("idx_warranty_cases_item_order");
-
-                    b.ToTable("warranty_cases", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_warranty_cases_cost", "replacement_unit_cost IS NULL OR replacement_unit_cost >= 0");
-
-                            t.HasCheckConstraint("ck_warranty_cases_dates", "warranty_start_at <= opened_at AND opened_at < warranty_end_at AND (closed_at IS NULL OR closed_at >= opened_at)");
-
-                            t.HasCheckConstraint("ck_warranty_cases_outcome", "(status = 'UnderRepair' AND closed_by_id IS NULL AND closed_at IS NULL AND resolution_operation_id IS NULL\n    AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)\nOR (status IN ('ReturnedToCustomer','Replaced') AND closed_by_id IS NOT NULL AND closed_at IS NOT NULL AND resolution_operation_id IS NOT NULL\n    AND ((status = 'ReturnedToCustomer' AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)\n      OR (status = 'Replaced' AND replacement_device_id IS NOT NULL AND replacement_device_id <> device_id AND movement_id IS NOT NULL)))");
-                        });
-                });
-
             modelBuilder.Entity("TechStore.Api.Orders.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2560,6 +2443,209 @@ namespace TechStore.Api.Common.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TechStore.Api.Warranty.Entities.WarrantyCase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CaseCode")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("case_code");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("closed_at");
+
+                    b.Property<Guid?>("ClosedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("closed_by_id");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("contact_name");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("contact_phone");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<string>("InspectionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("inspection_note");
+
+                    b.Property<string>("IssueDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("issue_description");
+
+                    b.Property<Guid?>("MovementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("movement_id");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("opened_at");
+
+                    b.Property<Guid>("OpenedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("opened_by_id");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<Guid>("OrderItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_item_id");
+
+                    b.Property<Guid>("ReceiveOperationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("receive_operation_id");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("rejection_reason");
+
+                    b.Property<Guid?>("ReplacementDeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replacement_device_id");
+
+                    b.Property<decimal?>("ReplacementUnitCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("replacement_unit_cost");
+
+                    b.Property<Guid?>("ResolutionOperationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolution_operation_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("WarrantyEndAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("warranty_end_at");
+
+                    b.Property<DateTime>("WarrantyStartAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("warranty_start_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseCode")
+                        .IsUnique()
+                        .HasDatabaseName("idx_warranty_cases_code");
+
+                    b.HasIndex("ClosedById")
+                        .HasDatabaseName("idx_warranty_cases_closed_by");
+
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("idx_warranty_cases_customer");
+
+                    b.HasIndex("DeviceId")
+                        .HasDatabaseName("idx_warranty_cases_device");
+
+                    b.HasIndex("MovementId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_warranty_cases_movement");
+
+                    b.HasIndex("OpenedById")
+                        .HasDatabaseName("idx_warranty_cases_opened_by");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("idx_warranty_cases_order");
+
+                    b.HasIndex("ReceiveOperationId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_warranty_cases_receive_op");
+
+                    b.HasIndex("ReplacementDeviceId")
+                        .HasDatabaseName("idx_warranty_cases_replacement");
+
+                    b.HasIndex("ResolutionOperationId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_warranty_cases_resolution_op");
+
+                    b.HasIndex("OrderItemId", "OrderId")
+                        .HasDatabaseName("idx_warranty_cases_item_order");
+
+                    b.HasIndex(new[] { "DeviceId" }, "uq_warranty_cases_open_device")
+                        .IsUnique()
+                        .HasFilter("status IN ('Received','Repairing','PendingReplacement','Repaired','Rejected')");
+
+                    b.ToTable("warranty_cases", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_warranty_cases_cost", "replacement_unit_cost IS NULL OR replacement_unit_cost >= 0");
+
+                            t.HasCheckConstraint("ck_warranty_cases_dates", "warranty_start_at <= opened_at AND opened_at < warranty_end_at AND (closed_at IS NULL OR closed_at >= opened_at)");
+
+                            t.HasCheckConstraint("ck_warranty_cases_outcome", "(status IN ('Received','Repairing','PendingReplacement','Repaired','Rejected') AND closed_by_id IS NULL AND closed_at IS NULL AND resolution_operation_id IS NULL\n    AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL\n    AND (status <> 'Rejected' OR rejection_reason IS NOT NULL))\nOR (status IN ('ReturnedToCustomer','Replaced') AND closed_by_id IS NOT NULL AND closed_at IS NOT NULL AND resolution_operation_id IS NOT NULL\n    AND ((status = 'ReturnedToCustomer' AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)\n      OR (status = 'Replaced' AND replacement_device_id IS NOT NULL AND replacement_device_id <> device_id AND movement_id IS NOT NULL)))");
+                        });
+                });
+
+            modelBuilder.Entity("TechStore.Api.Warranty.Entities.WarrantyCaseEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("case_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FromStatus")
+                        .HasColumnType("text")
+                        .HasColumnName("from_status");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("note");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("to_status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId")
+                        .HasDatabaseName("idx_warranty_case_events_actor_id");
+
+                    b.HasIndex("CaseId", "CreatedAt")
+                        .HasDatabaseName("idx_warranty_case_events_case_id");
+
+                    b.ToTable("warranty_case_events", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_warranty_case_events_from_status", "from_status IN ('Received','Repairing','PendingReplacement','Repaired','Rejected','ReturnedToCustomer','Replaced')");
+
+                            t.HasCheckConstraint("ck_warranty_case_events_to_status", "to_status IN ('Received','Repairing','PendingReplacement','Repaired','Rejected','ReturnedToCustomer','Replaced')");
+                        });
+                });
+
             modelBuilder.Entity("TechStore.Api.Catalog.Entities.Category", b =>
                 {
                     b.HasOne("TechStore.Api.Catalog.Entities.Category", "Parent")
@@ -2818,59 +2904,6 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.Navigation("Variant");
                 });
 
-            modelBuilder.Entity("TechStore.Api.Inventory.Entities.WarrantyCase", b =>
-                {
-                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("ClosedById")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TechStore.Api.Customers.Entities.Customer", null)
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TechStore.Api.Inventory.Entities.SerialImei", null)
-                        .WithMany()
-                        .HasForeignKey("DeviceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TechStore.Api.Inventory.Entities.InventoryMovement", null)
-                        .WithMany()
-                        .HasForeignKey("MovementId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("OpenedById")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TechStore.Api.Inventory.Entities.InventoryOperation", null)
-                        .WithMany()
-                        .HasForeignKey("ReceiveOperationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TechStore.Api.Inventory.Entities.SerialImei", null)
-                        .WithMany()
-                        .HasForeignKey("ReplacementDeviceId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TechStore.Api.Inventory.Entities.InventoryOperation", null)
-                        .WithMany()
-                        .HasForeignKey("ResolutionOperationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TechStore.Api.Orders.Entities.OrderItem", null)
-                        .WithMany()
-                        .HasForeignKey("OrderItemId", "OrderId")
-                        .HasPrincipalKey("Id", "OrderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("TechStore.Api.Orders.Entities.Order", b =>
                 {
                     b.HasOne("TechStore.Api.Identity.Entities.User", "CashierUser")
@@ -3067,6 +3100,74 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.Navigation("PosSession");
                 });
 
+            modelBuilder.Entity("TechStore.Api.Warranty.Entities.WarrantyCase", b =>
+                {
+                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ClosedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Customers.Entities.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.SerialImei", null)
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.InventoryMovement", null)
+                        .WithMany()
+                        .HasForeignKey("MovementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("OpenedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.InventoryOperation", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiveOperationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.SerialImei", null)
+                        .WithMany()
+                        .HasForeignKey("ReplacementDeviceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Inventory.Entities.InventoryOperation", null)
+                        .WithMany()
+                        .HasForeignKey("ResolutionOperationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Orders.Entities.OrderItem", null)
+                        .WithMany()
+                        .HasForeignKey("OrderItemId", "OrderId")
+                        .HasPrincipalKey("Id", "OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TechStore.Api.Warranty.Entities.WarrantyCaseEvent", b =>
+                {
+                    b.HasOne("TechStore.Api.Identity.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TechStore.Api.Warranty.Entities.WarrantyCase", null)
+                        .WithMany("Events")
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TechStore.Api.Catalog.Entities.Category", b =>
                 {
                     b.Navigation("Products");
@@ -3133,6 +3234,11 @@ namespace TechStore.Api.Common.Data.Migrations
             modelBuilder.Entity("TechStore.Api.Sales.Entities.PosSession", b =>
                 {
                     b.Navigation("VietQrTransactions");
+                });
+
+            modelBuilder.Entity("TechStore.Api.Warranty.Entities.WarrantyCase", b =>
+                {
+                    b.Navigation("Events");
                 });
 #pragma warning restore 612, 618
         }

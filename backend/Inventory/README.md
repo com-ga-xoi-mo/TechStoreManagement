@@ -75,7 +75,7 @@
              quantity +1, movement Adjustment +1
 ```
 - **Báo lỗi máy (`POST /api/inventory/serials/{id}/defective`)**: Chuyển thiết bị từ `InStock` sang `Defective`. Giảm `inventory_stocks.quantity` đi 1, ghi movement `Defective` (-1) kèm IMEI và lý do.
-- **Đưa máy đã sửa về kho (`POST /api/inventory/serials/{id}/restore`)**: Chuyển thiết bị từ `Defective` về `InStock`. Tăng `inventory_stocks.quantity` lên 1, ghi movement `Adjustment` (+1) kèm IMEI và ghi chú sửa chữa. Máy giữ nguyên giá vốn ban đầu, thời hạn bảo hành và liên kết phiếu nhập gốc.
+- **Đưa máy đã sửa về kho (`POST /api/inventory/serials/{id}/restore`)**: Chuyển thiết bị từ `Defective` về `InStock`. Tăng `inventory_stocks.quantity` lên 1, ghi movement `Adjustment` (+1) kèm IMEI và ghi chú sửa chữa. Chỉ áp dụng máy lỗi từ tồn kho. Máy đang sửa của khách, máy cũ đã đổi bảo hành và hàng trả lỗi đã kiểm định phải xử lý theo hồ sơ. Máy giữ nguyên giá vốn ban đầu, thời hạn bảo hành và liên kết phiếu nhập gốc.
 - **Xử lý máy thất lạc**: Máy bị mất dùng chung trạng thái `Defective` với lý do "Mất", không thêm trạng thái mới vào database. Thiết bị không bao giờ bị xóa vật lý để giữ toàn vẹn lịch sử.
 
 ### 5.3. Thứ Tự Khóa Dòng Dùng Chung (Lock Ordering)

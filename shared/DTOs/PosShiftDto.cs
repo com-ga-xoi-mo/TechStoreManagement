@@ -8,6 +8,7 @@ public class PosShiftDto
     public string Status { get; set; } = string.Empty;
     public decimal OpeningBalance { get; set; }
     public decimal CashSalesTotal { get; set; }
+    public decimal CashRefundTotal { get; set; }
     public decimal? ExpectedClosingBalance { get; set; }
     public decimal? ClosingBalance { get; set; }
     public decimal? Discrepancy { get; set; }

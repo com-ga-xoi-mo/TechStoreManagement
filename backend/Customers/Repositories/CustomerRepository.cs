@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Customers.Entities;
+using TechStore.Api.Orders.Entities;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Enums;
 
@@ -18,20 +19,27 @@ public class CustomerRepository(AppDbContext dbContext) : ICustomerRepository
     public Task<Customer?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         dbContext.Customers.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
-    public Task<CustomerOrderMetrics?> GetOrderMetricsAsync(Guid id, CancellationToken cancellationToken = default) =>
-        dbContext.Customers.AsNoTracking().Where(c => c.Id == id)
+    private IQueryable<Order> DeliveredOrders() => dbContext.Orders.AsNoTracking().Where(o => o.CompletedAt != null
+        && (o.Status == OrderStatus.Completed || o.Status == OrderStatus.PartiallyRefunded || o.Status == OrderStatus.Refunded));
+
+    public Task<CustomerOrderMetrics?> GetOrderMetricsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var delivered = DeliveredOrders();
+        return dbContext.Customers.AsNoTracking().Where(c => c.Id == id)
             .Select(c => new CustomerOrderMetrics(
                 dbContext.Orders.Count(o => o.CustomerId == c.Id),
-                dbContext.Orders.Count(o => o.CustomerId == c.Id && o.Status == OrderStatus.Completed),
+                delivered.Count(o => o.CustomerId == c.Id),
                 dbContext.Orders.Count(o => o.CustomerId == c.Id && o.Status == OrderStatus.Cancelled),
-                dbContext.Orders.Where(o => o.CustomerId == c.Id && o.Status == OrderStatus.Completed)
+                delivered.Where(o => o.CustomerId == c.Id)
                     .Sum(o => (decimal?)o.TotalAmount) ?? 0m,
-                dbContext.Orders.Where(o => o.CustomerId == c.Id && o.Status == OrderStatus.Completed)
+                delivered.Where(o => o.CustomerId == c.Id)
                     .Max(o => (DateTime?)o.CompletedAt)))
             .FirstOrDefaultAsync(cancellationToken);
+    }
 
     public async Task<(IReadOnlyList<CustomerSearchResult> Items, int TotalCount)> SearchAsync(CustomerSearchCriteria criteria, CancellationToken cancellationToken = default)
     {
+        var delivered = DeliveredOrders();
         var query = dbContext.Customers.AsNoTracking().AsQueryable();
         if (!string.IsNullOrWhiteSpace(criteria.Query))
         {
@@ -47,11 +55,9 @@ public class CustomerRepository(AppDbContext dbContext) : ICustomerRepository
             .Select(c => new CustomerSearchResult(
                 c,
                 dbContext.Orders.Count(o => o.CustomerId == c.Id),
-                dbContext.Orders
-                    .Where(o => o.CustomerId == c.Id && o.Status == OrderStatus.Completed)
+                delivered.Where(o => o.CustomerId == c.Id)
                     .Sum(o => (decimal?)o.TotalAmount) ?? 0m,
-                dbContext.Orders
-                    .Where(o => o.CustomerId == c.Id && o.Status == OrderStatus.Completed)
+                delivered.Where(o => o.CustomerId == c.Id)
                     .Max(o => (DateTime?)o.CompletedAt)))
             .ToListAsync(cancellationToken);
         return (items, count);
@@ -68,8 +74,7 @@ public class CustomerRepository(AppDbContext dbContext) : ICustomerRepository
 
     public async Task<(IReadOnlyList<CustomerPurchasedItemDto> Items, int TotalCount)> GetPurchasedItemsAsync(CustomerPurchasedItemSearchCriteria criteria, CancellationToken cancellationToken = default)
     {
-        var query = dbContext.OrderItems.AsNoTracking()
-            .Where(i => i.Order.CustomerId == criteria.CustomerId && i.Order.Status == OrderStatus.Completed);
+        var query = DeliveredOrders().Where(o => o.CustomerId == criteria.CustomerId).SelectMany(o => o.Items);
         var count = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(i => i.Order.CompletedAt)

@@ -41,6 +41,7 @@
     <Compile Include="../../frontend/TechStore.Client/Services/Session/**/*.cs" Link="Production/Services/Session/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Services/Authentication/**/*.cs" Link="Production/Services/Authentication/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Models/Inventory/**/*.cs" Link="Production/Models/Inventory/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Sales/IPosRepository.cs" Link="Production/Repositories/Sales/IPosRepository.cs" />
     <Compile Include="../../frontend/TechStore.Client/Models/Sales/**/*.cs" Link="Production/Models/Sales/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

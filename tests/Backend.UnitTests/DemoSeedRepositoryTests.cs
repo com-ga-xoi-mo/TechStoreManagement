@@ -28,10 +28,11 @@ public class DemoSeedRepositoryTests
         first.Categories.Should().Be(5);
         first.Products.Should().Be(20);
         first.Customers.Should().Be(10);
-        first.Orders.Should().Be(20);
+        first.Orders.Should().Be(21);
+        (await db.Orders.CountAsync(x => x.OrderCode.StartsWith("DEMO-202610-"))).Should().Be(20);
         first.Serials.Should().Be(50);
-        first.PurchaseReceipts.Should().Be(10);
-        first.Sales.Should().Be(12);
+        first.PurchaseReceipts.Should().Be(11);
+        first.Sales.Should().Be(13);
         first.VietQr.Should().Be(6);
         storage.PutCount.Should().Be(20);
         storage.Objects.Should().HaveCount(20);
@@ -84,7 +85,7 @@ public class DemoSeedRepositoryTests
         // Assert
         (await db.Roles.CountAsync()).Should().Be(4);
         (await db.Products.CountAsync()).Should().Be(20);
-        (await db.Orders.CountAsync()).Should().Be(20);
+        (await db.Orders.CountAsync(x => x.OrderCode.StartsWith("DEMO-202610-"))).Should().Be(20);
         (await db.Users.SingleAsync(x => x.Username == "admin")).PasswordHash.Should().Be("preserve-this-password-hash");
         (await db.Users.SingleAsync(x => x.Username == "admin")).FullName.Should().Be("User edited admin profile");
         (await db.Customers.SingleAsync(x => x.Phone == "0901234567")).FullName.Should().Be("User edited customer profile");
@@ -182,6 +183,59 @@ public class DemoSeedRepositoryTests
         (await verify.Orders.Where(x => x.OrderCode == "DEMO-202610-0001").Select(x => x.TotalAmount).SingleAsync()).Should().Be(1m);
     }
 
+    [Fact]
+    public async Task ReconcileAsync_AfterLegitimateLoyaltyChange_PreservesNewBalanceAndLedger()
+    {
+        await using var db = new AppDbContext(CreateOptions());
+        var seeder = new DataSeeder(new DemoSeedRepository(db), new FakeUnitOfWork(db), new FakeObjectStorage());
+        await seeder.SeedAsync();
+        var customer = await db.Customers.SingleAsync(x => x.Phone == DemoSeedManifest.Customers[2].Phone);
+        var original = customer.LoyaltyPoints;
+        customer.LoyaltyPoints += 9;
+        db.CustomerLoyaltyPoints.Add(new() { CustomerId = customer.Id, PointsChange = 9,
+            BalanceAfter = customer.LoyaltyPoints, Reason = "Purchase credited after seed" });
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        await seeder.SeedAsync();
+
+        Assert.Equal(original + 9, (await db.Customers.FindAsync(customer.Id))!.LoyaltyPoints);
+        Assert.Equal(2, await db.CustomerLoyaltyPoints.CountAsync(x => x.CustomerId == customer.Id));
+    }
+
+    [Fact]
+    public async Task ReconcileAsync_AfterReturnOfM3Device_PreservesRefundAndCurrentStock()
+    {
+        await using var db = new AppDbContext(CreateOptions());
+        var seeder = new DataSeeder(new DemoSeedRepository(db), new FakeUnitOfWork(db), new FakeObjectStorage());
+        await seeder.SeedAsync();
+        var order = await db.Orders.Include(o => o.Items).ThenInclude(i => i.SerialImei)
+            .SingleAsync(o => o.OrderCode == "DEMO-202610-0001");
+        var item = Assert.Single(order.Items);
+        order.Status = OrderStatus.Refunded;
+        item.SerialImei!.Status = SerialImeiStatus.InStock;
+        var stock = await db.InventoryStocks.SingleAsync(x => x.ProductId == item.ProductId && x.VariantId == item.VariantId);
+        stock.Quantity++;
+        var updatedQuantity = stock.Quantity;
+        var payout = new TechStore.Api.Orders.Entities.OrderReturn
+        {
+            OrderId = order.Id, OrderItemId = item.Id, ProcessedByUserId = order.CashierUserId, Quantity = 1,
+            RefundAmount = order.TotalAmount, RefundMethod = PaymentMethod.VietQr, IsRestocked = true, Reason = "Return"
+        };
+        db.OrderReturns.Add(payout);
+        db.InventoryMovements.Add(new() { InventoryStockId = stock.Id, MovementType = InventoryMovementType.CustomerReturn,
+            QuantityChange = 1, QuantityAfter = updatedQuantity, OrderReturnId = payout.Id, PerformedByUserId = order.CashierUserId });
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        await seeder.SeedAsync();
+
+        Assert.Equal(OrderStatus.Refunded, (await db.Orders.FindAsync(order.Id))!.Status);
+        Assert.Equal(updatedQuantity, (await db.InventoryStocks.FindAsync(stock.Id))!.Quantity);
+        Assert.Equal(SerialImeiStatus.InStock, (await db.SerialImeis.FindAsync(item.SerialImeiId))!.Status);
+        Assert.Single(await db.InventoryMovements.Where(x => x.OrderReturnId == payout.Id).ToListAsync());
+    }
+
     private static DbContextOptions<AppDbContext> CreateOptions() =>
         new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString("N")).Options;
 
@@ -204,10 +258,10 @@ public class DemoSeedRepositoryTests
             stock.ReservedQuantity.Should().Be(reservedSerials);
         }
 
-        (await db.PurchaseOrderItems.SumAsync(x => x.ReceivedQuantity)).Should().Be(50);
-        (await db.InventoryMovements.Where(x => x.MovementType == InventoryMovementType.PurchaseReceipt).SumAsync(x => x.QuantityChange)).Should().Be(50);
-        (await db.InventoryMovements.Where(x => x.MovementType == InventoryMovementType.Sale).SumAsync(x => x.QuantityChange)).Should().Be(-12);
-        (await db.InventoryMovements.Where(x => x.MovementType == InventoryMovementType.Sale && x.OrderItemId != null)
+        (await db.PurchaseOrderItems.Where(x => x.PurchaseOrder.PoNumber == "PO-DEMO-202610-001").SumAsync(x => x.ReceivedQuantity)).Should().Be(50);
+        (await db.InventoryMovements.Where(x => x.MovementType == InventoryMovementType.PurchaseReceipt && x.InventoryStock.Product.IsSerialTracked).SumAsync(x => x.QuantityChange)).Should().Be(50);
+        (await db.InventoryMovements.Where(x => x.MovementType == InventoryMovementType.Sale && x.InventoryStock.Product.IsSerialTracked).SumAsync(x => x.QuantityChange)).Should().Be(-12);
+        (await db.InventoryMovements.Where(x => x.MovementType == InventoryMovementType.Sale && x.OrderItemId != null && x.InventoryStock.Product.IsSerialTracked)
             .Select(x => x.OrderItemId).Distinct().CountAsync()).Should().Be(12);
         foreach (var stock in await db.InventoryStocks.Where(x => x.Product.Sku.StartsWith("DEMO-") && x.Product.IsSerialTracked).ToListAsync())
         {

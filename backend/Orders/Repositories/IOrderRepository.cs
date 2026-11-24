@@ -15,6 +15,8 @@ public interface IOrderRepository
         CancellationToken cancellationToken = default);
 
     Task<bool> HasConfirmedVietQrAsync(Guid orderId, decimal amount, CancellationToken cancellationToken);
+    Task<bool> HasBankRefundInProgressAsync(Guid orderId, CancellationToken ct);
+    Task<bool> HasActiveVietQrAsync(Guid orderId, CancellationToken ct);
 
     // Tracked order locked with SELECT ... FOR UPDATE, with Items (Product, Variant, SerialImei) loaded.
     // Requires an open transaction opened by the calling service; outside one the lock is released immediately.

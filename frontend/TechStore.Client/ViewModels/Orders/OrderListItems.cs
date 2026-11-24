@@ -47,6 +47,8 @@ public sealed record OrderRow(
     string CreatedAt,
     IReadOnlyList<OrderRowAction> Actions)
 {
+    public bool HasReturns => Order.Status is OrderStatus.Processing or OrderStatus.Completed or OrderStatus.PartiallyRefunded or OrderStatus.Refunded;
+
     public bool HasActions => Actions.Count > 0;
 
     /// <summary>Second line under the customer: how it was paid and how many lines it has.</summary>

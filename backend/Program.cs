@@ -77,9 +77,18 @@ builder.Services.AddScoped<IPurchaseReceiptService, PurchaseReceiptService>();
 // Customers Module repositories
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<ILoyaltyPointRepository, LoyaltyPointRepository>();
+builder.Services.AddScoped<IRefundLoyaltyService, RefundLoyaltyService>();
 
 // Orders Module repositories
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IReturnRepository, ReturnRepository>();
+builder.Services.AddScoped<IReturnService, ReturnService>();
+builder.Services.AddScoped<IReturnExchangeService, ReturnExchangeService>();
+builder.Services.AddScoped<IInventoryAfterSaleRepository, InventoryAfterSaleRepository>();
+builder.Services.AddScoped<IInventoryAfterSaleService, InventoryAfterSaleService>();
+builder.Services.AddScoped<IWarrantyCaseService, WarrantyCaseService>();
+builder.Services.AddScoped<IWarrantyCaseRepository, WarrantyCaseRepository>();
 
 // Orders Module services
 builder.Services.TryAddSingleton(TimeProvider.System);
@@ -93,6 +102,10 @@ builder.Services.AddOptions<PricingOptions>()
 // Sales Module (POS shifts and cash checkout)
 builder.Services.AddScoped<IPosSessionRepository, PosSessionRepository>();
 builder.Services.AddScoped<IPosShiftService, PosShiftService>();
+builder.Services.AddScoped<ICashRefundRepository, CashRefundRepository>();
+builder.Services.AddScoped<ICashRefundService, CashRefundService>();
+builder.Services.AddScoped<IVietQrHoldRepository, VietQrHoldRepository>();
+builder.Services.AddScoped<IVietQrHoldService, VietQrHoldService>();
 builder.Services.AddScoped<IPosCheckoutService, PosCheckoutService>();
 
 // Analytics Module

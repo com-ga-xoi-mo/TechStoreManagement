@@ -13,6 +13,7 @@ public class PosSession : BaseEntity
     public string? ClosingNote { get; set; }
     public Guid? ClosedByUserId { get; set; }
     public decimal CashSalesTotal { get; set; } = 0;
+    public decimal CashRefundTotal { get; set; }
     public decimal VietQrSalesTotal { get; set; } = 0;
     public decimal CardSalesTotal { get; set; } = 0;
     public PosSessionStatus Status { get; set; } = PosSessionStatus.Open;

@@ -33,14 +33,16 @@ Bắt đầu code ngay theo phần việc bên dưới; thiết kế API/DTO và
 
 Làm sớm các thao tác kho dùng chung để Đạt/Q. Vinh gọi; gửi Bình dữ liệu hoàn và thời điểm nhập lại hàng.
 
-- [ ] Làm UI/API yêu cầu trả, hoàn từng phần/toàn bộ và lịch sử. Sales gửi yêu cầu; Admin/Manager hoàn tiền. Kiểm tra đơn, IMEI, lý do, số lượng và tiền còn được hoàn.
-- [ ] Đơn `Completed`/`PartiallyRefunded` được trả phần còn lại. Đơn `Processing` chưa giao chỉ hoàn toàn bộ và giải phóng hàng giữ, không cộng tồn hay đảo điểm chưa được cộng.
-- [ ] Tính tiền hoàn từ phân bổ tiền hàng/thuế/giảm giá đã lưu khi bán, không tính lại ưu đãi của Vy. Hoàn theo lượng trả, làm tròn 2 chữ số; lần hoàn cuối nhận phần dư. Giữ nguyên dòng bán, `PaidAt`, `CompletedAt`; cập nhật `PartiallyRefunded`/`Refunded`.
-- [ ] Hoàn Cash gọi hàm kiểm tra ca và ghi chi của Đạt bằng mã lần hoàn; không tự tính lại két. Dùng ca đang mở của người hoàn. Hoàn ngân hàng phải có mã tham chiếu, chống chi lặp và đối soát khi ngân hàng thành công nhưng DB lỗi. Lưu yêu cầu chờ riêng; chỉ ghi `OrderReturn` khi đã hoàn tiền.
-- [ ] Nhận hàng vào `Returned`; Warehouse kiểm tra rồi chuyển `InStock` và cộng tồn, ghi `CustomerReturn`/`IsRestocked` cùng transaction. Hàng lỗi/sửa vào `Defective`/`UnderRepair`, chưa cộng tồn; xử lý riêng từng phần của lô trả.
-- [ ] Gọi hàm đảo điểm của Vy. Đổi hàng thương mại = trả/hoàn + đơn bán mới qua checkout của Đạt, có liên kết; không sửa đơn cũ.
+- [x] Làm UI/API yêu cầu trả, hoàn từng phần/toàn bộ và lịch sử. Sales gửi yêu cầu; Admin/Manager hoàn tiền. Kiểm tra đơn, IMEI, lý do, số lượng và tiền còn được hoàn.
+- [x] Đơn `Completed`/`PartiallyRefunded` được trả phần còn lại. Đơn `Processing` chưa giao chỉ hoàn toàn bộ và giải phóng hàng giữ, không cộng tồn hay đảo điểm chưa được cộng.
+- [x] Tính tiền hoàn từ phân bổ tiền hàng/thuế/giảm giá đã lưu khi bán, không tính lại ưu đãi của Vy. Hoàn theo lượng trả, làm tròn 2 chữ số; lần hoàn cuối nhận phần dư. Giữ nguyên dòng bán, `PaidAt`, `CompletedAt`; cập nhật `PartiallyRefunded`/`Refunded`.
+- [x] Hoàn Cash gọi hàm kiểm tra ca và ghi chi của Đạt bằng mã lần hoàn; không tự tính lại két. Dùng ca đang mở của người hoàn. Hoàn ngân hàng phải có mã tham chiếu, chống chi lặp và đối soát khi ngân hàng thành công nhưng DB lỗi. Lưu yêu cầu chờ riêng; chỉ ghi `OrderReturn` khi đã hoàn tiền.
+- [x] Nhận hàng vào `Returned`; Warehouse kiểm tra rồi chuyển `InStock` và cộng tồn, ghi `CustomerReturn`/`IsRestocked` cùng transaction. Hàng lỗi/sửa vào `Defective`/`UnderRepair`, chưa cộng tồn; xử lý riêng từng phần của lô trả.
+- [x] Gọi hàm đảo điểm của Vy. Đổi hàng thương mại = trả/hoàn + đơn bán mới qua checkout của Đạt, có liên kết; không sửa đơn cũ.
 
 Nghiệm thu: hoàn một phần rồi toàn bộ khớp tiền/thuế/kho/điểm; chặn hoàn vượt giới hạn, sai IMEI, gửi lặp và hai yêu cầu đồng thời; lỗi phải rollback.
+
+Kết quả trên nhánh `feature/m4-returns-refunds-and-inventory` ở [báo cáo kiểm thử M4](M4_TEST_SUMMARY.md). Giao diện trả hàng và kiểm định của An dùng Skia/macOS làm tiêu chí nghiệm thu. Kết quả từng việc được ghi trong [danh sách việc của An](../openspec/changes/archive/2026-11-24-m4-returns-refunds-and-inventory/tasks.md).
 
 ### Q. Vinh: Bảo hành và sửa chữa
 
@@ -136,7 +138,7 @@ Mỗi người bàn giao test, dữ liệu demo, hướng dẫn, giới hạn v�
 - [ ] Kiểm tra JSON, GET/POST/PUT/PATCH/DELETE và mã 200/201/204/400/401/403/404/409/500; lỗi không lộ thông tin. Test quyền cho phép/từ chối ở server, gồm Sales xem báo cáo và Warehouse sửa giá/tạo tài khoản.
 - [ ] Mỗi test có mã, chức năng, input, expected, actual, trạng thái và build/OS; lưu ảnh/log cần thiết. Báo cáo Pass/Fail/Skipped/Chưa kiểm tra, tỷ lệ với mẫu số rõ, lỗi/cách sửa/kết quả chạy lại; chưa chạy không tính Pass.
 - [ ] Review convention, phân lớp, validation, async/cancellation, xử lý lỗi và secrets. Client chỉ gọi API; cập nhật spec, caller, test, dữ liệu mẫu và migration/schema khi đổi.
-- [ ] Chạy từng trang trên Windows native và Skia: binding, tiếng Việt/VND, bàn phím/focus, loading/empty/error/retry và validation theo trường.
+- [ ] Kiểm tra binding, tiếng Việt/VND, bàn phím/focus, loading/empty/error/retry và validation theo trường. Phần trả hàng và kiểm định của An chạy trên Skia. Các trang còn lại theo ma trận Windows native và Skia của nhóm.
 - [ ] Kiểm tra Light/Dark/System, text scale, 800×600/1024×768/1440×1000 DIP; HighContrast trên Windows hỗ trợ. Ghi kết quả theo bản release.
 
 ### Dữ liệu demo

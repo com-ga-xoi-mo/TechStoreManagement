@@ -43,6 +43,9 @@ public class FakeOrderRepository : IOrderRepository
     }
 
     public Dictionary<Guid, decimal> ConfirmedQrPayments { get; } = [];
+    public Task<bool> HasBankRefundInProgressAsync(Guid orderId, CancellationToken ct) => Task.FromResult(false);
+    public Task<bool> HasActiveVietQrAsync(Guid orderId, CancellationToken ct) => Task.FromResult(false);
+
     public Task<bool> HasConfirmedVietQrAsync(Guid orderId, decimal amount, CancellationToken cancellationToken) =>
         Task.FromResult(ConfirmedQrPayments.TryGetValue(orderId, out var paid) && paid == amount);
 

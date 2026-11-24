@@ -31,6 +31,18 @@ public class OrderReturnConfiguration : IEntityTypeConfiguration<OrderReturn>
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz");
 
+        builder.Property(x => x.CaseLineId).HasColumnName("case_line_id");
+        builder.Property(x => x.NetAmount).HasColumnName("net_amount").HasPrecision(18, 2);
+        builder.Property(x => x.DiscountAmount).HasColumnName("discount_amount").HasPrecision(18, 2);
+        builder.Property(x => x.TaxAmount).HasColumnName("tax_amount").HasPrecision(18, 2);
+        builder.Property(x => x.Disposition).HasColumnName("disposition").HasMaxLength(20);
+        builder.Property(x => x.InspectionId).HasColumnName("inspection_id");
+        builder.Property(x => x.InspectedAt).HasColumnName("inspected_at");
+        builder.HasOne<ReturnCaseLine>().WithMany(x => x.Settlements).HasForeignKey(x => x.CaseLineId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => x.CaseLineId).HasDatabaseName("idx_order_returns_case_line");
+        builder.HasIndex(x => x.InspectionId).IsUnique().HasDatabaseName("uq_order_returns_inspection");
+
         // Indexes
         builder.HasIndex(x => x.OrderId).HasDatabaseName("idx_order_returns_order_id");
         builder.HasIndex(x => x.OrderItemId).HasDatabaseName("idx_order_returns_item_id");

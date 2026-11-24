@@ -40,6 +40,8 @@ public class InventoryMovementConfiguration : IEntityTypeConfiguration<Inventory
         builder.HasIndex(x => x.OrderItemId).HasDatabaseName("idx_inventory_movements_order_item_id");
         builder.HasIndex(x => x.OrderReturnId).HasDatabaseName("idx_inventory_movements_return_id");
 
+        builder.HasOne<TechStore.Api.Orders.Entities.OrderReturn>().WithMany().HasForeignKey(x => x.OrderReturnId)
+            .OnDelete(DeleteBehavior.Restrict);
         // Relationships
         builder.HasOne(x => x.InventoryStock)
             .WithMany(x => x.Movements)

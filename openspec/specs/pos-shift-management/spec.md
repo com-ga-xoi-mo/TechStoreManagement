@@ -7,7 +7,7 @@ Cho SalesStaff mở và đóng ca thu ngân, mỗi người một ca đang mở,
 ## Requirements
 
 ### Requirement: Open a shift
-`POST /api/pos/shifts` SHALL open a shift for the acting user with `openingBalance` (≥ 0, at most 2 decimals) and return 201 with the shift (`id`, `cashierUserId`, `openingBalance`, `status` = `Open`, `openedAt`, totals 0). A user SHALL have at most one `Open` shift; the rule SHALL also be enforced by the partial unique index `uq_pos_sessions_cashier_open`. Only `SalesStaff` and `Admin` SHALL open shifts.
+`POST /api/pos/shifts` SHALL open a shift for the acting user with `openingBalance` (≥ 0, at most 2 decimals) and return 201 with the shift (`id`, `cashierUserId`, `openingBalance`, `status` = `Open`, `openedAt`, totals 0). A user SHALL have at most one `Open` shift; the rule SHALL also be enforced by the partial unique index `uq_pos_sessions_cashier_open`. `SalesStaff`, `Admin` and `Manager` SHALL open their own shifts.
 
 #### Scenario: Open the first shift
 - **WHEN** a SalesStaff with no open shift posts `openingBalance` = 2,000,000
@@ -21,6 +21,10 @@ Cho SalesStaff mở và đóng ca thu ngân, mỗi người một ca đang mở,
 - **WHEN** `openingBalance` is negative or has more than 2 decimals
 - **THEN** the response is 400 with an error under `openingBalance` and nothing is stored
 
+#### Scenario: Manager opens a refund drawer
+- **WHEN** a Manager opens their own drawer and reads the current shift
+- **THEN** both requests succeed and the Manager remains unable to check out a sale.
+
 ### Requirement: Read shifts
 `GET /api/pos/shifts/current` SHALL return the acting user's `Open` shift or 404. `GET /api/pos/shifts` SHALL return a page of shifts newest first, filterable by `status` and `cashierUserId`; SalesStaff SHALL see only their own shifts, Manager and Admin SHALL see all. `GET /api/pos/shifts/{id}` of another user's shift SHALL return 404 to SalesStaff.
 
@@ -33,7 +37,7 @@ Cho SalesStaff mở và đóng ca thu ngân, mỗi người một ca đang mở,
 - **THEN** shifts of every cashier are returned
 
 ### Requirement: Close a shift with reconciliation
-`POST /api/pos/shifts/{id}/close` SHALL close an `Open` shift with the counted `closingBalance` (≥ 0) and an optional `note` (at most 500 characters). The server SHALL lock the shift, compute `expectedClosingBalance` = `openingBalance` + `cashSalesTotal` (cash refunds are added in M4), store `closingBalance`, `closedAt`, `closedByUserId` and the note, and return `discrepancy` = `closingBalance` − `expectedClosingBalance`. A non-empty `note` SHALL be required when `discrepancy` is not 0. The owner SHALL close their own shift; Manager and Admin MAY close any shift. A closed shift SHALL NOT change again.
+`POST /api/pos/shifts/{id}/close` SHALL close an `Open` shift with the counted `closingBalance` (≥ 0) and an optional `note` (at most 500 characters). The server SHALL lock the shift, compute `expectedClosingBalance` = `openingBalance` + `cashSalesTotal` − `cashRefundTotal`, store `closingBalance`, `closedAt`, `closedByUserId` and the note, and return `discrepancy` = `closingBalance` − `expectedClosingBalance`. A non-empty `note` SHALL be required when `discrepancy` is not 0. The owner SHALL close their own shift; Manager and Admin MAY close any shift. A closed shift SHALL NOT change again.
 
 #### Scenario: Close with exact cash
 - **WHEN** opening 2,000,000, cash sales 5,000,000 and counted cash 7,000,000
@@ -50,6 +54,10 @@ Cho SalesStaff mở và đóng ca thu ngân, mỗi người một ca đang mở,
 #### Scenario: Close twice
 - **WHEN** a closed shift is closed again
 - **THEN** the response is 409 and no value changes
+
+#### Scenario: Cash refund competes with close
+- **WHEN** the operator pays a refund while the drawer is closing
+- **THEN** either its amount is deducted once in the closed balance, or the refund fails with 409 and no payout is recorded.
 
 ### Requirement: Closing races with selling
 Closing a shift and checkout into the same shift SHALL be serialized by a row lock on the shift. A checkout that loses the race SHALL fail with 409 and change nothing; a sale committed before the close SHALL be included in `cashSalesTotal` used for `expectedClosingBalance`.

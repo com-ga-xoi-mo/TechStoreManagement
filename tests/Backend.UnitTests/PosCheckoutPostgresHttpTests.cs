@@ -10,7 +10,7 @@ using TechStore.Shared.Requests;
 namespace TechStore.UnitTests;
 
 // Real JWT pipeline, services, repositories and PostgreSQL: shifts, cash checkout, idempotency and races.
-public sealed class PosCheckoutPostgresHttpTests
+public sealed partial class PosCheckoutPostgresHttpTests
 {
     private const decimal Price = 10_000_000m;
     // What the customer pays: catalog prices exclude VAT and the API runs with the production 10% (M3 pricing).
@@ -272,7 +272,7 @@ public sealed class PosCheckoutPostgresHttpTests
 
         // Act and Assert: roles that must not sell or open
         Assert.Equal(HttpStatusCode.Forbidden, (await world.Manager.PostAsJsonAsync("/api/pos/checkout", Checkout(world, shift.Id, world.DeviceIds[0], Total))).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await world.Manager.PostAsJsonAsync("/api/pos/shifts", new OpenShiftRequest { OpeningBalance = 0m })).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await world.Manager.PostAsJsonAsync("/api/pos/shifts", new OpenShiftRequest { OpeningBalance = 0m })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await world.Warehouse.GetAsync("/api/pos/shifts")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/pos/shifts/current")).StatusCode);
 

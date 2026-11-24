@@ -117,7 +117,7 @@ public class DeviceStatusPostgresTests
         var uow = new UnitOfWork(actContext);
         var fulfillmentService = new InventoryFulfillmentService(
             new SerialImeiRepository(actContext),
-            new InventoryStockRepository(actContext));
+            new InventoryStockRepository(actContext), new InventoryAfterSaleRepository(actContext));
 
         // Act
         await uow.BeginTransactionAsync();
@@ -259,7 +259,7 @@ public class DeviceStatusPostgresTests
             var uow2 = new UnitOfWork(ctx2);
             var fulfillment = new InventoryFulfillmentService(
                 new SerialImeiRepository(ctx2),
-                new InventoryStockRepository(ctx2));
+                new InventoryStockRepository(ctx2), new InventoryAfterSaleRepository(ctx2));
 
             await uow2.BeginTransactionAsync();
             var res = await fulfillment.ReserveAsync([

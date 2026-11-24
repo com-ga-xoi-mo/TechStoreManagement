@@ -207,7 +207,7 @@ The client SHALL provide one customer picker for sales screens: search active cu
 - **THEN** the picker says the phone already belongs to a customer and shows the search results for that phone
 
 ### Requirement: Loyalty summary in the customer profile
-The customer profile SHALL show a loyalty summary from `GET /api/customers/{id}/loyalty-summary`: the points, the tier, the tier discount percent, the next tier with the points still missing, and a progress bar between the current tier threshold and the next one. At Platinum it SHALL say the top tier is reached. The summary SHALL be shown to every role that can open the profile.
+The customer profile SHALL show a loyalty summary from `GET /api/customers/{id}/loyalty-summary`: the points, the tier, the tier discount percent, the next tier with the points still missing, and a progress bar between the current tier threshold and the next one. At Platinum it SHALL say the top tier is reached. The summary SHALL be shown to every role that can open the profile. The summary SHALL be one compact strip, so that for Admin and Manager the history tabs stay inside the visible area of the profile dialog without scrolling, in a window as small as 800×600.
 
 #### Scenario: Silver customer
 - **WHEN** a profile of a customer with 700 points opens
@@ -220,6 +220,10 @@ The customer profile SHALL show a loyalty summary from `GET /api/customers/{id}/
 #### Scenario: Sales opens a profile
 - **WHEN** a SalesStaff session opens a profile
 - **THEN** the summary card is shown while the history tabs stay hidden
+
+#### Scenario: History tabs stay in view
+- **WHEN** an Admin opens a profile in an 800×600 window
+- **THEN** the loyalty strip and the "Lịch sử mua hàng" tab are both inside the visible area of the dialog without scrolling
 
 ### Requirement: Loyalty summary failure does not hide the profile
 When the loyalty summary cannot be loaded, the card SHALL be hidden and the profile, tier and points from the profile response SHALL still be shown.

@@ -182,15 +182,15 @@ public sealed class VoucherListPage : Page, IRoutePage
         var rows = new VoucherTableRows(ViewModel);
         rows.ItemsSource(x => x.Binding(() => ViewModel.Rows));
 
-        var body = new Grid();
-        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        body.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        // Header and rows are one table, so one horizontal scroll moves both; the rows keep their own vertical scroll.
+        // Starts at the minimum width: a first measure with unbounded width lets one long description size its row differently.
+        var table = new Grid { VerticalAlignment = VerticalAlignment.Top, Width = VoucherTableRows.MinimumTableWidth };
+        table.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        table.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
         var header = BuildTableHeader();
         Grid.SetRow(header, 0);
-        body.Children.Add(header);
+        table.Children.Add(header);
 
         var rowsScroll = new ScrollViewer
         {
@@ -202,14 +202,38 @@ public sealed class VoucherListPage : Page, IRoutePage
         };
         rowsScroll.Visibility(x => x.Binding(() => ViewModel.ShowTable).Convert(ShowIf));
         Grid.SetRow(rowsScroll, 1);
-        body.Children.Add(rowsScroll);
+        table.Children.Add(rowsScroll);
+
+        var tableScroll = new ScrollViewer
+        {
+            Content = table,
+            HorizontalScrollMode = ScrollMode.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollMode = ScrollMode.Disabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled
+        };
+        // A ScrollViewer gives its content unbounded width, so the table is sized to the viewport, never below its minimum.
+        void SizeTableToViewport()
+        {
+            var width = Math.Max(tableScroll.ViewportWidth, VoucherTableRows.MinimumTableWidth);
+            if (Math.Abs(table.Width - width) > 0.5) table.Width = width;
+        }
+        tableScroll.SizeChanged += (_, _) => SizeTableToViewport();
+        tableScroll.Loaded += (_, _) => SizeTableToViewport();
+
+        var body = new Grid();
+        body.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Grid.SetRow(tableScroll, 0);
+        body.Children.Add(tableScroll);
 
         var states = BuildStates();
-        Grid.SetRow(states, 2);
+        Grid.SetRow(states, 1);
         body.Children.Add(states);
 
         var footer = BuildFooter();
-        Grid.SetRow(footer, 3);
+        Grid.SetRow(footer, 2);
         body.Children.Add(footer);
 
         return new Border
@@ -345,11 +369,25 @@ internal sealed class VoucherTableRows(VoucherListViewModel viewModel) : ItemsCo
 {
     internal static Grid Columns()
     {
-        var grid = new Grid { Padding = new Thickness(16, 12, 16, 12), ColumnSpacing = 12 };
-        foreach (var star in new[] { 2.2, 1.6, 1.3, 1.9, 1.1, 1.3, 0.7 })
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(star, GridUnitType.Star) });
+        var grid = new Grid { Padding = new Thickness(16, 12, 16, 12), ColumnSpacing = ColumnGap };
+        for (var i = 0; i < ColumnWidths.Length; i++)
+        {
+            // Only the code column stretches. Fixed widths keep every row under the header: Uno sizes star columns from the
+            // longest content of each row once the table is close to its minimum width.
+            grid.ColumnDefinitions.Add(i == 0
+                ? new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = ColumnWidths[0] }
+                : new ColumnDefinition { Width = new GridLength(ColumnWidths[i]) });
+        }
         return grid;
     }
+
+    // Widths in DIP: code, discount (wraps to two lines), minimum order, uses, expiry, status badge, actions. Each fits its
+    // header and longest value. Below the total the table scrolls sideways instead of cutting text.
+    private const double ColumnGap = 8;
+    private static readonly double[] ColumnWidths = [150, 150, 108, 94, 94, 142, 70];
+
+    // Sum of the column widths, the column gaps and the row padding.
+    internal static double MinimumTableWidth => ColumnWidths.Sum() + (ColumnWidths.Length - 1) * ColumnGap + 32;
 
     protected override DependencyObject GetContainerForItemOverride() => new ContentControl
     {
@@ -382,10 +420,12 @@ internal sealed class VoucherTableRows(VoucherListViewModel viewModel) : ItemsCo
         grid.Children.Add(codePanel);
 
         var discount = Text(row.DiscountLabel, 13, dim, 500);
+        discount.TextWrapping = TextWrapping.Wrap;
         Grid.SetColumn(discount, 1);
         grid.Children.Add(discount);
 
         var min = Text(row.MinOrderLabel, 13, AppColors.SecondaryText);
+        min.TextWrapping = TextWrapping.Wrap;
         Grid.SetColumn(min, 2);
         grid.Children.Add(min);
 

@@ -271,6 +271,8 @@ public sealed class DataSeederPostgresIntegrationTests(ITestOutputHelper output)
         Assert.True(await db.Categories.CountAsync() >= 5);
         Assert.True(await db.Products.CountAsync() >= 20);
         Assert.True(await db.Customers.CountAsync() >= 10);
+        // The schema checks (expiry after creation, uses within the limit) accept every demo voucher state.
+        Assert.Equal(DemoSeedManifest.Vouchers.Count, await db.Vouchers.CountAsync(x => x.Code.StartsWith("DEMO-")));
         Assert.True(await db.Orders.CountAsync() >= 20);
         Assert.True(await db.SerialImeis.CountAsync(x => x.Imei != null && x.Imei.Length == 15) >= 50);
         Assert.True(await db.SerialImeis.Where(x => x.Imei != null).Select(x => x.Imei).Distinct().CountAsync() >= 50);

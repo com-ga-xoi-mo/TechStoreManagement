@@ -281,6 +281,9 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
             services.AddSingleton<ISpecDefinitionRepository, FakeSpecDefinitionRepository>();
             services.RemoveAll<ICustomerRepository>();
             services.AddSingleton<ICustomerRepository, FakeCustomerRepository>();
+            // OrderService looks vouchers up when pricing; keep that off the database here too.
+            services.RemoveAll<IVoucherRepository>();
+            services.AddSingleton<IVoucherRepository, FakeVoucherRepository>();
             services.RemoveAll<IInventoryFulfillmentService>();
             services.AddSingleton<IInventoryFulfillmentService>(Fulfillment);
             services.AddSingleton<IStartupFilter>(new IdentityStartupFilter());

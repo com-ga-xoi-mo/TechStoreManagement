@@ -12,7 +12,7 @@ namespace TechStore.Api.Customers;
 [Route("api/customers")]
 // Search, profile and create serve the counter (A M S); edit, activity and history manage customers (A M). See docs/API_PERMISSIONS.md.
 [Authorize(Roles = "Admin,Manager,SalesStaff")]
-public class CustomersController(ICustomerService customerService) : ControllerBase
+public class CustomersController(ICustomerService customerService, ILoyaltyService loyaltyService) : ControllerBase
 {
     private const string ManageRoles = "Admin,Manager";
 
@@ -28,6 +28,14 @@ public class CustomersController(ICustomerService customerService) : ControllerB
     {
         if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
         return ToAction(await customerService.GetByIdAsync(id, actor.Role, cancellationToken));
+    }
+
+    // Points, tier and the next tier: the counter needs it to offer the VIP discount, so it follows the profile roles.
+    [HttpGet("{id:guid}/loyalty-summary")]
+    public async Task<IActionResult> GetLoyaltySummary(Guid id, CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUser.TryRead(User, out var actor)) return Unauthorized();
+        return ToAction(await loyaltyService.GetSummaryAsync(id, actor.Role, cancellationToken));
     }
 
     [HttpGet("{id:guid}/loyalty-points")]

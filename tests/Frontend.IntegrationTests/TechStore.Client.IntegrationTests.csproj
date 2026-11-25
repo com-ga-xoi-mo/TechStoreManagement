@@ -43,5 +43,12 @@
     <Compile Include="../../frontend/TechStore.Client/Models/Inventory/**/*.cs" Link="Production/Models/Inventory/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Repositories/Sales/IPosRepository.cs" Link="Production/Repositories/Sales/IPosRepository.cs" />
     <Compile Include="../../frontend/TechStore.Client/Models/Sales/**/*.cs" Link="Production/Models/Sales/%(Filename)%(Extension)" />
+    <!-- Voucher management and the loyalty summary card (m4-loyalty-vouchers-ui). -->
+    <Compile Include="../../frontend/TechStore.Client/Models/Vouchers/**/*.cs" Link="Production/Models/Vouchers/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Loyalty/**/*.cs" Link="Production/Models/Loyalty/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Vouchers/**/*.cs" Link="Production/Repositories/Vouchers/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Loyalty/**/*.cs" Link="Production/Repositories/Loyalty/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Vouchers/**/*.cs" Link="Production/ViewModels/Vouchers/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Customers/CustomerDetailViewModel.cs" Link="Production/ViewModels/Customers/CustomerDetailViewModel.cs" />
   </ItemGroup>
 </Project>

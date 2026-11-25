@@ -27,6 +27,8 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | POST `/api/orders`, PATCH `/api/orders/{id}/status` | A S | A writes all; S transitions only own orders; creator comes from token |
 | GET `/api/customers`, `/api/customers/{id}` | A M S | S chỉ thấy khách đang hoạt động (server ép `isActive=true`); khách đã vô hiệu hóa trả 404 với S |
 | POST `/api/customers` | A M S | Tạo khách tại quầy; điểm, hạng và trạng thái do server quyết định |
+| GET `/api/customers/{id}/loyalty-summary` | A M S | Điểm, hạng, mức giảm VIP và hạng kế tiếp; S chỉ thấy khách đang hoạt động (như hồ sơ) |
+| GET `/api/vouchers`, `/api/vouchers/{id}`, POST `/api/vouchers`, PUT `/api/vouchers/{id}`, PATCH `/api/vouchers/{id}/activate`, `/api/vouchers/{id}/deactivate` | A M | Quản lý voucher; S dùng voucher qua `voucherCode` khi tạo đơn, không đọc danh sách voucher |
 | GET `/api/customers/{id}/loyalty-points`, `/api/customers/{id}/orders`, `/api/customers/{id}/purchased-items` | A M | Lịch sử khách gồm đơn của thu ngân khác nên không mở cho S |
 | PUT `/api/customers/{id}`, PATCH `/api/customers/{id}/deactivate`, `/api/customers/{id}/activate` | A M | Sửa liên hệ và trạng thái khách |
 | POST `/api/pos/shifts`, GET `/api/pos/shifts/current` | A M S | Mở và đọc ca riêng để ghi thu/chi theo quyền. |

@@ -35,6 +35,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(x => x.TaxRate).HasColumnName("tax_rate").HasPrecision(5, 2).HasDefaultValue(0);
         builder.Property(x => x.TotalAmount).HasColumnName("total_amount").HasPrecision(18, 2).IsRequired();
         builder.Property(x => x.VoucherId).HasColumnName("voucher_id");
+        builder.Property(x => x.DiscountSource).HasColumnName("discount_source").HasConversion<string>().HasDefaultValue(OrderDiscountSource.None).IsRequired();
         builder.Property(x => x.CashTendered).HasColumnName("cash_tendered").HasPrecision(18, 2);
         builder.Property(x => x.ChangeGiven).HasColumnName("change_given").HasPrecision(18, 2);
         builder.Property(x => x.CheckoutKey).HasColumnName("checkout_key");

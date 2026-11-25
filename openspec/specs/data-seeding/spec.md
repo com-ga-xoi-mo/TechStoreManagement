@@ -44,11 +44,19 @@ The data seeder SHALL ensure inventory meets database constraints and order/inve
 - **THEN** at least one supplier and one received purchase order with line items MUST be present, and receipt ledger entries MUST be created once and reconcile to received quantities.
 
 ### Requirement: Customer Profiles and Promotional Vouchers Seeding
-The data seeder SHALL ensure at least 10 active customer profiles with unique phone numbers and valid promotional voucher data.
+The data seeder SHALL ensure at least 10 active customer profiles with unique phone numbers, each carrying the loyalty tier its points earn, and valid promotional voucher data covering every voucher state: usable percentage, usable fixed amount, expired, used up and switched off.
 
 #### Scenario: Customer profiles with loyalty balance
 - **WHEN** the customer dataset is seeded
 - **THEN** at least 10 active customer profiles with unique phone numbers, coherent loyalty balances and tier classifications, and at least one active voucher with a valid code and future expiration date MUST be present.
+
+#### Scenario: Tier matches points
+- **WHEN** the customer dataset is seeded into an empty database
+- **THEN** every customer's tier MUST equal the tier the loyalty rules give for that customer's points (Standard below 500, Silver from 500, Gold from 1,500, Platinum from 5,000), and the starting balances MUST be the fixture values.
+
+#### Scenario: Vouchers in every state
+- **WHEN** the voucher dataset is seeded into an empty database
+- **THEN** one voucher each MUST exist that is active and usable as a percentage with a cap, active and usable as a fixed amount, active but expired, active with every use consumed, and switched off, every row satisfying the schema checks (expiry after creation, used count within the limit).
 
 ### Requirement: Retail Orders and Sales Fulfillment Seeding
 The data seeder SHALL ensure at least 20 representative orders in multiple lifecycle states with internally consistent items, inventory effects, sessions, and payment records.
@@ -107,3 +115,18 @@ A fresh Development seed SHALL give each seeded product one shared cover image s
 
 - **WHEN** storing a seed image fails, the seed hits a fixture conflict, or its database transaction rolls back
 - **THEN** the attempt reports failure, leaves existing images and seed data intact, and persists no new cover or image reference to a failed upload. After a confirmed rollback it attempts cleanup of objects created by that attempt.
+
+### Requirement: Seeded Vouchers Are Managed By Administrators
+The data seeder SHALL identify a demo voucher by its code only and SHALL add the demo vouchers that are missing without reading or changing the values, active state or use counts of those that exist, because Administrators and Managers can switch off, edit and spend a seeded voucher.
+
+#### Scenario: Administrator edit is kept
+- **WHEN** an Administrator has switched off a seeded voucher, changed its discount and limit, and its used and held counts are not zero, and the seeder runs again
+- **THEN** the seeder MUST succeed and MUST leave those values unchanged.
+
+#### Scenario: Deleted demo voucher is restored
+- **WHEN** one demo voucher was deleted and another was edited, and the seeder runs again
+- **THEN** only the deleted voucher MUST be added with its fixture values, and the edited one MUST keep its edit.
+
+#### Scenario: Duplicate code is a conflict
+- **WHEN** two voucher rows match one demo code, ignoring case and surrounding spaces
+- **THEN** the seeder MUST fail with a message naming the voucher and its code and MUST roll back the seed transaction.

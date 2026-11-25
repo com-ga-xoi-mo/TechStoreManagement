@@ -14,6 +14,8 @@ public class OrderDto
     public decimal DiscountAmount { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TaxRate { get; set; }
+    /// <summary>Source of the order-level <see cref="DiscountAmount"/>: <c>None</c>, <c>Manual</c>, <c>Vip</c> or <c>Voucher</c>.</summary>
+    public string DiscountSource { get; set; } = "None";
     public decimal TotalAmount { get; set; }
     public Guid? PosSessionId { get; set; }
     public decimal? CashTendered { get; set; }

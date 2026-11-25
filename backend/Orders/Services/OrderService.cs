@@ -6,6 +6,7 @@ using TechStore.Api.Catalog.Services;
 using TechStore.Api.Common.Data;
 using TechStore.Api.Customers.Entities;
 using TechStore.Api.Customers.Repositories;
+using TechStore.Api.Customers.Services;
 using TechStore.Api.Inventory.Services;
 using TechStore.Api.Orders.Entities;
 using TechStore.Api.Orders.Repositories;
@@ -23,6 +24,8 @@ public class OrderService(
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
     IOptions<PricingOptions> pricingOptions,
+    // Looks vouchers up for pricing only; null in tests that never price a voucher. Holding a use is the payment flow's job.
+    IVoucherRepository? voucherRepository = null,
     TechStore.Api.Customers.Services.IRefundLoyaltyService? loyalty = null) : IOrderService
 {
     private const int MaxCodeAttempts = 5;
@@ -207,23 +210,35 @@ public class OrderService(
             return PrepareOrderResult.ValidationFailed(Snapshot());
         }
 
-        // Order-level amounts (M3 pricing): order discount within the subtotal, total discount within the role's limit.
+        // Order-level amounts (M3 pricing): order discount within the subtotal, staff discount within the role's limit.
         var pricedLines = built
             .Select(b => OrderPricingHelper.PriceLine(b.UnitPrice, b.Quantity, b.Discount))
             .ToList();
-        var orderDiscount = request.OrderDiscountAmount ?? 0m;
         var subtotal = pricedLines.Sum(l => l.TotalPrice);
+
+        // M4: the order-level discount comes from exactly one source: manual, VIP tier or voucher.
+        var promotion = await ResolvePromotionAsync(request, customer, subtotal, cancellationToken);
+        if (promotion.Error is { } promotionError)
+        {
+            AddError(promotionError.Field, promotionError.Message);
+        }
+
+        var orderDiscount = promotion.Amount;
         if (orderDiscount > subtotal)
         {
             AddError("orderDiscountAmount", "Order discount cannot exceed the subtotal after line discounts.");
         }
 
+        // The role limit guards what staff choose: line discounts and a manual order discount. A VIP or voucher
+        // discount is store policy and is not counted, but the line discounts beside it still are.
         var maxDiscountPercent = MaxDiscountPercent(actor.Role, pricing);
         var grossAmount = pricedLines.Sum(l => l.UnitPrice * l.Quantity);
+        var staffDiscount = pricedLines.Sum(l => l.DiscountAmount)
+            + (promotion.Source == OrderDiscountSource.Manual ? orderDiscount : 0m);
         if (maxDiscountPercent.HasValue
-            && !OrderPricingHelper.IsWithinDiscountLimit(grossAmount, pricedLines.Sum(l => l.DiscountAmount) + orderDiscount, maxDiscountPercent.Value))
+            && !OrderPricingHelper.IsWithinDiscountLimit(grossAmount, staffDiscount, maxDiscountPercent.Value))
         {
-            AddError("discount", $"Total discount (line and order) cannot exceed {maxDiscountPercent.Value:0.##}% of the amount before discounts for this role.");
+            AddError("discount", $"Discount chosen by staff (line and manual order discount) cannot exceed {maxDiscountPercent.Value:0.##}% of the amount before discounts for this role.");
         }
 
         if (errors.Count > 0)
@@ -275,6 +290,8 @@ public class OrderService(
                 DiscountAmount = totals.DiscountAmount,
                 TaxAmount = totals.TaxAmount,
                 TaxRate = pricing.VatRatePercent,
+                VoucherId = promotion.VoucherId,
+                DiscountSource = promotion.Source,
                 TotalAmount = totals.TotalAmount,
                 Notes = notes,
                 CreatedAt = now
@@ -594,6 +611,59 @@ public class OrderService(
     private static decimal? MaxDiscountPercent(RoleType role, PricingOptions pricing) =>
         role == RoleType.Admin ? null : pricing.SalesStaffMaxDiscountPercent;
 
+    private sealed record PromotionError(string Field, string Message);
+
+    // The order-level discount of a request: its amount, where it came from and the voucher behind it (if any).
+    private sealed record Promotion(decimal Amount, OrderDiscountSource Source, Guid? VoucherId, PromotionError? Error)
+    {
+        public static Promotion Failed(string field, string message) =>
+            new(0m, OrderDiscountSource.None, null, new PromotionError(field, message));
+    }
+
+    // Prices the one order-level promotion without touching voucher counts: holding and consuming a use belong to payment.
+    private async Task<Promotion> ResolvePromotionAsync(
+        CreateOrderRequest request,
+        Customer? customer,
+        decimal goodsAmount,
+        CancellationToken cancellationToken)
+    {
+        var manual = request.OrderDiscountAmount ?? 0m;
+        var code = string.IsNullOrWhiteSpace(request.VoucherCode) ? null : request.VoucherCode.Trim().ToUpperInvariant();
+        var vip = request.ApplyVipDiscount == true;
+
+        var chosen = (manual > 0m ? 1 : 0) + (code != null ? 1 : 0) + (vip ? 1 : 0);
+        if (chosen > 1)
+            return Promotion.Failed("orderDiscount", "Choose only one order-level discount: a manual amount, a voucher code or the VIP discount.");
+
+        if (code != null)
+        {
+            if (voucherRepository == null)
+                return Promotion.Failed("voucherCode", "Vouchers are not available.");
+
+            var voucher = await voucherRepository.GetByCodeAsync(code, cancellationToken);
+            if (voucher == null)
+                return Promotion.Failed("voucherCode", "Voucher code was not found.");
+
+            var evaluation = VoucherRules.Evaluate(voucher, goodsAmount, timeProvider.GetUtcNow().UtcDateTime);
+            return evaluation.IsEligible
+                ? new Promotion(evaluation.Amount, OrderDiscountSource.Voucher, voucher.Id, null)
+                : Promotion.Failed("voucherCode", evaluation.Reason!);
+        }
+
+        if (vip)
+        {
+            if (customer == null)
+                return Promotion.Failed("applyVipDiscount", "A customer is required for the VIP discount.");
+
+            var amount = LoyaltyRules.VipDiscount(goodsAmount, customer.Tier);
+            return amount > 0m
+                ? new Promotion(amount, OrderDiscountSource.Vip, null, null)
+                : Promotion.Failed("applyVipDiscount", "The customer's tier has no VIP discount.");
+        }
+
+        return new Promotion(manual, manual > 0m ? OrderDiscountSource.Manual : OrderDiscountSource.None, null, null);
+    }
+
     internal static string Describe(IReadOnlyList<OrderItem> items, FulfillmentProblem problem)
     {
         var item = items[problem.LineIndex];
@@ -688,6 +758,7 @@ public class OrderService(
         DiscountAmount = order.DiscountAmount,
         TaxAmount = order.TaxAmount,
         TaxRate = order.TaxRate,
+        DiscountSource = order.DiscountSource.ToString(),
         TotalAmount = order.TotalAmount,
         PosSessionId = order.PosSessionId,
         CashTendered = order.CashTendered,

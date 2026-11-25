@@ -2,7 +2,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Globalization;
 using TechStore.Client.Models.Customers;
+using TechStore.Client.Models.Loyalty;
 using TechStore.Client.Repositories.Customers;
+using TechStore.Client.Repositories.Loyalty;
 using TechStore.Client.Services.Api;
 using TechStore.Client.Services.Navigation;
 using TechStore.Client.Services.Session;
@@ -15,10 +17,12 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
     private const int PageSize = 10;
     private readonly ICustomerRepository _customers;
     private readonly ISessionStore? _session;
+    private readonly ILoyaltyRepository? _loyalty;
     private Guid _customerId;
     private long _loadVersion;
 
     [ObservableProperty] private CustomerProfile? profile;
+    [ObservableProperty] private LoyaltySummary? loyaltySummary;
     [ObservableProperty] private CustomerPage<CustomerLoyaltyTransaction>? pointHistory;
     [ObservableProperty] private CustomerPage<CustomerOrder>? orderHistory;
     [ObservableProperty] private CustomerPage<CustomerPurchasedItem>? purchasedItems;
@@ -34,6 +38,20 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
     [ObservableProperty] private string activityErrorMessage = string.Empty;
 
     public bool HasProfile => Profile is not null;
+    /// <summary>The summary card is optional: when its request fails the profile still shows.</summary>
+    public bool HasLoyaltySummary => LoyaltySummary is not null;
+    public string TierDiscountLabel => LoyaltySummary is not { } summary
+        ? string.Empty
+        : summary.TierDiscountPercent > 0 ? $"Giảm {summary.TierDiscountPercent}% cho mọi đơn" : "Chưa có ưu đãi hạng";
+    public string NextTierLabel => LoyaltySummary switch
+    {
+        null => string.Empty,
+        { NextTier: null } => "Đã đạt hạng cao nhất",
+        { NextTier: { } next } summary =>
+            $"Còn {(summary.PointsToNextTier ?? 0).ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} điểm để lên hạng {TierName(next)}"
+    };
+    /// <summary>Share (0 to 1) of the way from the current tier to the next one.</summary>
+    public double TierProgress => LoyaltySummary is { } summary ? LoyaltyTierThresholds.Progress(summary) : 0;
     /// <summary>Edit, activity and history are Admin/Manager only; the server answers 403 to anyone else.</summary>
     public bool CanManageCustomers => _session is null || (_session.Current.Status == SessionStatus.Active && RoleAccess.CanManageCustomers(_session.Current.Role));
     public bool CanDeactivate => CanManageCustomers && Profile?.IsActive == true && !IsChangingActivity;
@@ -99,10 +117,22 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
     public bool CanPreviousPointsPage => !IsPointsLoading && PointsPage > 1;
     public bool CanNextPointsPage => !IsPointsLoading && PointHistory is { } points && PointsPage < points.TotalPages;
 
-    public CustomerDetailViewModel(ICustomerRepository customers, ISessionStore? session = null)
+    public CustomerDetailViewModel(ICustomerRepository customers, ISessionStore? session = null, ILoyaltyRepository? loyalty = null)
     {
         _customers = customers ?? throw new ArgumentNullException(nameof(customers));
         _session = session;
+        _loyalty = loyalty;
+    }
+
+    private static string TierName(string tier) =>
+        CustomerTierPresentation.All.FirstOrDefault(item => item.Tier == tier)?.Label ?? tier;
+
+    partial void OnLoyaltySummaryChanged(LoyaltySummary? value)
+    {
+        OnPropertyChanged(nameof(HasLoyaltySummary));
+        OnPropertyChanged(nameof(TierDiscountLabel));
+        OnPropertyChanged(nameof(NextTierLabel));
+        OnPropertyChanged(nameof(TierProgress));
     }
 
     partial void OnProfileChanged(CustomerProfile? value)
@@ -225,6 +255,7 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
         _customerId = customerId;
         var version = Interlocked.Increment(ref _loadVersion);
         Profile = null;
+        LoyaltySummary = null;
         PointHistory = null;
         OrderHistory = null;
         PurchasedItems = null;
@@ -236,12 +267,14 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
         try
         {
             var profileTask = _customers.GetByIdAsync(customerId, cancellationToken);
+            // The summary is open to every role that can open a profile (the server allows Sales).
+            var summaryTask = LoadSummaryAsync(customerId, cancellationToken);
             // History is not requested for roles the server refuses (SalesStaff).
             var withHistory = CanManageCustomers;
             var pointsTask = withHistory ? _customers.GetLoyaltyHistoryAsync(customerId, 1, PageSize, cancellationToken) : null;
             var ordersTask = withHistory ? _customers.GetOrderHistoryAsync(customerId, 1, PageSize, cancellationToken) : null;
             var devicesTask = withHistory ? _customers.GetPurchasedItemsAsync(customerId, 1, PageSize, cancellationToken) : null;
-            await Task.WhenAll(new Task?[] { profileTask, pointsTask, ordersTask, devicesTask }.OfType<Task>());
+            await Task.WhenAll(new Task?[] { profileTask, summaryTask, pointsTask, ordersTask, devicesTask }.OfType<Task>());
             if (version != Volatile.Read(ref _loadVersion)) return;
             Profile = await profileTask;
             if (Profile is null)
@@ -250,6 +283,7 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
                 ErrorMessage = "Không tìm thấy khách hàng.";
                 return;
             }
+            LoyaltySummary = await summaryTask;
             if (withHistory)
             {
                 PointHistory = await pointsTask!;
@@ -280,6 +314,23 @@ public sealed partial class CustomerDetailViewModel : PageViewModel
             if (version != Volatile.Read(ref _loadVersion)) return;
             ContentState = PageContentState.Error;
             ErrorMessage = "Không thể tải hồ sơ khách hàng. Hãy thử lại.";
+        }
+    }
+
+    private async Task<LoyaltySummary?> LoadSummaryAsync(Guid customerId, CancellationToken cancellationToken)
+    {
+        if (_loyalty is null) return null;
+        try
+        {
+            return await _loyalty.GetSummaryAsync(customerId, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
         }
     }
 

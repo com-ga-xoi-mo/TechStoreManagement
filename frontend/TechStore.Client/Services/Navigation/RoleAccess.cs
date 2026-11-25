@@ -10,6 +10,7 @@ public static class RoleAccess
     public static bool CanEditStoreSettings(string? role) => role is "Admin" or "Manager";
     public static bool CanCreateCustomers(string? role) => role is "Admin" or "Manager" or "SalesStaff";
     public static bool CanManageCustomers(string? role) => role is "Admin" or "Manager";
+    public static bool CanManageVouchers(string? role) => role is "Admin" or "Manager";
 
     public static IReadOnlyList<ShellDestinationInfo> Destinations(string? role) =>
         ShellDestinations.All.Where(item => CanOpen(AppRoute.Root(item.Id), role)).ToArray();
@@ -36,6 +37,7 @@ public static class RoleAccess
         AppRouteKind.OrderReturns => CanOpen(AppRoute.Root(ShellDestination.Orders), role),
         AppRouteKind.OrderCreate or AppRouteKind.Pos => CanManageOrders(role),
         AppRouteKind.UserManagement => role == "Admin",
+        AppRouteKind.VoucherList => CanManageVouchers(role),
         _ => false
     };
 

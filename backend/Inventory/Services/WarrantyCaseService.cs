@@ -51,7 +51,7 @@ public sealed class WarrantyCaseService(IWarrantyCaseRepository cases, IInventor
                 WarrantyAction.ReceiveForRepair, null, actor.Id, ct);
             if (!received.IsSuccess) return WarrantyResult.Rejected(received.Conflict!.Message);
             var device = (await serials.GetByIdsAsync([request.DeviceId], ct)).Single();
-            var now = ToDatabaseTime(clock.GetUtcNow().UtcDateTime);
+            var now = clock.GetUtcNow().UtcDateTime;
             if (device.WarrantyStartAt is not DateTime start || device.WarrantyEndAt is not DateTime end || start > now || now >= end)
                 return WarrantyResult.Rejected("Thiết bị nằm ngoài thời hạn bảo hành tại lúc tiếp nhận.");
             var claim = new WarrantyCase
@@ -87,7 +87,7 @@ public sealed class WarrantyCaseService(IWarrantyCaseRepository cases, IInventor
             if (!result.IsSuccess) return WarrantyResult.Rejected(result.Conflict!.Message);
             claim.Status = target;
             claim.ClosedById = actor.Id;
-            claim.ClosedAt = ToDatabaseTime(clock.GetUtcNow().UtcDateTime);
+            claim.ClosedAt = clock.GetUtcNow().UtcDateTime;
             claim.ResolutionOperationId = operationId;
             claim.ReplacementDeviceId = replacementId;
             claim.MovementId = result.MovementId;
@@ -95,10 +95,6 @@ public sealed class WarrantyCaseService(IWarrantyCaseRepository cases, IInventor
             return Map(claim);
         }, ct);
     }
-
-    // PostgreSQL timestamptz keeps microseconds. Truncate first so a replay that reads the stored case
-    // returns the same response as the request that created it.
-    private static DateTime ToDatabaseTime(DateTime utc) => utc.AddTicks(-(utc.Ticks % 10));
 
     private async Task<WarrantyResult> WriteAsync(Func<Task<WarrantyResult>> operation, CancellationToken ct)
     {

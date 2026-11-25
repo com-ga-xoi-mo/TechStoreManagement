@@ -643,5 +643,9 @@ internal sealed class SeedPostgresApi(SeedPostgresSchema fixture) : WebApplicati
         public Task<DashboardAnalyticsReadModel> GetDashboardAsync(
             DashboardAnalyticsCriteria criteria, CancellationToken cancellationToken = default) =>
             inner.GetDashboardAsync(criteria, cancellationToken);
+
+        public Task<FinancialReportReadModel> GetFinancialReportAsync(
+            FinancialReportCriteria criteria, CancellationToken cancellationToken = default) =>
+            inner.GetFinancialReportAsync(criteria, cancellationToken);
     }
 }

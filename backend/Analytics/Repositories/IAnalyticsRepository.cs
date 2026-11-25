@@ -8,4 +8,8 @@ public interface IAnalyticsRepository
     Task<DashboardAnalyticsReadModel> GetDashboardAsync(
         DashboardAnalyticsCriteria criteria,
         CancellationToken cancellationToken = default);
+
+    Task<FinancialReportReadModel> GetFinancialReportAsync(
+        FinancialReportCriteria criteria,
+        CancellationToken cancellationToken = default);
 }

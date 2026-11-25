@@ -75,6 +75,50 @@ public sealed class AnalyticsController(IAnalyticsService analyticsService) : Co
         return Ok(result.Snapshot);
     }
 
+    [HttpGet("financial-report")]
+    [EndpointSummary("Read the store-wide financial report")]
+    [EndpointDescription("Send period=custom and inclusive Vietnam dates from and to (yyyy-MM-dd). The range may contain up to 31 days and may end no later than today in UTC+07.")]
+    [ProducesResponseType(typeof(FinancialReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<FinancialReportDto>> GetFinancialReport(
+        [FromQuery] string? period = null,
+        [FromQuery] string? from = null,
+        [FromQuery] string? to = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = Request.Query;
+        if (period != "custom" || query[nameof(period)].Count != 1)
+            ModelState.AddModelError(nameof(period), "Supply exactly one period=custom.");
+
+        var start = ParseDate(nameof(from), from, query[nameof(from)].Count);
+        var end = ParseDate(nameof(to), to, query[nameof(to)].Count);
+        if (!ModelState.IsValid || start is not { } startDate || end is not { } endDate)
+            return ValidationProblem(ModelState);
+
+        var days = endDate.DayNumber - startDate.DayNumber + 1;
+        if (startDate == DateOnly.MinValue)
+            ModelState.AddModelError(nameof(from), "Start date cannot be converted to a UTC boundary.");
+        if (endDate == DateOnly.MaxValue)
+            ModelState.AddModelError(nameof(to), "End date cannot be converted to an exclusive UTC boundary.");
+        else if (days < 1)
+            ModelState.AddModelError(nameof(to), "End date must be on or after the start date.");
+        else if (days > AnalyticsLimits.MaxCustomRangeDays)
+            ModelState.AddModelError(nameof(to), $"A custom period can include at most {AnalyticsLimits.MaxCustomRangeDays} days.");
+
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var result = await analyticsService.GetFinancialReportAsync(new(startDate, endDate), cancellationToken);
+        if (result.Error is { } error)
+        {
+            ModelState.AddModelError(error.Field, error.Message);
+            return ValidationProblem(ModelState);
+        }
+
+        return Ok(result.Report);
+    }
+
     private DateOnly? ParseDate(string field, string? input, int valueCount)
     {
         if (valueCount <= 1 && DateOnly.TryParseExact(input, "yyyy-MM-dd", CultureInfo.InvariantCulture,

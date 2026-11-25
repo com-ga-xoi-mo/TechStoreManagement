@@ -5,7 +5,7 @@ using TechStore.Shared.DTOs;
 
 namespace TechStore.Api.Analytics.Services;
 
-public sealed class AnalyticsService(IAnalyticsRepository repository, IUnitOfWork unitOfWork) : IAnalyticsService
+public sealed partial class AnalyticsService(IAnalyticsRepository repository, IUnitOfWork unitOfWork) : IAnalyticsService
 {
     private static readonly TimeSpan VietnamOffset = TimeSpan.FromHours(7);
 

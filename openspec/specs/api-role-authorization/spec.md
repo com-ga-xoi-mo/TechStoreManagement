@@ -101,11 +101,31 @@ Admin, Manager and SalesStaff SHALL open and read their own current shift. Admin
 - **THEN** the order is cancelled and its reservation is released once. A different cashier receives 404. An unresolved payment or voucher hold returns 409 and keeps the reservation.
 
 ### Requirement: Warranty case authorization
-The API SHALL restrict warranty case intake, lookup, repair handback and replacement to Admin and Manager.
+The `/api/warranties` endpoints SHALL allow: `GET lookup`, `GET` (list) and `GET {caseId}` for A M S W; `POST {caseId}/receive` and `POST {caseId}/return` for A M S; `POST {caseId}/inspect` and `POST {caseId}/repaired` for A W; `POST {caseId}/replace` and `POST {caseId}/reject-replacement` for A M. Other roles SHALL receive 403 and a missing or invalid token 401. The actor SHALL come from the token.
 
 #### Scenario: Sales and Warehouse cannot authorize warranty operations
-- **WHEN** SalesStaff or WarehouseStaff calls a warranty case endpoint
-- **THEN** the API returns 403.
+- **WHEN** SalesStaff calls inspect, repaired, replace or reject-replacement, or WarehouseStaff calls receive, return, replace or reject-replacement
+- **THEN** the API returns 403 and nothing is changed
+
+#### Scenario: Warehouse cannot receive a case
+- **WHEN** WarehouseStaff posts `/api/warranties/{caseId}/receive`
+- **THEN** the API returns 403 and no case is created
+
+#### Scenario: Sales cannot approve a replacement
+- **WHEN** SalesStaff posts `/api/warranties/{caseId}/replace`
+- **THEN** the API returns 403 and the case stays `PendingReplacement`
+
+#### Scenario: Manager cannot inspect
+- **WHEN** Manager posts `/api/warranties/{caseId}/inspect`
+- **THEN** the API returns 403
+
+#### Scenario: Sales receives and hands back
+- **WHEN** SalesStaff receives an eligible device and later returns the repaired device
+- **THEN** both calls succeed
+
+#### Scenario: Anonymous
+- **WHEN** a request without a token calls `/api/warranties/lookup`
+- **THEN** the API returns 401
 
 ### Requirement: Voucher and loyalty summary roles
 Every `/api/vouchers` endpoint SHALL require Admin or Manager; a missing token returns 401 and any other role returns 403 with nothing read or changed. `GET /api/customers/{id}/loyalty-summary` SHALL allow Admin, Manager and SalesStaff and return 403 to WarehouseStaff.
@@ -121,3 +141,14 @@ Every `/api/vouchers` endpoint SHALL require Admin or Manager; a missing token r
 #### Scenario: Sales reads a loyalty summary
 - **WHEN** a SalesStaff calls the summary of an active customer
 - **THEN** the response is 200
+
+### Requirement: Warranty replacement cost visibility
+`replacementUnitCost` in warranty case responses SHALL be returned to Admin, Manager and WarehouseStaff, matching the device `unitCost` rule of `GET /api/inventory/serials`. SalesStaff SHALL receive `null`.
+
+#### Scenario: Sales reads cases without cost
+- **WHEN** SalesStaff reads a `Replaced` case
+- **THEN** the response is 200 with `replacementUnitCost = null`
+
+#### Scenario: Warehouse reads replacement cost
+- **WHEN** WarehouseStaff reads a `Replaced` case whose replacement device has a unit cost
+- **THEN** the response is 200 with that `replacementUnitCost`

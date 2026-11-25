@@ -5,6 +5,7 @@ using TechStore.Api.Inventory.Entities;
 using TechStore.Api.Inventory.Services;
 using TechStore.Api.Orders.Entities;
 using TechStore.Api.Sales.Entities;
+using TechStore.Api.Warranty.Entities;
 using TechStore.Shared.Enums;
 
 namespace TechStore.Api.Common.Data;
@@ -101,10 +102,19 @@ internal sealed partial class DemoSeedRepository
         // Old M4 databases already contain the operation pair. Attach the typed case without
         // re-performing either action or touching current ownership of a subsequently resold device.
         var caseId = AfterSaleId("warranty-case");
-        if (await dbContext.Set<WarrantyCase>().AnyAsync(c => c.Id == caseId, ct)) return;
         var opened = new DateTime(2026, 10, 26, 3, 0, 0, DateTimeKind.Utc);
         var closed = opened.AddDays(1);
         var oldSale = dbContext.Orders.Local.Single(o => o.OrderCode == "DEMO-202610-0001");
+        var contact = dbContext.Customers.Local.Single(c => c.Id == oldSale.CustomerId);
+        const string issue = "Thiết bị hoạt động không ổn định";
+        var existing = await dbContext.Set<WarrantyCase>().SingleOrDefaultAsync(c => c.Id == caseId, ct);
+        if (existing != null)
+        {
+            existing.IssueDescription ??= issue;
+            existing.ContactName ??= contact.FullName;
+            existing.ContactPhone ??= contact.Phone;
+            return;
+        }
         var oldItem = dbContext.OrderItems.Local.Single(i => i.OrderId == oldSale.Id);
         var oldDevice = oldItem.SerialImeiId!.Value;
         var receiveId = AfterSaleId("repair");
@@ -124,12 +134,23 @@ internal sealed partial class DemoSeedRepository
         var openedBy = await EnsureOperation(receiveId, WarrantyAction.ReceiveForRepair, opened);
         var closedBy = await EnsureOperation(returnId, WarrantyAction.ReturnToCustomer, closed);
         var originalWarranty = oldSale.CompletedAt!.Value;
-        dbContext.Add(new WarrantyCase
+        var claim = new WarrantyCase
         {
-            Id = caseId, OrderId = oldSale.Id, OrderItemId = oldItem.Id, CustomerId = oldSale.CustomerId,
+            Id = caseId, CaseCode = "BH-202610-0001", OrderId = oldSale.Id, OrderItemId = oldItem.Id, CustomerId = oldSale.CustomerId,
             DeviceId = oldDevice, OpenedById = openedBy, OpenedAt = opened, WarrantyStartAt = originalWarranty,
             WarrantyEndAt = originalWarranty.AddMonths(12), ClosedById = closedBy, ClosedAt = closed,
+            IssueDescription = issue, ContactName = contact.FullName, ContactPhone = contact.Phone,
             Status = WarrantyCaseStatus.ReturnedToCustomer, ReceiveOperationId = receiveId, ResolutionOperationId = returnId
+        };
+        claim.Events.Add(new WarrantyCaseEvent
+        {
+            CaseId = caseId, ActorId = openedBy, CreatedAt = opened, ToStatus = WarrantyCaseStatus.Received
         });
+        claim.Events.Add(new WarrantyCaseEvent
+        {
+            CaseId = caseId, ActorId = closedBy, CreatedAt = closed,
+            FromStatus = WarrantyCaseStatus.Received, ToStatus = WarrantyCaseStatus.ReturnedToCustomer
+        });
+        dbContext.Add(claim);
     }
 }

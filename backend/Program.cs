@@ -18,6 +18,8 @@ using TechStore.Api.Orders.Repositories;
 using TechStore.Api.Orders.Services;
 using TechStore.Api.Sales.Repositories;
 using TechStore.Api.Sales.Services;
+using TechStore.Api.Warranty.Repositories;
+using TechStore.Api.Warranty.Services;
 
 // Development only: backend/.env (git-ignored) can hold local settings such as R2 keys.
 if (string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase))

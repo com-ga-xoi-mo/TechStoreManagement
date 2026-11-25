@@ -174,6 +174,7 @@ public class InventoryAfterSaleServiceTests
         var old = Device(stock, SerialImeiStatus.Sold);
         var replacement = Device(stock, SerialImeiStatus.InStock);
         var (order, line) = AddOrder(stock, old, 1);
+        old.WarrantyMonths = 18;
         old.WarrantyStartAt = _now.AddMonths(-5);
         old.WarrantyEndAt = _now.AddMonths(7);
         replacement.UnitCost = 25_000m;
@@ -191,6 +192,7 @@ public class InventoryAfterSaleServiceTests
         Assert.Equal(25_000m, success.UnitCost);
         Assert.Equal(success.MovementId, Assert.Single(_stocks.Movements).Id);
         Assert.Equal((old.WarrantyStartAt, old.WarrantyEndAt), (replacement.WarrantyStartAt, replacement.WarrantyEndAt));
+        Assert.Equal(18, replacement.WarrantyMonths);
         Assert.Equal((SerialImeiStatus.Defective, SerialImeiStatus.Sold), (old.Status, replacement.Status));
         Assert.Equal(_serials.Items.Count(x => x.Status is SerialImeiStatus.InStock or SerialImeiStatus.Reserved), stock.Quantity);
         var serialService = new SerialImeiService(_serials, _stocks, new FakeProductRepository(), new FakeUnitOfWork());

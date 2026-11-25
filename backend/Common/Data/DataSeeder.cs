@@ -40,6 +40,8 @@ internal sealed class DataSeeder(IDemoSeedRepository repository, IUnitOfWork uni
                 });
             }
             await unitOfWork.SaveChangesAsync(cancellationToken);
+            if (await repository.StageWarrantyWorkflowsAsync(cancellationToken))
+                await unitOfWork.SaveChangesAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             commitStarted = true;
             await unitOfWork.CommitAsync(cancellationToken);

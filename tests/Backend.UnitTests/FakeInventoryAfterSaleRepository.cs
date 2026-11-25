@@ -10,8 +10,15 @@ public class FakeInventoryAfterSaleRepository : IInventoryAfterSaleRepository
     public List<InventoryOperation> Operations { get; } = [];
     public List<Order> Orders { get; } = [];
     public bool IsAwaitingBank { get; set; }
-    public Task<Order?> LockOrderAsync(Guid orderId, CancellationToken ct) =>
-        Task.FromResult(Orders.SingleOrDefault(o => o.Id == orderId));
+    public Action<string>? OnLock { get; set; }
+    public List<Guid> LockedOrders { get; } = [];
+
+    public Task<Order?> LockOrderAsync(Guid orderId, CancellationToken ct)
+    {
+        OnLock?.Invoke("order");
+        LockedOrders.Add(orderId);
+        return Task.FromResult(Orders.SingleOrDefault(o => o.Id == orderId));
+    }
     public Task<InventoryOperation?> LockOperationAsync(Guid operationId, CancellationToken ct) =>
         Task.FromResult(Operations.SingleOrDefault(x => x.Id == operationId));
     public Task<Dictionary<Guid, InventoryReservation>> GetReservationsAsync(IEnumerable<Guid> itemIds, CancellationToken ct) =>

@@ -26,9 +26,9 @@ Theo `CompletedAt` trong kỳ, báo cáo SHALL tính đơn `Completed`, `Partial
 - **THEN** báo cáo dùng đúng 0. Nếu tổng thuế dòng lệch `Order.TaxAmount` hoặc tổng tiền hàng chưa thuế dòng lệch `Order.TotalAmount − Order.TaxAmount`, đếm đơn đó một lần trong `allocationMismatchOrderCount` của ngày và kỳ
 - **AND** không phân bổ lại phần chênh, không tra giá/thuế/ưu đãi hiện tại
 
-#### Scenario: The M3 Dashboard retains its existing behavior
+#### Scenario: The Dashboard keeps its own contract
 - **WHEN** caller dùng `GET /api/analytics/dashboard`
-- **THEN** endpoint, các kỳ, DTO và KPI M3 giữ nguyên, kể cả tiêu chí doanh thu Dashboard loại đơn hoàn
+- **THEN** endpoint, các kỳ và DTO Dashboard giữ nguyên, doanh thu Dashboard theo đúng quy tắc hiện hành của requirement KPI trong spec này (cộng `TotalAmount` gốc của đơn đã giao ở trạng thái `Completed`, `PartiallyRefunded` hoặc `Refunded`), và báo cáo tài chính không thay đổi số liệu Dashboard
 
 ### Requirement: Financial report separates receipts from sales
 `paymentReceivedAmount` SHALL là tổng `Order.TotalAmount` của đơn có `PaidAt` trong kỳ, đếm một lần mỗi đơn, gom ngày UTC+07 của `PaidAt`. Tiền thu gốc SHALL có trường riêng với doanh thu chưa thuế, thuế và hoàn tiền.

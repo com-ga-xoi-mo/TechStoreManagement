@@ -15,7 +15,7 @@ using TechStore.Shared.Enums;
 
 namespace TechStore.UnitTests;
 
-public sealed class FinancialReportPostgresHttpTests
+public sealed partial class FinancialReportPostgresHttpTests
 {
     private const string Route = "/api/analytics/financial-report";
     private const string FixtureRange = "?period=custom&from=2024-10-12&to=2024-10-14";
@@ -141,9 +141,14 @@ public sealed class FinancialReportPostgresHttpTests
         Assert.Equal(report.Summary.SalesExcludingTax, report.Daily.Sum(day => day.Totals.SalesExcludingTax));
         Assert.Equal(report.Summary.SalesTax, report.Daily.Sum(day => day.Totals.SalesTax));
         Assert.Equal(report.Summary.PaymentReceivedAmount, report.Daily.Sum(day => day.Totals.PaymentReceivedAmount));
-        AssertChangeTwoNulls(raw.RootElement.GetProperty("summary"));
-        foreach (var day in raw.RootElement.GetProperty("daily").EnumerateArray())
-            AssertChangeTwoNulls(day.GetProperty("totals"));
+        Assert.Equal(0m, report.Summary.RefundPaidAmount);
+        Assert.Equal(0m, report.Summary.RefundedSalesExcludingTax);
+        Assert.Equal(0m, report.Summary.RestockedCost);
+        Assert.Equal(0m, report.Summary.WarrantyCost);
+        Assert.Equal(480m, report.Summary.NetSalesExcludingTax);
+        Assert.Equal(JsonValueKind.Null, raw.RootElement.GetProperty("summary").GetProperty("netCostOfGoodsSold").ValueKind);
+        Assert.Null(report.Summary.NetGrossProfit);
+        Assert.Equal(0m, report.Daily[1].Totals.NetGrossProfit);
 
         Assert.Equal(new[] { ProductId(1), ProductId(2), ProductId(3) }, report.TopProductsByQuantity.Select(row => row.ProductId));
         Assert.Equal(report.TopProductsByQuantity.ToArray(), report.TopProductsByRevenue.ToArray());
@@ -159,7 +164,8 @@ public sealed class FinancialReportPostgresHttpTests
         AssertTotals(zeroCost.Summary, 1, 1, 120, 0, 122, 0, 120, 1);
 
         var dashboard = await client.GetFromJsonAsync<AdminDashboardDto>("/api/analytics/dashboard" + FixtureRange);
-        Assert.Equal(122, dashboard!.Summary.Revenue);
+        // Dashboard counts delivered orders, including PartiallyRefunded/Refunded (A 198 + B 198 + C 122).
+        Assert.Equal(518, dashboard!.Summary.Revenue);
     }
 
     [PostgresFact]
@@ -235,16 +241,11 @@ public sealed class FinancialReportPostgresHttpTests
         return (await response.Content.ReadFromJsonAsync<FinancialReportDto>())!;
     }
 
-    private static void AssertChangeTwoNulls(JsonElement totals)
-    {
-        foreach (var field in new[] { "refundPaidAmount", "refundedSalesExcludingTax", "restockedCost", "warrantyCost",
-                     "netSalesExcludingTax", "netCostOfGoodsSold", "netGrossProfit" })
-            Assert.Equal(JsonValueKind.Null, totals.GetProperty(field).ValueKind);
-    }
-
     private static void AssertTotals(FinancialReportTotalsDto actual, long orders, long quantity, decimal revenue,
         decimal tax, decimal receipts, decimal? cost, decimal? profit, long mismatches)
-        => Assert.Equal(new FinancialReportTotalsDto(orders, quantity, mismatches, revenue, tax, receipts, cost, profit), actual);
+        => Assert.Equal((orders, quantity, mismatches, revenue, tax, receipts, cost, profit),
+            (actual.CompletedOrderCount, actual.Quantity, actual.AllocationMismatchOrderCount, actual.SalesExcludingTax,
+             actual.SalesTax, actual.PaymentReceivedAmount, actual.CostOfGoodsSold, actual.SalesGrossProfit));
 
     private static Product[] AddProducts(AppDbContext db, int count)
     {

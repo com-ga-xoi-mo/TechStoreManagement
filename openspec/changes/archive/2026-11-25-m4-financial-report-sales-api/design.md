@@ -2,7 +2,7 @@
 
 ## Context
 
-`AnalyticsController` đã áp dụng role Admin/Manager. Dashboard M3 đọc trong transaction `RepeatableRead`, dùng `statement_timestamp()` và gom ngày UTC+07 tại PostgreSQL. KPI Dashboard lấy `Order.TotalAmount` của đơn đang `Completed`.
+`AnalyticsController` đã áp dụng role Admin/Manager. Dashboard M3 đọc trong transaction `RepeatableRead`, dùng `statement_timestamp()` và gom ngày UTC+07 tại PostgreSQL. Sau PR #31 của An, doanh thu Dashboard cộng `Order.TotalAmount` gốc của đơn đã giao ở trạng thái `Completed`, `PartiallyRefunded` hoặc `Refunded`; báo cáo tài chính giữ nguyên quy tắc đó của Dashboard và không sửa code Dashboard.
 
 `OrderService` lưu số đã định giá lên đơn và từng dòng. `PaidAt` có thể có trước `CompletedAt`. Cash checkout POS ghi hai mốc cùng lúc, lưu giá vốn theo dòng sau khi xuất kho và ghi tổng đơn vào ca. Migration `AddOrderPricingAllocation` thêm phân bổ thuế và giảm giá mặc định 0, không backfill. `OrderReturn` hiện có `RefundAmount`, `RefundedAt` và `IsRestocked`. Dữ liệu đó chưa mô tả đầy đủ tiền hàng chưa thuế hoàn, ngày nhập lại hay chi phí bảo hành theo yêu cầu M4.
 

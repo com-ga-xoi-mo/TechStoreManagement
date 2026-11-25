@@ -107,7 +107,8 @@ public sealed partial class AnalyticsRepository
             ORDER BY "SalesExcludingTax" DESC, "CompletedOrderCount" DESC, "CashierUserId"
             """).ToListAsync(cancellationToken);
 
-        return new(sales, receipts, products, cashiers);
+        var afterSale = await ReadFinancialAfterSaleAsync(criteria, cancellationToken);
+        return new(sales, receipts, products, cashiers, afterSale);
     }
 
     // SQL fragments are fixed repository statements. Dates, statuses and the optional rank limit are parameters.

@@ -6,7 +6,8 @@ public sealed record FinancialReportReadModel(
     IReadOnlyList<FinancialSalesDayRow> SalesByDay,
     IReadOnlyList<FinancialReceiptsDayRow> ReceiptsByDay,
     IReadOnlyList<FinancialProductRow> Products,
-    IReadOnlyList<FinancialCashierRow> Cashiers)
+    IReadOnlyList<FinancialCashierRow> Cashiers,
+    FinancialAfterSaleReadModel AfterSale)
 {
     internal const int ProductRankingLimit = 10;
 }
@@ -27,3 +28,22 @@ public sealed record FinancialProductRow(Guid ProductId, string ProductName, lon
 
 public sealed record FinancialCashierRow(Guid CashierUserId, string CashierName, long CompletedOrderCount,
     long Quantity, decimal SalesExcludingTax, decimal? CostOfGoodsSold);
+
+public sealed record FinancialAfterSaleReadModel(
+    IReadOnlyList<FinancialRefundDayRow> Refunds,
+    IReadOnlyList<FinancialRestockDayRow> Restocks,
+    IReadOnlyList<FinancialWarrantyDayRow> Warranty,
+    IReadOnlyList<FinancialCashDayRow> Cash,
+    IReadOnlyList<FinancialQrReceiptDayRow> QrReceipts);
+
+public sealed record FinancialRefundDayRow(DateOnly Date, decimal RefundPaidAmount, decimal? RefundTaxAmount,
+    decimal? RefundedSalesExcludingTax, decimal? VietQrRefundPaidAmount);
+
+public sealed record FinancialRestockDayRow(DateOnly Date, decimal? RestockedCost);
+
+public sealed record FinancialWarrantyDayRow(DateOnly Date, decimal? WarrantyCost);
+
+public sealed record FinancialCashDayRow(DateOnly Date, Guid? PosSessionId,
+    decimal CashReceivedAmount, decimal? CashRefundPaidAmount);
+
+public sealed record FinancialQrReceiptDayRow(DateOnly Date, decimal? VietQrReceivedAmount);

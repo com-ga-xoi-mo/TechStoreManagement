@@ -14,10 +14,10 @@ public sealed record FinancialReportResult
 {
     private FinancialReportResult() { }
 
-    public FinancialReportDto? Report { get; private init; }
+    public FinancialReportResponse? Report { get; private init; }
     public (string Field, string Message)? Error { get; private init; }
 
-    public static FinancialReportResult Success(FinancialReportDto report) => new() { Report = report };
+    public static FinancialReportResult Success(FinancialReportResponse report) => new() { Report = report };
     public static FinancialReportResult Invalid(string field, string message) => new() { Error = (field, message) };
 }
 

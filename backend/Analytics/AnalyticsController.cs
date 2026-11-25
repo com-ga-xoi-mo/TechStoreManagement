@@ -78,11 +78,11 @@ public sealed class AnalyticsController(IAnalyticsService analyticsService) : Co
     [HttpGet("financial-report")]
     [EndpointSummary("Read the store-wide financial report")]
     [EndpointDescription("Send period=custom and inclusive Vietnam dates from and to (yyyy-MM-dd). The range may contain up to 31 days and may end no later than today in UTC+07.")]
-    [ProducesResponseType(typeof(FinancialReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(FinancialReportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<FinancialReportDto>> GetFinancialReport(
+    public async Task<ActionResult<FinancialReportResponse>> GetFinancialReport(
         [FromQuery] string? period = null,
         [FromQuery] string? from = null,
         [FromQuery] string? to = null,

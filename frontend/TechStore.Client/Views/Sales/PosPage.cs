@@ -1,6 +1,9 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Storage.Streams;
 using TechStore.Client.Controls;
 using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Orders;
@@ -59,7 +62,13 @@ public sealed class PosPage : Page, IRoutePage
                             .Foreground(AppColors.Brushes.SecondaryText)
                             .TextWrapping(TextWrapping.Wrap)
                             .Text(x => x.Binding(() => ViewModel.ShiftSummary))
-                            .Visibility(x => x.Binding(() => ViewModel.HasShift).Convert((bool v) => ShowIf(v)))),
+                            .Visibility(x => x.Binding(() => ViewModel.HasShift).Convert((bool v) => ShowIf(v))),
+                        new TextBlock()
+                            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+                            .Foreground(AppColors.Brushes.SecondaryText)
+                            .TextWrapping(TextWrapping.Wrap)
+                            .Text(x => x.Binding(() => ViewModel.ShiftQrText))
+                            .Visibility(x => x.Binding(() => ViewModel.HasShiftQr).Convert((bool v) => ShowIf(v)))),
                 new Button()
                     .Style(AppControlStyles.Styles.Button)
                     .VerticalAlignment(VerticalAlignment.Center)
@@ -354,6 +363,97 @@ public sealed class PosPage : Page, IRoutePage
 
     // ---------- cash payment ----------
 
+    // The request is created on the server (goods and voucher are held for 15 minutes); this panel only shows it and
+    // the state the ViewModel polls. Cancel is the only action while it is open.
+    private UIElement BuildQrPanel()
+    {
+        var panel = new StackPanel().Spacing(8);
+        panel.Children.Add(new Image()
+            .Width(240)
+            .Height(240)
+            .HorizontalAlignment(HorizontalAlignment.Center)
+            .Source(x => x.Binding(() => ViewModel.QrImagePng).Convert((string? base64) => ToImage(base64))));
+        panel.Children.Add(new TextBlock()
+            .Style(AppResources.GetStyle(AppTypography.MetricText))
+            .Foreground(AppColors.Brushes.Text)
+            .HorizontalAlignment(HorizontalAlignment.Center)
+            .Text(x => x.Binding(() => ViewModel.QrAmountText)));
+        panel.Children.Add(new TextBlock()
+            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+            .Foreground(AppColors.Brushes.SecondaryText)
+            .TextWrapping(TextWrapping.Wrap)
+            .Text(x => x.Binding(() => ViewModel.QrBankText)));
+        panel.Children.Add(new TextBlock()
+            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+            .Foreground(AppColors.Brushes.Text)
+            .TextWrapping(TextWrapping.Wrap)
+            .Text(x => x.Binding(() => ViewModel.Qr).Convert((TechStore.Client.Models.Sales.VietQrPayment? q) =>
+                q is null ? string.Empty : $"Nội dung chuyển khoản: {q.TransactionCode}")));
+        panel.Children.Add(new TextBlock()
+            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+            .Foreground(AppColors.Brushes.SecondaryText)
+            .Text(x => x.Binding(() => ViewModel.QrCountdownText).Convert((string t) => $"Đang chờ thanh toán · còn {t}")));
+        panel.Children.Add(new Button()
+            .Style(AppControlStyles.Styles.Button)
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
+            .Content("Hủy mã QR")
+            .Command(x => x.Binding(() => ViewModel.CancelQrCommand)));
+        panel.Visibility(x => x.Binding(() => ViewModel.IsQrActive).Convert((bool v) => ShowIf(v)));
+
+        var messages = new StackPanel().Spacing(4);
+        messages.Children.Add(new TextBlock().Style(AppControlStyles.Styles.FieldError)
+            .TextWrapping(TextWrapping.Wrap)
+            .Text(x => x.Binding(() => ViewModel.QrError))
+            .Visibility(x => x.Binding(() => ViewModel.HasQrError).Convert((bool v) => ShowIf(v))));
+        messages.Children.Add(new TextBlock()
+            .Style(AppResources.GetStyle(AppTypography.CaptionText))
+            .Foreground(AppColors.Brushes.SecondaryText)
+            .TextWrapping(TextWrapping.Wrap)
+            .Text(x => x.Binding(() => ViewModel.QrNotice))
+            .Visibility(x => x.Binding(() => ViewModel.HasQrNotice).Convert((bool v) => ShowIf(v))));
+        messages.Children.Add(new ProgressBar()
+            .IsIndeterminate(true)
+            .Visibility(x => x.Binding(() => ViewModel.IsQrBusy).Convert((bool v) => ShowIf(v))));
+        return new StackPanel().Spacing(8).Children(panel, messages);
+    }
+
+    // The image is returned at once and filled in when the PNG has been decoded.
+    private static ImageSource? ToImage(string? base64)
+    {
+        if (string.IsNullOrWhiteSpace(base64)) return null;
+        byte[] bytes;
+        try
+        {
+            bytes = Convert.FromBase64String(base64);
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+
+        var image = new BitmapImage();
+        _ = FillAsync(image, bytes);
+        return image;
+    }
+
+    private static async Task FillAsync(BitmapImage image, byte[] bytes)
+    {
+        try
+        {
+            using var stream = new InMemoryRandomAccessStream();
+            using var writer = new DataWriter(stream);
+            writer.WriteBytes(bytes);
+            await writer.StoreAsync();
+            writer.DetachStream();
+            stream.Seek(0);
+            await image.SetSourceAsync(stream);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine($"QR image could not be shown: {exception.Message}");
+        }
+    }
+
     private UIElement BuildPayment()
     {
         // Adding these controls directly avoids recursive ResourceParent traversal on first layout in Uno Skia 6.7.
@@ -380,13 +480,30 @@ public sealed class PosPage : Page, IRoutePage
                     .Style(AppResources.GetStyle(AppTypography.MetricText))
                     .Foreground(AppColors.Brushes.Text)
                     .Text(x => x.Binding(() => ViewModel.EstimatedTotalText))));
+        panel.Children.Add(Caption("Phương thức thanh toán"));
+        panel.Children.Add(new StackPanel()
+            .Orientation(Orientation.Horizontal)
+            .Spacing(8)
+            .Children(
+                new Button()
+                    .Style(AppControlStyles.Styles.Button)
+                    .Content("Tiền mặt")
+                    .CommandParameter("Cash")
+                    .Command(x => x.Binding(() => ViewModel.ChoosePaymentCommand)),
+                new Button()
+                    .Style(AppControlStyles.Styles.Button)
+                    .Content("VietQR")
+                    .CommandParameter("VietQR")
+                    .Command(x => x.Binding(() => ViewModel.ChoosePaymentCommand))));
         panel.Children.Add(new TextBox()
             .Style(AppControlStyles.Styles.TextBox)
             .Header("Tiền khách đưa (₫)")
             .IsEnabled(x => x.Binding(() => ViewModel.CanEditCart))
+            .Visibility(x => x.Binding(() => ViewModel.PayByCash).Convert((bool v) => ShowIf(v)))
             .Text(x => x.Binding(() => ViewModel.CashText).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged)));
         panel.Children.Add(new StackPanel()
             .Spacing(2)
+            .Visibility(x => x.Binding(() => ViewModel.PayByCash).Convert((bool v) => ShowIf(v)))
             .Children(
                 Caption("Tiền thừa trả khách"),
                 new TextBlock()
@@ -401,7 +518,15 @@ public sealed class PosPage : Page, IRoutePage
             .Style(AppControlStyles.Styles.PrimaryButton)
             .HorizontalAlignment(HorizontalAlignment.Stretch)
             .Content("Thanh toán")
+            .Visibility(x => x.Binding(() => ViewModel.PayByCash).Convert((bool v) => ShowIf(v)))
             .Command(x => x.Binding(() => ViewModel.PayCommand)));
+        panel.Children.Add(new Button()
+            .Style(AppControlStyles.Styles.PrimaryButton)
+            .HorizontalAlignment(HorizontalAlignment.Stretch)
+            .Content("Tạo mã QR")
+            .Visibility(x => x.Binding(() => ViewModel.PayByQr).Convert((bool v) => ShowIf(v)))
+            .Command(x => x.Binding(() => ViewModel.CreateQrCommand)));
+        panel.Children.Add(BuildQrPanel());
         panel.Children.Add(new Button()
             .Style(AppControlStyles.Styles.Button)
             .HorizontalAlignment(HorizontalAlignment.Stretch)

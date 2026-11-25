@@ -308,11 +308,12 @@ public sealed partial class PosCheckoutPostgresHttpTests
         Assert.Equal(order.CashTendered, detail.CashTendered);
     }
 
-    private static PosCheckoutRequest Checkout(PosWorld world, Guid shiftId, Guid deviceId, decimal tendered) => new()
+    private static PosCheckoutRequest Checkout(PosWorld world, Guid shiftId, Guid deviceId, decimal tendered, string? voucher = null) => new()
     {
         PosSessionId = shiftId,
         CheckoutKey = Guid.NewGuid(),
         CashTendered = tendered,
+        VoucherCode = voucher,
         Items = [new CreateOrderItemRequest { ProductId = world.ProductId, SerialImeiId = deviceId }]
     };
 

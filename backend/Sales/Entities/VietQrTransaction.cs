@@ -14,6 +14,7 @@ public class VietQrTransaction : BaseEntity
     public string? ProviderTransactionId { get; set; }
     public string BankBin { get; set; } = string.Empty;
     public string BankAccountNumber { get; set; } = string.Empty;
+    public string? BankAccountName { get; set; }
     public decimal Amount { get; set; }
     public string QrContent { get; set; } = string.Empty;
     public VietQrStatus Status { get; set; } = VietQrStatus.Pending;

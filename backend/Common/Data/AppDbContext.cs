@@ -42,6 +42,7 @@ public class AppDbContext : DbContext
     // Sales Module (2 tables)
     public DbSet<PosSession> PosSessions => Set<PosSession>();
     public DbSet<VietQrTransaction> VietQrTransactions => Set<VietQrTransaction>();
+    public DbSet<VietQrBankEvent> VietQrBankEvents => Set<VietQrBankEvent>();
 
     // Identity Module (5 tables)
     public DbSet<User> Users => Set<User>();

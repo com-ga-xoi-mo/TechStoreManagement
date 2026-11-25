@@ -17,10 +17,11 @@ public class PosCheckoutService(
     IOrderRepository orderRepository,
     IPosSessionRepository sessionRepository,
     IInventoryFulfillmentService fulfillmentService,
+    TechStore.Api.Customers.Services.IVoucherService vouchers,
+    ISaleSettlementService settlement,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider,
-    IReturnExchangeService? exchanges = null,
-    TechStore.Api.Customers.Services.IRefundLoyaltyService? loyalty = null) : IPosCheckoutService
+    IReturnExchangeService? exchanges = null) : IPosCheckoutService
 {
     private const int MaxCodeAttempts = 5;
     private const string OrderCodeConstraint = "idx_orders_code";
@@ -33,6 +34,8 @@ public class PosCheckoutService(
             Items = request.Items,
             CustomerId = request.CustomerId,
             OrderDiscountAmount = request.OrderDiscountAmount,
+            VoucherCode = request.VoucherCode,
+            ApplyVipDiscount = request.ApplyVipDiscount,
             Notes = request.Notes
         }, actor, checkAvailability: false, cancellationToken);
 
@@ -166,31 +169,32 @@ public class PosCheckoutService(
                     return PosResult<PosCheckoutOutcome>.Conflict(OrderService.Describe(items, reserve.Conflict!));
                 }
 
-                var sale = await fulfillmentService.ConfirmSaleAsync(lines, now, actor.Id, cancellationToken);
-                if (!sale.IsSuccess)
+                if (order.VoucherId.HasValue)
                 {
-                    await unitOfWork.RollbackAsync(cancellationToken);
-                    return PosResult<PosCheckoutOutcome>.Conflict(OrderService.Describe(items, sale.Conflict!));
+                    // Hold one use, then save so the settlement step finds the hold when it consumes it.
+                    var hold = await vouchers.ReserveAsync(order, cancellationToken);
+                    if (hold.Outcome is TechStore.Api.Customers.Services.VoucherUseOutcome.Refused
+                        or TechStore.Api.Customers.Services.VoucherUseOutcome.NotFound)
+                    {
+                        await unitOfWork.RollbackAsync(cancellationToken);
+                        return PosResult<PosCheckoutOutcome>.Conflict(hold.Reason ?? "The voucher cannot be used for this order.");
+                    }
+
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
                 }
 
-                foreach (var item in items)
-                {
-                    item.UnitCost = sale.UnitCosts.GetValueOrDefault(item.Id);
-                }
-
-                // Every Inventory step succeeded: only now complete the order and credit the shift.
-                order.Status = OrderStatus.Completed;
-                order.PaymentMethod = PaymentMethod.Cash;
                 order.PosSessionId = shift.Id;
                 order.CheckoutKey = key;
                 order.CashTendered = request.CashTendered!.Value;
                 order.ChangeGiven = request.CashTendered.Value - order.TotalAmount;
-                order.PaidAt = now;
-                order.CompletedAt = now;
-                if (loyalty != null && order.CustomerId is Guid customerId)
-                    await loyalty.StageSaleAsync(order.Id, customerId, order.Subtotal - order.DiscountAmount, cancellationToken);
-                shift.CashSalesTotal += order.TotalAmount;
-                shift.UpdatedAt = now;
+
+                // Stock, cost, warranty, voucher use, points, status and the shift cash total are one shared step.
+                var settled = await settlement.CompleteAsync(order, shift, PaymentMethod.Cash, now, actor.Id, cancellationToken);
+                if (!settled.IsSuccess)
+                {
+                    await unitOfWork.RollbackAsync(cancellationToken);
+                    return PosResult<PosCheckoutOutcome>.Conflict(settled.Conflict!);
+                }
 
                 await unitOfWork.SaveChangesAsync(cancellationToken);
                 await unitOfWork.CommitAsync(cancellationToken);

@@ -26,6 +26,7 @@ public class VietQrTransactionConfiguration : IEntityTypeConfiguration<VietQrTra
         builder.Property(x => x.ProviderTransactionId).HasColumnName("provider_transaction_id");
         builder.Property(x => x.BankBin).HasColumnName("bank_bin").IsRequired();
         builder.Property(x => x.BankAccountNumber).HasColumnName("bank_account_number").IsRequired();
+        builder.Property(x => x.BankAccountName).HasColumnName("bank_account_name");
         builder.Property(x => x.Amount).HasColumnName("amount").HasPrecision(18, 2).IsRequired();
         builder.Property(x => x.QrContent).HasColumnName("qr_content").IsRequired();
         builder.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasDefaultValue(VietQrStatus.Pending).IsRequired();
@@ -36,7 +37,8 @@ public class VietQrTransactionConfiguration : IEntityTypeConfiguration<VietQrTra
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamptz");
 
         // Indexes
-        builder.HasIndex(x => x.OrderId).HasDatabaseName("idx_vietqr_tx_order_id");
+        // Indexes on the same column must be named through HasIndex(expression, name): unnamed ones are merged into one.
+        builder.HasIndex(x => x.OrderId, "idx_vietqr_tx_order_id");
         builder.HasIndex(x => x.PosSessionId).HasDatabaseName("idx_vietqr_tx_session_id");
         builder.HasIndex(x => x.TransactionCode).IsUnique().HasDatabaseName("idx_vietqr_tx_code");
         builder.HasIndex(x => new { x.Provider, x.ProviderTransactionId })
@@ -45,10 +47,12 @@ public class VietQrTransactionConfiguration : IEntityTypeConfiguration<VietQrTra
         builder.HasIndex(x => x.ConfirmedByUserId).HasDatabaseName("idx_vietqr_tx_confirmed_by");
         builder.HasIndex(x => x.Status).HasDatabaseName("idx_vietqr_tx_status");
         builder.HasIndex(x => x.ExpiresAt).HasDatabaseName("idx_vietqr_tx_expires_at");
-        builder.HasIndex(x => x.OrderId)
+        builder.HasIndex(x => x.OrderId, "uq_vietqr_pending_order")
             .IsUnique()
-            .HasFilter("status = 'Confirmed'")
-            .HasDatabaseName("uq_vietqr_confirmed_order");
+            .HasFilter("status = 'Pending'");
+        builder.HasIndex(x => x.OrderId, "uq_vietqr_confirmed_order")
+            .IsUnique()
+            .HasFilter("status = 'Confirmed'");
 
         // Relationships
         builder.HasOne(x => x.Order)

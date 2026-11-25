@@ -31,6 +31,11 @@ public sealed class IdentityPostgresApiFactory(string connectionString) : WebApp
             ["Jwt:SecretKey"] = SigningKey,
             ["Jwt:Issuer"] = "TechStore.Identity.HttpTests",
             ["Jwt:Audience"] = "TechStore.Identity.HttpTests.Client",
+            ["VietQr:ExpirySweepSeconds"] = "0",
+            ["VietQr:BankBin"] = "970422",
+            ["VietQr:AccountNumber"] = "0123456789",
+            ["VietQr:AccountName"] = "TECHSTORE TEST",
+            ["VietQr:WebhookSecret"] = "test-webhook-secret-0123456789abcdef",
             ["ObjectStorage:Provider"] = "Local",
             ["ObjectStorage:Local:RootPath"] = _storagePath
         }) builder.UseSetting(key, value);

@@ -16,7 +16,8 @@ public sealed record PosShift(
     decimal? Discrepancy,
     string? ClosingNote,
     DateTime OpenedAt,
-    DateTime? ClosedAt)
+    DateTime? ClosedAt,
+    decimal VietQrSalesTotal = 0m)
 {
     public bool IsOpen => Status == PosSessionStatus.Open;
 }

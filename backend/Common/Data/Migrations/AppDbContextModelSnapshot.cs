@@ -661,6 +661,7 @@ namespace TechStore.Api.Common.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("idx_cust_loyalty_reference_key")
                         .HasFilter("reference_key IS NOT NULL");
+
                     b.HasIndex("RefundCaseId")
                         .IsUnique()
                         .HasDatabaseName("uq_cust_loyalty_refund_case")
@@ -1790,7 +1791,7 @@ namespace TechStore.Api.Common.Data.Migrations
 
                             t.HasCheckConstraint("ck_warranty_cases_dates", "warranty_start_at <= opened_at AND opened_at < warranty_end_at AND (closed_at IS NULL OR closed_at >= opened_at)");
 
-                            t.HasCheckConstraint("ck_warranty_cases_outcome", "(status = 'UnderRepair' AND closed_by_id IS NULL AND closed_at IS NULL AND resolution_operation_id IS NULL\n    AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)\nOR (status IN ('ReturnedToCustomer','Replaced') AND closed_by_id IS NOT NULL AND closed_at IS NOT NULL AND resolution_operation_id IS NOT NULL\n    AND ((status = 'ReturnedToCustomer' AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)\n      OR (status = 'Replaced' AND replacement_device_id IS NOT NULL AND replacement_device_id <> device_id AND movement_id IS NOT NULL)))");
+                            t.HasCheckConstraint("ck_warranty_cases_outcome", "(status = 'UnderRepair' AND closed_by_id IS NULL AND closed_at IS NULL AND resolution_operation_id IS NULL\r\n    AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)\r\nOR (status IN ('ReturnedToCustomer','Replaced') AND closed_by_id IS NOT NULL AND closed_at IS NOT NULL AND resolution_operation_id IS NOT NULL\r\n    AND ((status = 'ReturnedToCustomer' AND replacement_device_id IS NULL AND movement_id IS NULL AND replacement_unit_cost IS NULL)\r\n      OR (status = 'Replaced' AND replacement_device_id IS NOT NULL AND replacement_device_id <> device_id AND movement_id IS NOT NULL)))");
                         });
                 });
 
@@ -2521,6 +2522,121 @@ namespace TechStore.Api.Common.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TechStore.Api.Sales.Entities.VietQrBankEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("account_number");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("payload");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("provider_transaction_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("resolution_note");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resolved_by_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TransferContent")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("transfer_content");
+
+                    b.Property<DateTime>("TransferredAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("transferred_at");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("VietQrTransactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("vietqr_transaction_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceivedAt")
+                        .HasDatabaseName("idx_vietqr_events_received_at");
+
+                    b.HasIndex("ResolvedByUserId")
+                        .HasDatabaseName("idx_vietqr_events_resolved_by");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("idx_vietqr_events_status");
+
+                    b.HasIndex("VietQrTransactionId")
+                        .HasDatabaseName("idx_vietqr_events_transaction_id");
+
+                    b.HasIndex("Provider", "ProviderTransactionId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_vietqr_events_provider_transaction");
+
+                    b.ToTable("vietqr_bank_events", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_vietqr_events_amount_gt_zero", "amount > 0");
+
+                            t.HasCheckConstraint("ck_vietqr_events_resolution", "(status = 'Resolved' AND resolved_at IS NOT NULL AND resolved_by_user_id IS NOT NULL AND resolution_note IS NOT NULL) OR (status <> 'Resolved' AND resolved_at IS NULL AND resolved_by_user_id IS NULL AND resolution_note IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("TechStore.Api.Sales.Entities.VietQrTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2533,6 +2649,10 @@ namespace TechStore.Api.Common.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("amount");
+
+                    b.Property<string>("BankAccountName")
+                        .HasColumnType("text")
+                        .HasColumnName("bank_account_name");
 
                     b.Property<string>("BankAccountNumber")
                         .IsRequired()
@@ -2607,11 +2727,6 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.HasIndex("ExpiresAt")
                         .HasDatabaseName("idx_vietqr_tx_expires_at");
 
-                    b.HasIndex("OrderId")
-                        .IsUnique()
-                        .HasDatabaseName("uq_vietqr_confirmed_order")
-                        .HasFilter("status = 'Confirmed'");
-
                     b.HasIndex("PosSessionId")
                         .HasDatabaseName("idx_vietqr_tx_session_id");
 
@@ -2625,6 +2740,16 @@ namespace TechStore.Api.Common.Data.Migrations
                     b.HasIndex("Provider", "ProviderTransactionId")
                         .IsUnique()
                         .HasDatabaseName("uq_vietqr_provider_transaction");
+
+                    b.HasIndex(new[] { "OrderId" }, "idx_vietqr_tx_order_id");
+
+                    b.HasIndex(new[] { "OrderId" }, "uq_vietqr_confirmed_order")
+                        .IsUnique()
+                        .HasFilter("status = 'Confirmed'");
+
+                    b.HasIndex(new[] { "OrderId" }, "uq_vietqr_pending_order")
+                        .IsUnique()
+                        .HasFilter("status = 'Pending'");
 
                     b.ToTable("vietqr_transactions", null, t =>
                         {
@@ -3137,6 +3262,23 @@ namespace TechStore.Api.Common.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("CashierUser");
+                });
+
+            modelBuilder.Entity("TechStore.Api.Sales.Entities.VietQrBankEvent", b =>
+                {
+                    b.HasOne("TechStore.Api.Identity.Entities.User", "ResolvedByUser")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TechStore.Api.Sales.Entities.VietQrTransaction", "VietQrTransaction")
+                        .WithMany()
+                        .HasForeignKey("VietQrTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ResolvedByUser");
+
+                    b.Navigation("VietQrTransaction");
                 });
 
             modelBuilder.Entity("TechStore.Api.Sales.Entities.VietQrTransaction", b =>

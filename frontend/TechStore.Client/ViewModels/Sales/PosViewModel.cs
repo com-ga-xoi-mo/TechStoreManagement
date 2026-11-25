@@ -192,6 +192,8 @@ public sealed partial class PosViewModel : PageViewModel
     partial void OnPayErrorChanged(string value) => OnPropertyChanged(nameof(HasPayError));
     partial void OnReceiptChanged(OrderDetail? value)
     {
+        // A cash receipt replaces an older QR receipt, or the page would keep showing the QR one.
+        if (value is not null) QrReceipt = null;
         OnPropertyChanged(nameof(HasReceipt));
         OnPropertyChanged(nameof(ReceiptText));
     }
@@ -321,6 +323,7 @@ public sealed partial class PosViewModel : PageViewModel
     [RelayCommand]
     private void BeginCloseShift()
     {
+        if (ExplainOpenQr()) return;
         if (!HasShift || HasLines) return;
         CountedCashText = string.Empty;
         ClosingNote = string.Empty;

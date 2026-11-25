@@ -19,7 +19,8 @@ public sealed record VietQrPayment(
     DateTime ExpiresAt,
     Guid? PosSessionId,
     string? CashierName,
-    DateTime? ConfirmedAt)
+    DateTime? ConfirmedAt,
+    string? QrModules = null)
 {
     public bool IsPending => Status == VietQrStatus.Pending;
 }

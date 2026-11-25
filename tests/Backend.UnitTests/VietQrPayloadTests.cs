@@ -8,6 +8,20 @@ namespace TechStore.UnitTests;
 public class VietQrPayloadTests
 {
     [Fact]
+    public void ToModules_IsASquareOfOnesAndZeros()
+    {
+        // Arrange
+        var payload = "00020101021238570010A000000727012700069704220113012345678900208QRIBFTTA53037045802VN63040000";
+
+        // Act
+        var rows = VietQrPayload.ToModules(payload).Split('\n');
+
+        // Assert
+        rows.Should().OnlyContain(row => row.Length == rows.Length && row.All(c => c == '0' || c == '1'));
+        rows.Should().Contain(row => row.Contains('1'));
+    }
+
+    [Fact]
     public void Crc16_StandardCheckString_MatchesTheCcittFalseVector()
     {
         // Act

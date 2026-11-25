@@ -335,6 +335,7 @@ internal static class VietQrMapper
         BankAccountName = qr.BankAccountName,
         QrContent = qr.QrContent,
         QrImagePng = includeImage ? VietQrPayload.ToPngBase64(qr.QrContent) : null,
+        QrModules = includeImage ? VietQrPayload.ToModules(qr.QrContent) : null,
         CreatedAt = qr.CreatedAt,
         ExpiresAt = qr.ExpiresAt,
         SecondsLeft = qr.Status == VietQrStatus.Pending ? Math.Max(0, (int)Math.Ceiling((qr.ExpiresAt - nowUtc).TotalSeconds)) : 0,

@@ -11,10 +11,10 @@ public sealed class VietQrRepositoryTests
     private const string Id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     private const string EventId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 
-    private static string Payment(string status = "Pending", string id = Id, string image = "\"iVBORw0KGgo=\"") => $$"""
+    private static string Payment(string status = "Pending", string id = Id, string image = "\"iVBORw0KGgo=\"", string modules = "\"1010\\n0101\"") => $$"""
         {"id":"{{id}}","orderId":"cccccccc-cccc-cccc-cccc-cccccccccccc","orderCode":"ORD-202611-0042","status":"{{status}}","orderStatus":"Pending",
          "amount":11000000,"transactionCode":"TSABCDEFGH23","bankBin":"970422","bankAccountNumber":"0123456789","bankAccountName":"TECHSTORE",
-         "qrContent":"000201","qrImagePng":{{image}},"createdAt":"2026-11-25T08:00:00Z","expiresAt":"2026-11-25T08:15:00Z","secondsLeft":900,
+         "qrContent":"000201","qrImagePng":{{image}},"qrModules":{{modules}},"createdAt":"2026-11-25T08:00:00Z","expiresAt":"2026-11-25T08:15:00Z","secondsLeft":900,
          "posSessionId":"dddddddd-dddd-dddd-dddd-dddddddddddd","cashierUserId":null,"cashierName":"Thu ngan","confirmedAt":null}
         """;
 
@@ -42,14 +42,15 @@ public sealed class VietQrRepositoryTests
         Assert.Equal(VietQrStatus.Pending, payment.Status);
         Assert.Equal(11_000_000m, payment.Amount);
         Assert.Equal("iVBORw0KGgo=", payment.QrImagePng);
+        Assert.Equal("1010\n0101", payment.QrModules);
         Assert.True(payment.IsPending);
     }
 
     [Fact]
-    public async Task CreateAsync_WithoutAQrImage_IsAnInvalidResponse()
+    public async Task CreateAsync_WithoutTheQrModules_IsAnInvalidResponse()
     {
         // Arrange
-        var api = new RecordingApiClient((_, _, _) => Payment(image: "null"));
+        var api = new RecordingApiClient((_, _, _) => Payment(modules: "null"));
 
         // Act
         var error = await Assert.ThrowsAsync<ApiException>(() => new VietQrRepository(api).CreateAsync(new CreateVietQrRequest()));

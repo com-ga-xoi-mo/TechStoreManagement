@@ -94,7 +94,7 @@ internal static class QrPayments
 
     public static VietQrPayment Pending(Guid? shiftId = null, decimal amount = 10_000_000m, TimeSpan? life = null) => new(
         Guid.NewGuid(), Guid.NewGuid(), "ORD-202611-0042", VietQrStatus.Pending, amount, "TSABCDEFGH23", "970422", "0123456789",
-        "TECHSTORE", "000201...6304ABCD", "iVBORw0KGgo=", Start, Start + (life ?? TimeSpan.FromMinutes(15)), shiftId, "Thu ngân", null);
+        "TECHSTORE", "000201...6304ABCD", "iVBORw0KGgo=", Start, Start + (life ?? TimeSpan.FromMinutes(15)), shiftId, "Thu ngân", null, "1010\n0101");
 }
 
 public sealed class PosViewModelVietQrTests
@@ -452,9 +452,51 @@ public sealed class PosViewModelVietQrTests
 
         // Assert
         Assert.Equal(pending.Id, rig.ViewModel.Qr!.Id);
-        Assert.Equal("iVBORw0KGgo=", rig.ViewModel.Qr.QrImagePng);
+        Assert.Equal("1010\n0101", rig.ViewModel.Qr.QrModules);
+        Assert.Equal("1010\n0101", rig.ViewModel.QrModules);
         Assert.True(rig.ViewModel.IsQrActive);
         rig.ViewModel.Deactivate();
+    }
+
+    [Fact]
+    public async Task BeginCloseShift_WhileAQrIsOpen_SaysWhichOrderBlocksIt()
+    {
+        // Arrange
+        var rig = await ReadyRig();
+        await rig.ViewModel.CreateQrCommand.ExecuteAsync(null);
+
+        // Act
+        rig.ViewModel.BeginCloseShiftCommand.Execute(null);
+
+        // Assert
+        Assert.False(rig.ViewModel.IsClosingShift);
+        Assert.True(rig.ViewModel.HasQrError);
+        Assert.Contains("ORD-202611-0042", rig.ViewModel.QrError);
+        rig.ViewModel.Deactivate();
+    }
+
+    [Fact]
+    public async Task CashSaleAfterAQrSale_ShowsTheCashReceipt()
+    {
+        // Arrange
+        var rig = await ReadyRig();
+        await rig.ViewModel.CreateQrCommand.ExecuteAsync(null);
+        var id = rig.ViewModel.Qr!.Id;
+        rig.VietQr.Payments[id] = rig.VietQr.Payments[id] with { Status = VietQrStatus.Confirmed };
+        await rig.ViewModel.PollAsync();
+        Assert.Contains("VietQR", rig.ViewModel.ReceiptText);
+        await rig.AddPhone("358912345678901");
+        rig.ViewModel.ChoosePaymentCommand.Execute("Cash");
+        await rig.ViewModel.RefreshQuoteCommand.ExecuteAsync(null);
+        rig.ViewModel.CashText = "20000000";
+
+        // Act
+        await rig.ViewModel.PayCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Single(rig.Pos.Checkouts);
+        Assert.DoesNotContain("VietQR", rig.ViewModel.ReceiptText);
+        Assert.Null(rig.ViewModel.QrReceipt);
     }
 
     [Fact]

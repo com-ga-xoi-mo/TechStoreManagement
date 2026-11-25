@@ -15,6 +15,8 @@ public class VietQrPaymentDto
     public string? BankAccountName { get; set; }
     public string QrContent { get; set; } = string.Empty;
     public string? QrImagePng { get; set; }
+    /// <summary>The same code as rows of 1 (dark) and 0 (light) joined by line feeds, so a client can draw it without decoding an image.</summary>
+    public string? QrModules { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
     public int SecondsLeft { get; set; }

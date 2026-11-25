@@ -62,6 +62,18 @@ public static class VietQrPayload
         && payload[^8..^4] == "6304"
         && payload[^4..].Equals(Crc16(payload[..^4]).ToString("X4", CultureInfo.InvariantCulture), StringComparison.Ordinal);
 
+    /// <summary>The payload as rows of 1 (dark) and 0 (light) joined by line feeds, quiet zone included.</summary>
+    public static string ToModules(string payload)
+    {
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.M);
+        return string.Join('\n', data.ModuleMatrix.Select(row =>
+            string.Create(row.Length, row, static (span, bits) =>
+            {
+                for (var i = 0; i < span.Length; i++) span[i] = bits[i] ? '1' : '0';
+            })));
+    }
+
     /// <summary>The picture of a payload as a base64 PNG.</summary>
     public static string ToPngBase64(string payload)
     {

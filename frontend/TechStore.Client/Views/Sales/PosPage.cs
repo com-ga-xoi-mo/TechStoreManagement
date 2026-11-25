@@ -2,8 +2,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Windows.Storage.Streams;
+using Microsoft.UI.Xaml.Shapes;
+using Windows.Foundation;
 using TechStore.Client.Controls;
 using TechStore.Client.Styles;
 using TechStore.Client.ViewModels.Orders;
@@ -368,11 +368,16 @@ public sealed class PosPage : Page, IRoutePage
     private UIElement BuildQrPanel()
     {
         var panel = new StackPanel().Spacing(8);
-        panel.Children.Add(new Image()
-            .Width(240)
-            .Height(240)
-            .HorizontalAlignment(HorizontalAlignment.Center)
-            .Source(x => x.Binding(() => ViewModel.QrImagePng).Convert((string? base64) => ToImage(base64))));
+        // A scanner needs dark modules on a light ground in both themes, so these two colours are fixed on purpose.
+        var code = new Microsoft.UI.Xaml.Shapes.Path { Fill = new SolidColorBrush(Microsoft.UI.Colors.Black), Stretch = Stretch.Uniform, Width = 216, Height = 216 };
+        code.Data(x => x.Binding(() => ViewModel.QrModules).Convert((string? modules) => ToGeometry(modules)));
+        panel.Children.Add(new Border
+        {
+            Background = new SolidColorBrush(Microsoft.UI.Colors.White),
+            Padding = new Thickness(12),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Child = code
+        });
         panel.Children.Add(new TextBlock()
             .Style(AppResources.GetStyle(AppTypography.MetricText))
             .Foreground(AppColors.Brushes.Text)
@@ -417,41 +422,25 @@ public sealed class PosPage : Page, IRoutePage
         return new StackPanel().Spacing(8).Children(panel, messages);
     }
 
-    // The image is returned at once and filled in when the PNG has been decoded.
-    private static ImageSource? ToImage(string? base64)
+    // One rectangle per run of dark modules; the quiet zone in the rows is empty, so it is not drawn.
+    private static Geometry? ToGeometry(string? modules)
     {
-        if (string.IsNullOrWhiteSpace(base64)) return null;
-        byte[] bytes;
-        try
+        if (string.IsNullOrWhiteSpace(modules)) return null;
+        var group = new GeometryGroup { FillRule = FillRule.Nonzero };
+        var rows = modules.Split('\n');
+        for (var y = 0; y < rows.Length; y++)
         {
-            bytes = Convert.FromBase64String(base64);
-        }
-        catch (FormatException)
-        {
-            return null;
+            var row = rows[y];
+            for (var x = 0; x < row.Length; x++)
+            {
+                if (row[x] != '1') continue;
+                var start = x;
+                while (x + 1 < row.Length && row[x + 1] == '1') x++;
+                group.Children.Add(new RectangleGeometry { Rect = new Rect(start, y, x - start + 1, 1) });
+            }
         }
 
-        var image = new BitmapImage();
-        _ = FillAsync(image, bytes);
-        return image;
-    }
-
-    private static async Task FillAsync(BitmapImage image, byte[] bytes)
-    {
-        try
-        {
-            using var stream = new InMemoryRandomAccessStream();
-            using var writer = new DataWriter(stream);
-            writer.WriteBytes(bytes);
-            await writer.StoreAsync();
-            writer.DetachStream();
-            stream.Seek(0);
-            await image.SetSourceAsync(stream);
-        }
-        catch (Exception exception)
-        {
-            System.Diagnostics.Debug.WriteLine($"QR image could not be shown: {exception.Message}");
-        }
+        return group;
     }
 
     private UIElement BuildPayment()

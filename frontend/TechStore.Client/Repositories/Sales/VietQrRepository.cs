@@ -21,7 +21,7 @@ public sealed class VietQrRepository(IApiClient apiClient) : IVietQrRepository
         ArgumentNullException.ThrowIfNull(request);
         var json = await apiClient.PostAsync<CreateVietQrRequest, JsonElement>("api/pos/vietqr", request, cancellationToken);
         var payment = MapPayment(Deserialize<VietQrPaymentDto>(json, "VietQR request"));
-        if (string.IsNullOrWhiteSpace(payment.QrImagePng)) throw InvalidResponse("The new VietQR request has no QR image.");
+        if (string.IsNullOrWhiteSpace(payment.QrModules)) throw InvalidResponse("The new VietQR request has no QR code.");
         return payment;
     }
 
@@ -86,7 +86,7 @@ public sealed class VietQrRepository(IApiClient apiClient) : IVietQrRepository
             throw InvalidResponse("A VietQR request contains invalid values.");
         return new(dto.Id, dto.OrderId, dto.OrderCode, ParseEnum<VietQrStatus>(dto.Status, "status"), dto.Amount,
             dto.TransactionCode, dto.BankBin, dto.BankAccountNumber, dto.BankAccountName, dto.QrContent, dto.QrImagePng,
-            dto.CreatedAt, dto.ExpiresAt, dto.PosSessionId, dto.CashierName, dto.ConfirmedAt);
+            dto.CreatedAt, dto.ExpiresAt, dto.PosSessionId, dto.CashierName, dto.ConfirmedAt, dto.QrModules);
     }
 
     private static VietQrBankEvent MapEvent(VietQrBankEventDto dto)

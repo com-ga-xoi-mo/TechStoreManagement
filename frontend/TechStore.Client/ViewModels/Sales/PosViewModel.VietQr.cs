@@ -30,7 +30,7 @@ public sealed partial class PosViewModel
 
     public bool IsQrActive => Qr is { IsPending: true };
     public bool PayByCash => !PayByQr;
-    public string? QrImagePng => Qr?.QrImagePng;
+    public string? QrModules => Qr?.QrModules;
     public bool HasShiftQr => ShiftQrText.Length > 0;
     public bool HasQrError => QrError.Length > 0;
     public bool HasQrNotice => QrNotice.Length > 0;
@@ -53,6 +53,14 @@ public sealed partial class PosViewModel
     }
     partial void OnIsQrBusyChanged(bool value) => RefreshQrState();
     partial void OnQrErrorChanged(string value) => OnPropertyChanged(nameof(HasQrError));
+
+    /// <summary>Closing the shift is refused while a request is open; the cart is locked so the button must say why.</summary>
+    private bool ExplainOpenQr()
+    {
+        if (Qr is not { IsPending: true } open) return false;
+        QrError = $"Chưa đóng ca được: đơn {open.OrderCode} đang chờ thanh toán VietQR. Hãy hủy mã QR hoặc chờ xác nhận.";
+        return true;
+    }
     partial void OnQrNoticeChanged(string value) => OnPropertyChanged(nameof(HasQrNotice));
     partial void OnQrReceiptChanged(VietQrPayment? value)
     {
@@ -65,7 +73,7 @@ public sealed partial class PosViewModel
     {
         OnPropertyChanged(nameof(QrAmountText));
         OnPropertyChanged(nameof(QrBankText));
-        OnPropertyChanged(nameof(QrImagePng));
+        OnPropertyChanged(nameof(QrModules));
         UpdateCountdown();
         RefreshQrState();
     }
@@ -197,7 +205,7 @@ public sealed partial class PosViewModel
             switch (latest.Status)
             {
                 case VietQrStatus.Pending:
-                    Qr = latest with { QrImagePng = latest.QrImagePng ?? current.QrImagePng };
+                    Qr = latest with { QrImagePng = latest.QrImagePng ?? current.QrImagePng, QrModules = latest.QrModules ?? current.QrModules };
                     QrError = string.Empty;
                     break;
                 case VietQrStatus.Confirmed:
@@ -223,7 +231,8 @@ public sealed partial class PosViewModel
     private async Task FinishQrSaleAsync(VietQrPayment paid)
     {
         StopPolling();
-        QrReceipt = paid with { QrImagePng = null };
+        QrReceipt = paid with { QrImagePng = null, QrModules = null };
+        Receipt = null;
         Qr = null;
         QrError = string.Empty;
         AwaitingRetry = false;
@@ -302,7 +311,7 @@ public sealed partial class PosViewModel
             {
                 case VietQrStatus.Pending:
                     // The list carries no image; the single read does.
-                    Qr = found.QrImagePng is null ? await _vietQr.GetAsync(found.Id, cancellationToken) : found;
+                    Qr = found.QrModules is null ? await _vietQr.GetAsync(found.Id, cancellationToken) : found;
                     PayByQr = true;
                     StartPolling();
                     break;

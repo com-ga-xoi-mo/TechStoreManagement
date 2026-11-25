@@ -12,6 +12,8 @@ public sealed class NavigationStateTests
 
         Assert.Equal(ShellDestination.Dashboard, state.CurrentDestination);
         Assert.Equal(8, ShellDestinations.All.Count);
+        Assert.Equal(ShellDestinations.All.Count,
+            ShellDestinations.All.Select(destination => destination.Symbol).Distinct().Count());
         Assert.Equal("Cài đặt", ShellDestinations.Get(ShellDestination.Settings).Title);
         Assert.True(ShellDestinations.Get(ShellDestination.Settings).IsFooterItem);
         Assert.False(ShellDestinations.TryGet("POS", out _));

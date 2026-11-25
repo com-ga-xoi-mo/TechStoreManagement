@@ -32,7 +32,7 @@ public sealed partial class WarrantyCaseService
         {
             var device = await cases.FindDeviceByCodeAsync(code!, ct);
             if (device == null)
-                return EligibilityConflict([WarrantyReasonCodes.NoCoveringSale]);
+                return WarrantyResult.Missing();
 
             var sale = await cases.FindSaleAsync(device, ct);
             try
@@ -67,7 +67,9 @@ public sealed partial class WarrantyCaseService
 
         var now = ToDatabaseTime(clock.GetUtcNow().UtcDateTime);
         var device = await cases.FindDeviceByCodeAsync(request.Code!.Trim(), ct);
-        if (device?.Id != originalDevice.Id)
+        if (device == null)
+            return WarrantyResult.Missing();
+        if (device.Id != originalDevice.Id)
             return EligibilityConflict([WarrantyReasonCodes.NoCoveringSale]);
         var sale = await cases.FindSaleAsync(device, ct);
         var history = await cases.CasesForDeviceAsync(device.Id, ct);
@@ -83,7 +85,9 @@ public sealed partial class WarrantyCaseService
 
         // The inventory change is staged. The untracked read sees the device state protected by the inventory lock.
         var lockedDevice = await cases.FindDeviceByCodeAsync(request.Code.Trim(), ct);
-        if (lockedDevice?.Id != originalDevice.Id)
+        if (lockedDevice == null)
+            return WarrantyResult.Missing();
+        if (lockedDevice.Id != originalDevice.Id)
             return EligibilityConflict([WarrantyReasonCodes.NoCoveringSale]);
         var lockedSale = await cases.FindSaleAsync(lockedDevice, ct);
         now = ToDatabaseTime(clock.GetUtcNow().UtcDateTime);
@@ -94,7 +98,7 @@ public sealed partial class WarrantyCaseService
         if (lockedSale?.Id != sale.Id || lockedSale.OrderId != order.Id)
             return EligibilityConflict([WarrantyReasonCodes.NoCoveringSale]);
         if (!received.IsSuccess)
-            return WarrantyResult.Rejected(received.Conflict!.Message) with { Reasons = [] };
+            return WarrantyResult.Rejected(DeviceInventoryConflict) with { Reasons = [] };
 
         var prefix = "BH-" + now.ToString("yyyyMM", CultureInfo.InvariantCulture) + "-";
         var lastCode = await cases.GetLastCaseCodeAsync(prefix, ct);

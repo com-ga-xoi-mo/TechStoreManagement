@@ -94,7 +94,7 @@ public sealed partial class WarrantyServiceTests
 
         var result = await fixture.Service.ReceiveAsync(Guid.NewGuid(), fixture.Request(), fixture.Actor, default);
 
-        Assert.NotNull(result.Conflict);
+        Assert.Equal("Thiết bị không còn thuộc lần bán này hoặc đang có yêu cầu trả hàng.", result.Conflict);
         Assert.Null(result.Data);
         Assert.Empty(fixture.Cases.Cases);
         Assert.Empty(fixture.Cases.Events);

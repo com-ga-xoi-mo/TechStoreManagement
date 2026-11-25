@@ -151,6 +151,9 @@ Received --inspect Repair--> Repairing --repaired--> Repaired --return--> Return
   - Sai mã đơn hay sai khách không còn trả 404 như bản cũ, vì 404 khiến người dùng tưởng không có máy.
 - **Tiếp nhận** trả 201 kèm `Location` khi tạo mới, và 200 khi gửi lại.
 - **DTO:** `WarrantyCaseDto` chuyển sang record có tên trường, có thêm `caseCode`, các trường nội dung, `replacementUnitCost` và `events`. `WarrantyLookupDto` là DTO riêng cho tra cứu.
+- **Số điện thoại trong tra cứu:** `customerPhone` dùng để điền sẵn liên hệ lúc tiếp nhận, nên chỉ trả cho A M S (các role tiếp nhận). WarehouseStaff nhận `null`, vì Thủ kho không đọc được API khách hàng (task 4.9).
+- **Lỗi từ thao tác kho:** service không trả nguyên `Conflict.Message` của `ApplyWarrantyAsync` (câu tiếng Anh) ra API, mà đổi sang câu tiếng Việt theo từng bước (tiếp nhận, đổi máy, trả máy) (task 4.8).
+- **Mã không tồn tại:** tiếp nhận với IMEI/Serial không có trong hệ thống trả 404, giống tra cứu (task 4.9).
 
 ### D9. Client
 
@@ -162,6 +165,9 @@ Received --inspect Repair--> Repairing --repaired--> Repaired --return--> Return
 - Chọn máy thay bằng `GET /api/inventory/serials?productId=&variantId=&status=InStock`.
 - Dialog Skia dùng Popup và tạo nhóm thao tác khi trạng thái cần tới. Cách này tránh Uno 6.7 duyệt cây theme của tất cả form ẩn lúc mở chi tiết. Các bước tiếp nhận cũng tạo view khi chuyển bước.
 - Các sự kiện View↔ViewModel mới (`IntakeRequested`, `CaseDetailRequested`, `CaseChanged`) được ghi vào danh sách ngoại lệ trong AGENTS.md.
+- Hai hộp thoại bảo hành dùng chung lớp `WarrantyDialog`, tự dựng trên `Popup` có lớp phủ thay vì `ContentDialog`. Lý do: nội dung dài (lịch sử, chọn máy thay, chọn khách) cần cuộn trong khung rộng tới 640 px, và hộp thoại tiếp nhận nhúng `CustomerPickerView`.
+- Ngoại lệ mới, đã ghi vào AGENTS.md: `Popup.Opened` gọi `ActivateAsync` của ViewModel; `Popup.Closed` gọi `Deactivate` và kết thúc `ShowAsync`. Hai handler này chỉ quản lý vòng đời, không đồng bộ dữ liệu với ViewModel.
+- Lớp phủ co giãn theo `XamlRoot.Changed` (task 6.8).
 
 ### D10. Thời gian
 

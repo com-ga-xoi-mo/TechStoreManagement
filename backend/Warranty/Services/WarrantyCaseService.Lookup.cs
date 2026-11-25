@@ -10,7 +10,7 @@ public sealed record WarrantyLookupResult(WarrantyLookupDto? Data, IReadOnlyDict
 
 public sealed partial class WarrantyCaseService
 {
-    public async Task<WarrantyLookupResult> LookupAsync(string? code, string? orderCode, Guid? customerId, CancellationToken ct)
+    public async Task<WarrantyLookupResult> LookupAsync(string? code, string? orderCode, Guid? customerId, bool includePhone, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(code))
             return new(null, new Dictionary<string, string[]> { ["code"] = ["Nhập IMEI hoặc số sê-ri."] });
@@ -42,7 +42,7 @@ public sealed partial class WarrantyCaseService
             PurchasedAt = order?.CompletedAt,
             CustomerId = order?.CustomerId,
             CustomerName = order?.Customer?.FullName,
-            CustomerPhone = order?.Customer?.Phone,
+            CustomerPhone = includePhone ? order?.Customer?.Phone : null,
             IsWalkIn = order == null ? null : order.CustomerId == null,
             History = provenSale == null ? [] : history.Where(c => c.OrderItemId == provenSale.Id)
                 .Select(c => new WarrantyCaseSummaryDto(c.Id, c.CaseCode, c.Status.ToString(), c.OpenedAt,

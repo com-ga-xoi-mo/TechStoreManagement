@@ -10,6 +10,10 @@ Quản lý bảo hành máy đã bán theo Serial/IMEI qua `/api/warranties`: tr
 
 `GET /api/warranties/lookup` SHALL nhận `code` (IMEI hoặc Serial, bắt buộc), `orderCode` và `customerId` (không bắt buộc). Kết quả SHALL luôn có thông tin máy, hạn bảo hành, `eligible` và mã lý do. Mã đơn, ngày mua, khách hoặc "khách lẻ" và lịch sử hồ sơ SHALL chỉ có khi đã chứng minh được lần bán. Tra cứu SHALL NOT thay đổi dữ liệu. Không thấy máy trả 404, `code` trống trả 400.
 
+#### Scenario: Số điện thoại trong tra cứu theo vai trò
+- **WHEN** các vai trò tra cùng máy và chứng minh được lần bán của khách có số điện thoại
+- **THEN** Admin, Manager và SalesStaff nhận số trong `customerPhone`; WarehouseStaff nhận `customerPhone = null`
+
 #### Scenario: Máy đủ điều kiện
 - **WHEN** nhân viên tra IMEI của máy `Sold`, còn hạn, thuộc đơn `Completed` của khách K và gửi `customerId = K`
 - **THEN** API trả 200, `eligible = true`, kèm mã đơn, ngày mua, tên khách và hạn bảo hành
@@ -109,6 +113,10 @@ Với đơn có khách, người gửi SHALL cung cấp `customerId` trùng khá
 - **WHEN** gửi yêu cầu cho máy đã hết hạn
 - **THEN** API trả 409 `ProblemDetails` có `reasons` chứa `Expired`, và máy vẫn `Sold`
 
+#### Scenario: Tiếp nhận mã thiết bị không tồn tại
+- **WHEN** gửi yêu cầu hợp lệ với IMEI hoặc Serial chưa có trong hệ thống
+- **THEN** API trả 404 và không ghi hồ sơ hay sự kiện
+
 ### Requirement: Chống tiếp nhận lặp
 
 Gửi lại cùng `caseId` cho cùng máy SHALL trả 200 với hồ sơ đã tạo, không tạo hồ sơ thứ hai. Dùng lại `caseId` cho máy khác SHALL trả 409. Một máy SHALL có tối đa một hồ sơ mở (mọi trạng thái trừ `ReturnedToCustomer` và `Replaced`), kể cả khi hai yêu cầu với hai `caseId` khác nhau chạy đồng thời.
@@ -202,8 +210,8 @@ Mọi thao tác trên hồ sơ SHALL khóa hồ sơ trước khi kiểm tra tr�
 - **THEN** API trả 409 và không ghi sự kiện
 
 #### Scenario: Thao tác kho thất bại
-- **WHEN** thao tác đổi máy của kho trả conflict
-- **THEN** hồ sơ, sự kiện, hai máy và tồn đều giữ nguyên như trước yêu cầu
+- **WHEN** thao tác tiếp nhận, đổi máy hoặc trả máy của kho trả conflict
+- **THEN** API trả 409 với `detail` tiếng Việt tương ứng với thao tác, và rollback toàn bộ thay đổi
 
 ### Requirement: Lịch sử hồ sơ
 

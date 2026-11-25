@@ -14,7 +14,7 @@ public sealed partial class WarrantyCaseDetailDialogViewModel(IWarrantyRepositor
     public bool HasChanges { get; private set; }
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(InspectAllowed), nameof(RepairAllowed), nameof(ReplacementAllowed),
-        nameof(ReturnAllowed), nameof(ShowNote), nameof(Summary), nameof(HasCost), nameof(CostLabel), nameof(IsRejection), nameof(ActionForm))]
+        nameof(ReturnAllowed), nameof(ShowNote), nameof(HasCost), nameof(CostLabel), nameof(IsRejection), nameof(ActionForm))]
     private WarrantyDetails? details;
     private static readonly InspectionChoice RepairChoice = new("Repair", "Sửa máy");
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsRejection))]
@@ -45,17 +45,7 @@ public sealed partial class WarrantyCaseDetailDialogViewModel(IWarrantyRepositor
     public bool CanReplace => SelectedReplacement != null;
     public bool IsRejection => InspectAllowed && SelectedOutcome?.Value == "Reject";
     public bool HasCost => Details?.ReplacementCost != null;
-    public string CostLabel => Details?.ReplacementCost is { } cost ? $"Giá vốn máy thay: {OrderPresentation.FormatMoney(cost)}" : "";
-    public string Summary => Details is not { } item ? "" :
-        $"{item.Row.Code} · {item.Row.StatusLabel}\n{item.Row.Product} {item.VariantName} · {item.Row.Device ?? "—"}\n" +
-        $"Đơn gốc: {item.OrderCode ?? "—"} · {WarrantyLabels.Date(item.PurchasedAt)}\n" +
-        $"Bảo hành: {WarrantyLabels.Date(item.WarrantyStartAt)} đến {WarrantyLabels.Date(item.WarrantyEndAt)}\n" +
-        $"Liên hệ: {item.ContactName ?? "—"} · {item.ContactPhone ?? "—"}\n" +
-        $"Lỗi khách báo: {item.Issue ?? "—"}\nKiểm định: {item.Inspection ?? "—"}" +
-        (item.Rejection == null ? "" : $"\nLý do từ chối: {item.Rejection}") +
-        (item.Replacement == null ? "" : $"\nMáy thay: {item.Replacement}") +
-        (HasCost ? $"\n{CostLabel}" : "") +
-        (item.Events.Count == 0 ? "" : "\n\nLịch sử\n" + string.Join("\n", item.Events.Select(x => x.Label)));
+    public string CostLabel => Details?.ReplacementCost is { } cost ? OrderPresentation.FormatMoney(cost) : "";
 
     protected override async Task<bool> LoadContentAsync(CancellationToken token)
     {

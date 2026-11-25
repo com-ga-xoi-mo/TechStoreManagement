@@ -33,6 +33,25 @@ Shell SHALL have exactly eight entry points: Overview, Products, Categories and 
 - **WHEN** Shell is shown with its navigation pane expanded at a wide desktop size
 - **THEN** brand, menu caption, selected Overview row, other destinations, separated Settings entry and account footer follow the reference's visual hierarchy without adding/removing destinations or changing navigation behavior
 
+#### Scenario: Warranty and return inspections use distinct icons
+- **WHEN** Admin opens the Shell with all destinations available
+- **THEN** Warranty and Return inspections show distinct icons
+
+### Requirement: Voucher route under Customers
+Shell SHALL host a voucher list route under the Customers destination without adding a menu entry. The route SHALL be openable only by Admin and Manager and SHALL be refused for other roles before the page loads. Leaving it SHALL return to the Customers list.
+
+#### Scenario: Route keeps the menu
+- **WHEN** a Manager navigates to the voucher route
+- **THEN** the menu still shows the same destinations and Customers is selected
+
+#### Scenario: Warehouse direct route
+- **WHEN** a WarehouseStaff session navigates to the voucher route
+- **THEN** navigation is refused and the previous page stays
+
+#### Scenario: Back to customers
+- **WHEN** the user presses "← Khách hàng" on the voucher page
+- **THEN** the Customers list opens
+
 ### Requirement: Role based menu and landing page
 
 Shell SHALL show only the destinations the signed-in role may use, following the client role table that mirrors `docs/API_PERMISSIONS.md`. Each new session SHALL open the role's landing page, the first allowed destination in the order Overview, Orders, Categories and Inventory, Products. Warranty SHALL be shown for every role but SHALL NOT be a landing page. Settings SHALL be shown for every role. The previous session's route SHALL NOT be reused.

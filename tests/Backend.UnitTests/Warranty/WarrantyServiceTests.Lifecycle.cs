@@ -128,7 +128,7 @@ public sealed partial class WarrantyServiceTests
         fixture.Inventory.Result = new(false, new FulfillmentProblem(0, "Thiết bị thay không còn trong kho."));
 
         var result = await fixture.Service.ReplaceAsync(claim.Id, Guid.NewGuid(), fixture.Actor, default);
-        Assert.NotNull(result.Conflict);
+        Assert.Equal("Máy thay không còn trong kho hoặc khác loại. Hãy chọn máy khác.", result.Conflict);
         Assert.Equal(WarrantyCaseStatus.PendingReplacement, claim.Status);
         Assert.Null(claim.ClosedAt);
         Assert.Empty(fixture.Cases.Events);

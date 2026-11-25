@@ -65,6 +65,8 @@
 - [x] 4.5 `GetAsync`/`SearchAsync` nhận `includeCost`, che `ReplacementUnitCost` khi `false`. Unit test cho cả hai giá trị.
 - [x] 4.6 Thêm `replacement.WarrantyMonths = device.WarrantyMonths` vào nhánh `Replace` của `InventoryAfterSaleService` theo D7, cùng test trong `InventoryAfterSaleServiceTests`. Kiểm tra toàn bộ test Inventory vẫn qua.
 - [x] 4.7 Viết `backend/Warranty/README.md`: vòng đời, bảng gọi kho, thứ tự khóa D5, giới hạn, câu SQL chi phí bảo hành cho Bình (`replacement_unit_cost` của hồ sơ `Replaced` theo ngày `closed_at` giờ Việt Nam). Kiểm tra câu SQL chạy được trên DB local.
+- [x] 4.8 Đổi lỗi do thao tác kho trả về (`ApplyWarrantyAsync` conflict, hiện là câu tiếng Anh của An) sang câu tiếng Việt trong `WarrantyCaseService.Receive.cs` và `WarrantyCaseService.Lifecycle.cs`, ví dụ "Máy thay không còn trong kho hoặc khác loại. Hãy chọn máy khác." khi đổi máy, và "Thiết bị không còn thuộc lần bán này hoặc đang có yêu cầu trả hàng." khi tiếp nhận/trả máy. Không trả nguyên `Conflict.Message` ra API. Kiểm tra: unit test với bản giả kho trả conflict thì `detail` là tiếng Việt; test PostgreSQL ca máy thay vừa bị bán trước lúc duyệt trả 409 tiếng Việt và hồ sơ vẫn `PendingReplacement`.
+- [x] 4.9 Tra cứu chỉ trả `customerPhone` cho Admin, Manager và SalesStaff (controller tính `includePhone` như `includeCost`); WarehouseStaff nhận `null`. Tiếp nhận với IMEI/Serial không tồn tại trả 404 như tra cứu, thay cho 409 `NoCoveringSale`. Kiểm tra: unit test và HTTP test cho Warehouse nhận `customerPhone = null`, Sales nhận số; `POST receive` với mã không tồn tại trả 404 và không ghi dữ liệu.
 
 ## 5. API, quyền và tài liệu
 
@@ -104,13 +106,12 @@
 - [x] 6.5 Viết `WarrantyIntakeDialogViewModel` và dialog: tạo `caseId` khi mở, bước tra cứu, rồi bước thông tin, điền sẵn liên hệ từ khách, giữ `caseId` qua lỗi mạng. Test headless cho máy không đủ điều kiện, gửi lại sau lỗi mạng (cùng `caseId`) và tiếp nhận xong.
 - [x] 6.6 Viết `WarrantyCaseDetailDialogViewModel` và dialog: thông tin, lịch sử, nút theo `WarrantyCaseActions`, chọn máy thay `InStock` cùng sản phẩm/biến thể, xử lý 409 bằng cách tải lại. Test headless cho từng thao tác, hết máy cùng loại, Sales không thấy giá vốn.
 - [x] 6.7 Đăng ký DI client và route trong `ShellRoutePageFactory`. Ghi sự kiện mới vào danh sách ngoại lệ và các view mới vào bảng trạng thái chuyển đổi trong `AGENTS.md`. Chạy app Skia với backend thật bằng bốn tài khoản demo, đổi Sáng/Tối khi đang mở trang, kiểm tra binding. Ghi kết quả (build, hệ điều hành, role, thao tác đã thử) vào `docs/M4_TEST_SUMMARY.md`, mục Bảo hành.
+- [x] 6.8 Đổi biểu tượng menu "Bảo hành" khác "Kiểm định hàng trả" (đang cùng `Repair`). Lớp phủ của `WarrantyDialog` co giãn theo kích thước cửa sổ (`XamlRoot.Changed`) thay vì giữ kích thước lúc mở. Kiểm tra: test headless cho danh sách điểm vào (biểu tượng không trùng); chạy Skia, mở hộp thoại chi tiết rồi đổi kích thước cửa sổ, lớp phủ vẫn phủ kín và hộp thoại nằm giữa.
 
 ## 7. Dữ liệu demo và bàn giao
 
 - [x] 7.1 Thêm hồ sơ demo `Received`, `Repairing`, `PendingReplacement` và `Replaced`, đi qua `ApplyWarrantyAsync` thật, trong kỳ demo. Kiểm tra chạy seed hai lần không tạo trùng, đối soát tồn bằng 0 dòng, và các test seed hiện có vẫn qua.
 - [x] 7.2 Gửi Bình câu SQL chi phí bảo hành và JSON mẫu của một hồ sơ `Replaced` (có ca giá vốn null). Ghi ngày gửi vào README module.
-- [ ] 7.3 Rebase lên `dev` mới nhất, chạy lại toàn bộ test, mở PR vào `dev`. Mô tả PR liệt kê các file của An bị chạm (chuyển `WarrantyCase*`, dòng `warranty_months`, 4 test và seed bảo hành). Kiểm tra PR không có conflict và CI xanh.
-- [ ] 7.4 Sprint 3: chạy giao diện bảo hành trên Windows native và Skia với bốn role, quay đoạn video phần bảo hành, viết mục bảo hành trong README (chức năng, giới hạn, tài khoản demo). Xong khi có bằng chứng chạy trên cả hai nền tảng.
 
 ## Workflow follow-up
 

@@ -60,8 +60,8 @@ public sealed partial class WarrantyServiceTests
             Service = new WarrantyCaseService(Cases, AfterSale, Inventory, Work, new FixedTimeProvider(now ?? Now));
         }
 
-        public Task<WarrantyLookupResult> Lookup(string? orderCode = null, Guid? customerId = null) =>
-            Service.LookupAsync(Device.Imei, orderCode, customerId, default);
+        public Task<WarrantyLookupResult> Lookup(string? orderCode = null, Guid? customerId = null, bool includePhone = true) =>
+            Service.LookupAsync(Device.Imei, orderCode, customerId, includePhone, default);
 
         public ReceiveWarrantyRequest Request() =>
             new(Device.Imei, null, Customer.Id, "Không lên nguồn", Customer.FullName, Customer.Phone);
@@ -92,6 +92,16 @@ public sealed partial class WarrantyServiceTests
         Assert.Equal(fixture.Device.WarrantyEndAt, lookup.WarrantyEndAt);
         Assert.Equal(false, lookup.IsWalkIn);
         Assert.Equal(0, fixture.Work.SaveChangesCount);
+    }
+
+    [Fact]
+    public async Task Lookup_HidesPhoneWhenNotAllowedEvenWithProof()
+    {
+        var fixture = new Fixture();
+        var lookup = (await fixture.Lookup(customerId: fixture.Customer.Id, includePhone: false)).Data!;
+        Assert.True(lookup.Eligible);
+        Assert.Equal(fixture.Customer.FullName, lookup.CustomerName);
+        Assert.Null(lookup.CustomerPhone);
     }
 
     [Fact]
@@ -156,8 +166,8 @@ public sealed partial class WarrantyServiceTests
     public async Task Lookup_MissingDeviceAndBlankIdentifier_ReturnDifferentResults()
     {
         var fixture = new Fixture();
-        Assert.Null((await fixture.Service.LookupAsync("missing", null, null, default)).Data);
-        var invalid = await fixture.Service.LookupAsync("   ", null, null, default);
+        Assert.Null((await fixture.Service.LookupAsync("missing", null, null, true, default)).Data);
+        var invalid = await fixture.Service.LookupAsync("   ", null, null, true, default);
         Assert.NotNull(invalid.Errors);
         Assert.Contains("code", invalid.Errors.Keys);
     }

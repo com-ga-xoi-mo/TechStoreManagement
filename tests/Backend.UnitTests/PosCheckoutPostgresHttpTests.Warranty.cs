@@ -29,6 +29,35 @@ public sealed partial class PosCheckoutPostgresHttpTests
     }
 
     [PostgresFact]
+    public async Task WarrantyLookup_PhoneFollowsRoleAndUnknownIntakeLeavesNoWrites()
+    {
+        await using var world = await PosWorld.CreateAsync(1);
+        var shift = await world.OpenShiftAsync(world.SalesA, 0m);
+        await using var db = world.Database.CreateContext();
+        var customer = await db.Customers.FirstAsync();
+        var checkout = Checkout(world, shift.Id, world.DeviceIds[0], Total);
+        checkout.CustomerId = customer.Id;
+        await PostDto<OrderDto>(world.SalesA.Client, "/api/pos/checkout", checkout);
+        var request = await WarrantyIntakeAsync(world, world.DeviceIds[0], customerId: customer.Id);
+        var path = $"/api/warranties/lookup?code={request.Code}&customerId={customer.Id}";
+        var warehouse = (await world.Warehouse.GetFromJsonAsync<WarrantyLookupDto>(path))!;
+        var sales = (await world.SalesA.Client.GetFromJsonAsync<WarrantyLookupDto>(path))!;
+        Assert.True(warehouse.Eligible);
+        Assert.True(sales.Eligible);
+        Assert.Null(warehouse.CustomerPhone);
+        Assert.Equal(customer.Phone, sales.CustomerPhone);
+
+        var caseId = Guid.NewGuid();
+        var eventCount = await db.Set<WarrantyCaseEvent>().CountAsync();
+        using var response = await world.SalesA.Client.PostAsJsonAsync($"/api/warranties/{caseId}/receive",
+            request with { Code = "UNKNOWN-WARRANTY-DEVICE" });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.False(await db.Set<WarrantyCase>().AnyAsync(c => c.Id == caseId));
+        Assert.Equal(eventCount, await db.Set<WarrantyCaseEvent>().CountAsync());
+        Assert.Equal(SerialImeiStatus.Sold, await db.SerialImeis.Where(d => d.Id == world.DeviceIds[0]).Select(d => d.Status).SingleAsync());
+    }
+
+    [PostgresFact]
     public async Task WarrantyCase_MemberRepair_RequiresCustomerAndActiveCoverageThenReturnsSameDevice()
     {
         await using var world = await PosWorld.CreateAsync(1);

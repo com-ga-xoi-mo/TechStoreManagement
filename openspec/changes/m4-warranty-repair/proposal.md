@@ -35,7 +35,7 @@ Bản này chưa đáp ứng kế hoạch M4 ở các điểm sau:
   - `POST /{caseId}/return` chỉ hợp lệ ở `Repaired` hoặc `Rejected`.
   - `POST /{caseId}/replace` chỉ hợp lệ ở `PendingReplacement`.
   - DTO hồ sơ có thêm các trường mới.
-  - Lỗi điều kiện trả 409 kèm `reasons`, không còn 404.
+  - Lỗi điều kiện trả 409 kèm `reasons`. IMEI/Serial không tồn tại trả 404.
 
   Hiện chưa có client nào gọi các API này. Bốn test bảo hành và dữ liệu demo của An được cập nhật theo.
 - **API mới:**
@@ -49,7 +49,8 @@ Bản này chưa đáp ứng kế hoạch M4 ở các điểm sau:
   - A M S: tiếp nhận, trả máy;
   - A W: kiểm định, báo sửa xong;
   - A M: duyệt hoặc từ chối đổi máy;
-  - giá vốn máy thay trả cho A M W, Sales nhận `null`.
+  - giá vốn máy thay trả cho A M W, Sales nhận `null`;
+  - `customerPhone` trong tra cứu trả cho A M S, Warehouse nhận `null`.
 - **Thao tác kho:** máy thay chép thêm `warranty_months` của máy cũ, không chỉ hai ngày bảo hành. Đây là một dòng trong code của An, ghi rõ trong mô tả PR.
 - **Client:** mục menu **"Bảo hành"** cho cả bốn role, gồm trang danh sách, hộp thoại tiếp nhận và hộp thoại chi tiết (lịch sử, nút theo trạng thái và role, chọn máy thay).
 - Ngoài phạm vi:

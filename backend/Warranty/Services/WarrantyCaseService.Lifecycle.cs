@@ -110,7 +110,9 @@ public sealed partial class WarrantyCaseService
             var result = await inventory.ApplyWarrantyAsync(opId, id, claim.OrderId, item.Id,
                 claim.DeviceId, action, replacementId, actor.Id, ct);
             if (!result.IsSuccess)
-                return WarrantyResult.Rejected(result.Conflict!.Message);
+                return WarrantyResult.Rejected(replacementId.HasValue
+                    ? "Máy thay không còn trong kho hoặc khác loại. Hãy chọn máy khác."
+                    : DeviceInventoryConflict);
 
             var now = ToDatabaseTime(clock.GetUtcNow().UtcDateTime);
             claim.ClosedById = actor.Id;
@@ -123,6 +125,8 @@ public sealed partial class WarrantyCaseService
             return Map(claim);
         }, ct, CanViewReplacementCost(actor.Role));
     }
+
+    private const string DeviceInventoryConflict = "Thiết bị không còn thuộc lần bán này hoặc đang có yêu cầu trả hàng.";
 
     private void ChangeStatus(WarrantyCase claim, WarrantyCaseStatus status, Guid actorId, string? note, DateTime now)
     {

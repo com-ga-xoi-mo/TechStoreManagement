@@ -76,6 +76,31 @@ public sealed partial class PosCheckoutPostgresHttpTests
     }
 
     [PostgresFact]
+    public async Task WarrantyReplacement_DeviceSoldBeforeApproval_ReturnsLocalizedConflictAndKeepsCaseOpen()
+    {
+        await using var world = await PosWorld.CreateAsync(2);
+        var shift = await world.OpenShiftAsync(world.SalesA, 0m);
+        var sale = await PostDto<OrderDto>(world.SalesA.Client, "/api/pos/checkout",
+            Checkout(world, shift.Id, world.DeviceIds[0], Total));
+        var path = $"/api/warranties/{Guid.NewGuid()}";
+        await PostDto<WarrantyCaseDto>(world.SalesA.Client, path + "/receive",
+            await WarrantyIntakeAsync(world, world.DeviceIds[0], sale.OrderCode));
+        await PostDto<WarrantyCaseDto>(world.Warehouse, path + "/inspect", new InspectWarrantyRequest("Replace", "Cần đổi"));
+        await PostDto<OrderDto>(world.SalesA.Client, "/api/pos/checkout",
+            Checkout(world, shift.Id, world.DeviceIds[1], Total));
+
+        using var response = await world.Manager.PostAsJsonAsync(path + "/replace", new ReplaceWarrantyDeviceRequest(world.DeviceIds[1]));
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ProblemDetails>();
+        Assert.Equal("Máy thay không còn trong kho hoặc khác loại. Hãy chọn máy khác.", problem!.Detail);
+        var claim = await world.Manager.GetFromJsonAsync<WarrantyCaseDto>(path);
+        Assert.Equal("PendingReplacement", claim!.Status);
+        Assert.Null(claim.ReplacementDeviceId);
+        Assert.Equal(2, claim.Events.Count);
+        await SerialStockReconciliationHelper.AssertSerialStockReconciledAsync(world.Database);
+    }
+
+    [PostgresFact]
     public async Task WarrantyRace_TwoIntakesForSameDevice_OneCreatesOneConflicts()
     {
         await using var world = await PosWorld.CreateAsync(1);

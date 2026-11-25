@@ -72,3 +72,7 @@ Ngày 25/11/2026, bản Uno Skia Release `net10.0-desktop` chạy trên Ubuntu 2
 | `manager1` | Tải các máy thay còn kho, từ chối đề nghị đổi và chuyển hồ sơ về Đang sửa. |
 
 Chạy seed hai lần cho kết quả 5 hồ sơ demo với đúng số sự kiện. Truy vấn đối soát tồn trả 0 dòng. Kiểm thử local đạt 965 backend unit và HTTP/PostgreSQL, 4 backend integration, 1.174 frontend unit và 4 frontend integration với API thật. Clip Linux và log từng vai trò ở `.local/m4-warranty-repair/runtime/warranty-skia.mp4` và `.local/m4-warranty-repair/runtime/skia-recorded.log`. Bản Windows native còn chờ nghiệm thu trên máy Windows.
+
+Lượt Skia sau rebase xác nhận lớp phủ kín cửa sổ và hộp thoại chi tiết giữ ở giữa tại 820×520 và 1150×700. Bốn tài khoản demo đã chạy lại với API thật. Manager chọn máy thay từ kho, duyệt sang `Replaced` và xác nhận tồn kho của biến thể giảm từ 4 xuống 3. Clip và log nằm tại `.local/m4-warranty-repair/runtime/warranty-skia-rebased.mp4` và `.local/m4-warranty-repair/runtime/skia-rebased.log`.
+
+Sau khi rebase lên `dev` tại `6b58ccd`, hồi quy đạt **2.519/2.519** test, gồm 1.163 backend unit và HTTP/PostgreSQL, 4 backend integration, 1.345 frontend unit và 7 frontend integration qua Kestrel. API chạy migration và seed thành công trên PostgreSQL sạch. EF Core xác nhận model khớp snapshot và bản Skia Release build với 0 warning, 0 error. Tệp TRX và log của lượt này có tiền tố `follow-up-` trong `.local/m4-warranty-repair/`.

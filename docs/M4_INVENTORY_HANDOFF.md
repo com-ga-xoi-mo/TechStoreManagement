@@ -61,7 +61,7 @@ Mọi route dưới đây có tiền tố `/api/warranties`. A là Admin, M là 
 | POST `/{caseId}/replace` | A M | `replacementDeviceId` |
 | POST `/{caseId}/return` | A M S | Không cần body |
 
-Ví dụ tra cứu rồi tiếp nhận máy của khách lẻ. Thiếu mã đơn khi tra cứu trả 200 với `eligible: false`, lý do `OrderCodeRequired` và thông tin lần bán để trống.
+Ví dụ tra cứu rồi tiếp nhận máy của khách lẻ. Thiếu mã đơn khi tra cứu trả 200 với `eligible: false`, lý do `OrderCodeRequired` và thông tin lần bán để trống. Khi xác minh được lần bán, API trả `customerPhone` cho Admin, Manager và SalesStaff, còn WarehouseStaff nhận `null`.
 
 ```json
 {
@@ -74,7 +74,7 @@ Ví dụ tra cứu rồi tiếp nhận máy của khách lẻ. Thiếu mã đơn
 }
 ```
 
-Client tạo một UUID `caseId` khi mở phiếu. Máy đủ điều kiện trả 201, có `Location` trỏ tới chi tiết, `status: "Received"`, mã `BH-yyyyMM-NNNN` và sự kiện tiếp nhận trong `events`. Gửi lại cùng UUID và cùng thiết bị trả 200 với hồ sơ đã ghi. Dữ liệu thiếu hoặc sai định dạng trả 400. Điều kiện bảo hành không đạt trả 409 kèm `reasons`. Thao tác sai trạng thái trả 409 kèm `currentStatus`.
+Client tạo một UUID `caseId` khi mở phiếu. Máy đủ điều kiện trả 201, có `Location` trỏ tới chi tiết, `status: "Received"`, mã `BH-yyyyMM-NNNN` và sự kiện tiếp nhận trong `events`. Gửi lại cùng UUID và cùng thiết bị trả 200 với hồ sơ đã ghi. Dữ liệu thiếu hoặc sai định dạng trả 400. Mã IMEI hoặc số sê-ri không tồn tại trả 404. Điều kiện bảo hành không đạt trả 409 kèm `reasons`. Xung đột khi thao tác kho trả 409 kèm `detail` bằng tiếng Việt. Thao tác sai trạng thái trả 409 kèm `currentStatus`.
 
 Kiểm định chuyển hồ sơ sang sửa, chờ duyệt đổi hoặc từ chối. Hồ sơ đã sửa hoặc từ chối có thể trả khách. Hồ sơ chờ duyệt có thể đổi sang máy `InStock` đồng biến thể hoặc chuyển lại sửa. Máy thay kế thừa cả số tháng và ngày bảo hành của máy cũ. Chi tiết đã đổi gồm `replacementDeviceId`, `replacementDeviceCode`, `movementId` và `replacementUnitCost`. Chi phí là `null` với SalesStaff hoặc khi kho thiếu giá vốn.
 

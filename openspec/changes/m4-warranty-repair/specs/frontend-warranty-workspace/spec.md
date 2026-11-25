@@ -50,6 +50,10 @@ Chi tiết hồ sơ SHALL hiện thông tin máy, đơn gốc, hạn bảo hành
 - **WHEN** SalesStaff mở cùng hồ sơ đó
 - **THEN** hộp thoại hiện IMEI máy thay nhưng không có dòng giá vốn
 
+#### Scenario: Thay đổi kích thước cửa sổ khi xem hồ sơ
+- **WHEN** thu nhỏ hoặc phóng to cửa sổ khi hộp thoại chi tiết đang mở
+- **THEN** lớp phủ lấp đầy vùng nội dung và hộp thoại vẫn nằm giữa
+
 ### Requirement: Nút thao tác theo trạng thái và role
 
 Chi tiết hồ sơ SHALL chỉ hiện nút mà cả trạng thái lẫn role cho phép:

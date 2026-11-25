@@ -24,7 +24,7 @@ public sealed record WarrantyResult(WarrantyCaseDto? Data, string? Conflict = nu
 
 public interface IWarrantyCaseService
 {
-    Task<WarrantyLookupResult> LookupAsync(string? code, string? orderCode, Guid? customerId, CancellationToken ct);
+    Task<WarrantyLookupResult> LookupAsync(string? code, string? orderCode, Guid? customerId, bool includePhone, CancellationToken ct);
     Task<WarrantyResult> GetAsync(Guid id, bool includeCost, CancellationToken ct);
     Task<WarrantySearchResult> SearchAsync(string? status, string? query, int page, int pageSize, bool includeCost, CancellationToken ct);
     Task<WarrantyResult> ReceiveAsync(Guid id, ReceiveWarrantyRequest request, AuthenticatedUser actor, CancellationToken ct);

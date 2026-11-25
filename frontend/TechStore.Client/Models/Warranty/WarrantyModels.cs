@@ -1,3 +1,4 @@
+using TechStore.Client.Controls;
 using TechStore.Shared.DTOs;
 
 namespace TechStore.Client.Models.Warranty;
@@ -5,6 +6,15 @@ namespace TechStore.Client.Models.Warranty;
 public sealed record WarrantyRow(Guid Id, string Code, string Status, string Product, string? Device, string? Customer, DateTime OpenedAt)
 {
     public string StatusLabel => WarrantyLabels.Status(Status);
+    public StatusTone StatusTone => Status switch
+    {
+        "Repairing" => StatusTone.Info,
+        "PendingReplacement" => StatusTone.Warning,
+        "Repaired" => StatusTone.Accent,
+        "Rejected" => StatusTone.Danger,
+        "ReturnedToCustomer" or "Replaced" => StatusTone.Success,
+        _ => StatusTone.Neutral
+    };
     public string DisplayCustomer => Customer ?? "Khách lẻ";
     public string OpenedLabel => WarrantyLabels.Date(OpenedAt);
 }
@@ -12,11 +22,7 @@ public sealed record WarrantyRow(Guid Id, string Code, string Status, string Pro
 public sealed record WarrantyPage(IReadOnlyList<WarrantyRow> Items, int Page, int TotalPages, int TotalCount);
 public sealed record WarrantyLookup(bool Eligible, IReadOnlyList<string> Reasons, string Product, string? Device,
     DateTime? WarrantyEndAt, string? OrderCode, string? CustomerName, string? CustomerPhone);
-public sealed record WarrantyEvent(string? From, string To, string Actor, string? Note, DateTime At)
-{
-    public string Label => $"{WarrantyLabels.Date(At)} · {Actor} · {WarrantyLabels.Status(To)}" +
-        (string.IsNullOrWhiteSpace(Note) ? "" : $" · {Note}");
-}
+public sealed record WarrantyEvent(string? From, string To, string Actor, string? Note, DateTime At);
 
 public sealed record WarrantyDetails(WarrantyRow Row, Guid ProductId, Guid? VariantId, string? VariantName,
     string? OrderCode, DateTime? PurchasedAt, DateTime WarrantyStartAt, DateTime WarrantyEndAt, string? Issue,

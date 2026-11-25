@@ -22,7 +22,7 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | GET `/api/orders`, `/api/orders/{id}` | A M S | A/M see all; S sees only orders whose cashier is that user |
 | POST `/api/returns`, GET `/api/returns/{id}`, GET `/api/returns/order/{orderId}` | A M S | Lập yêu cầu và xem lịch sử, Sales chỉ thao tác trên đơn của mình |
 | POST `/api/returns/{id}/settle`, `/reconcile`, `/exchange` | A M | Chốt chi, xác minh chuyển khoản thủ công, liên kết đơn đổi hàng |
-| GET `/api/warranties/lookup`, `/api/warranties`, `/api/warranties/{caseId}` | A M S W | Tra cứu, danh sách và chi tiết. Giá vốn máy thay hiển thị cho A M W, trả `null` với SalesStaff. |
+| GET `/api/warranties/lookup`, `/api/warranties`, `/api/warranties/{caseId}` | A M S W | Tra cứu, danh sách và chi tiết. `customerPhone` trong tra cứu chỉ hiển thị cho A M S. Giá vốn máy thay hiển thị cho A M W, trả `null` với SalesStaff. |
 | POST `/api/warranties/{caseId}/receive`, `/api/warranties/{caseId}/return` | A M S | Tiếp nhận thiết bị hoặc trả máy cho khách. |
 | POST `/api/warranties/{caseId}/inspect`, `/api/warranties/{caseId}/repaired` | A W | Kiểm định và báo sửa xong. |
 | POST `/api/warranties/{caseId}/replace`, `/api/warranties/{caseId}/reject-replacement` | A M | Duyệt hoặc từ chối đổi máy. |

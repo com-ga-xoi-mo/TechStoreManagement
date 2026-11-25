@@ -18,8 +18,9 @@ public sealed class WarrantyIntakeDialog : WarrantyDialog
         DataContext = viewModel;
         ViewModel.CaseChanged += OnCaseChanged;
 
-        Content = new StackPanel().Spacing(10).MinWidth(420).Children(
-            new ContentControl().Content(x => x.Binding(() => ViewModel.ShowIntake).Convert((bool next) => next ? BuildIntake() : BuildLookup())),
+        Content = new StackPanel().Spacing(10).Children(
+            new ContentControl().HorizontalContentAlignment(HorizontalAlignment.Stretch)
+                .Content(x => x.Binding(() => ViewModel.ShowIntake).Convert((bool next) => next ? BuildIntake() : BuildLookup())),
             new TextBlock().TextWrapping(TextWrapping.Wrap).Foreground(AppColors.Brushes.Text)
                 .Text(x => x.Binding(() => ViewModel.LookupSummary)),
             new TextBlock().TextWrapping(TextWrapping.Wrap).Foreground(AppColors.Brushes.DangerText)
@@ -30,7 +31,8 @@ public sealed class WarrantyIntakeDialog : WarrantyDialog
         new TextBox().Header("IMEI hoặc số sê-ri").Text(x => x.Binding(() => ViewModel.Code).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged)),
         new TextBox().Header("Mã đơn").Text(x => x.Binding(() => ViewModel.OrderCode).Mode(BindingMode.TwoWay).UpdateSourceTrigger(UpdateSourceTrigger.PropertyChanged)),
         new Button().Content("Chọn khách hàng").Command(ViewModel.ToggleCustomerPickerCommand),
-        new ContentControl().Content(x => x.Binding(() => ViewModel.ShowCustomerPicker).Convert((bool open) => BuildCustomerPicker(open))),
+        new ContentControl().HorizontalContentAlignment(HorizontalAlignment.Stretch)
+            .Content(x => x.Binding(() => ViewModel.ShowCustomerPicker).Convert((bool open) => BuildCustomerPicker(open))),
         new Button().Content("Kiểm tra bảo hành").Command(ViewModel.LookupCommand));
 
     private UIElement BuildCustomerPicker(bool open) => open ? new CustomerPickerView(ViewModel.CustomerPicker) : new Border();

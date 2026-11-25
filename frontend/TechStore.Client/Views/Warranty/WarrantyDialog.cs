@@ -10,6 +10,7 @@ namespace TechStore.Client.Views.Warranty;
 
 public abstract class WarrantyDialog : UserControl
 {
+    private const double PreferredWidth = 760;
     private Popup? _popup;
 
     protected abstract string DialogTitle { get; }
@@ -22,19 +23,35 @@ public abstract class WarrantyDialog : UserControl
         var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var popup = new Popup { XamlRoot = root, IsLightDismissEnabled = false };
         _popup = popup;
-        var overlay = new Grid
-        {
-            Width = root.Size.Width,
-            Height = root.Size.Height
-        }.Background(ThemeResource.Get<Brush>("ContentDialogSmokeFill"));
-        overlay.Children.Add(new Border()
+        var overlay = new Grid().Background(ThemeResource.Get<Brush>("ContentDialogSmokeFill"));
+        var panel = new Border()
             .Background(AppColors.Brushes.Surface).CornerRadius(AppMetrics.Values.CardRadius)
-            .Padding(20).MaxWidth(640).MaxHeight(Math.Max(280, root.Size.Height - 40))
+            .BorderBrush(AppColors.Brushes.Stroke).BorderThickness(1)
             .HorizontalAlignment(HorizontalAlignment.Center).VerticalAlignment(VerticalAlignment.Center)
-            .Child(new Grid().RowDefinitions("Auto, *, Auto").RowSpacing(12).Children(
-                new TextBlock().Text(DialogTitle).Foreground(AppColors.Brushes.Text).Style(AppResources.GetStyle(AppTypography.SectionText)),
-                new ScrollViewer().Grid(row: 1).Content(this),
-                new Button().Grid(row: 2).Content("Đóng").Command(new RelayCommand(Hide)))));
+            .Child(new Grid().RowDefinitions("Auto, *, Auto").Children(
+                new Border().Padding(new Thickness(20, 14, 20, 14))
+                    .BorderBrush(AppColors.Brushes.Stroke).BorderThickness(new Thickness(0, 0, 0, 1))
+                    .Child(new TextBlock().Text(DialogTitle).Foreground(AppColors.Brushes.Text)
+                        .Style(AppResources.GetStyle(AppTypography.SectionText)).TextWrapping(TextWrapping.Wrap)),
+                new ScrollViewer().Grid(row: 1)
+                    .VerticalScrollBarVisibility(ScrollBarVisibility.Auto)
+                    .HorizontalContentAlignment(HorizontalAlignment.Stretch)
+                    .Content(new Grid().Padding(20).Children(this)),
+                new Border().Grid(row: 2).Padding(new Thickness(20, 12, 20, 12))
+                    .BorderBrush(AppColors.Brushes.Stroke).BorderThickness(new Thickness(0, 1, 0, 0))
+                    .Child(new Button().Content("Đóng").HorizontalAlignment(HorizontalAlignment.Right)
+                        .Command(new RelayCommand(Hide)))));
+        overlay.Children.Add(panel);
+
+        void FitToRoot(XamlRoot sender, XamlRootChangedEventArgs? args)
+        {
+            overlay.Width = sender.Size.Width;
+            overlay.Height = sender.Size.Height;
+            panel.Width = Math.Clamp(overlay.Width - 24, 0, PreferredWidth);
+            panel.MaxHeight = Math.Max(0, overlay.Height - 40);
+        }
+
+        FitToRoot(root, null);
         popup.Child = overlay;
         popup.Opened += async (_, _) => await ActivateAsync();
         popup.Closed += (_, _) =>
@@ -42,6 +59,7 @@ public abstract class WarrantyDialog : UserControl
             Deactivate();
             closed.TrySetResult();
         };
+        root.Changed += FitToRoot;
         try
         {
             popup.IsOpen = true;
@@ -49,6 +67,7 @@ public abstract class WarrantyDialog : UserControl
         }
         finally
         {
+            root.Changed -= FitToRoot;
             _popup = null;
             popup.Child = null;
         }

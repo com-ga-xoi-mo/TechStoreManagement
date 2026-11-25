@@ -21,7 +21,8 @@ public sealed class WarrantyCasesController(IWarrantyCaseService service) : Cont
     public async Task<IActionResult> Lookup([FromQuery] string? code, [FromQuery] string? orderCode,
         [FromQuery] Guid? customerId, CancellationToken ct)
     {
-        var result = await service.LookupAsync(code, orderCode, customerId, ct);
+        var includePhone = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("SalesStaff");
+        var result = await service.LookupAsync(code, orderCode, customerId, includePhone, ct);
         if (result.Errors != null)
             return Invalid(result.Errors);
         return result.Data == null ? NotFound() : Ok(result.Data);

@@ -3,7 +3,7 @@
 ## 1. Pin the release and prepare the evidence matrix
 
 - [ ] 1.1 Identify the pushed Sprint 3 integrated branch or tag. Record the full remote SHA and confirm the clean checkout matches it. Verify the reporting components and scoped test suites are present. Record the Release build command, SDK and initial API/client build identities in `docs/M4_FINANCIAL_REPORT.md`.
-- [ ] 1.2 Establish acceptance case IDs, expected results and run IDs in the English Sprint 3 section of the evidence document. Verify that the matrix includes the financial report, M3 Dashboard and seed regression, separate Skia and Windows rows, and the applicable dependency scenarios from D5.
+- [x] 1.2 Establish acceptance case IDs, expected results and run IDs in the English Sprint 3 section of the evidence document. Verify that the matrix includes the financial report, M3 Dashboard and seed regression, separate Skia and Windows rows, and the applicable dependency scenarios from D5.
 
 ## 2. Rerun automated coverage
 
@@ -21,5 +21,5 @@
 
 - [ ] 4.1 Document the report demo seed, role and dataset references, range, expected figures and setup and run steps in `docs/M4_FINANCIAL_REPORT.md`. Verify those steps and values against the release demo environment, and label observed Cash, seeded QR, manual, sandbox or webhook modes accurately.
 - [ ] 4.2 Write Bình’s video segment script in the same document, including narration, screen actions, timing, roles, case IDs and remaining limitations. Verify the script can be followed using the documented release and demo data, and identify any unavailable footage with its owner and rerun condition.
-- [ ] 4.3 Reconcile all automated runner counts and acceptance matrix counts independently. Verify each row has its inputs, Expected/Actual, build SHA, status, and rerun result or reason. Check that open dependencies list the owner, rerun trigger and acceptance impact, and that reported rates show their denominators.
+- [x] 4.3 Reconcile all automated runner counts and acceptance matrix counts independently. Verify each row has its inputs, Expected/Actual, build SHA, status, and rerun result or reason. Check that open dependencies list the owner, rerun trigger and acceptance impact, and that reported rates show their denominators.
 - [ ] 4.4 Review the final scope and evidence links for An’s package. Confirm the release handoff is in English, the resulting diff stays within Bình’s document and tests, normal runner output or the evidence document contains the recorded proof, and any commit message omits AI `Co-Authored-By` trailers.

@@ -84,6 +84,35 @@ Expected = Actual, đơn vị nghìn đồng. Tiền hàng và vốn gốc giữ
 - `TechStore.Backend.IntegrationTests` lọc AnalyticsPostgresIntegrationTests và DataSeederPostgresIntegrationTests: 4 Pass, 0 Fail, 0 Skip.
 - Các giới hạn đã kiểm tra bằng fixture gồm legacy thiếu phân bổ, giá vốn hoặc chứng từ. Việc bổ sung dữ liệu lịch sử cần An và Đạt xác nhận nguồn. Chi phí công sửa/phụ tùng chưa có nguồn trong phạm vi chi phí máy thay của change này.
 
+## Change 3 — Báo cáo tài chính desktop
+
+Ngày 25/11/2026, Windows build `10.0.26200.0`, .NET SDK `10.0.404`. Backend và client dùng HEAD `a037d619babf647555cc8edd2d7d65f5dd7ddcea`. Bản client được build Debug với phần Dashboard/Analytics của change này trong worktree. API chạy qua HTTP loopback trên PostgreSQL 16.15, dùng database thử riêng với demo seed và migration hiện hành.
+
+### Headless và đối chiếu với PostgreSQL
+
+- `dotnet test tests/Frontend.UnitTests/TechStore.Client.UnitTests.csproj --no-restore` đạt **1.202/1.202** (63/63 cho `FinancialReport|DashboardViewModel`, cập nhật sau chỉnh sửa 2-way tab state, reset nháp khi mở lại, strict JSON `cashByShift`, và KPI/section layout). Fixture JSON phần bán và fixture mở rộng kiểm tra `asOf`, ngày 0, giá trị thiếu, tiền âm/phần lẻ, trường JSON bắt buộc, thuế hoàn, Cash/QR, ca và bảo hành. Fake transport trả muộn sau hủy xác nhận yêu cầu cũ không ghi đè kỳ mới, không xóa trạng thái tải của yêu cầu mới và không hiện dữ liệu sau khi đổi hoặc hết phiên. Ca retry dùng đúng kỳ đã áp dụng sau khi ngày nháp thay đổi.
+- `TechStore.Client.IntegrationTests` lọc `FinancialReportApiIntegrationTests` với `TECHSTORE_API_BASE_URL` trỏ tới API local (database thử với demo seed ở lượt đối chiếu ban đầu) đạt **1/1**. Với Admin và Manager, test so sánh kỳ, `asOf`, tổng kỳ, cả bảy dòng ngày và thứ tự hai bảng bán chạy, người bán, tiền mặt theo ca với chính HTTP response mà repository nhận. Luồng bị chặn cho SalesStaff/WarehouseStaff không gửi query từ ViewModel. Endpoint trả 403 khi hai role gọi trực tiếp. *(Ghi chú: chạy thử với database local đang có sẵn của máy dev ở phiên sau trả 401 khi login tài khoản seed mẫu vì khác dữ liệu mật khẩu; backend API không thay đổi sau commit `a037d61`.)*
+- `TechStore.UnitTests` lọc `FinancialReportPostgresHttpTests` và `DashboardLiveFlowPostgresHttpTests` đạt **7/7**, 0 skip. API live build SHA-256 `2C094BE55BC17AE7B23FA53EA895C5B555B8844E2D32420CE23CFACCD223968C`.
+- Kỳ demo 15–21/10/2026, UTC+07. Tiền hàng bán chưa thuế theo ngày lần lượt là 14.980.000 ₫, 22.980.000 ₫, 19.680.000 ₫, 27.980.000 ₫, 0 ₫, 0 ₫ và 0 ₫, tổng 85.620.000 ₫. Thu Cash 88.630.000 ₫, thu VietQR 33.970.000 ₫. Kỳ có bảy sản phẩm trong bảng doanh thu, một người bán và một ca tiền mặt. `asOf` của lần gọi Admin trực tiếp là `2026-11-25T09:59:34.295404Z`.
+- **Chưa kiểm tra — thu QR đầu cuối và callback/đối soát tiền tới muộn.** Owner Đạt. Chạy lại khi có luồng xác nhận thu và chứng từ hợp lệ từ ngân hàng hoặc sandbox. Số thu QR ở trên đến từ demo seed.
+
+### Skia desktop
+
+- `dotnet build TechStore.sln` (bao gồm `frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop`) đạt, 0 cảnh báo. SHA-256 `TechStore.Client.dll` mới nhất: `B91CD91EF37A924666A2E7C2A7F9BA311278E88780C3F5BF30EB8DB5B11BED0C` (bản trước khi chỉnh layout là `1B7F307188B1B27AF66FADC163DF99E10FE0ECCD1B9245B2CB13EE1740449895`).
+- Trên bản build `1B7F3071...` chạy từ `bin/Debug/net10.0-desktop` (`TECHSTORE_API_BASE_URL` loopback, `TECHSTORE_DASHBOARD_DEMO=0`, Admin):
+  - Kỳ 15–21/10/2026 hiển thị `85.620.000 ₫` tiền hàng bán chưa thuế, `88.630.000 ₫` thu Cash và `33.970.000 ₫` thu VietQR; nhãn tiếng Việt, kỳ và giờ UTC+07 hiển thị trong UI Automation; mở được chi tiết ngày 20/10 qua `ExpandCollapsePattern`.
+  - Tổng quan được chọn mặc định và tiếp tục dùng kỳ “Hôm nay” sau khi chuyển tab; panel ẩn rời cây accessibility; mở lại báo cáo lấy kỳ 15–21/10 đã áp dụng. Phím Space chọn cả hai tab, focus ở tab vừa chọn, và Tab đi từ Từ ngày tới Đến ngày, Áp dụng, Làm mới; ngắt kết nối chuyển nút sang “Thử lại” và giữ focus khi tải lại.
+  - Resize ở 800×600, 1024×768 và 1440×1000 DIP (DPI 120): giữ số liệu và truy cập được các mục. *(Khi chạy từ shell nâng quyền ở phiên đó, Skia không đọc được theme hệ thống vừa đổi.)*
+- Trên bản build `B91CD91E...` sau khi chỉnh giao diện (`dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-desktop` từ terminal người dùng thường, Admin `System Administrator`, kỳ mặc định `19–25/11/2026`, `http://localhost:5176`):
+  - Hiển thị đầy đủ tab pill `Tổng quan` / `Báo cáo tài chính`, thanh lọc ngày 1 hàng, thông báo kỳ không phát sinh, 4 thẻ KPI (`0 ₫`), lưới 2 cột `Tổng kỳ chi tiết` và định dạng tiếng Việt / `₫` / `(UTC+07)`.
+  - **Đổi Sáng/Tối live đạt:** Khi đổi chế độ Windows (`Settings → Personalization → Colors`, Sáng ↔ Tối) lúc panel Báo cáo tài chính đang mở, giao diện Skia cập nhật bảng màu Sáng/Tối trực tiếp trên cùng panel, giữ nguyên kỳ và không tải lại dữ liệu. *(Các case UIA bàn phím/resize tự động cho bố cục lưới mới chưa chạy lại script UIA riêng; mới kiểm lại trực quan màn hình mặc định và Sáng/Tối.)*
+
+### Windows native
+
+- `dotnet build frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-windows10.0.26100` (qua `dotnet build TechStore.sln`) đạt, 0 cảnh báo. SHA-256 `TechStore.Client.dll` mới nhất: `21C696FE3781A6F92CAF952F5CA6242827553822D5B920F86455E3D696B36DB9` (bản trước khi chỉnh layout là `A2561526F69F31EA361D70CEA5A2EE589EFD8B89109B7EE5692904BE79F65F85`).
+- **Chưa kiểm tra giao diện.** Host thoát trước đăng nhập với `Microsoft.UI.Xaml.dll` 3.1.7.0, exception `0xc000027b`. Đã thử `dotnet run --project frontend/TechStore.Client/TechStore.Client.csproj -f net10.0-windows10.0.26100 --no-build --launch-profile "TechStore.Client (WinAppSDK Unpackaged)"`, lần chạy này CLI kích hoạt bản packaged. Thử lại với `-p:WindowsPackageType=None` cũng ghi cùng lỗi ở executable unpackaged.
+- Điều kiện chạy lại là mở được client native tới màn hình đăng nhập. Dùng Admin/Manager, kỳ 15–21/10/2026. Kiểm tiếng Việt/VND, Tab và focus, resize 800×600, 1024×768 và 1440×1000 DIP, đổi Sáng/Tối khi báo cáo đang mở.
+
 ## Sprint 2 live reconciliation
 
 ### API and PostgreSQL

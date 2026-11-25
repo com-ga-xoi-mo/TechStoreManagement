@@ -43,14 +43,18 @@ public sealed partial class DashboardViewModel : PageViewModel
     public DashboardViewModel(
         IAnalyticsRepository analytics,
         DashboardPreviewOptions previewOptions,
-        ISessionStore sessionStore)
+        ISessionStore sessionStore,
+        IFinancialReportRepository financialReports,
+        TimeProvider clock)
     {
         _analytics = analytics ?? throw new ArgumentNullException(nameof(analytics));
         _previewOptions = previewOptions ?? throw new ArgumentNullException(nameof(previewOptions));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+        FinancialReport = new FinancialReportViewModel(financialReports, sessionStore, clock, IsLiveMode, RunTrackedRequestAsync);
         _sessionStore.SessionChanged += OnSessionChanged;
     }
 
+    public FinancialReportViewModel FinancialReport { get; }
     public DashboardPeriod SelectedPeriod => _appliedQuery.Period;
     public bool IsDemoMode => _previewOptions.Enabled;
     public bool IsLiveMode => !_previewOptions.Enabled;
@@ -195,6 +199,7 @@ public sealed partial class DashboardViewModel : PageViewModel
 
     protected override Task<bool> LoadContentAsync(CancellationToken cancellationToken)
     {
+        if (!_hasActivated) FinancialReport.Activate(cancellationToken);
         _hasActivated = true;
         return LoadSnapshotAsync(_appliedQuery, cancellationToken);
     }
@@ -255,6 +260,7 @@ public sealed partial class DashboardViewModel : PageViewModel
     {
         _hasActivated = false;
         _sessionStore.SessionChanged -= OnSessionChanged;
+        FinancialReport.Deactivate();
     }
 
     private async Task<bool> LoadSnapshotAsync(DashboardQuery query, CancellationToken cancellationToken)

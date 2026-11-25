@@ -59,6 +59,8 @@ Nghiệm thu: chặn thiết bị sai/hết hạn, xử lý trùng một máy v�
 
 Làm bằng bộ dữ liệu tính tay theo dữ liệu bán/hoàn/bảo hành của Đạt, An và Q. Vinh; gửi sớm mẫu kết quả API cho T. Vinh.
 
+Trên desktop, Admin/Manager vào **Tổng quan → Báo cáo tài chính** để xem báo cáo. Thiết kế giao diện nằm trong [OpenSpec `m4-financial-report-desktop`](../openspec/changes/m4-financial-report-desktop/proposal.md).
+
 - [ ] Làm API/UI doanh thu ngày/kỳ, hoàn tiền, doanh thu thuần, giá vốn, lợi nhuận gộp, sản phẩm bán chạy và hiệu suất người bán. Chỉ Admin/Manager xem báo cáo tài chính.
 - [ ] Tính ngày theo giờ Việt Nam: bán theo `CompletedAt`, hoàn theo `RefundedAt`. Giữ doanh thu gốc của đơn đã chuyển `PartiallyRefunded`/`Refunded`; thuế và dòng tiền hiển thị riêng.
 - [ ] Doanh thu thuần chưa thuế = tiền hàng sau giảm giá đã giao - tiền hàng hoàn trong kỳ. Giá vốn lấy từ `OrderItem.UnitCost`; chỉ giảm khi hàng trả thực sự nhập lại, theo ngày nhập lại và giá vốn gốc.

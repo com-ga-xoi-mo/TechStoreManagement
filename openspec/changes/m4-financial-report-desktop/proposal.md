@@ -2,14 +2,14 @@
 
 ## Why
 
-Admin và Manager cần xem báo cáo tài chính trong desktop để đối chiếu bán, hoàn, thuế, tiền thu/chi và giá vốn từ cùng snapshot của API. Tổng quan hiện có là điểm vào phù hợp để bổ sung báo cáo mà vẫn giữ luồng sử dụng Dashboard M3.
+Admin and Manager users need the desktop financial report to reconcile sales, refunds, tax, receipts, payouts, and costs from a single API snapshot. The existing Overview provides an entry point that preserves the M3 Dashboard workflow.
 
 ## What Changes
 
-- Thêm chế độ **Báo cáo tài chính** bên cạnh nội dung Tổng quan bên trong `DashboardPage`. Mặc định vẫn mở Dashboard hiện tại. Báo cáo chỉ hiện với Admin/Manager đang đăng nhập ở chế độ live.
-- Hiển thị kỳ, giờ cập nhật UTC+07, tổng kỳ, theo ngày, sản phẩm bán chạy và hiệu suất người bán. Dùng số API cho bán/hoàn, thuế, dòng tiền, giá vốn, lãi gộp và bảo hành, với hiển thị riêng cho số 0, chưa tính được, kỳ rỗng và lỗi tải.
-- Tách kỳ nháp khỏi kỳ đã áp dụng. Cho phép thay yêu cầu đang tải bằng kỳ mới, retry đúng kỳ, và bỏ kết quả cũ khi đổi phiên hoặc rời trang.
-- Kiểm thử headless từ DTO/JSON mẫu phần bán và nghiệm thu live với build tích hợp change 2. Ghi riêng bằng chứng Skia và Windows native trong `docs/M4_FINANCIAL_REPORT.md`.
+- Place the Overview (“Tổng quan”) and Financial Report (“Báo cáo tài chính”) tabs at the top of `DashboardPage` for signed-in Admin and Manager users in live mode. Overview is the default tab.
+- Show the report period, update time in UTC+07, period totals, daily figures, product rankings, and cashier performance. Use API values for sales, refunds, tax, cash flow, costs, gross profit, and warranty, with distinct displays for zero, unavailable amounts, empty periods, and load errors.
+- Keep draft dates separate from the applied range. Let users replace an in-flight request with a new range, retry the applied range, and discard stale results when changing sessions or leaving the page.
+- Run headless tests with the sales DTO and sample JSON, and verify live against a build that includes change 2. Record Skia and native Windows evidence separately in `docs/M4_FINANCIAL_REPORT.md`.
 
 ## Capabilities
 
@@ -17,9 +17,9 @@ Admin và Manager cần xem báo cáo tài chính trong desktop để đối chi
 
 ### Modified Capabilities
 
-- `frontend-dashboard-preview` — bổ sung chế độ báo cáo live, trạng thái tải/rỗng/lỗi và quy tắc trình bày trong Tổng quan hiện có.
+- `frontend-dashboard-preview` adds a live report view with loading, empty, and error states and display rules within the existing Overview.
 
 ## Impact
 
-- Phạm vi apply gồm View/ViewModel Dashboard, model/repository và đăng ký DI chuyên biệt cho Dashboard/Analytics, test của Bình và `docs/M4_FINANCIAL_REPORT.md`.
-- Dùng lại `GET /api/analytics/financial-report`, hợp đồng phần bán và trường bổ sung của change 2. Dashboard M3, Shell/menu/route, quyền server, API và shared DTO giữ hợp đồng hiện hành.
+- Implementation covers the Dashboard view and ViewModel, dedicated Dashboard and Analytics models, repository and DI registration, Bình’s tests, and `docs/M4_FINANCIAL_REPORT.md`.
+- Reuse `GET /api/analytics/financial-report`, the sales contract, and the fields added in change 2. The M3 Dashboard, Shell menu and routing, server authorization, API, and shared DTO contracts remain in place.

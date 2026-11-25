@@ -17,6 +17,10 @@
   <ItemGroup>
     <Using Include="Xunit" />
     <ProjectReference Include="../../shared/TechStore.Shared.csproj" />
+    <Compile Include="../../frontend/TechStore.Client/Models/Analytics/**/*.cs" Link="Production/Models/Analytics/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Repositories/Analytics/**/*.cs" Link="Production/Repositories/Analytics/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/ViewModels/Dashboard/**/*.cs" Link="Production/ViewModels/Dashboard/%(Filename)%(Extension)" />
+    <Compile Include="../../frontend/TechStore.Client/Services/Development/DashboardPreviewOptions.cs" Link="Production/Services/Development/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Models/Catalog/**/*.cs" Link="Production/Models/Catalog/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Repositories/Catalog/**/*.cs" Link="Production/Repositories/Catalog/%(Filename)%(Extension)" />
     <Compile Include="../../frontend/TechStore.Client/Models/Orders/**/*.cs" Link="Production/Models/Orders/%(Filename)%(Extension)" />

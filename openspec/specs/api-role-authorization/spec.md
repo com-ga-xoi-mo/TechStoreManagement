@@ -3,9 +3,7 @@
 ## Purpose
 
 Đảm bảo mọi API nghiệp vụ TechStore xác thực người dùng và kiểm tra quyền theo hành động tại server, với danh sách ngoại lệ public và lỗi truy cập thống nhất.
-
 ## Requirements
-
 ### Requirement: Authentication is required by default
 Every business API SHALL require a valid authenticated user even when the endpoint has no explicit authorization attribute. Public exceptions SHALL be limited to `POST /api/auth/login`, `POST /api/auth/refresh`, `GET /api/health` and `GET /api/settings/store`. Health SHALL expose only service health; public store settings SHALL expose only the existing non-secret store DTO fields (id, storeName, address, phone, email, taxId, description, isActive and updatedAt). Static product image files remain public resources; development Swagger remains development-only and SHALL NOT grant anonymous access to its business endpoints.
 
@@ -121,3 +119,19 @@ Every `/api/vouchers` endpoint SHALL require Admin or Manager; a missing token r
 #### Scenario: Sales reads a loyalty summary
 - **WHEN** a SalesStaff calls the summary of an active customer
 - **THEN** the response is 200
+
+### Requirement: VietQR endpoints authorization
+The permission table SHALL list: `POST /api/pos/vietqr` for Admin and SalesStaff; `GET /api/pos/vietqr` and `GET /api/pos/vietqr/{id}` for Admin, Manager and SalesStaff (SalesStaff own QR only); `POST /api/pos/vietqr/{id}/cancel` and `/expire` for Admin and SalesStaff (SalesStaff own QR only); `POST /api/pos/vietqr/{id}/confirm` for Admin and Manager; `GET /api/payments/vietqr/events` and `POST /api/payments/vietqr/events/{id}/resolve` for Admin and Manager. `POST /api/payments/vietqr/webhook` SHALL be the only anonymous endpoint added and SHALL require a valid HMAC signature. WarehouseStaff SHALL receive 403 on every other route and a missing or invalid token 401.
+
+#### Scenario: Warehouse blocked
+- **WHEN** WarehouseStaff calls any `/api/pos/vietqr` route
+- **THEN** the response is 403
+
+#### Scenario: Manager cannot create a QR
+- **WHEN** a Manager posts `/api/pos/vietqr`
+- **THEN** the response is 403
+
+#### Scenario: Webhook without signature
+- **WHEN** a request without `X-Signature` calls the webhook
+- **THEN** the response is 401 and the fallback policy still protects every other endpoint
+

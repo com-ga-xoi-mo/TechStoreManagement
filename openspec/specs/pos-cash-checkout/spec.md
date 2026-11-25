@@ -3,9 +3,7 @@
 ## Purpose
 
 Bán hàng tiền mặt tại quầy trong một transaction: tạo đơn, thu tiền, tính tiền thừa, trừ kho, ghi giá vốn, kích hoạt bảo hành và cộng tiền vào ca; gửi lặp cùng khóa không ghi tiền hay trừ kho hai lần.
-
 ## Requirements
-
 ### Requirement: Atomic cash checkout
 `POST /api/pos/checkout` SHALL, in one database transaction, create the order, verify and reserve the devices and stock through the inventory fulfilment service, confirm the sale (stock deduction, `Sale` movements, per-line cost snapshot, warranty dates), set `status` = `Completed`, `paymentMethod` = `Cash`, `paidAt` = `completedAt` = now, store `cashTendered` and `changeGiven`, credit the order total to the shift's `cashSalesTotal` and return 201 with the order. Request fields: `posSessionId`, `checkoutKey`, `customerId?`, `cashTendered`, `orderDiscountAmount?`, `expectedTotal?`, `notes?`, `items` (as in `CreateOrderRequest`). Prices, totals and cost SHALL be computed by the server; client prices SHALL be ignored. Only `SalesStaff` and `Admin` SHALL check out.
 
@@ -73,3 +71,19 @@ A `Completed` order created by checkout SHALL NOT be cancelled or have its lines
 #### Scenario: Cancel a paid order
 - **WHEN** a client patches a `Completed` order to `Cancelled`
 - **THEN** the response is 409 and the order is unchanged
+
+### Requirement: Cash checkout consumes the voucher use
+When a cash checkout prices an order with a voucher, the checkout SHALL hold one use of that voucher and consume it in the same transaction as the payment, through the shared settlement. If the voucher is no longer usable, has no use left or was taken by a concurrent checkout, the checkout SHALL return 409 and store nothing.
+
+#### Scenario: Voucher use consumed
+- **WHEN** a cash checkout uses a voucher with one use left
+- **THEN** the sale completes and the voucher has no use left
+
+#### Scenario: Last use taken by another sale
+- **WHEN** two cash checkouts with the last use of a voucher run at the same time
+- **THEN** exactly one completes and the other returns 409 with no stock, shift or points change
+
+#### Scenario: Retry with the same key
+- **WHEN** the completed checkout is posted again with the same `checkoutKey`
+- **THEN** the stored order is returned and no second use is consumed
+

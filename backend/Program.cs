@@ -33,6 +33,7 @@ builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddStoreAuthentication(builder.Configuration);
+builder.Services.Configure<TechStore.Api.Sales.VietQrOptions>(builder.Configuration.GetSection(TechStore.Api.Sales.VietQrOptions.SectionName));
 
 // Database Context (PostgreSQL EF Core)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -112,6 +113,10 @@ builder.Services.AddScoped<ICashRefundRepository, CashRefundRepository>();
 builder.Services.AddScoped<ICashRefundService, CashRefundService>();
 builder.Services.AddScoped<IVietQrHoldRepository, VietQrHoldRepository>();
 builder.Services.AddScoped<IVietQrHoldService, VietQrHoldService>();
+builder.Services.AddScoped<IVietQrPaymentService, VietQrPaymentService>();
+builder.Services.AddScoped<IVietQrConfirmationService, VietQrConfirmationService>();
+builder.Services.AddHostedService<VietQrExpiryWorker>();
+builder.Services.AddScoped<ISaleSettlementService, SaleSettlementService>();
 builder.Services.AddScoped<IPosCheckoutService, PosCheckoutService>();
 
 // Analytics Module

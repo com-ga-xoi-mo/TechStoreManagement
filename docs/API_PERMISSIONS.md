@@ -37,6 +37,11 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | POST `/api/pos/shifts`, GET `/api/pos/shifts/current` | A M S | Mở và đọc ca riêng để ghi thu/chi theo quyền. |
 | POST `/api/pos/quote`, POST `/api/pos/checkout` | A S | Tính giá và bán hàng trong ca của người bán |
 | POST `/api/pos/vietqr/{id}/cancel`, `/expire` | A S | Kết thúc lượt giữ QR đang chờ. Sales chỉ truy cập giao dịch của mình. |
+| POST `/api/pos/vietqr` | A S | Tạo yêu cầu thanh toán VietQR trong ca đang mở của chính người gọi; giữ hàng và lượt voucher 15 phút. |
+| GET `/api/pos/vietqr`, `/api/pos/vietqr/{id}` | A M S | A/M xem mọi yêu cầu; S chỉ yêu cầu của mình (của người khác trả 404). Đọc quá hạn sẽ hết hạn yêu cầu. |
+| POST `/api/pos/vietqr/{id}/confirm` | A M | Xác nhận thủ công bằng mã tham chiếu và số tiền trên sao kê. Sales/Warehouse nhận 403. |
+| POST `/api/payments/vietqr/webhook` | Công khai, bắt buộc chữ ký | **Sandbox**: ký HMAC-SHA256 (`X-Timestamp`, `X-Signature`) bằng `VietQr:WebhookSecret`; chưa nối nhà cung cấp ngân hàng thật. Thiếu secret trả 503. |
+| GET `/api/payments/vietqr/events`, POST `/api/payments/vietqr/events/{id}/resolve` | A M | Tiền ngân hàng không hoàn tất được đơn (đến muộn, sai số tiền/tài khoản, lặp) để đối soát. |
 | GET `/api/pos/shifts`, `/api/pos/shifts/{id}` | A M S | A/M see all shifts; S sees only own (other users' shifts return 404) |
 | POST `/api/pos/shifts/{id}/close` | A M S | S closes own shift only; A/M close any shift; closing records `closedByUserId` |
 | GET `/api/analytics/dashboard` | A M | Read-only store-wide dashboard |

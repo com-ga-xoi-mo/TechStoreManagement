@@ -3,9 +3,7 @@
 ## Purpose
 
 Cho SalesStaff mở và đóng ca thu ngân, mỗi người một ca đang mở, đối soát tiền đầu ca, tiền dự kiến và tiền thực đếm qua API, và cho Manager/Admin xem và đóng cưỡng bức mọi ca.
-
 ## Requirements
-
 ### Requirement: Open a shift
 `POST /api/pos/shifts` SHALL open a shift for the acting user with `openingBalance` (≥ 0, at most 2 decimals) and return 201 with the shift (`id`, `cashierUserId`, `openingBalance`, `status` = `Open`, `openedAt`, totals 0). A user SHALL have at most one `Open` shift; the rule SHALL also be enforced by the partial unique index `uq_pos_sessions_cashier_open`. `SalesStaff`, `Admin` and `Manager` SHALL open their own shifts.
 
@@ -65,3 +63,26 @@ Closing a shift and checkout into the same shift SHALL be serialized by a row lo
 #### Scenario: Sale during close
 - **WHEN** a checkout and a close of the same shift run concurrently
 - **THEN** either the sale is counted in the expected cash and the shift closes, or the checkout returns 409 and no order exists
+
+### Requirement: Close is blocked while a QR is pending
+`POST /api/pos/shifts/{id}/close` SHALL, after locking the shift, refuse with 409 and the list of pending QR ids and order codes when any QR of that shift is `Pending`. After the QR is confirmed, cancelled or expired the close SHALL be allowed. The check and the close SHALL be serialized by the shift lock so a QR created, confirmed or expired during the close either appears in the check or is rejected.
+
+#### Scenario: Pending QR blocks the close
+- **WHEN** the shift has one `Pending` QR and the cashier closes it
+- **THEN** the response is 409 naming the QR and the shift stays `Open`
+
+#### Scenario: Close after the QR ends
+- **WHEN** the same QR is cancelled and the cashier closes the shift
+- **THEN** the shift closes normally
+
+#### Scenario: QR created while closing
+- **WHEN** a QR creation and a close of the same shift run at the same time
+- **THEN** either the close succeeds and the creation returns 409, or the creation wins and the close returns 409
+
+### Requirement: Shift DTO shows QR money apart from cash
+The shift DTO SHALL expose `vietQrSalesTotal` next to `cashSalesTotal`. `expectedClosingBalance` SHALL stay opening balance + cash sales − cash refunds and SHALL NOT include `vietQrSalesTotal`.
+
+#### Scenario: Shift totals
+- **WHEN** a QR of 3,000,000 was confirmed in the shift
+- **THEN** `vietQrSalesTotal` is 3,000,000 and `expectedClosingBalance` is unchanged
+

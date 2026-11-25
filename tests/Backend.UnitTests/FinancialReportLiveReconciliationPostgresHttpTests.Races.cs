@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Inventory.Entities;
 using TechStore.Api.Sales.Entities;
+using TechStore.Api.Warranty.Entities;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;

@@ -80,6 +80,7 @@ public sealed class ShellRoutePageFactory(
         _ = ResolvePage(AppRoute.OrderReturns(Guid.NewGuid()), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.OrderCreate(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.Pos(), scope.ServiceProvider);
+        _ = ResolvePage(AppRoute.VietQrReconcile(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.ProductCreate(), scope.ServiceProvider);
         _ = ResolvePage(AppRoute.ProductEdit(Guid.NewGuid()), scope.ServiceProvider);
     }
@@ -94,6 +95,7 @@ public sealed class ShellRoutePageFactory(
         AppRouteKind.OrderReturns => services.GetRequiredService<OrderReturnsPage>(),
         AppRouteKind.OrderCreate => services.GetRequiredService<OrderCreatePage>(),
         AppRouteKind.Pos => services.GetRequiredService<PosPage>(),
+        AppRouteKind.VietQrReconcile => services.GetRequiredService<VietQrReconcilePage>(),
         AppRouteKind.ProductCreate or AppRouteKind.ProductEdit => services.GetRequiredService<ProductEditorPage>(),
         _ => throw new ArgumentOutOfRangeException(nameof(route), route.Kind, "Unknown route kind.")
     };

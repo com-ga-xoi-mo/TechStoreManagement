@@ -60,18 +60,28 @@ public sealed class OrderListPage : Page, IRoutePage
                         new Button()
                             .Style(AppControlStyles.Styles.Button)
                             .Padding(new Thickness(16, 10, 16, 10))
-                            .Content("Bán hàng tại quầy")
-                            .Command(x => x.Binding(() => ViewModel.OpenPosCommand)),
-                        new Button()
-                            .Content("＋  Lập đơn mới")
-                            .FontSize(13)
-                            .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
-                            .Padding(new Thickness(16, 10, 16, 10))
-                            .CornerRadius(new CornerRadius(7))
-                            .Background(AppColors.Brushes.Primary)
-                            .Foreground(AppColors.Brushes.OnPrimary)
-                            .Command(x => x.Binding(() => ViewModel.NewOrderCommand)))
-                    .Visibility(x => x.Binding(() => ViewModel.CanManageOrders).Convert((bool v) => ShowIf(v)))
+                            .Content("Đối soát VietQR")
+                            .Visibility(x => x.Binding(() => ViewModel.CanReconcileVietQr).Convert((bool v) => ShowIf(v)))
+                            .Command(x => x.Binding(() => ViewModel.OpenVietQrReconcileCommand)),
+                        new StackPanel()
+                            .Orientation(Orientation.Horizontal)
+                            .Spacing(8)
+                            .Children(
+                                new Button()
+                                    .Style(AppControlStyles.Styles.Button)
+                                    .Padding(new Thickness(16, 10, 16, 10))
+                                    .Content("Bán hàng tại quầy")
+                                    .Command(x => x.Binding(() => ViewModel.OpenPosCommand)),
+                                new Button()
+                                    .Content("＋  Lập đơn mới")
+                                    .FontSize(13)
+                                    .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
+                                    .Padding(new Thickness(16, 10, 16, 10))
+                                    .CornerRadius(new CornerRadius(7))
+                                    .Background(AppColors.Brushes.Primary)
+                                    .Foreground(AppColors.Brushes.OnPrimary)
+                                    .Command(x => x.Binding(() => ViewModel.NewOrderCommand)))
+                            .Visibility(x => x.Binding(() => ViewModel.CanManageOrders).Convert((bool v) => ShowIf(v))))
                     .Grid(column: 1));
 
     private UIElement BuildToolbar() =>

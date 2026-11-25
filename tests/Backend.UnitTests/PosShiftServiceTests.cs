@@ -16,12 +16,13 @@ public class PosShiftServiceTests
     private static readonly AuthenticatedUser Manager = new(Guid.Parse("cccccccc-0000-0000-0000-000000000003"), RoleType.Manager, 0);
 
     private readonly FakePosSessionRepository _sessions = new();
+    private readonly FakeVietQrHoldRepository _vietQr = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly PosShiftService _service;
 
     public PosShiftServiceTests()
     {
-        _service = new PosShiftService(_sessions, _unitOfWork, new FixedTimeProvider(new DateTimeOffset(Now)));
+        _service = new PosShiftService(_sessions, _vietQr, _unitOfWork, new FixedTimeProvider(new DateTimeOffset(Now)));
     }
 
     [Fact]
@@ -266,6 +267,73 @@ public class PosShiftServiceTests
         // Assert
         result.ValidationErrors.Should().ContainKeys("closingBalance", "note");
         _unitOfWork.BeginTransactionCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CloseAsync_WithAPendingQr_IsRefusedNamingTheOrderAndTheShiftStaysOpen()
+    {
+        // Arrange
+        var shift = _sessions.AddSession(SalesA.Id, opening: 1_000_000m);
+        var order = new TechStore.Api.Orders.Entities.Order { OrderCode = "ORD-202611-0007", CashierUserId = SalesA.Id, TotalAmount = 5m };
+        _vietQr.AddRequest(order, shift.Id);
+
+        // Act
+        var result = await _service.CloseAsync(shift.Id, new CloseShiftRequest { ClosingBalance = 1_000_000m }, SalesA);
+
+        // Assert
+        result.Kind.Should().Be(PosResultKind.Conflict);
+        result.ConflictReason.Should().Contain("ORD-202611-0007").And.Contain("1");
+        shift.Status.Should().Be(PosSessionStatus.Open);
+        _unitOfWork.CommitCount.Should().Be(0);
+        _unitOfWork.RollbackCount.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(VietQrStatus.Confirmed)]
+    [InlineData(VietQrStatus.Failed)]
+    [InlineData(VietQrStatus.Expired)]
+    public async Task CloseAsync_QrAlreadyEnded_DoesNotBlockTheClose(VietQrStatus ended)
+    {
+        // Arrange
+        var shift = _sessions.AddSession(SalesA.Id, opening: 1_000_000m);
+        _vietQr.AddRequest(new TechStore.Api.Orders.Entities.Order { OrderCode = "ORD-1", CashierUserId = SalesA.Id, TotalAmount = 5m }, shift.Id, ended);
+
+        // Act
+        var result = await _service.CloseAsync(shift.Id, new CloseShiftRequest { ClosingBalance = 1_000_000m }, SalesA);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CloseAsync_QrOfAnotherShift_DoesNotBlockThisClose()
+    {
+        // Arrange
+        var shift = _sessions.AddSession(SalesA.Id, opening: 1_000_000m);
+        _vietQr.AddRequest(new TechStore.Api.Orders.Entities.Order { OrderCode = "ORD-1", CashierUserId = SalesB.Id, TotalAmount = 5m }, Guid.NewGuid());
+
+        // Act
+        var result = await _service.CloseAsync(shift.Id, new CloseShiftRequest { ClosingBalance = 1_000_000m }, SalesA);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CloseAsync_QrSalesAreNotPartOfTheExpectedCash()
+    {
+        // Arrange
+        var shift = _sessions.AddSession(SalesA.Id, opening: 1_000_000m);
+        shift.CashSalesTotal = 500_000m;
+        shift.VietQrSalesTotal = 2_000_000m;
+
+        // Act
+        var result = await _service.CloseAsync(shift.Id, new CloseShiftRequest { ClosingBalance = 1_500_000m }, SalesA);
+
+        // Assert
+        result.Data!.ExpectedClosingBalance.Should().Be(1_500_000m);
+        result.Data.Discrepancy.Should().Be(0m);
+        result.Data.VietQrSalesTotal.Should().Be(2_000_000m);
     }
 
     [Fact]

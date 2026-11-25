@@ -18,7 +18,8 @@ public sealed record PosDraft(
     CustomerChoice? Customer = null,
     string DiscountText = "",
     PosQuoteDto? Quote = null,
-    Guid? ExchangeRequestId = null);
+    Guid? ExchangeRequestId = null,
+    Guid? QrPaymentId = null);
 
 public interface IPosDraftStore
 {

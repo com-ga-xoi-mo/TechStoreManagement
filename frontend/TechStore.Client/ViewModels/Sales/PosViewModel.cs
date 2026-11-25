@@ -34,6 +34,8 @@ public sealed partial class PosViewModel : PageViewModel
     private readonly IOrderDeviceRepository _devices;
     private readonly IProductRepository _products;
     private readonly IPosDraftStore _drafts;
+    private readonly IVietQrRepository? _vietQr;
+    private readonly TimeProvider _time;
     private int _scanVersion;
     private Guid? _checkoutKey;
 
@@ -62,8 +64,11 @@ public sealed partial class PosViewModel : PageViewModel
     private CancellationTokenSource? _quoteRequest;
     public CustomerPickerViewModel? Customer { get; }
 
-    public PosViewModel(IPosRepository pos, IOrderDeviceRepository devices, IProductRepository products, IPosDraftStore drafts, CustomerPickerViewModel? customer = null)
+    public PosViewModel(IPosRepository pos, IOrderDeviceRepository devices, IProductRepository products, IPosDraftStore drafts, CustomerPickerViewModel? customer = null,
+        IVietQrRepository? vietQr = null, TimeProvider? time = null)
     {
+        _vietQr = vietQr;
+        _time = time ?? TimeProvider.System;
         Customer = customer;
         _drafts = drafts ?? throw new ArgumentNullException(nameof(drafts));
         _pos = pos ?? throw new ArgumentNullException(nameof(pos));
@@ -83,8 +88,8 @@ public sealed partial class PosViewModel : PageViewModel
     public bool HasScanMessage => !string.IsNullOrWhiteSpace(ScanMessage);
     public bool HasPayError => !string.IsNullOrWhiteSpace(PayError);
     public bool HasShiftError => !string.IsNullOrWhiteSpace(ShiftError);
-    public bool HasReceipt => Receipt is not null;
-    public string ReceiptText => Receipt is null
+    public bool HasReceipt => Receipt is not null || QrReceipt is not null;
+    public string ReceiptText => QrReceipt is not null ? QrReceiptText : Receipt is null
         ? string.Empty
         : $"Đơn {Receipt.OrderCode} đã hoàn tất. Tổng {OrderPresentation.FormatMoney(Receipt.TotalAmount)} · Khách đưa {OrderPresentation.FormatMoney(Receipt.CashTendered ?? Receipt.TotalAmount)} · Tiền thừa {OrderPresentation.FormatMoney(Receipt.ChangeGiven ?? 0m)}";
 
@@ -98,8 +103,8 @@ public sealed partial class PosViewModel : PageViewModel
 
     public decimal Change => Quote is { } price && CashReceived is { } cash && cash >= price.TotalAmount ? cash - price.TotalAmount : 0m;
     public string ChangeText => Quote is null ? "—" : OrderPresentation.FormatMoney(Change);
-    public bool CanPay => HasShift && HasLines && !IsPaying && !IsScanning && Quote is { } price && CashReceived is { } cash && cash >= price.TotalAmount;
-    public bool CanEditCart => HasShift && !IsPaying && !AwaitingRetry && (ExchangeRequestId is null || Receipt is null);
+    public bool CanPay => !PayByQr && HasShift && HasLines && !IsPaying && !IsScanning && Quote is { } price && CashReceived is { } cash && cash >= price.TotalAmount;
+    public bool CanEditCart => HasShift && !IsPaying && !AwaitingRetry && !IsQrActive && !IsQrBusy && (ExchangeRequestId is null || Receipt is null);
 
     public string ShiftSummary => Shift is null
         ? string.Empty
@@ -125,8 +130,10 @@ public sealed partial class PosViewModel : PageViewModel
     protected override async Task<bool> LoadContentAsync(CancellationToken cancellationToken)
     {
         Shift = await _pos.GetCurrentShiftAsync(cancellationToken);
+        Guid? draftQrId = null;
         if (Shift is { IsOpen: true } open && _drafts.Take(open.Id, ExchangeRequestId) is { } draft)
         {
+            draftQrId = draft.QrPaymentId;
             AwaitingRetry = draft.AwaitingRetry;
             if (Customer != null) Customer.SelectedCustomer = draft.Customer;
             DiscountText = draft.DiscountText;
@@ -139,6 +146,7 @@ public sealed partial class PosViewModel : PageViewModel
             IsClosingShift = draft.IsClosingShift;
         }
 
+        await ResumeQrAsync(draftQrId, cancellationToken);
         return true;
     }
 
@@ -146,10 +154,11 @@ public sealed partial class PosViewModel : PageViewModel
     protected override void OnDeactivated()
     {
         _quoteRequest?.Cancel();
+        StopPolling();
         Customer?.Cancel();
-        if (Shift is { IsOpen: true } open && (HasLines || IsClosingShift))
+        if (Shift is { IsOpen: true } open && (HasLines || IsClosingShift || IsQrActive))
             _drafts.Save(new PosDraft(open.Id, Lines, CashText, _checkoutKey, AwaitingRetry || IsPaying, IsClosingShift, CountedCashText, ClosingNote,
-                Customer?.SelectedCustomer, DiscountText, Quote, ExchangeRequestId));
+                Customer?.SelectedCustomer, DiscountText, Quote, ExchangeRequestId, Qr?.Id));
     }
 
     // ---------- derived state ----------
@@ -160,6 +169,8 @@ public sealed partial class PosViewModel : PageViewModel
         OnPropertyChanged(nameof(NoShift));
         OnPropertyChanged(nameof(ShowSale));
         OnPropertyChanged(nameof(ShiftSummary));
+        OnPropertyChanged(nameof(ShiftQrText));
+        OnPropertyChanged(nameof(HasShiftQr));
         OnPropertyChanged(nameof(ExpectedCashText));
         OnPropertyChanged(nameof(DiscrepancyText));
         OnPropertyChanged(nameof(NeedsClosingNote));
@@ -181,6 +192,8 @@ public sealed partial class PosViewModel : PageViewModel
     partial void OnPayErrorChanged(string value) => OnPropertyChanged(nameof(HasPayError));
     partial void OnReceiptChanged(OrderDetail? value)
     {
+        // A cash receipt replaces an older QR receipt, or the page would keep showing the QR one.
+        if (value is not null) QrReceipt = null;
         OnPropertyChanged(nameof(HasReceipt));
         OnPropertyChanged(nameof(ReceiptText));
     }
@@ -261,6 +274,9 @@ public sealed partial class PosViewModel : PageViewModel
         OnPropertyChanged(nameof(ChangeText));
         OnPropertyChanged(nameof(CanPay));
         OnPropertyChanged(nameof(CanEditCart));
+        OnPropertyChanged(nameof(CanCreateQr));
+        OnPropertyChanged(nameof(CanChoosePayment));
+        CreateQrCommand.NotifyCanExecuteChanged();
         PayCommand.NotifyCanExecuteChanged();
         ScanCommand.NotifyCanExecuteChanged();
     }
@@ -307,6 +323,7 @@ public sealed partial class PosViewModel : PageViewModel
     [RelayCommand]
     private void BeginCloseShift()
     {
+        if (ExplainOpenQr()) return;
         if (!HasShift || HasLines) return;
         CountedCashText = string.Empty;
         ClosingNote = string.Empty;
@@ -599,7 +616,11 @@ public sealed partial class PosViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void DismissReceipt() => Receipt = null;
+    private void DismissReceipt()
+    {
+        Receipt = null;
+        QrReceipt = null;
+    }
 
     private static bool TryParseMoney(string? text, out decimal amount)
     {

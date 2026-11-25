@@ -104,6 +104,8 @@ docker compose up -d
 
 Trên PowerShell, có thể đặt khóa cho phiên terminal bằng `$env:Jwt__SecretKey = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))` (PowerShell 7). Môi trường triển khai lưu khóa ổn định trong cấu hình bí mật. Khi thay khóa, JWT cũ hết hiệu lực.
 
+Thanh toán VietQR cần tài khoản nhận tiền và khóa ký webhook sandbox, đặt qua biến môi trường hoặc `backend/.env` (không commit): `VietQr__BankBin`, `VietQr__AccountNumber`, `VietQr__AccountName`, `VietQr__WebhookSecret`. Thiếu thông tin ngân hàng thì tạo QR trả 503, thiếu khóa thì webhook trả 503. Mô phỏng thông báo ngân hàng bằng `scripts/simulate-vietqr-webhook.ps1` (xem [Sales](backend/Sales/README.md)).
+
 Khởi chạy API trong terminal đã cấu hình:
 ```bash
 dotnet run --project backend/TechStore.Api.csproj --launch-profile http

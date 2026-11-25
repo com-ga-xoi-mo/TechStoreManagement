@@ -828,6 +828,7 @@ Table vietqr_transactions {
   provider_transaction_id text [null, note: 'Actual incoming transfer ID assigned by the provider, distinct from the generated transfer memo']
   bank_bin text [not null, note: 'Bank National ID / BIN (e.g., 970422 for MBBank, 970415 for VietinBank)']
   bank_account_number text [not null, note: 'Store receiver bank account']
+  bank_account_name text [null, note: 'Receiver account holder name shown to the customer; copied from configuration when the request is created']
   amount "numeric(18, 2)" [not null, note: 'CHECK amount > 0: Exact payable order amount']
   qr_content text [not null, note: 'Raw EMVCo VietQR string generated for customer display']
   status vietqr_status [not null, default: 'Pending']
@@ -841,6 +842,7 @@ Table vietqr_transactions {
     order_id [name: 'idx_vietqr_tx_order_id', note: 'FK index']
     pos_session_id [name: 'idx_vietqr_tx_session_id', note: 'FK index']
     transaction_code [unique, name: 'idx_vietqr_tx_code']
+    order_id [unique, name: 'uq_vietqr_pending_order', note: 'Partial: WHERE status = Pending. At most one waiting request per order']
     (provider, provider_transaction_id) [unique, name: 'uq_vietqr_provider_transaction', note: 'Prevent assigning the same provider transfer to multiple payment requests']
     confirmed_by_user_id [name: 'idx_vietqr_tx_confirmed_by', note: 'FK index: manual payment confirmation audit']
     status [name: 'idx_vietqr_tx_status']
@@ -862,6 +864,42 @@ Table vietqr_transactions {
     Payment must match the frozen order total and VietQr method; pos_session_id must match the order session including NULL. Expire obsolete pending requests when an unpaid order changes and generate a new request.
     Confirm the request, set orders.paid_at and update shift totals once in one transaction. Fulfillment uses the atomic Inventory flow documented on orders.
     Expired, mismatched, duplicate or late transfers require reconciliation/refund; never automatically fulfill twice or discard evidence of money received. Detailed provider event logging belongs to the payment integration implementation.
+  '''
+}
+
+Table vietqr_bank_events {
+  id uuid [pk, default: `gen_random_uuid()`, note: 'Primary Key (UUID)']
+  provider text [not null, note: 'sandbox for the signed webhook; manual confirmations are kept on vietqr_transactions']
+  provider_transaction_id text [not null, note: 'Bank transaction id from the notification; unique with provider so a replay is stored once']
+  amount "numeric(18, 2)" [not null, note: 'CHECK amount > 0: Money the bank reports as received']
+  transfer_content text [not null, note: 'Transfer memo as received']
+  account_number text [not null, note: 'Receiving account as reported by the notification']
+  transferred_at timestamptz [not null, note: 'Time the bank reports for the transfer']
+  received_at timestamptz [not null, note: 'Time our server accepted the notification']
+  vietqr_transaction_id uuid [null, note: 'FK -> vietqr_transactions.id when the memo matched a request']
+  status text [not null, note: 'Applied | NeedsReconciliation | Resolved']
+  reason text [not null, note: 'Applied | LateAfterExpiry | LateAfterCancel | LateAfterShiftClose | AmountMismatch | AccountMismatch | Unmatched | DuplicateReference']
+  payload text [not null, note: 'Verified request body, immutable evidence']
+  resolved_by_user_id uuid [null, note: 'FK -> users.id: Admin or Manager who reviewed the event']
+  resolved_at timestamptz [null]
+  resolution_note text [null, note: 'Required (max 500 chars) when resolved']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [null]
+
+  indexes {
+    (provider, provider_transaction_id) [unique, name: 'uq_vietqr_events_provider_transaction']
+    status [name: 'idx_vietqr_events_status']
+    vietqr_transaction_id [name: 'idx_vietqr_events_transaction_id', note: 'FK index']
+    resolved_by_user_id [name: 'idx_vietqr_events_resolved_by', note: 'FK index']
+    received_at [name: 'idx_vietqr_events_received_at']
+  }
+
+  checks {
+    `(status = 'Resolved' AND resolved_at IS NOT NULL AND resolved_by_user_id IS NOT NULL AND resolution_note IS NOT NULL) OR (status <> 'Resolved' AND resolved_at IS NULL AND resolved_by_user_id IS NULL AND resolution_note IS NULL)` [name: 'ck_vietqr_events_resolution']
+  }
+
+  Note: '''
+    Money received that cannot, or no longer can, complete a sale: late after expiry, cancel or shift close, wrong amount or account, unknown memo, duplicate reference. Never completes an order and never changes a closed shift. An applied notification is stored too, so a replay is recognised.
   '''
 }
 

@@ -12,6 +12,7 @@ namespace TechStore.Api.Sales.Services;
 
 public class PosShiftService(
     IPosSessionRepository sessionRepository,
+    IVietQrHoldRepository vietQr,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : IPosShiftService
 {
@@ -169,6 +170,16 @@ public class PosShiftService(
                 return PosResult<PosShiftDto>.Conflict("The shift is already closed.");
             }
 
+            // Creating, confirming and expiring a QR all lock the shift first, so this answer cannot change before the close.
+            var waiting = await vietQr.ListPendingByShiftAsync(shift.Id, cancellationToken);
+            if (waiting.Count > 0)
+            {
+                await unitOfWork.RollbackAsync(cancellationToken);
+                var codes = string.Join(", ", waiting.Select(q => q.Order.OrderCode));
+                return PosResult<PosShiftDto>.Conflict(
+                    $"Ca còn {waiting.Count} mã VietQR đang chờ thanh toán ({codes}). Hãy hủy hoặc chờ xác nhận trước khi đóng ca.");
+            }
+
             var expected = shift.OpeningBalance + shift.CashSalesTotal - shift.CashRefundTotal;
             if (counted != expected && note == null)
             {
@@ -232,6 +243,7 @@ public class PosShiftService(
         OpeningBalance = shift.OpeningBalance,
         CashSalesTotal = shift.CashSalesTotal,
         CashRefundTotal = shift.CashRefundTotal,
+        VietQrSalesTotal = shift.VietQrSalesTotal,
         ExpectedClosingBalance = shift.ExpectedClosingBalance
             ?? (shift.Status == PosSessionStatus.Open ? shift.OpeningBalance + shift.CashSalesTotal - shift.CashRefundTotal : null),
         ClosingBalance = shift.ClosingBalance,

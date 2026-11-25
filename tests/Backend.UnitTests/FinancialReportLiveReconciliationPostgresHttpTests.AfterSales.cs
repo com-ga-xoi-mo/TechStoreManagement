@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Inventory.Entities;
 using TechStore.Api.Sales.Entities;
+using TechStore.Api.Warranty.Entities;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
@@ -218,8 +219,11 @@ public sealed partial class FinancialReportLiveReconciliationPostgresHttpTests
     private static Task<WarrantyCaseDto> ReceiveAsync(HttpClient manager, Guid claim, OrderDto sale, Guid imei) =>
         PostAsync<WarrantyCaseDto>(manager, $"/api/warranties/{claim}/receive", ReceiveRequest(sale, imei));
 
-    private static ReceiveWarrantyRequest ReceiveRequest(OrderDto sale, Guid imei) =>
-        new(sale.Id, Assert.Single(sale.Items).Id, imei, sale.CustomerId);
+    private static ReceiveWarrantyRequest ReceiveRequest(OrderDto sale, Guid device)
+    {
+        var item = Assert.Single(sale.Items);
+        return new(item.Imei ?? item.SerialNumber, sale.OrderCode, sale.CustomerId, "Máy không lên nguồn", "Khách bảo hành", "0901234567");
+    }
 
     private static async Task<int> DemoVoucherUsesAsync(Scenario scenario)
     {

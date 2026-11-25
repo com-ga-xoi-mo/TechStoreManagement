@@ -70,13 +70,13 @@ Nghiệm thu: khớp bộ dữ liệu tính tay, tổng ngày bằng tổng kỳ
 
 Làm trước QR/xác nhận tiền và hàm kiểm tra ca, ghi thu/chi chống lặp để An gọi. Gửi Bình dữ liệu bán, gồm phân bổ tiền do Vy tính và giá vốn do kho trả về.
 
-- [ ] Làm UI/API QR đúng ngân hàng, số tiền, mã đơn và trạng thái chờ/thành công/thất bại/hết hạn. Giữ `Pending` = chưa trả, `Processing` = đã trả chưa giao, `Completed` = đã giao.
-- [ ] Checkout gọi cách tính tiền duy nhất của Vy, lưu tổng và phân bổ từng dòng khi chốt bán; không tự tính ưu đãi/thuế/điểm. Tiền két = đầu ca + bán Cash - hoàn Cash; QR không tính vào két.
-- [ ] Đơn nháp không giữ hàng. Tạo QR phải kiểm tra lại tổng tiền, ca mở, hàng và ưu đãi; giữ hàng/voucher 15 phút. Mỗi đơn một QR chờ, khóa sửa giỏ/tổng/phương thức; hết hạn hoặc hủy thì trả hàng/lượt voucher đúng một lần.
-- [ ] Sales tạo QR trong ca mình. Admin/Manager xác nhận thủ công dựa trên giao dịch ngân hàng, lưu người xác nhận, thời điểm và mã tham chiếu; không dùng ảnh khách gửi làm bằng chứng.
-- [ ] Làm webhook kiểm tra chữ ký/nguồn, số tiền, mã đơn và mã giao dịch; dùng chung nghiệp vụ xác nhận thủ công. Ghi rõ dùng thật hay sandbox, không coi thao tác thủ công là webhook.
-- [ ] Xác nhận tiền dùng hàng/voucher đã giữ, ghi tiền ca; gọi service kho để trừ tồn, lấy giá vốn và kích hoạt bảo hành khi bán một lần. Không viết lại các bước này trong checkout. Gọi hàm cộng điểm của Vy khi hoàn tất bán, cả Cash và QR.
-- [ ] Chặn đóng ca còn QR chờ. Tiền đến sau hết hạn/hủy/đóng ca phải lưu để đối soát/hoàn, không tự hoàn tất đơn hoặc sửa ca cũ. Xác nhận tranh với hết hạn/hủy chỉ được xử lý một nhánh.
+- [ ] Làm UI/API QR đúng ngân hàng, số tiền, mã đơn và trạng thái chờ/thành công/thất bại/hết hạn. Giữ `Pending` = chưa trả, `Processing` = đã trả chưa giao, `Completed` = đã giao. *(API và UI đã làm, có test; QR chờ → Completed thẳng khi xác nhận vì hàng giao tại quầy nên không dùng `Processing` cho đơn QR. Màn hình POS/đối soát chưa chạy thử trực tiếp trên app, nên mục này chưa tick. Chi tiết: `docs/M4_VIETQR_HANDOFF.md`.)*
+- [x] Checkout gọi cách tính tiền duy nhất của Vy, lưu tổng và phân bổ từng dòng khi chốt bán; không tự tính ưu đãi/thuế/điểm. Tiền két = đầu ca + bán Cash - hoàn Cash; QR không tính vào két.
+- [x] Đơn nháp không giữ hàng. Tạo QR phải kiểm tra lại tổng tiền, ca mở, hàng và ưu đãi; giữ hàng/voucher 15 phút. Mỗi đơn một QR chờ, khóa sửa giỏ/tổng/phương thức; hết hạn hoặc hủy thì trả hàng/lượt voucher đúng một lần.
+- [x] Sales tạo QR trong ca mình. Admin/Manager xác nhận thủ công dựa trên giao dịch ngân hàng, lưu người xác nhận, thời điểm và mã tham chiếu; không dùng ảnh khách gửi làm bằng chứng.
+- [x] Làm webhook kiểm tra chữ ký/nguồn, số tiền, mã đơn và mã giao dịch; dùng chung nghiệp vụ xác nhận thủ công. Ghi rõ dùng thật hay sandbox, không coi thao tác thủ công là webhook.
+- [x] Xác nhận tiền dùng hàng/voucher đã giữ, ghi tiền ca; gọi service kho để trừ tồn, lấy giá vốn và kích hoạt bảo hành khi bán một lần. Không viết lại các bước này trong checkout. Gọi hàm cộng điểm của Vy khi hoàn tất bán, cả Cash và QR.
+- [x] Chặn đóng ca còn QR chờ. Tiền đến sau hết hạn/hủy/đóng ca phải lưu để đối soát/hoàn, không tự hoàn tất đơn hoặc sửa ca cũ. Xác nhận tranh với hết hạn/hủy chỉ được xử lý một nhánh.
 
 Nghiệm thu: kiểm tra sai tiền/nguồn/mã, callback lặp, mất response, tiền đến muộn và xác nhận đồng thời với hết hạn/đóng ca; không thu/trừ kho/cộng điểm hai lần, rollback khi lỗi.
 

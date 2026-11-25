@@ -48,10 +48,12 @@ public sealed partial class OrderListViewModel : PageViewModel
         _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
         _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
         _detailPresenter = detailPresenter ?? throw new ArgumentNullException(nameof(detailPresenter));
+        CanReconcileVietQr = sessionStore is null || (sessionStore.Current.Status == SessionStatus.Active && RoleAccess.CanReconcileVietQr(sessionStore.Current.Role));
         CanManageOrders = sessionStore is null || (sessionStore.Current.Status == SessionStatus.Active && RoleAccess.CanManageOrders(sessionStore.Current.Role));
     }
 
     public bool CanManageOrders { get; }
+    public bool CanReconcileVietQr { get; }
     public IReadOnlyList<OrderStatusFilter> StatusFilters => OrderStatusFilter.All;
     public IReadOnlyList<OrderSortOption> SortOptions => OrderSortOption.All;
     public IReadOnlyList<int> PageSizes => AllowedPageSizes;
@@ -152,6 +154,12 @@ public sealed partial class OrderListViewModel : PageViewModel
 
     [RelayCommand]
     private void OpenPos() => _navigation.Navigate(AppRoute.Pos());
+
+    [RelayCommand]
+    private void OpenVietQrReconcile()
+    {
+        if (CanReconcileVietQr) _navigation.Navigate(AppRoute.VietQrReconcile());
+    }
 
     [RelayCommand(CanExecute = nameof(CanChangeStatus))]
     private async Task ChangeStatus(OrderRowAction? rowAction)

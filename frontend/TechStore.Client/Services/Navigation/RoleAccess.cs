@@ -11,6 +11,7 @@ public static class RoleAccess
     public static bool CanCreateCustomers(string? role) => role is "Admin" or "Manager" or "SalesStaff";
     public static bool CanManageCustomers(string? role) => role is "Admin" or "Manager";
     public static bool CanManageVouchers(string? role) => role is "Admin" or "Manager";
+    public static bool CanReconcileVietQr(string? role) => role is "Admin" or "Manager";
 
     public static bool CanReceiveWarranty(string? role) => role is "Admin" or "Manager" or "SalesStaff";
     public static bool CanInspectWarranty(string? role) => CanManageStock(role);
@@ -43,6 +44,7 @@ public static class RoleAccess
         AppRouteKind.OrderCreate or AppRouteKind.Pos => CanManageOrders(role),
         AppRouteKind.UserManagement => role == "Admin",
         AppRouteKind.VoucherList => CanManageVouchers(role),
+        AppRouteKind.VietQrReconcile => CanReconcileVietQr(role),
         _ => false
     };
 

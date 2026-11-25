@@ -1,4 +1,5 @@
 using TechStore.Api.Common.Data;
+using TechStore.Api.Customers.Services;
 using TechStore.Api.Identity.Services;
 using TechStore.Api.Inventory.Services;
 using TechStore.Api.Orders.Repositories;
@@ -13,15 +14,31 @@ public record ClosedVietQrHold(Guid Id, Guid OrderId, string Status, string Orde
 public interface IVietQrHoldService
 {
     Task<PosResult<ClosedVietQrHold>> CloseAsync(Guid id, VietQrCloseReason reason, AuthenticatedUser actor, CancellationToken ct);
+
+    /// <summary>
+    /// Expires a waiting request whose deadline passed, on behalf of the system (the expiry worker, or a read that found
+    /// the deadline gone). No role or owner check; it still refuses a request that is not yet due.
+    /// </summary>
+    Task<PosResult<ClosedVietQrHold>> ExpireDueAsync(Guid id, CancellationToken ct);
 }
 
+/// <summary>
+/// Ends a waiting VietQR request and gives back everything it held, once: devices and stock through the inventory
+/// service (keyed by the request id) and the voucher use through the voucher service. Lock order: shift, order, requests.
+/// </summary>
 public sealed class VietQrHoldService(IVietQrHoldRepository payments, IPosSessionRepository shifts, IOrderRepository orders,
-    IInventoryAfterSaleService inventory, IUnitOfWork work, TimeProvider clock) : IVietQrHoldService
+    IInventoryAfterSaleService inventory, IVoucherService vouchers, IUnitOfWork work, TimeProvider clock) : IVietQrHoldService
 {
-    public async Task<PosResult<ClosedVietQrHold>> CloseAsync(Guid id, VietQrCloseReason reason, AuthenticatedUser actor, CancellationToken ct)
+    public Task<PosResult<ClosedVietQrHold>> CloseAsync(Guid id, VietQrCloseReason reason, AuthenticatedUser actor, CancellationToken ct) =>
+        CloseCoreAsync(id, reason, actor, ct);
+
+    public Task<PosResult<ClosedVietQrHold>> ExpireDueAsync(Guid id, CancellationToken ct) =>
+        CloseCoreAsync(id, VietQrCloseReason.Expire, null, ct);
+
+    private async Task<PosResult<ClosedVietQrHold>> CloseCoreAsync(Guid id, VietQrCloseReason reason, AuthenticatedUser? actor, CancellationToken ct)
     {
         var owner = await payments.FindOwnerAsync(id, ct);
-        if (owner == null || actor.Role is not (RoleType.SalesStaff or RoleType.Admin))
+        if (owner == null || actor != null && actor.Role is not (RoleType.SalesStaff or RoleType.Admin))
             return PosResult<ClosedVietQrHold>.NotFound();
 
         await work.BeginTransactionAsync(ct);
@@ -29,7 +46,7 @@ public sealed class VietQrHoldService(IVietQrHoldRepository payments, IPosSessio
         {
             var shift = owner.ShiftId.HasValue ? await shifts.GetForUpdateAsync(owner.ShiftId.Value, ct) : null;
             var order = await orders.GetForUpdateWithItemsAsync(owner.OrderId, ct);
-            if (order == null || actor.Role == RoleType.SalesStaff && order.CashierUserId != actor.Id)
+            if (order == null || actor is { Role: RoleType.SalesStaff } && order.CashierUserId != actor.Id)
             {
                 await work.RollbackAsync(CancellationToken.None);
                 return PosResult<ClosedVietQrHold>.NotFound();
@@ -54,8 +71,6 @@ public sealed class VietQrHoldService(IVietQrHoldRepository payments, IPosSessio
                     return await ConflictAsync("Mã VietQR chưa hết hạn.");
                 if (reason == VietQrCloseReason.Cancel && now >= qr.ExpiresAt)
                     return await ConflictAsync("Mã VietQR đã hết hạn. Chọn xử lý hết hạn.");
-                if (order.VoucherId.HasValue)
-                    return await ConflictAsync("Cần giải phóng lượt voucher cùng giao dịch. Lượt giữ hàng và voucher vẫn còn nguyên.");
             }
 
             // The QR UUID is the durable release key. Inventory compares the payload even on a terminal-state retry.
@@ -66,6 +81,14 @@ public sealed class VietQrHoldService(IVietQrHoldRepository payments, IPosSessio
 
             if (!replay)
             {
+                if (order.VoucherId.HasValue)
+                {
+                    // Returns the held use. Unchanged means it was already returned. A missing hold is a state to reconcile by hand.
+                    var voucher = await vouchers.ReleaseAsync(order.Id, ct);
+                    if (voucher.Outcome is VoucherUseOutcome.Refused or VoucherUseOutcome.NotFound)
+                        return await ConflictAsync("Không giải phóng được lượt voucher của giao dịch này. Lượt giữ hàng và voucher vẫn còn nguyên.");
+                }
+
                 order.Status = OrderStatus.Cancelled;
                 order.UpdatedAt = now;
                 qr.Status = target;

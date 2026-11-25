@@ -75,13 +75,13 @@ public sealed partial class PosCheckoutPostgresHttpTests
 
         var repairPath = $"/api/warranties/{Guid.NewGuid()}";
         await PostDto<WarrantyCaseDto>(manager, repairPath + "/receive",
-            new ReceiveWarrantyRequest(repairSale.Id, repairSale.Items.Single().Id, world.DeviceIds[1], null));
+            await WarrantyIntakeAsync(world, world.DeviceIds[1], repairSale.OrderCode));
         using (var handback = await manager.PostAsync(repairPath + "/return", null))
             handback.EnsureSuccessStatusCode();
         Assert.Equal(0m, (await ReadReportAsync(manager, 30, 30)).Summary.WarrantyCost);
         var warrantyPath = $"/api/warranties/{Guid.NewGuid()}";
         await PostDto<WarrantyCaseDto>(manager, warrantyPath + "/receive",
-            new ReceiveWarrantyRequest(warrantySale.Id, warrantySale.Items.Single().Id, world.DeviceIds[0], null));
+            await WarrantyIntakeAsync(world, world.DeviceIds[0], warrantySale.OrderCode));
         var replacement = new ReplaceWarrantyDeviceRequest(world.DeviceIds[2]);
         var replaced = await PostDto<WarrantyCaseDto>(manager, warrantyPath + "/replace", replacement);
         var beforeWarrantyReplay = await ReadReportAsync(manager, 30, 30);
@@ -269,7 +269,7 @@ public sealed partial class PosCheckoutPostgresHttpTests
             clock.Now = On(29 + i, 2);
             var path = $"/api/warranties/{Guid.NewGuid()}";
             await PostDto<WarrantyCaseDto>(manager, path + "/receive",
-                new ReceiveWarrantyRequest(original.Id, original.Items.Single().Id, world.DeviceIds[i], null));
+                await WarrantyIntakeAsync(world, world.DeviceIds[i], original.OrderCode));
             await PostDto<WarrantyCaseDto>(manager, path + "/replace", new ReplaceWarrantyDeviceRequest(world.DeviceIds[i + 2]));
         }
 

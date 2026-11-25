@@ -95,6 +95,11 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
         new("GET", "api/pos/shifts", OrderRead), new("GET", "api/pos/shifts/{id:guid}", OrderRead),
         new("POST", "api/pos/quote", OrderWrite),
         new("POST", "api/pos/vietqr/{id:guid}/cancel", OrderWrite), new("POST", "api/pos/vietqr/{id:guid}/expire", OrderWrite),
+        new("POST", "api/pos/vietqr", OrderWrite), new("GET", "api/pos/vietqr", OrderRead), new("GET", "api/pos/vietqr/{id:guid}", OrderRead),
+        new("POST", "api/pos/vietqr/{id:guid}/confirm", CatalogWrite),
+        // The only anonymous route added after Sprint 1: a sandbox bank notification that must carry a valid HMAC signature.
+        new("POST", "api/payments/vietqr/webhook", null),
+        new("GET", "api/payments/vietqr/events", CatalogWrite), new("POST", "api/payments/vietqr/events/{id:guid}/resolve", CatalogWrite),
         new("POST", "api/pos/shifts/{id:guid}/close", OrderRead), new("POST", "api/pos/checkout", OrderWrite)
     ];
 

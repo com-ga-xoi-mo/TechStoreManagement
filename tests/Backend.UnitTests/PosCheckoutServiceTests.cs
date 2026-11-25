@@ -26,6 +26,8 @@ public class PosCheckoutServiceTests
     private readonly FakePosSessionRepository _sessions = new();
     private readonly FakeInventoryFulfillmentService _fulfillment = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
+    private readonly FakeVoucherRepository _voucherRepository = new();
+    private readonly FakeVoucherService _vouchers = new();
     // These tests check the cash flow with round amounts, so VAT is 0 here; the formula itself is covered by
     // OrderPricingHelperTests and the VAT path through checkout by CheckoutAsync_WithVat_ChargesAndCreditsTheTaxedTotal.
     private readonly PricingOptions _pricing = new() { VatRatePercent = 0m };
@@ -35,8 +37,9 @@ public class PosCheckoutServiceTests
     public PosCheckoutServiceTests()
     {
         var time = new FixedTimeProvider(new DateTimeOffset(Now));
-        var orderService = new OrderService(_orders, _products, _customers, _fulfillment, _unitOfWork, time, Options.Create(_pricing));
-        _service = new PosCheckoutService(orderService, _orders, _sessions, _fulfillment, _unitOfWork, time);
+        var orderService = new OrderService(_orders, _products, _customers, _fulfillment, _unitOfWork, time, Options.Create(_pricing), _voucherRepository);
+        var settlement = new SaleSettlementService(_fulfillment, _vouchers);
+        _service = new PosCheckoutService(orderService, _orders, _sessions, _fulfillment, _vouchers, settlement, _unitOfWork, time);
         _shift = _sessions.AddSession(SalesA.Id, opening: 1_000_000m);
     }
 
@@ -409,6 +412,94 @@ public class PosCheckoutServiceTests
         result.Data!.Order.TotalAmount.Should().Be(1_000_000m);
         result.Data.Order.ChangeGiven.Should().Be(0m);
         _shift.CashSalesTotal.Should().Be(1_000_000m);
+    }
+
+    [Fact]
+    public async Task CheckoutAsync_WithVoucher_HoldsThenConsumesTheUseInTheSameTransaction()
+    {
+        // Arrange
+        var voucher = AddVoucher("SALE10", discountValue: 1_000_000m);
+        var product = AddProduct(price: 10_000_000m);
+        var request = RequestFor(product, tendered: 9_000_000m);
+        request.VoucherCode = "SALE10";
+
+        // Act
+        var result = await _service.CheckoutAsync(request, SalesA);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Data!.Order.TotalAmount.Should().Be(9_000_000m);
+        _vouchers.CallLog.Should().Equal("reserve", "redeem");
+        _unitOfWork.CommitCount.Should().Be(1);
+        _unitOfWork.RollbackCount.Should().Be(0);
+        _shift.CashSalesTotal.Should().Be(9_000_000m);
+        voucher.Code.Should().Be("SALE10");
+    }
+
+    [Fact]
+    public async Task CheckoutAsync_VoucherHasNoUseLeft_ReturnsConflictAndStoresNothing()
+    {
+        // Arrange
+        AddVoucher("SALE10", discountValue: 1_000_000m);
+        _vouchers.ReserveResult = new TechStore.Api.Customers.Services.VoucherUseResult(
+            TechStore.Api.Customers.Services.VoucherUseOutcome.Refused, "Voucher has no uses left.");
+        var request = RequestFor(AddProduct(price: 10_000_000m), tendered: 9_000_000m);
+        request.VoucherCode = "SALE10";
+
+        // Act
+        var result = await _service.CheckoutAsync(request, SalesA);
+
+        // Assert
+        result.Kind.Should().Be(PosResultKind.Conflict);
+        result.ConflictReason.Should().Contain("no uses left");
+        _vouchers.RedeemCount.Should().Be(0);
+        _shift.CashSalesTotal.Should().Be(0m);
+        _unitOfWork.CommitCount.Should().Be(0);
+        _unitOfWork.RollbackCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CheckoutAsync_VoucherConsumptionFails_RollsBackTheWholeSale()
+    {
+        // Arrange
+        AddVoucher("SALE10", discountValue: 1_000_000m);
+        _vouchers.RedeemResult = new TechStore.Api.Customers.Services.VoucherUseResult(
+            TechStore.Api.Customers.Services.VoucherUseOutcome.Refused, "The hold was already returned.");
+        var request = RequestFor(AddProduct(price: 10_000_000m), tendered: 9_000_000m);
+        request.VoucherCode = "SALE10";
+
+        // Act
+        var result = await _service.CheckoutAsync(request, SalesA);
+
+        // Assert
+        result.Kind.Should().Be(PosResultKind.Conflict);
+        _shift.CashSalesTotal.Should().Be(0m);
+        _unitOfWork.CommitCount.Should().Be(0);
+        _unitOfWork.RollbackCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CheckoutAsync_WithoutVoucher_NeverCallsTheVoucherService()
+    {
+        // Act
+        await _service.CheckoutAsync(RequestFor(AddProduct(price: 1_000_000m), tendered: 1_000_000m), SalesA);
+
+        // Assert
+        _vouchers.CallLog.Should().BeEmpty();
+    }
+
+    private TechStore.Api.Customers.Entities.Voucher AddVoucher(string code, decimal discountValue)
+    {
+        var voucher = new TechStore.Api.Customers.Entities.Voucher
+        {
+            Code = code,
+            DiscountType = VoucherType.FixedAmount,
+            DiscountValue = discountValue,
+            UsageLimit = 1,
+            ExpiresAt = Now.AddDays(30)
+        };
+        _voucherRepository.Vouchers[voucher.Id] = voucher;
+        return voucher;
     }
 
     private void AssertNothingStored()

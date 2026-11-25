@@ -13,7 +13,8 @@ public enum AppRouteKind
     ProductEdit,
     UserManagement,
     VoucherList,
-    OrderReturns
+    OrderReturns,
+    VietQrReconcile
 }
 
 /// <summary>Value-only route state. It deliberately carries no page, ViewModel, service, or scope.</summary>
@@ -34,8 +35,8 @@ public sealed class AppRoute : IEquatable<AppRoute>
             throw new ArgumentException("Account management stays under Settings.", nameof(destination));
         if (kind == AppRouteKind.VoucherList && destination != ShellDestination.Customers)
             throw new ArgumentException("Voucher management stays under Customers.", nameof(destination));
-        if (kind is AppRouteKind.OrderCreate or AppRouteKind.Pos && destination != ShellDestination.Orders)
-            throw new ArgumentException("The order create and POS routes must stay under the Orders Shell destination.", nameof(destination));
+        if (kind is AppRouteKind.OrderCreate or AppRouteKind.Pos or AppRouteKind.VietQrReconcile && destination != ShellDestination.Orders)
+            throw new ArgumentException("The order create, POS and VietQR reconcile routes must stay under the Orders Shell destination.", nameof(destination));
         if (kind is AppRouteKind.ProductDetail or AppRouteKind.ProductEdit && (!productId.HasValue || productId.Value == Guid.Empty))
             throw new ArgumentException("A product detail or edit route requires a non-empty product id.", nameof(productId));
         if (kind is not (AppRouteKind.ProductDetail or AppRouteKind.ProductEdit) && productId is not null)
@@ -75,6 +76,7 @@ public sealed class AppRoute : IEquatable<AppRoute>
     public static AppRoute UserManagement() => new(ShellDestination.Settings, AppRouteKind.UserManagement);
     public static AppRoute Vouchers() => new(ShellDestination.Customers, AppRouteKind.VoucherList);
     public static AppRoute OrderCreate() => new(ShellDestination.Orders, AppRouteKind.OrderCreate);
+    public static AppRoute VietQrReconcile() => new(ShellDestination.Orders, AppRouteKind.VietQrReconcile);
     public static AppRoute Pos() => new(ShellDestination.Orders, AppRouteKind.Pos);
     public static AppRoute OrderReturns(Guid orderId) => new(ShellDestination.Orders, AppRouteKind.OrderReturns, orderId: orderId);
     public static AppRoute PosExchange(Guid requestId) => new(ShellDestination.Orders, AppRouteKind.Pos, exchangeRequestId: requestId);

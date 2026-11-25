@@ -75,6 +75,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<OrderReturnsViewModel>();
         services.AddTransient<OrderCreateViewModel>();
         services.AddTransient<PosViewModel>();
+        services.AddTransient<VietQrReconcileViewModel>();
         services.AddTransient<CustomerListViewModel>();
         services.AddTransient<CustomerFormViewModel>();
         services.AddTransient<CustomerDetailViewModel>();
@@ -122,6 +123,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ReturnInspectionsPage>();
         services.AddTransient<OrderCreatePage>();
         services.AddTransient<PosPage>();
+        services.AddTransient<VietQrReconcilePage>();
         services.AddSingleton<IOrderDetailPresenter, OrderDetailDialogPresenter>();
         services.AddTransient<CustomerListPage>();
         services.AddTransient<VoucherListPage>();
@@ -162,6 +164,7 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<IWarrantyRepository, WarrantyRepository>();
         services.AddTransient<IOrderDeviceRepository, OrderDeviceRepository>();
         services.AddTransient<IPosRepository, PosRepository>();
+        services.AddTransient<IVietQrRepository, VietQrRepository>();
         services.AddSingleton<IPosDraftStore, PosDraftStore>();
         services.AddTransient<IAuthRepository, AuthRepository>();
         services.AddTransient<IStoreSettingsRepository, StoreSettingsRepository>();

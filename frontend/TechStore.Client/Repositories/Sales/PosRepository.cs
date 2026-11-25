@@ -91,6 +91,7 @@ public sealed class PosRepository(IApiClient apiClient) : IPosRepository
             dto.Discrepancy,
             dto.ClosingNote,
             dto.OpenedAt,
-            dto.ClosedAt);
+            dto.ClosedAt,
+            dto.VietQrSalesTotal);
     }
 }

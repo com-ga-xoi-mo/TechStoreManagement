@@ -75,6 +75,9 @@ public sealed class DashboardPage : Page, IRoutePage
             overview.Grid(row: 1),
             reportHost.Grid(row: 1)));
         Loaded += (_, _) => DrawRevenueChart();
+        // Focus restore only: the report view moves focus when its ViewModel raises FocusRequested.
+        Loaded += (_, _) => financialReport.Attach();
+        Unloaded += (_, _) => financialReport.Detach();
         SizeChanged += (_, args) =>
         {
             UpdateMetricsLayout(args.NewSize.Width);

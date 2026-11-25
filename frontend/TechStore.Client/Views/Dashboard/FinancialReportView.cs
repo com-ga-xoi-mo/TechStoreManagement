@@ -15,17 +15,40 @@ namespace TechStore.Client.Views.Dashboard;
 
 internal sealed class FinancialReportView(FinancialReportViewModel report)
 {
+    private SegmentedTabButton? _overviewTab;
+    private SegmentedTabButton? _financialTab;
+    private Button? _reload;
+
+    /// <summary>Starts moving focus when the ViewModel asks for it (focus cannot be bound).</summary>
+    public void Attach()
+    {
+        report.FocusRequested -= OnFocusRequested;
+        report.FocusRequested += OnFocusRequested;
+    }
+
+    public void Detach() => report.FocusRequested -= OnFocusRequested;
+
+    private void OnFocusRequested(object? sender, FinancialReportFocusTarget target)
+    {
+        Control? element = target == FinancialReportFocusTarget.Reload
+            ? _reload
+            : report.IsOpen ? _financialTab : _overviewTab;
+        element?.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (element.XamlRoot is not null) element.Focus(FocusState.Programmatic);
+        });
+    }
+
     public FrameworkElement BuildTabs()
     {
         var overview = new SegmentedTabButton("Tổng quan", "DashboardOverviewTab")
-            .Command(x => x.Binding(() => report.CloseCommand));
-        overview.SetBinding(SegmentedTabButton.IsSelectedProperty,
-            new Binding { Path = new PropertyPath(nameof(report.ShowOverview)), Mode = BindingMode.OneWay });
-
+            .Command(x => x.Binding(() => report.CloseCommand))
+            .IsSelected(x => x.Binding(() => report.ShowOverview));
         var financial = new SegmentedTabButton("Báo cáo tài chính", "DashboardFinancialReportTab")
-            .Command(x => x.Binding(() => report.OpenCommand));
-        financial.SetBinding(SegmentedTabButton.IsSelectedProperty,
-            new Binding { Path = new PropertyPath(nameof(report.IsOpen)), Mode = BindingMode.OneWay });
+            .Command(x => x.Binding(() => report.OpenCommand))
+            .IsSelected(x => x.Binding(() => report.IsOpen));
+        _overviewTab = overview;
+        _financialTab = financial;
 
         var tabStrip = new Border()
             .Background(AppColors.Brushes.Subtle)
@@ -87,17 +110,17 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
 
         var kpiGrid = BuildKpiGrid();
         var summaryGrid = BuildFourCardGrid(
-            SectionCard(nameof(FinancialReportPresentation.SalesSection)),
-            SectionCard(nameof(FinancialReportPresentation.CashFlowSection)),
-            SectionCard(nameof(FinancialReportPresentation.CostProfitSection)),
-            SectionCard(nameof(FinancialReportPresentation.WarrantySection)));
+            CardHost().Content(x => x.Binding(() => report.Presentation!.SalesSection)).ContentTemplate<FinancialReportSection>(SectionCard),
+            CardHost().Content(x => x.Binding(() => report.Presentation!.CashFlowSection)).ContentTemplate<FinancialReportSection>(SectionCard),
+            CardHost().Content(x => x.Binding(() => report.Presentation!.CostProfitSection)).ContentTemplate<FinancialReportSection>(SectionCard),
+            CardHost().Content(x => x.Binding(() => report.Presentation!.WarrantySection)).ContentTemplate<FinancialReportSection>(SectionCard));
         var dailyList = new ItemsControl().ItemsSource(x => x.Binding(() => report.Presentation!.Daily))
             .ItemTemplate<FinancialReportDayRow>(BuildDay);
         var listsGrid = BuildFourCardGrid(
-            ListCard(nameof(FinancialReportPresentation.TopQuantityList)),
-            ListCard(nameof(FinancialReportPresentation.TopRevenueList)),
-            ListCard(nameof(FinancialReportPresentation.CashierList)),
-            ListCard(nameof(FinancialReportPresentation.ShiftList)));
+            CardHost().Content(x => x.Binding(() => report.Presentation!.TopQuantityList)).ContentTemplate<FinancialReportList>(ListCard),
+            CardHost().Content(x => x.Binding(() => report.Presentation!.TopRevenueList)).ContentTemplate<FinancialReportList>(ListCard),
+            CardHost().Content(x => x.Binding(() => report.Presentation!.CashierList)).ContentTemplate<FinancialReportList>(ListCard),
+            CardHost().Content(x => x.Binding(() => report.Presentation!.ShiftList)).ContentTemplate<FinancialReportList>(ListCard));
 
         var snapshot = new StackPanel().Spacing(20)
             .Visibility(x => x.Binding(() => report.HasSnapshot).Convert(ShowIf))
@@ -145,6 +168,7 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
             .Padding(new Thickness(14, 0, 14, 0))
             .Content(x => x.Binding(() => report.ReloadLabel))
             .Command(x => x.Binding(() => report.ReloadCommand));
+        _reload = reload;
         AutomationProperties.SetAutomationId(apply, "FinancialReportApply");
         AutomationProperties.SetAutomationId(reload, "FinancialReportReload");
 
@@ -152,8 +176,8 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
             .VerticalAlignment(VerticalAlignment.Top).Children(apply, reload);
 
         var reference = Label().FontSize(12).FontWeight(FontWeights.SemiBold)
-            .Text(x => x.Binding(() => report.Presentation!.Reference))
-            .Visibility(x => x.Binding(() => report.HasSnapshot).Convert(ShowIf));
+            .Text(x => x.Binding(() => report.RangeLabel))
+            .Visibility(x => x.Binding(() => report.RangeLabel).Convert(ShowIfHasText));
         var limit = Caption().Text($"Tối đa {AnalyticsLimits.MaxCustomRangeDays} ngày theo giờ Việt Nam (UTC+07).");
         var meta = new StackPanel().Spacing(2).VerticalAlignment(VerticalAlignment.Center)
             .Children(reference, limit);
@@ -221,10 +245,10 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
     private Grid BuildKpiGrid()
     {
         var grid = new Grid().ColumnSpacing(12).RowSpacing(12).Children(
-            KpiCard(nameof(FinancialReportPresentation.NetSalesKpi), AppColors.Brushes.Primary),
-            KpiCard(nameof(FinancialReportPresentation.NetProfitKpi), AppColors.Brushes.SuccessText),
-            KpiCard(nameof(FinancialReportPresentation.CashFlowKpi), AppColors.Brushes.Text),
-            KpiCard(nameof(FinancialReportPresentation.WarrantyAndOrdersKpi), AppColors.Brushes.WarningText));
+            CardHost().Content(x => x.Binding(() => report.Presentation!.NetSalesKpi)).ContentTemplate<FinancialReportKpiCard>(kpi => KpiCard(kpi, AppColors.Brushes.Primary)),
+            CardHost().Content(x => x.Binding(() => report.Presentation!.NetProfitKpi)).ContentTemplate<FinancialReportKpiCard>(kpi => KpiCard(kpi, AppColors.Brushes.SuccessText)),
+            CardHost().Content(x => x.Binding(() => report.Presentation!.CashFlowKpi)).ContentTemplate<FinancialReportKpiCard>(kpi => KpiCard(kpi, AppColors.Brushes.Text)),
+            CardHost().Content(x => x.Binding(() => report.Presentation!.WarrantyAndOrdersKpi)).ContentTemplate<FinancialReportKpiCard>(kpi => KpiCard(kpi, AppColors.Brushes.WarningText)));
         UpdateKpiLayout(grid, 1000);
         return grid;
     }
@@ -292,36 +316,38 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
         }
     }
 
-    private static Border KpiCard(string kpiPropertyName, Action<IDependencyPropertyBuilder<Brush>> valueBrush)
+    // Each call site binds the card content with its own inline lambda; the template parameters below are
+    // null while the tree is built and are only used inside binding lambdas.
+    private static ContentControl CardHost() => new ContentControl()
+        .HorizontalContentAlignment(HorizontalAlignment.Stretch)
+        .VerticalContentAlignment(VerticalAlignment.Stretch);
+
+    private static Border KpiCard(FinancialReportKpiCard kpi, Action<IDependencyPropertyBuilder<Brush>> valueBrush)
     {
-        var card = Panel(panelRadius: true).Padding(16).Child(new StackPanel().Spacing(6).Children(
-            BindText(nameof(FinancialReportKpiCard.Title), Caption()),
-            BindText(nameof(FinancialReportKpiCard.Value), new TextBlock().Style(AppTypography.Styles.HeadingText).FontSize(22).Foreground(valueBrush).TextWrapping(TextWrapping.Wrap)),
-            BindText(nameof(FinancialReportKpiCard.Detail), Caption())));
-        card.SetBinding(FrameworkElement.DataContextProperty,
-            new Binding { Path = new PropertyPath($"Presentation.{kpiPropertyName}"), Mode = BindingMode.OneWay });
-        return card;
+        return Panel(panelRadius: true).Padding(16).Child(new StackPanel().Spacing(6).Children(
+            Caption().Text(x => x.Binding(() => kpi.Title)),
+            new TextBlock().Style(AppTypography.Styles.HeadingText).FontSize(22).Foreground(valueBrush).TextWrapping(TextWrapping.Wrap)
+                .Text(x => x.Binding(() => kpi.Value)),
+            Caption().Text(x => x.Binding(() => kpi.Detail))));
     }
 
-    private static Border SectionCard(string sectionPropertyName)
-    {
-        var card = Panel(panelRadius: true).Padding(16).Child(SectionContent());
-        card.SetBinding(FrameworkElement.DataContextProperty,
-            new Binding { Path = new PropertyPath($"Presentation.{sectionPropertyName}"), Mode = BindingMode.OneWay });
-        return card;
-    }
+    private static Border SectionCard(FinancialReportSection section) =>
+        Panel(panelRadius: true).Padding(16).Child(SectionContent(section));
 
-    private static StackPanel SectionContent()
+    private static Border DaySectionCard(FinancialReportSection section) =>
+        Panel().Padding(14).Child(SectionContent(section));
+
+    private static StackPanel SectionContent(FinancialReportSection section)
     {
         var title = new Border()
             .BorderBrush(AppColors.Brushes.Stroke)
             .BorderThickness(new Thickness(0, 0, 0, 1))
             .Padding(new Thickness(0, 0, 0, 10))
             .Margin(new Thickness(0, 0, 0, 2))
-            .Child(BindText(nameof(FinancialReportSection.Title),
-                Label().FontSize(14).FontWeight(FontWeights.SemiBold)));
+            .Child(Label().FontSize(14).FontWeight(FontWeights.SemiBold).Text(x => x.Binding(() => section.Title)));
 
         var rows = new ItemsControl()
+            .ItemsSource(x => x.Binding(() => section.Values))
             .ItemTemplate<FinancialReportValue>(value =>
                 new Border()
                     .BorderBrush(AppColors.Brushes.Stroke)
@@ -331,8 +357,6 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
                         Caption().Text(x => x.Binding(() => value.Label)),
                         Label().FontWeight(FontWeights.SemiBold).TextAlignment(TextAlignment.Right)
                             .Text(x => x.Binding(() => value.Text)).Grid(column: 1))));
-        rows.SetBinding(ItemsControl.ItemsSourceProperty,
-            new Binding { Path = new PropertyPath(nameof(FinancialReportSection.Values)), Mode = BindingMode.OneWay });
 
         return new StackPanel().Spacing(4).Children(title, rows);
     }
@@ -388,10 +412,10 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
         header.SizeChanged += (_, args) => LayoutHeader(args.NewSize.Width);
 
         var detailGrid = BuildFourCardGrid(
-            DailySectionCard(nameof(FinancialReportDayRow.SalesSection)),
-            DailySectionCard(nameof(FinancialReportDayRow.CashFlowSection)),
-            DailySectionCard(nameof(FinancialReportDayRow.CostProfitSection)),
-            DailySectionCard(nameof(FinancialReportDayRow.WarrantySection)));
+            CardHost().Content(x => x.Binding(() => day.SalesSection)).ContentTemplate<FinancialReportSection>(DaySectionCard),
+            CardHost().Content(x => x.Binding(() => day.CashFlowSection)).ContentTemplate<FinancialReportSection>(DaySectionCard),
+            CardHost().Content(x => x.Binding(() => day.CostProfitSection)).ContentTemplate<FinancialReportSection>(DaySectionCard),
+            CardHost().Content(x => x.Binding(() => day.WarrantySection)).ContentTemplate<FinancialReportSection>(DaySectionCard));
         detailGrid.SizeChanged += (_, args) => UpdateTwoColumnGrid(detailGrid, args.NewSize.Width);
 
         var expander = new Expander()
@@ -402,34 +426,25 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
             .Margin(new Thickness(0, 0, 0, 8))
             .Header(header)
             .Content(detailGrid);
+        // Uno Markup 6.7 generates no fluent extension for the AutomationProperties attached properties.
         expander.SetBinding(AutomationProperties.NameProperty, new Binding { Path = new PropertyPath(nameof(day.Date)) });
         return expander;
     }
 
-    private static Border DailySectionCard(string sectionPropertyName)
-    {
-        var card = Panel().Padding(14).Child(SectionContent());
-        card.SetBinding(FrameworkElement.DataContextProperty,
-            new Binding { Path = new PropertyPath(sectionPropertyName), Mode = BindingMode.OneWay });
-        return card;
-    }
-
-    private static Border ListCard(string listPropertyName)
+    private static Border ListCard(FinancialReportList list)
     {
         var header = new Border()
             .BorderBrush(AppColors.Brushes.Stroke)
             .BorderThickness(new Thickness(0, 0, 0, 1))
             .Padding(new Thickness(0, 0, 0, 10))
-            .Child(BindText(nameof(FinancialReportList.Title),
-                Label().FontSize(14).FontWeight(FontWeights.SemiBold)));
+            .Child(Label().FontSize(14).FontWeight(FontWeights.SemiBold).Text(x => x.Binding(() => list.Title)));
 
-        var empty = Caption().Padding(new Thickness(0, 12, 0, 4));
-        empty.SetBinding(TextBlock.TextProperty,
-            new Binding { Path = new PropertyPath(nameof(FinancialReportList.EmptyMessage)), Mode = BindingMode.OneWay });
-        empty.SetBinding(UIElement.VisibilityProperty,
-            new Binding { Path = new PropertyPath(nameof(FinancialReportList.IsEmpty)), Mode = BindingMode.OneWay, Converter = BoolToVisibilityConverter.Instance });
+        var empty = Caption().Padding(new Thickness(0, 12, 0, 4))
+            .Text(x => x.Binding(() => list.EmptyMessage))
+            .Visibility(x => x.Binding(() => list.IsEmpty).Convert(ShowIf));
 
         var rows = new ItemsControl()
+            .ItemsSource(x => x.Binding(() => list.Rows))
             .ItemTemplate<FinancialReportListRow>(row =>
                 new Border()
                     .BorderBrush(AppColors.Brushes.Stroke)
@@ -438,14 +453,9 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
                     .Child(new StackPanel().Spacing(3).Children(
                         Label().FontWeight(FontWeights.SemiBold).Text(x => x.Binding(() => row.Title)),
                         Caption().Text(x => x.Binding(() => row.Figures)))));
-        rows.SetBinding(ItemsControl.ItemsSourceProperty,
-            new Binding { Path = new PropertyPath(nameof(FinancialReportList.Rows)), Mode = BindingMode.OneWay });
 
-        var card = Panel(panelRadius: true).Padding(16)
+        return Panel(panelRadius: true).Padding(16)
             .Child(new StackPanel().Spacing(4).Children(header, empty, rows));
-        card.SetBinding(FrameworkElement.DataContextProperty,
-            new Binding { Path = new PropertyPath($"Presentation.{listPropertyName}"), Mode = BindingMode.OneWay });
-        return card;
     }
 
     private static TextBox DateInput(string label, string automationId)
@@ -480,12 +490,6 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
     private static TextBlock Caption() => new TextBlock().Style(AppResources.GetStyle(AppTypography.CaptionText))
         .Foreground(AppColors.Brushes.SecondaryText).TextWrapping(TextWrapping.Wrap);
 
-    private static TextBlock BindText(string path, TextBlock target)
-    {
-        target.SetBinding(TextBlock.TextProperty, new Binding { Path = new PropertyPath(path), Mode = BindingMode.OneWay });
-        return target;
-    }
-
     private static void SetCell(UIElement element, int row, int column)
     {
         if (element is not FrameworkElement frameworkElement) return;
@@ -495,109 +499,100 @@ internal sealed class FinancialReportView(FinancialReportViewModel report)
 
     private static Visibility ShowIf(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
     private static Visibility ShowIfHasText(string? value) => ShowIf(!string.IsNullOrWhiteSpace(value));
+}
 
-    private sealed class SegmentedTabButton : Button
+/// <summary>
+/// Tab of the Overview / Financial report selector. Selection is shown by a raised surface, a leading dot
+/// and a semibold label, all bound to <see cref="IsSelected"/> with theme brushes set directly on elements.
+/// </summary>
+internal sealed class SegmentedTabButton : Button
+{
+    public static readonly DependencyProperty IsSelectedProperty = DependencyProperty.Register(
+        nameof(IsSelected), typeof(bool), typeof(SegmentedTabButton),
+        // Only raises the UI Automation selection event; every visual is a binding to IsSelected.
+        new PropertyMetadata(false, (d, e) => ((SegmentedTabButton)d).RaiseSelectionChanged((bool)e.OldValue, (bool)e.NewValue)));
+
+    public SegmentedTabButton(string label, string automationId)
     {
-        public static readonly DependencyProperty IsSelectedProperty = DependencyProperty.Register(
-            nameof(IsSelected), typeof(bool), typeof(SegmentedTabButton),
-            new PropertyMetadata(false, (d, e) => ((SegmentedTabButton)d).OnSelectionChanged((bool)e.OldValue, (bool)e.NewValue)));
+        var selectedSurface = new Border()
+            .Background(AppColors.Brushes.Surface)
+            .BorderBrush(AppColors.Brushes.Stroke)
+            .BorderThickness(new Thickness(1))
+            .CornerRadius(new CornerRadius(7))
+            .Visibility(x => x.Binding(() => Self.IsSelected).Convert(ShowIf));
 
-        private readonly Border _indicator;
-        private readonly TextBlock _label;
+        var dot = new Border { Width = 6, Height = 6, CornerRadius = new CornerRadius(3), VerticalAlignment = VerticalAlignment.Center }
+            .Background(AppColors.Brushes.Primary)
+            .Visibility(x => x.Binding(() => Self.IsSelected).Convert(ShowIf));
 
-        public SegmentedTabButton(string label, string automationId)
-        {
-            _indicator = new Border
-            {
-                Width = 6,
-                Height = 6,
-                CornerRadius = new CornerRadius(3),
-                VerticalAlignment = VerticalAlignment.Center
-            }.Background(AppColors.Brushes.Primary);
+        // Two stacked labels so both states use theme brushes; the hidden semibold one keeps the width stable.
+        var selectedLabel = new TextBlock { Text = label, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center }
+            .Foreground(AppColors.Brushes.Text)
+            .Visibility(x => x.Binding(() => Self.IsSelected).Convert(ShowIf));
+        var normalLabel = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center }
+            .Foreground(AppColors.Brushes.SecondaryText)
+            .Visibility(x => x.Binding(() => Self.IsSelected).Convert(HideIf));
+        var sizer = new TextBlock { Text = label, FontWeight = FontWeights.SemiBold, Opacity = 0, IsHitTestVisible = false };
+        var labels = new Grid().Children(sizer, selectedLabel, normalLabel);
 
-            _label = new TextBlock
-            {
-                Text = label,
-                VerticalAlignment = VerticalAlignment.Center
-            };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center }
+            .Margin(new Thickness(14, 7, 14, 7))
+            .Children(dot, labels);
+        Content = new Grid().DataContext(this).Children(selectedSurface, row);
 
-            Content = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 8,
-                VerticalAlignment = VerticalAlignment.Center,
-                Children = { _indicator, _label }
-            };
+        this.Background(AppColors.Brushes.Subtle);
+        BorderThickness = new Thickness(0);
+        CornerRadius = new CornerRadius(7);
+        Padding = new Thickness(0);
+        MinHeight = 34;
 
-            BorderThickness = new Thickness(1);
-            CornerRadius = new CornerRadius(7);
-            Padding = new Thickness(14, 7, 14, 7);
-            MinHeight = 34;
-
-            AutomationProperties.SetName(this, label);
-            AutomationProperties.SetAutomationId(this, automationId);
-            ApplySelectionVisuals(false);
-        }
-
-        public bool IsSelected
-        {
-            get => (bool)GetValue(IsSelectedProperty);
-            set => SetValue(IsSelectedProperty, value);
-        }
-
-        protected override AutomationPeer OnCreateAutomationPeer() => new SegmentedTabAutomationPeer(this);
-
-        private void OnSelectionChanged(bool oldValue, bool newValue)
-        {
-            ApplySelectionVisuals(newValue);
-            if (oldValue != newValue && FrameworkElementAutomationPeer.FromElement(this) is SegmentedTabAutomationPeer peer)
-                peer.RaisePropertyChangedEvent(SelectionItemPatternIdentifiers.IsSelectedProperty, oldValue, newValue);
-        }
-
-        private void ApplySelectionVisuals(bool selected)
-        {
-            this.Background(selected ? AppColors.Brushes.Surface : AppColors.Brushes.Subtle);
-            this.BorderBrush(selected ? AppColors.Brushes.Stroke : AppColors.Brushes.Subtle);
-            _label.Foreground(selected ? AppColors.Brushes.Text : AppColors.Brushes.SecondaryText);
-            _label.FontWeight = selected ? FontWeights.SemiBold : FontWeights.Normal;
-            _indicator.Visibility = selected ? Visibility.Visible : Visibility.Collapsed;
-        }
+        AutomationProperties.SetName(this, label);
+        AutomationProperties.SetAutomationId(this, automationId);
     }
 
-    private sealed class SegmentedTabAutomationPeer(SegmentedTabButton owner) : ButtonAutomationPeer(owner), ISelectionItemProvider
+    public bool IsSelected
     {
-        public bool IsSelected => owner.IsSelected;
-
-        public IRawElementProviderSimple SelectionContainer =>
-            VisualTreeHelper.GetParent(owner) is UIElement parent
-            && FrameworkElementAutomationPeer.CreatePeerForElement(parent) is { } parentPeer
-                ? ProviderFromPeer(parentPeer)
-                : null!;
-
-        public void AddToSelection() => Select();
-
-        public void RemoveFromSelection() { }
-
-        public void Select()
-        {
-            if (owner.Command?.CanExecute(owner.CommandParameter) == true)
-                owner.Command.Execute(owner.CommandParameter);
-        }
-
-        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.TabItem;
-
-        protected override object GetPatternCore(PatternInterface patternInterface) =>
-            patternInterface == PatternInterface.SelectionItem ? this : base.GetPatternCore(patternInterface);
+        get => (bool)GetValue(IsSelectedProperty);
+        set => SetValue(IsSelectedProperty, value);
     }
 
-    private sealed class BoolToVisibilityConverter : IValueConverter
+    // Binding source for the inner tree (its DataContext is this control; the control's own DataContext stays the page's).
+    private SegmentedTabButton Self => this;
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new SegmentedTabAutomationPeer(this);
+
+    private static Visibility ShowIf(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
+    private static Visibility HideIf(bool value) => value ? Visibility.Collapsed : Visibility.Visible;
+
+    private void RaiseSelectionChanged(bool oldValue, bool newValue)
     {
-        public static BoolToVisibilityConverter Instance { get; } = new();
-
-        public object Convert(object value, Type targetType, object parameter, string language) =>
-            value is true ? Visibility.Visible : Visibility.Collapsed;
-
-        public object ConvertBack(object value, Type targetType, object parameter, string language) =>
-            throw new NotSupportedException();
+        if (oldValue != newValue && FrameworkElementAutomationPeer.FromElement(this) is SegmentedTabAutomationPeer peer)
+            peer.RaisePropertyChangedEvent(SelectionItemPatternIdentifiers.IsSelectedProperty, oldValue, newValue);
     }
+}
+
+internal sealed class SegmentedTabAutomationPeer(SegmentedTabButton owner) : ButtonAutomationPeer(owner), ISelectionItemProvider
+{
+    public bool IsSelected => owner.IsSelected;
+
+    public IRawElementProviderSimple SelectionContainer =>
+        VisualTreeHelper.GetParent(owner) is UIElement parent
+        && FrameworkElementAutomationPeer.CreatePeerForElement(parent) is { } parentPeer
+            ? ProviderFromPeer(parentPeer)
+            : null!;
+
+    public void AddToSelection() => Select();
+
+    public void RemoveFromSelection() { }
+
+    public void Select()
+    {
+        if (owner.Command?.CanExecute(owner.CommandParameter) == true)
+            owner.Command.Execute(owner.CommandParameter);
+    }
+
+    protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.TabItem;
+
+    protected override object GetPatternCore(PatternInterface patternInterface) =>
+        patternInterface == PatternInterface.SelectionItem ? this : base.GetPatternCore(patternInterface);
 }

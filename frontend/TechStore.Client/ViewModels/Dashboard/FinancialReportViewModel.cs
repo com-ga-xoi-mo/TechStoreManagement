@@ -34,13 +34,16 @@ public sealed partial class FinancialReportViewModel(
     [ObservableProperty] private string toError = string.Empty;
     [ObservableProperty] private string errorMessage = string.Empty;
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowOverview), nameof(IsOverviewTabSelected), nameof(IsFinancialTabSelected))]
+    [NotifyPropertyChangedFor(nameof(RangeLabel))]
+    private string appliedRangeLabel = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowOverview))]
     private bool isOpen;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLoading), nameof(IsEmpty), nameof(IsError), nameof(ReloadLabel))]
     private PageContentState state;
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSnapshot), nameof(Presentation))]
+    [NotifyPropertyChangedFor(nameof(HasSnapshot), nameof(Presentation), nameof(RangeLabel))]
     private FinancialReportSnapshot? snapshot;
 
     public bool IsAvailable
@@ -56,38 +59,21 @@ public sealed partial class FinancialReportViewModel(
 
     public bool ShowOverview => !IsOpen;
 
-    public bool? IsOverviewTabSelected
-    {
-        get => ShowOverview;
-        set
-        {
-            if (value == true && IsOpen) Close();
-        }
-    }
-
-    public bool? IsFinancialTabSelected
-    {
-        get => IsOpen;
-        set
-        {
-            if (value == true && !IsOpen)
-            {
-                if (IsAvailable)
-                    _ = OpenAsync();
-                else if (SynchronizationContext.Current is { } context)
-                    context.Post(_ => NotifyTabSelectionChanged(), null);
-                else
-                    NotifyTabSelectionChanged();
-            }
-        }
-    }
-
     public bool IsLoading => State == PageContentState.Loading;
     public bool IsEmpty => State == PageContentState.Empty;
     public bool IsError => State == PageContentState.Error;
     public bool HasSnapshot => Snapshot is not null;
     public string ReloadLabel => IsError ? "Thử lại" : "Làm mới";
     public FinancialReportPresentation? Presentation { get; private set; }
+
+    /// <summary>
+    /// Range of the snapshot (with its asOf time) when one is shown, otherwise the applied range of the
+    /// in-flight or failed request. Never carries figures, so it cannot relabel a previous range.
+    /// </summary>
+    public string RangeLabel => Presentation?.Reference ?? AppliedRangeLabel;
+
+    /// <summary>Asks the view to move focus; the view only moves focus and never assigns data.</summary>
+    public event EventHandler<FinancialReportFocusTarget>? FocusRequested;
 
     internal void Activate(CancellationToken activationToken)
     {
@@ -125,13 +111,22 @@ public sealed partial class FinancialReportViewModel(
         ToError = string.Empty;
 
         IsOpen = true;
+        FocusRequested?.Invoke(this, FinancialReportFocusTarget.SelectedTab);
         return LoadAsync(_appliedRange.Value);
     }
 
     [RelayCommand]
     private void Close()
     {
+        var wasOpen = IsOpen;
+        CloseReport();
+        if (wasOpen) FocusRequested?.Invoke(this, FinancialReportFocusTarget.SelectedTab);
+    }
+
+    private void CloseReport()
+    {
         IsOpen = false;
+        AppliedRangeLabel = string.Empty;
         CancelCurrent();
         Snapshot = null;
         ErrorMessage = string.Empty;
@@ -166,7 +161,14 @@ public sealed partial class FinancialReportViewModel(
     }
 
     [RelayCommand(AllowConcurrentExecutions = true)]
-    private Task ReloadAsync() => _appliedRange is { } range ? LoadAsync(range) : Task.CompletedTask;
+    private async Task ReloadAsync()
+    {
+        if (_appliedRange is not { } range) return;
+        await LoadAsync(range);
+        // The reloaded content replaces the previous one, so put focus back on the Reload/Retry button.
+        if (IsOpen && IsAvailable && !IsLoading)
+            FocusRequested?.Invoke(this, FinancialReportFocusTarget.Reload);
+    }
 
     partial void OnFromChanged(string value)
     {
@@ -187,6 +189,7 @@ public sealed partial class FinancialReportViewModel(
         var sequence = _sequence;
         var generation = _activationGeneration;
         Snapshot = null;
+        AppliedRangeLabel = RangeText(range);
         ErrorMessage = string.Empty;
         State = PageContentState.Loading;
 
@@ -237,17 +240,14 @@ public sealed partial class FinancialReportViewModel(
 
     private void ResetSession()
     {
-        Close();
+        CloseReport();
         _appliedRange = null;
         From = To = FromError = ToError = string.Empty;
         OnPropertyChanged(nameof(IsAvailable));
     }
 
-    private void NotifyTabSelectionChanged()
-    {
-        OnPropertyChanged(nameof(IsOverviewTabSelected));
-        OnPropertyChanged(nameof(IsFinancialTabSelected));
-    }
+    private static string RangeText(FinancialReportRange range) =>
+        $"Kỳ {range.From.ToString("dd/MM/yyyy", Vietnamese)}–{range.To.ToString("dd/MM/yyyy", Vietnamese)}";
 
     private void Dispatch(Action action)
     {
@@ -267,4 +267,12 @@ public sealed partial class FinancialReportViewModel(
         ApiException { Kind: ApiErrorKind.InvalidResponse } => "Máy chủ trả dữ liệu báo cáo không đúng định dạng.",
         _ => "Chưa tải được báo cáo tài chính. Hãy thử lại."
     };
+}
+
+public enum FinancialReportFocusTarget
+{
+    /// <summary>The tab of the view that is currently selected.</summary>
+    SelectedTab,
+    /// <summary>The Reload / Retry button of the report panel.</summary>
+    Reload
 }

@@ -142,7 +142,7 @@ public sealed class FinancialReportViewModelTests
     }
 
     [Fact]
-    public async Task TabSelection_TwoWayPropertiesSyncOpenCloseAndGuardUnavailable()
+    public async Task OpenAndClose_SwitchPanelsGuardUnavailableAndResetOnSessionChange()
     {
         var repository = new DeferredReports();
         var store = MakeSession("Admin");
@@ -150,57 +150,122 @@ public sealed class FinancialReportViewModelTests
         try
         {
             var report = dashboard.FinancialReport;
-            var changed = new List<string?>();
-            report.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+            Assert.True(report.ShowOverview);
+            Assert.False(report.IsOpen);
 
-            Assert.True(report.IsOverviewTabSelected);
-            Assert.False(report.IsFinancialTabSelected);
-
-            report.IsFinancialTabSelected = true;
+            var open = report.OpenCommand.ExecuteAsync(null);
             Assert.True(report.IsOpen);
-            Assert.False(report.IsOverviewTabSelected);
-            Assert.True(report.IsFinancialTabSelected);
-            await report.OpenCommand.ExecuteAsync(null);
+            Assert.False(report.ShowOverview);
             Assert.Single(repository.Requests);
             repository.Requests[0].Succeed();
+            await open;
 
-            report.IsOverviewTabSelected = true;
+            report.CloseCommand.Execute(null);
             Assert.False(report.IsOpen);
-            Assert.True(report.IsOverviewTabSelected);
-            Assert.False(report.IsFinancialTabSelected);
+            Assert.True(report.ShowOverview);
 
-            report.IsFinancialTabSelected = true;
+            open = report.OpenCommand.ExecuteAsync(null);
             Assert.True(report.IsOpen);
-            changed.Clear();
+            var reset = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            report.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(FinancialReportViewModel.ShowOverview) && report.ShowOverview) reset.TrySetResult();
+            };
             store.SetSession("replacement", "refresh", "second", "Second", "Manager");
+            await reset.Task.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.False(report.IsOpen);
-            Assert.False(report.IsFinancialTabSelected);
-            Assert.True(report.IsOverviewTabSelected);
-            Assert.Contains(nameof(FinancialReportViewModel.IsFinancialTabSelected), changed);
-            Assert.Contains(nameof(FinancialReportViewModel.IsOverviewTabSelected), changed);
-
-            changed.Clear();
-            var notified = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            void WaitForReset(object? _, System.ComponentModel.PropertyChangedEventArgs args)
-            {
-                if (changed.Contains(nameof(FinancialReportViewModel.IsFinancialTabSelected))
-                    && changed.Contains(nameof(FinancialReportViewModel.IsOverviewTabSelected)))
-                    notified.TrySetResult();
-            }
-            report.PropertyChanged += WaitForReset;
-            try
-            {
-                report.IsFinancialTabSelected = true;
-                Assert.False(report.IsOpen);
-                Assert.False(report.IsFinancialTabSelected);
-                Assert.True(report.IsOverviewTabSelected);
-                await notified.Task.WaitAsync(TimeSpan.FromSeconds(5));
-                Assert.Contains(nameof(FinancialReportViewModel.IsFinancialTabSelected), changed);
-                Assert.Contains(nameof(FinancialReportViewModel.IsOverviewTabSelected), changed);
-                Assert.Equal(2, repository.Requests.Count);
-            }
-            finally { report.PropertyChanged -= WaitForReset; }
+            Assert.True(report.ShowOverview);
             repository.Requests[1].Succeed();
+            await open;
+
+            store.SetSession("blocked", "refresh", "third", "Third", "SalesStaff");
+            await report.OpenCommand.ExecuteAsync(null);
+            Assert.False(report.IsOpen);
+            Assert.True(report.ShowOverview);
+            Assert.Equal(2, repository.Requests.Count);
+        }
+        finally { dashboard.Deactivate(); }
+    }
+
+    [Fact]
+    public async Task FocusRequested_OpenCloseAndReloadAskForPredictableTargets()
+    {
+        var repository = new DeferredReports();
+        var store = MakeSession("Admin");
+        var dashboard = await ActivateAsync(repository, store);
+        try
+        {
+            var report = dashboard.FinancialReport;
+            var requests = new List<FinancialReportFocusTarget>();
+            report.FocusRequested += (_, target) => requests.Add(target);
+
+            var open = report.OpenCommand.ExecuteAsync(null);
+            Assert.Equal([FinancialReportFocusTarget.SelectedTab], requests);
+            repository.Requests[0].Succeed();
+            await open;
+            Assert.Single(requests);
+
+            var reload = report.ReloadCommand.ExecuteAsync(null);
+            Assert.Single(requests);
+            repository.Requests[1].Fail(new ApiException(ApiErrorKind.Network, "offline"));
+            await reload;
+            Assert.Equal([FinancialReportFocusTarget.SelectedTab, FinancialReportFocusTarget.Reload], requests);
+
+            var retry = report.ReloadCommand.ExecuteAsync(null);
+            repository.Requests[2].Succeed();
+            await retry;
+            Assert.Equal(FinancialReportFocusTarget.Reload, requests[^1]);
+            Assert.Equal(3, requests.Count);
+
+            report.CloseCommand.Execute(null);
+            Assert.Equal(FinancialReportFocusTarget.SelectedTab, requests[^1]);
+            Assert.Equal(4, requests.Count);
+
+            // Closing an already closed report and an automatic reset on sign-out never steal focus.
+            report.CloseCommand.Execute(null);
+            Assert.Equal(4, requests.Count);
+            var reopen = report.OpenCommand.ExecuteAsync(null);
+            Assert.Equal(5, requests.Count);
+            store.SetSession("replacement", "refresh", "second", "Second", "Manager");
+            repository.Requests[3].Succeed();
+            await reopen;
+            Assert.Equal(5, requests.Count);
+        }
+        finally { dashboard.Deactivate(); }
+    }
+
+    [Fact]
+    public async Task RangeLabel_StaysVisibleWhileLoadingWithoutStaleFigures()
+    {
+        var repository = new DeferredReports();
+        var dashboard = await ActivateAsync(repository, MakeSession("Admin"));
+        try
+        {
+            var report = dashboard.FinancialReport;
+            Assert.Empty(report.RangeLabel);
+
+            var open = report.OpenCommand.ExecuteAsync(null);
+            Assert.True(report.IsLoading);
+            Assert.Null(report.Snapshot);
+            Assert.StartsWith("Kỳ ", report.RangeLabel);
+            Assert.DoesNotContain("Cập nhật", report.RangeLabel);
+            repository.Requests[0].Succeed();
+            await open;
+            Assert.Contains("Cập nhật", report.RangeLabel);
+            Assert.Equal(report.Presentation!.Reference, report.RangeLabel);
+
+            report.From = "12/10/2024";
+            report.To = "14/10/2024";
+            var apply = report.ApplyCommand.ExecuteAsync(null);
+            Assert.Null(report.Snapshot);
+            Assert.Equal("Kỳ 12/10/2024–14/10/2024", report.RangeLabel);
+            repository.Requests[1].Fail(new ApiException(ApiErrorKind.Network, "offline"));
+            await apply;
+            Assert.True(report.IsError);
+            Assert.Equal("Kỳ 12/10/2024–14/10/2024", report.RangeLabel);
+
+            report.CloseCommand.Execute(null);
+            Assert.Empty(report.RangeLabel);
         }
         finally { dashboard.Deactivate(); }
     }

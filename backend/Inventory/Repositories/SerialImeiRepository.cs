@@ -122,9 +122,31 @@ public class SerialImeiRepository(AppDbContext dbContext) : ISerialImeiRepositor
             return [];
         }
 
-        return await dbContext.SerialImeis
+        var locked = await dbContext.SerialImeis
             .FromSqlInterpolated($"SELECT * FROM serial_imeis WHERE id = ANY({idArray}) ORDER BY id FOR UPDATE")
-            .ToListAsync(cancellationToken);
+            .AsNoTracking().ToListAsync(cancellationToken);
+        // An order detail query can have tracked a device before another transaction committed.
+        // Refresh unchanged entries from the locked read. Keep this transaction's staged reservation on cash checkout.
+        dbContext.ChangeTracker.DetectChanges();
+        var result = new List<SerialImei>(locked.Count);
+        foreach (var row in locked)
+        {
+            var tracked = dbContext.SerialImeis.Local.FirstOrDefault(d => d.Id == row.Id);
+            if (tracked == null)
+            {
+                dbContext.Attach(row);
+                result.Add(row);
+                continue;
+            }
+            var entry = dbContext.Entry(tracked);
+            if (entry.State == EntityState.Unchanged)
+            {
+                entry.OriginalValues.SetValues(row);
+                entry.CurrentValues.SetValues(row);
+            }
+            result.Add(tracked);
+        }
+        return result;
     }
 
     public void AddRange(IEnumerable<SerialImei> items)

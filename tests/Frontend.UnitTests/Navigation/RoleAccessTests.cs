@@ -9,10 +9,10 @@ public sealed class RoleAccessTests(ITestOutputHelper output)
 {
     public static IEnumerable<object[]> Cases =>
     [
-        ["Admin", "Dashboard,Products,Inventory,Orders,Customers,Settings", ShellDestination.Dashboard, true, true, true, true],
+        ["Admin", "Dashboard,Products,Inventory,Orders,ReturnInspections,Customers,Settings", ShellDestination.Dashboard, true, true, true, true],
         ["Manager", "Dashboard,Products,Inventory,Orders,Customers,Settings", ShellDestination.Dashboard, false, false, false, true],
         ["SalesStaff", "Products,Orders,Customers,Settings", ShellDestination.Orders, false, false, true, false],
-        ["WarehouseStaff", "Products,Inventory,Settings", ShellDestination.Inventory, false, true, false, false],
+        ["WarehouseStaff", "Products,Inventory,ReturnInspections,Settings", ShellDestination.Inventory, false, true, false, false],
         ["Unknown", "Settings", ShellDestination.Settings, false, false, false, false],
         [null!, "Settings", ShellDestination.Settings, false, false, false, false]
     ];
@@ -36,6 +36,7 @@ public sealed class RoleAccessTests(ITestOutputHelper output)
         Assert.Equal(catalog, RoleAccess.CanOpen(AppRoute.ProductEdit(Guid.NewGuid()), role));
         Assert.Equal(orders, RoleAccess.CanOpen(AppRoute.OrderCreate(), role));
         Assert.Equal(orders, RoleAccess.CanOpen(AppRoute.Pos(), role));
+        Assert.Equal(expected.Contains(ShellDestination.Orders), RoleAccess.CanOpen(AppRoute.OrderReturns(Guid.NewGuid()), role));
         Assert.Equal(categories, RoleAccess.CanOpen(AppRoute.UserManagement(), role));
 
         var store = new InMemorySessionStore();

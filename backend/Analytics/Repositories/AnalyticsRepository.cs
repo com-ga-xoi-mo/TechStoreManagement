@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Common.Data;
-using TechStore.Api.Orders.Entities;
-using TechStore.Shared.Enums;
 
 namespace TechStore.Api.Analytics.Repositories;
 
@@ -25,12 +23,6 @@ public sealed partial class AnalyticsRepository(AppDbContext dbContext) : IAnaly
         DashboardAnalyticsCriteria criteria,
         CancellationToken cancellationToken = default)
     {
-        var revenueQuery = dbContext.Orders.AsNoTracking()
-            .Where(order => order.Status == OrderStatus.Completed
-                && order.CompletedAt >= criteria.FromUtc
-                && order.CompletedAt < criteria.ToExclusiveUtc);
-
-        var revenue = await revenueQuery.SumAsync(order => (decimal?)order.TotalAmount, cancellationToken) ?? 0m;
         var orderCount = await dbContext.Orders.AsNoTracking()
             .CountAsync(order => order.CreatedAt >= criteria.FromUtc && order.CreatedAt < criteria.ToExclusiveUtc, cancellationToken);
         var activeProductCount = await dbContext.Products.AsNoTracking()
@@ -57,7 +49,7 @@ public sealed partial class AnalyticsRepository(AppDbContext dbContext) : IAnaly
                 SELECT ((completed_at AT TIME ZONE 'UTC') + INTERVAL '7 hours')::date AS "Date",
                        SUM(total_amount) AS "Revenue"
                 FROM orders
-                WHERE status = {OrderStatus.Completed.ToString()}
+                WHERE status IN ('Completed', 'PartiallyRefunded', 'Refunded')
                   AND completed_at >= {criteria.FromUtc}
                   AND completed_at < {criteria.ToExclusiveUtc}
                 GROUP BY ((completed_at AT TIME ZONE 'UTC') + INTERVAL '7 hours')::date
@@ -88,7 +80,7 @@ public sealed partial class AnalyticsRepository(AppDbContext dbContext) : IAnaly
             row.Id, row.OrderCode, row.CustomerName, row.FirstItem?.ProductName,
             row.FirstItem?.VariantName, row.ItemLineCount, row.TotalAmount, row.Status, row.CreatedAt)).ToList();
 
-        return new DashboardAnalyticsReadModel(revenue, orderCount, activeProductCount, lowStockCount,
+        return new DashboardAnalyticsReadModel(dailyRevenue.Sum(r => r.Revenue), orderCount, activeProductCount, lowStockCount,
             dailyRevenue, lowStockItems, recentOrders);
     }
 }

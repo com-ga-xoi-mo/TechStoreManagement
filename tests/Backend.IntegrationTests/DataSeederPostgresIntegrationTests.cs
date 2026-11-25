@@ -293,13 +293,40 @@ public sealed class DataSeederPostgresIntegrationTests(ITestOutputHelper output)
         }
 
         Assert.Equal(50, await db.SerialImeis.CountAsync(x => x.Imei != null && System.Text.RegularExpressions.Regex.IsMatch(x.Imei, "^[0-9]{15}$")));
-        Assert.Equal(10, await db.InventoryMovements.CountAsync(x => x.MovementType == InventoryMovementType.PurchaseReceipt && x.PurchaseOrderItemId != null));
-        Assert.Equal(12, await db.InventoryMovements.CountAsync(x => x.MovementType == InventoryMovementType.Sale && x.OrderItemId != null));
+        Assert.Equal(10, await db.InventoryMovements.CountAsync(x => x.MovementType == InventoryMovementType.PurchaseReceipt && x.PurchaseOrderItemId != null && x.InventoryStock.Product.IsSerialTracked));
+        Assert.Equal(12, await db.InventoryMovements.CountAsync(x => x.MovementType == InventoryMovementType.Sale && x.OrderItemId != null && x.InventoryStock.Product.IsSerialTracked));
         Assert.Equal(6, await db.VietQrTransactions.CountAsync(x => x.TransactionCode.StartsWith("DQR-DEMO-")));
         Assert.Equal(12, await db.SerialImeis.CountAsync(x => x.Imei != null && x.Imei.StartsWith("490000000") && x.Status == SerialImeiStatus.Sold && x.WarrantyStartAt != null && x.WarrantyEndAt != null));
         Assert.Equal(2, await db.SerialImeis.CountAsync(x => x.Imei != null && x.Imei.StartsWith("490000000") && x.Status == SerialImeiStatus.Reserved));
         Assert.Equal(36, await db.SerialImeis.CountAsync(x => x.Imei != null && x.Imei.StartsWith("490000000") && x.Status == SerialImeiStatus.InStock));
         await AssertLifecycleLinksAsync(db);
+        await AssertAfterSaleDemoAsync(db);
+    }
+
+    private static async Task AssertAfterSaleDemoAsync(AppDbContext db)
+    {
+        var order = await db.Orders.AsNoTracking().Include(x => x.Items).Include(x => x.Returns)
+            .SingleAsync(o => o.OrderCode == "M4-202610-0001");
+        var item = Assert.Single(order.Items);
+        Assert.Equal(21, await db.Orders.CountAsync());
+        Assert.Equal(OrderStatus.Refunded, order.Status);
+        Assert.Equal((2, 1_980_000m, 600_000m), (item.Quantity, order.TotalAmount, item.UnitCost!.Value));
+        var refund = await db.Set<ReturnCase>().Include(x => x.Lines).SingleAsync(x => x.OrderId == order.Id);
+        Assert.Equal("DEMO-M4-20261026-01", refund.BankReference);
+        Assert.Equal(order.TotalAmount, order.Returns.Sum(x => x.RefundAmount));
+        Assert.Equal(2, Assert.Single(refund.Lines).Quantity);
+        var restocked = Assert.Single(order.Returns, x => x.IsRestocked);
+        Assert.Equal(1, restocked.Quantity);
+        Assert.Equal(1, Assert.Single(order.Returns, x => x.Disposition == "Pending").Quantity);
+        var movement = await db.InventoryMovements.SingleAsync(m => m.OrderReturnId == restocked.Id);
+        Assert.Equal(restocked.RefundedAt.AddDays(1), movement.CreatedAt);
+        Assert.Equal((InventoryMovementType.CustomerReturn, 3, 1), (movement.MovementType, movement.QuantityAfter, movement.QuantityChange));
+        var warranty = await db.Set<WarrantyCase>().AsNoTracking().SingleAsync();
+        Assert.Equal(WarrantyCaseStatus.ReturnedToCustomer, warranty.Status);
+        Assert.Equal(2, await db.Set<InventoryOperation>().CountAsync(x => x.Kind == "Warranty" &&
+            (x.Id == warranty.ReceiveOperationId || x.Id == warranty.ResolutionOperationId)));
+        Assert.Equal(4, await db.Set<InventoryOperation>().CountAsync());
+        Assert.Single(await db.Set<InventoryOperation>().Where(x => x.Id == restocked.InspectionId && x.MovementId == movement.Id).ToListAsync());
     }
 
     private static async Task AssertLifecycleLinksAsync(AppDbContext db)

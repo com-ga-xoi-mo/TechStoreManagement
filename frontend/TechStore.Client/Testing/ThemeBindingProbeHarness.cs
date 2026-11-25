@@ -129,6 +129,14 @@ public sealed class ProbeView : UserControl
         Console.WriteLine($"Window Content: Loaded=True, ActualTheme={ActualTheme}, Size={ActualWidth}x{ActualHeight}");
         Console.WriteLine("================================================================================");
 
+        if (Environment.GetCommandLineArgs().Contains("--probe-returns"))
+        {
+            var checks = await ReturnsThemeProbe.RunAsync(this, () => WaitForLayoutAsync(ct), ct);
+            foreach (var check in checks)
+                Console.WriteLine($"[{(check.Passed ? "PASS" : "FAIL")}] {check.TestName} · {check.Actual}");
+            return checks.All(check => check.Passed) ? 0 : 1;
+        }
+
         // If forced timeout test mode is requested, run timeout test and return non-zero exit code
         if (_isTimeoutTest)
         {

@@ -15,10 +15,17 @@ public class InventoryFulfillmentServiceTests
     private readonly FakeSerialImeiRepository _serials = new();
     private readonly FakeInventoryStockRepository _stocks = new();
     private readonly InventoryFulfillmentService _service;
+    private readonly FakeInventoryAfterSaleRepository _holds = new();
+
+    private FulfillmentLine Held(FulfillmentLine line)
+    {
+        _holds.Add(new InventoryReservation { OrderItemId = line.OrderItemId!.Value, Quantity = line.Quantity });
+        return line;
+    }
 
     public InventoryFulfillmentServiceTests()
     {
-        _service = new InventoryFulfillmentService(_serials, _stocks);
+        _service = new InventoryFulfillmentService(_serials, _stocks, _holds);
     }
 
     private InventoryStock AddStock(Guid productId, Guid? variantId, int quantity, int reserved = 0)
@@ -409,7 +416,7 @@ public class InventoryFulfillmentServiceTests
         var orderItemId = Guid.NewGuid();
 
         // Act
-        var result = await _service.ConfirmSaleAsync([DeviceLine(device, orderItemId)], CompletedAt, UserId);
+        var result = await _service.ConfirmSaleAsync([Held(DeviceLine(device, orderItemId))], CompletedAt, UserId);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -438,7 +445,7 @@ public class InventoryFulfillmentServiceTests
         AddStock(productId, null, 10, reserved: 2);
 
         // Act
-        var result = await _service.ConfirmSaleAsync([DeviceLine(first), DeviceLine(second)], CompletedAt, UserId);
+        var result = await _service.ConfirmSaleAsync([Held(DeviceLine(first)), Held(DeviceLine(second))], CompletedAt, UserId);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -454,7 +461,7 @@ public class InventoryFulfillmentServiceTests
         var stock = AddStock(productId, null, 5, reserved: 0);
 
         // Act
-        var result = await _service.ConfirmSaleAsync([DeviceLine(device)], CompletedAt, UserId);
+        var result = await _service.ConfirmSaleAsync([Held(DeviceLine(device))], CompletedAt, UserId);
 
         // Assert
         result.IsSuccess.Should().BeFalse();
@@ -471,7 +478,7 @@ public class InventoryFulfillmentServiceTests
         var stock = AddStock(productId, null, 10, reserved: 3);
 
         // Act
-        var result = await _service.ConfirmSaleAsync([QuantityLine(productId, 3)], CompletedAt, UserId);
+        var result = await _service.ConfirmSaleAsync([Held(QuantityLine(productId, 3))], CompletedAt, UserId);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -490,7 +497,7 @@ public class InventoryFulfillmentServiceTests
         var stock = AddStock(productId, null, 10, reserved: 0);
 
         // Act
-        var result = await _service.ConfirmSaleAsync([QuantityLine(productId, 3)], CompletedAt, UserId);
+        var result = await _service.ConfirmSaleAsync([Held(QuantityLine(productId, 3))], CompletedAt, UserId);
 
         // Assert
         result.IsSuccess.Should().BeFalse();
@@ -511,7 +518,7 @@ public class InventoryFulfillmentServiceTests
 
         // Act
         var result = await _service.ConfirmSaleAsync(
-            [DeviceLine(costed, itemA), DeviceLine(uncosted, itemB)], CompletedAt, UserId);
+            [Held(DeviceLine(costed, itemA)), Held(DeviceLine(uncosted, itemB))], CompletedAt, UserId);
 
         // Assert
         result.UnitCosts[itemA].Should().Be(21_500_000m);
@@ -528,7 +535,7 @@ public class InventoryFulfillmentServiceTests
         var item = Guid.NewGuid();
 
         // Act
-        var result = await _service.ConfirmSaleAsync([QuantityLine(productId, 3, orderItemId: item)], CompletedAt, UserId);
+        var result = await _service.ConfirmSaleAsync([Held(QuantityLine(productId, 3, orderItemId: item))], CompletedAt, UserId);
 
         // Assert
         result.UnitCosts[item].Should().Be(250_000m);
@@ -543,7 +550,7 @@ public class InventoryFulfillmentServiceTests
         var item = Guid.NewGuid();
 
         // Act
-        var result = await _service.ConfirmSaleAsync([QuantityLine(productId, 3, orderItemId: item)], CompletedAt, UserId);
+        var result = await _service.ConfirmSaleAsync([Held(QuantityLine(productId, 3, orderItemId: item))], CompletedAt, UserId);
 
         // Assert
         result.UnitCosts[item].Should().BeNull();
@@ -560,7 +567,7 @@ public class InventoryFulfillmentServiceTests
         var item = Guid.NewGuid();
 
         // Act
-        var result = await _service.ConfirmSaleAsync([DeviceLine(device, item)], CompletedAt, UserId);
+        var result = await _service.ConfirmSaleAsync([Held(DeviceLine(device, item))], CompletedAt, UserId);
 
         // Assert
         result.UnitCosts[item].Should().Be(21_500_000m);

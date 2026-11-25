@@ -66,7 +66,7 @@ public sealed class UserManagementTests
         Assert.True(vm.IsError);
         Assert.Empty(vm.Accounts);
         Assert.Equal(ShellDestination.Settings, AppRoute.UserManagement().Destination);
-        Assert.Equal(6, ShellDestinations.All.Count);
+        Assert.Equal(7, ShellDestinations.All.Count);
     }
 
     [Fact]

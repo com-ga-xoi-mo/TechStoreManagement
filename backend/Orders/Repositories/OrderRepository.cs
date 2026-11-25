@@ -85,6 +85,13 @@ public class OrderRepository(AppDbContext dbContext) : IOrderRepository
             .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
     }
 
+    public Task<bool> HasActiveVietQrAsync(Guid orderId, CancellationToken ct) =>
+        dbContext.VietQrTransactions.AsNoTracking().AnyAsync(q => q.OrderId == orderId &&
+            (q.Status == VietQrStatus.Pending || q.Status == VietQrStatus.Confirmed), ct);
+
+    public Task<bool> HasBankRefundInProgressAsync(Guid orderId, CancellationToken ct) =>
+        dbContext.Set<ReturnCase>().AsNoTracking().AnyAsync(x => x.OrderId == orderId && x.Status == ReturnStatus.AwaitingBank, ct);
+
     public Task<bool> HasConfirmedVietQrAsync(Guid orderId, decimal amount, CancellationToken cancellationToken) =>
         dbContext.VietQrTransactions.AsNoTracking().AnyAsync(q => q.OrderId == orderId
             && q.Status == VietQrStatus.Confirmed && q.ConfirmedAt != null && q.Amount == amount,

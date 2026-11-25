@@ -20,12 +20,18 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | POST `/api/inventory/purchase-receipts/{id}/deliveries`, `/api/inventory/purchase-receipts/{id}/cancel-remainder` | A W | Nhận từng đợt hoặc đóng phần chưa nhận. Lưu người thao tác từ token. |
 | POST `/api/inventory/serials/{id}/defective`, POST `/api/inventory/serials/{id}/restore` | A W | Báo lỗi thiết bị (tồn -1, movement `Defective`) và đưa thiết bị đã sửa về kho (tồn +1, movement `Adjustment`) |
 | GET `/api/orders`, `/api/orders/{id}` | A M S | A/M see all; S sees only orders whose cashier is that user |
+| POST `/api/returns`, GET `/api/returns/{id}`, GET `/api/returns/order/{orderId}` | A M S | Lập yêu cầu và xem lịch sử, Sales chỉ thao tác trên đơn của mình |
+| POST `/api/returns/{id}/settle`, `/reconcile`, `/exchange` | A M | Chốt chi, xác minh chuyển khoản thủ công, liên kết đơn đổi hàng |
+| GET `/api/warranties/{caseId}`, POST `/receive`, `/return`, `/replace` dưới mã hồ sơ | A M | Tra hồ sơ, nhận máy còn bảo hành, trả máy hoặc duyệt xuất máy thay. |
+| GET `/api/inventory/returns`, POST `/api/inventory/returns/{returnLineId}/inspections` | A W | Xem SKU của dòng bán, serial/IMEI và số lượng còn chờ để kiểm định từng phần, không trả số tiền, giá vốn hay dữ liệu khách |
 | POST `/api/orders`, PATCH `/api/orders/{id}/status` | A S | A writes all; S transitions only own orders; creator comes from token |
 | GET `/api/customers`, `/api/customers/{id}` | A M S | S chỉ thấy khách đang hoạt động (server ép `isActive=true`); khách đã vô hiệu hóa trả 404 với S |
 | POST `/api/customers` | A M S | Tạo khách tại quầy; điểm, hạng và trạng thái do server quyết định |
 | GET `/api/customers/{id}/loyalty-points`, `/api/customers/{id}/orders`, `/api/customers/{id}/purchased-items` | A M | Lịch sử khách gồm đơn của thu ngân khác nên không mở cho S |
 | PUT `/api/customers/{id}`, PATCH `/api/customers/{id}/deactivate`, `/api/customers/{id}/activate` | A M | Sửa liên hệ và trạng thái khách |
-| POST `/api/pos/shifts`, GET `/api/pos/shifts/current`, POST `/api/pos/quote`, POST `/api/pos/checkout` | A S | Open own shift, read own open shift, quote a cart without writing an order, cash checkout into own open shift; actor from token |
+| POST `/api/pos/shifts`, GET `/api/pos/shifts/current` | A M S | Mở và đọc ca riêng để ghi thu/chi theo quyền. |
+| POST `/api/pos/quote`, POST `/api/pos/checkout` | A S | Tính giá và bán hàng trong ca của người bán |
+| POST `/api/pos/vietqr/{id}/cancel`, `/expire` | A S | Kết thúc lượt giữ QR đang chờ. Sales chỉ truy cập giao dịch của mình. |
 | GET `/api/pos/shifts`, `/api/pos/shifts/{id}` | A M S | A/M see all shifts; S sees only own (other users' shifts return 404) |
 | POST `/api/pos/shifts/{id}/close` | A M S | S closes own shift only; A/M close any shift; closing records `closedByUserId` |
 | GET `/api/analytics/dashboard` | A M | Read-only store-wide dashboard |

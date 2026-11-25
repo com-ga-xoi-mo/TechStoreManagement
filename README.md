@@ -52,6 +52,12 @@ Dự án được xây dựng theo mô hình **3-Tier API-First Modern Architect
 
 ---
 
+## Trả hàng và hoàn tiền M4
+
+Vào **Đơn hàng** và chọn đơn cần trả. Sales lập yêu cầu trên đơn mình bán. Admin/Manager duyệt chi từ ca của mình hoặc mở yêu cầu hoàn ngân hàng. Với chuyển khoản, người duyệt chuyển tiền và kiểm tra giao dịch tại ngân hàng, sau đó ghi mã tham chiếu, số tiền và thời điểm thực chi vào ứng dụng. Khi mất kết nối, mở lại phiếu bằng mã cũ trước khi xử lý tiếp.
+
+Warehouse kiểm định từng phần của phiếu tại màn hình hàng trả. Phần nhập lại sinh biến động kho ở ngày thực nhập. Giá bán, thuế, điểm và giá vốn dùng để đối chiếu được mô tả trong [fixture hoàn tiền](docs/M4_REFUND_HANDOFF.md), [dữ liệu demo](docs/M4_DEMO_DATA.md) và [truy vấn đối chiếu từng đơn](docs/database/reconcile-return.sql). Xem kết quả kiểm thử trong [báo cáo hồi quy M4](docs/M4_TEST_SUMMARY.md).
+
 ## 2. Hướng dẫn Cài đặt và Chạy Dự án (How to Run)
 
 ### Yêu cầu môi trường

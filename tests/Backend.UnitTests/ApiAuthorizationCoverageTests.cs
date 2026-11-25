@@ -60,6 +60,14 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
         new("POST", "api/inventory/serials/{id:guid}/restore", StockWrite),
         new("GET", "api/orders", OrderRead), new("GET", "api/orders/{id:guid}", OrderRead),
         new("POST", "api/orders", OrderWrite), new("PATCH", "api/orders/{id:guid}/status", OrderWrite),
+        new("GET", "api/warranties/{caseid:guid}", "Admin,Manager"),
+        new("POST", "api/warranties/{caseid:guid}/receive", "Admin,Manager"),
+        new("POST", "api/warranties/{caseid:guid}/return", "Admin,Manager"),
+        new("POST", "api/warranties/{caseid:guid}/replace", "Admin,Manager"),
+        new("GET", "api/returns/order/{orderid:guid}", OrderRead), new("GET", "api/returns/{id:guid}", OrderRead),
+        new("POST", "api/returns", OrderRead), new("POST", "api/returns/{id:guid}/settle", "Admin,Manager"),
+        new("POST", "api/returns/{id:guid}/reconcile", "Admin,Manager"), new("POST", "api/returns/{id:guid}/exchange", "Admin,Manager"),
+        new("GET", "api/inventory/returns", StockWrite), new("POST", "api/inventory/returns/{returnlineid:guid}/inspections", StockWrite),
         new("GET", "api/customers", CustomerServe), new("GET", "api/customers/{id:guid}", CustomerServe),
         new("GET", "api/customers/{id:guid}/loyalty-points", CustomerManage),
         new("GET", "api/customers/{id:guid}/orders", CustomerManage),
@@ -73,9 +81,10 @@ public sealed class ApiAuthorizationCoverageTests(ITestOutputHelper output)
         new("POST", "api/users", "Admin"), new("PUT", "api/users/{id:guid}", "Admin"),
         new("PATCH", "api/users/{id:guid}/status", "Admin"), new("PUT", "api/users/{id:guid}/role", "Admin"),
         new("POST", "api/users/{id:guid}/reset-password", "Admin"),
-        new("POST", "api/pos/shifts", OrderWrite), new("GET", "api/pos/shifts/current", OrderWrite),
+        new("POST", "api/pos/shifts", OrderRead), new("GET", "api/pos/shifts/current", OrderRead),
         new("GET", "api/pos/shifts", OrderRead), new("GET", "api/pos/shifts/{id:guid}", OrderRead),
         new("POST", "api/pos/quote", OrderWrite),
+        new("POST", "api/pos/vietqr/{id:guid}/cancel", OrderWrite), new("POST", "api/pos/vietqr/{id:guid}/expire", OrderWrite),
         new("POST", "api/pos/shifts/{id:guid}/close", OrderRead), new("POST", "api/pos/checkout", OrderWrite)
     ];
 

@@ -71,6 +71,11 @@ public sealed partial class PosViewModel : PageViewModel
         _products = products ?? throw new ArgumentNullException(nameof(products));
     }
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PageTitle))]
+    private Guid? exchangeRequestId;
+
+    public string PageTitle => ExchangeRequestId is { } id ? $"Lập đơn đổi · Phiếu {id:D}" : "Bán hàng tại quầy";
     public bool HasShift => Shift is { IsOpen: true };
     public bool ShowSale => HasShift && !IsClosingShift;
     public bool NoShift => !HasShift;
@@ -94,7 +99,7 @@ public sealed partial class PosViewModel : PageViewModel
     public decimal Change => Quote is { } price && CashReceived is { } cash && cash >= price.TotalAmount ? cash - price.TotalAmount : 0m;
     public string ChangeText => Quote is null ? "—" : OrderPresentation.FormatMoney(Change);
     public bool CanPay => HasShift && HasLines && !IsPaying && !IsScanning && Quote is { } price && CashReceived is { } cash && cash >= price.TotalAmount;
-    public bool CanEditCart => HasShift && !IsPaying && !AwaitingRetry;
+    public bool CanEditCart => HasShift && !IsPaying && !AwaitingRetry && (ExchangeRequestId is null || Receipt is null);
 
     public string ShiftSummary => Shift is null
         ? string.Empty
@@ -120,7 +125,7 @@ public sealed partial class PosViewModel : PageViewModel
     protected override async Task<bool> LoadContentAsync(CancellationToken cancellationToken)
     {
         Shift = await _pos.GetCurrentShiftAsync(cancellationToken);
-        if (Shift is { IsOpen: true } open && _drafts.Take(open.Id) is { } draft)
+        if (Shift is { IsOpen: true } open && _drafts.Take(open.Id, ExchangeRequestId) is { } draft)
         {
             AwaitingRetry = draft.AwaitingRetry;
             if (Customer != null) Customer.SelectedCustomer = draft.Customer;
@@ -144,7 +149,7 @@ public sealed partial class PosViewModel : PageViewModel
         Customer?.Cancel();
         if (Shift is { IsOpen: true } open && (HasLines || IsClosingShift))
             _drafts.Save(new PosDraft(open.Id, Lines, CashText, _checkoutKey, AwaitingRetry || IsPaying, IsClosingShift, CountedCashText, ClosingNote,
-                Customer?.SelectedCustomer, DiscountText, Quote));
+                Customer?.SelectedCustomer, DiscountText, Quote, ExchangeRequestId));
     }
 
     // ---------- derived state ----------
@@ -504,7 +509,7 @@ public sealed partial class PosViewModel : PageViewModel
         if (!CanPay || Shift is not { } current || CashReceived is not { } cash) return;
 
         // One key per sale. It survives a retry after an unknown outcome, so the server can answer with the stored order.
-        _checkoutKey ??= Guid.NewGuid();
+        _checkoutKey ??= ExchangeRequestId ?? Guid.NewGuid();
         PayError = string.Empty;
         Lines = Lines.Select(item => item with { Error = null }).ToArray();
         IsPaying = true;

@@ -17,24 +17,25 @@ public sealed record PosDraft(
     string ClosingNote,
     CustomerChoice? Customer = null,
     string DiscountText = "",
-    PosQuoteDto? Quote = null);
+    PosQuoteDto? Quote = null,
+    Guid? ExchangeRequestId = null);
 
 public interface IPosDraftStore
 {
     void Save(PosDraft draft);
 
     /// <summary>Returns the saved draft once, and only for the same shift and the same login; otherwise <c>null</c>.</summary>
-    PosDraft? Take(Guid shiftId);
+    PosDraft? Take(Guid shiftId, Guid? exchangeRequestId = null);
 }
 
 /// <summary>
-/// Keeps one draft in memory for the running app. It is tied to the session generation, which changes on every
+/// Keeps the regular sale and each exchange draft separate within a shift. The session generation changes on every
 /// login or logout, so another account never sees the previous cashier's cart. Tokens renew without changing it.
 /// </summary>
 public sealed class PosDraftStore(ISessionStore sessionStore) : IPosDraftStore
 {
     private readonly object _gate = new();
-    private PosDraft? _draft;
+    private readonly Dictionary<(Guid Shift, Guid Exchange), PosDraft> _drafts = new();
     private long _generation;
 
     public void Save(PosDraft draft)
@@ -42,20 +43,24 @@ public sealed class PosDraftStore(ISessionStore sessionStore) : IPosDraftStore
         ArgumentNullException.ThrowIfNull(draft);
         lock (_gate)
         {
-            _draft = draft;
-            _generation = sessionStore.Current.Generation;
+            ResetForSession();
+            _drafts[(draft.ShiftId, draft.ExchangeRequestId ?? Guid.Empty)] = draft;
         }
     }
 
-    public PosDraft? Take(Guid shiftId)
+    public PosDraft? Take(Guid shiftId, Guid? exchangeRequestId = null)
     {
         lock (_gate)
         {
-            var draft = _draft;
-            _draft = null;
-            return draft is not null && draft.ShiftId == shiftId && _generation == sessionStore.Current.Generation
-                ? draft
-                : null;
+            ResetForSession();
+            return _drafts.Remove((shiftId, exchangeRequestId ?? Guid.Empty), out var draft) ? draft : null;
         }
+    }
+
+    private void ResetForSession()
+    {
+        if (_generation == sessionStore.Current.Generation) return;
+        _drafts.Clear();
+        _generation = sessionStore.Current.Generation;
     }
 }

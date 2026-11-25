@@ -6,7 +6,8 @@ namespace TechStore.Api.Inventory.Services;
 
 public class InventoryFulfillmentService(
     ISerialImeiRepository serialImeiRepository,
-    IInventoryStockRepository stockRepository) : IInventoryFulfillmentService
+    IInventoryStockRepository stockRepository,
+    IInventoryAfterSaleRepository afterSale) : IInventoryFulfillmentService
 {
     public async Task<FulfillmentCheckResult> CheckAvailabilityAsync(
         IReadOnlyList<FulfillmentLine> lines,
@@ -100,6 +101,16 @@ public class InventoryFulfillmentService(
             demand[key] = total;
         }
 
+        var itemIds = lines.Where(l => l.OrderItemId.HasValue).Select(l => l.OrderItemId!.Value).ToList();
+        var existing = await afterSale.GetReservationsAsync(itemIds, cancellationToken);
+        if (existing.Count > 0 || itemIds.Distinct().Count() != itemIds.Count ||
+            lines.Any(l => l.Quantity <= 0 || l.SerialImeiId.HasValue && l.Quantity != 1) ||
+            lines.Where(l => l.SerialImeiId.HasValue).GroupBy(l => l.SerialImeiId).Any(group => group.Count() > 1))
+            return FulfillmentResult.Failed(new(0, "Invalid or already reserved order line."));
+
+        foreach (var line in lines.Where(l => l.OrderItemId.HasValue))
+            afterSale.Add(new InventoryReservation { OrderItemId = line.OrderItemId!.Value, Quantity = line.Quantity });
+
         // Everything verified: stage the changes.
         var now = DateTime.UtcNow;
         foreach (var line in lines.Where(l => l.SerialImeiId.HasValue))
@@ -166,15 +177,37 @@ public class InventoryFulfillmentService(
             demand[key] = total;
         }
 
+        var itemIds = lines.Select(l => l.OrderItemId!.Value).ToArray();
+        var reservations = await afterSale.GetReservationsAsync(itemIds, cancellationToken);
+        var missing = itemIds.Except(reservations.Keys).ToArray();
+        var legacy = missing.Length > 0 ? await afterSale.GetLegacyHeldItemsAsync(missing, cancellationToken) : [];
+        if (itemIds.Distinct().Count() != lines.Count ||
+            lines.Where(l => l.SerialImeiId.HasValue).GroupBy(l => l.SerialImeiId).Any(g => g.Count() > 1))
+            return SaleConfirmationResult.Failed(new(0, "Duplicate order item or device."));
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            var isHeld = reservations.TryGetValue(line.OrderItemId!.Value, out var reservation)
+                ? reservation.State == ReservationState.Held && reservation.Quantity == line.Quantity
+                : legacy.Any(item => item.Id == line.OrderItemId && item.ProductId == line.ProductId &&
+                    item.VariantId == line.VariantId && item.SerialImeiId == line.SerialImeiId && item.Quantity == line.Quantity);
+            if (!isHeld)
+                return SaleConfirmationResult.Failed(new(i, "This order line no longer owns the requested reservation."));
+        }
+
         // Everything verified: stage the changes in line order so quantity_after is monotonic per stock row.
         var unitCosts = new Dictionary<Guid, decimal?>();
         foreach (var line in lines)
         {
+            if (reservations.TryGetValue(line.OrderItemId!.Value, out var reservation))
+                reservation.State = ReservationState.Sold;
+
             decimal? unitCost;
             if (line.SerialImeiId.HasValue)
             {
                 var device = devices[line.SerialImeiId.Value];
                 device.Status = SerialImeiStatus.Sold;
+                device.SaleOrderItemId = line.OrderItemId;
                 device.WarrantyStartAt = completedAt;
                 device.WarrantyEndAt = completedAt.AddMonths(device.WarrantyMonths);
                 device.UpdatedAt = completedAt;

@@ -53,7 +53,7 @@ public sealed class PosPage : Page, IRoutePage
                     .Spacing(4)
                     .Children(
                         new TextBlock().Style(AppResources.GetStyle(AppTypography.HeadingText))
-                            .Foreground(AppColors.Brushes.Text).Text("Bán hàng tại quầy"),
+                            .Foreground(AppColors.Brushes.Text).Text(x => x.Binding(() => ViewModel.PageTitle)),
                         new TextBlock()
                             .Style(AppResources.GetStyle(AppTypography.CaptionText))
                             .Foreground(AppColors.Brushes.SecondaryText)

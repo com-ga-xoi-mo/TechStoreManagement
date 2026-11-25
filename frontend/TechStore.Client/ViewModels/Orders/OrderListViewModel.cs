@@ -144,6 +144,13 @@ public sealed partial class OrderListViewModel : PageViewModel
     private void NewOrder() => _navigation.Navigate(AppRoute.OrderCreate());
 
     [RelayCommand]
+    private void OpenReturns(object? parameter)
+    {
+        if (parameter is OrderRow { HasReturns: true } row)
+            _navigation.Navigate(AppRoute.OrderReturns(row.Order.Id));
+    }
+
+    [RelayCommand]
     private void OpenPos() => _navigation.Navigate(AppRoute.Pos());
 
     [RelayCommand(CanExecute = nameof(CanChangeStatus))]

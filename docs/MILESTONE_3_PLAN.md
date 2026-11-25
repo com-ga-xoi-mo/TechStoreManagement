@@ -158,7 +158,7 @@ Mỗi người bàn giao kết quả test, dữ liệu demo và tài liệu ph�
 - [x] **Đạt:** Đổi mô tả ca “race” hiện tại trong `OrdersApiIntegrationTests.cs` thành kiểm tra xung đột tuần tự. Thêm ca hai đơn tranh cùng IMEI bằng hai request/giao dịch độc lập có điểm đồng bộ để thực sự chạy đồng thời trên PostgreSQL; đúng một đơn hoàn tất, đơn còn lại nhận 409, tồn và lịch sử bán chỉ thay đổi một lần.
 - [x] **Đạt:** Dùng hai giao dịch PostgreSQL chạy đồng thời để thử chuyển trạng thái cùng đơn và bán trong lúc đóng ca. Bình tổng hợp bằng chứng kết quả từng ca.
 - [x] **T. Vinh:** Kiểm tra HTTP methods, JSON và mã lỗi 200/201/204/400/401/403/404/409/500 phù hợp; thử lỗi mạng và phục hồi giao diện.
-- [ ] **T. Vinh:** Chạy UI trên Windows native và Skia. Kiểm tra Light/Dark/System, resize, bàn phím và binding; ghi build, hệ điều hành, ảnh hoặc log kết quả.
+- [x] **T. Vinh:** Chạy UI trên Windows native và Skia. Kiểm tra Light/Dark/System, resize, bàn phím và binding; ghi build, hệ điều hành, ảnh hoặc log kết quả. [Kết quả 25/11](M3_TEST_SUMMARY.md#nghiệm-thu-giao-diện-của-t-vinh-ngày-25112026).
 
 Dùng database test riêng. Mỗi test case cần có đầu vào, kết quả mong đợi, kết quả thực tế, trạng thái và ảnh/log nếu cần. Test bị bỏ qua hoặc chưa chạy không được tính là đạt.
 
@@ -184,12 +184,12 @@ Dùng database test riêng. Mỗi test case cần có đầu vào, kết quả m
 
 ## Điều kiện hoàn thành M3
 
-Ngày 22/11/2026, **55/57 mục đạt** trên working tree `dev`. Nghiệp vụ kho và POS đã có kết quả tích hợp. Hai mục còn mở là chạy giao diện Windows native và dùng kết quả đó để chốt hồi quy M2 trên bản M3. [Kết quả và bằng chứng](M3_TEST_SUMMARY.md#nhận-hàng-từng-phần-ngày-22112026).
+Ngày 25/11/2026, **57/57 mục đạt** trên `dev` (`f5756b0`). Nghiệp vụ kho và POS đã có kết quả tích hợp. T. Vinh đã chạy giao diện Windows native và Skia, chốt hồi quy M2 trên bản M3. [Kết quả và bằng chứng](M3_TEST_SUMMARY.md#nhận-hàng-từng-phần-ngày-22112026).
 
 - [x] **An:** Bốn role dùng được hệ thống đúng quyền; mọi API nghiệp vụ kiểm tra quyền ở server.
 - [x] **Đạt:** Luồng nhập hàng, mở ca, bán tiền mặt, trừ kho, bảo hành và doanh thu chạy đúng.
 - [x] **Q. Vinh:** Test đồng thời đạt, không bán trùng IMEI, âm kho hoặc ghi nhận tiền/nhập hàng hai lần.
-- [ ] **T. Vinh:** Các luồng M2 vẫn hoạt động; không còn lỗi chặn bán hàng, sai tiền, sai tồn hoặc vượt quyền. _(Chờ lượt nghiệm thu giao diện Windows native của bản tích hợp.)_
+- [x] **T. Vinh:** Các luồng M2 vẫn hoạt động; không còn lỗi chặn bán hàng, sai tiền, sai tồn hoặc vượt quyền. [Kết quả 25/11](M3_TEST_SUMMARY.md#nghiệm-thu-giao-diện-của-t-vinh-ngày-25112026).
 - [x] **An:** Có kết quả kiểm thử, dữ liệu demo và tài liệu để nhóm tiếp tục M4.
 
 Giữ kiến trúc và quy ước hiện có. Khi thay API hoặc schema, cập nhật các nơi gọi, spec, test, dữ liệu mẫu, migration và schema.dbml liên quan; secrets chỉ đặt trong cấu hình local hoặc biến môi trường.

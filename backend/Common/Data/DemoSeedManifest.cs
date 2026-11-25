@@ -26,6 +26,24 @@ internal static class DemoSeedManifest
     public static IReadOnlyList<SerialSeed> Serials { get; } = BuildSerials();
     public static IReadOnlyList<OrderSeed> Orders { get; } = BuildOrders();
 
+    /// <summary>
+    /// One voucher per state the screens and the checkout rules have to handle: percentage and fixed amount that can be used,
+    /// expired, used up, and switched off. Only the code identifies a row; once it exists an admin owns its values.
+    /// </summary>
+    public static IReadOnlyList<VoucherSeed> Vouchers { get; } =
+    [
+        new("DEMO-OCT26", "Demo fixture voucher", VoucherType.FixedAmount, 100000m, 1000000m, null, 100, 0,
+            AtDays(-10), AtDays(0).AddYears(2), true),
+        new("DEMO-VIP10", "Giảm 10% cho đơn từ 5 triệu, tối đa 500.000đ", VoucherType.Percentage, 10m, 5000000m, 500000m, 50, 0,
+            AtDays(-10), AtDays(0).AddYears(1), true),
+        new("DEMO-EXPIRED", "Voucher đã hết hạn", VoucherType.FixedAmount, 50000m, 0m, null, 100, 12,
+            AtDays(-60), AtDays(-1), true),
+        new("DEMO-SOLDOUT", "Voucher đã dùng hết lượt", VoucherType.Percentage, 5m, 0m, 100000m, 20, 20,
+            AtDays(-30), AtDays(0).AddYears(1), true),
+        new("DEMO-OFF", "Voucher đang tắt", VoucherType.FixedAmount, 200000m, 2000000m, null, 100, 0,
+            AtDays(-10), AtDays(0).AddYears(1), false)
+    ];
+
     public static Guid Id(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -88,13 +106,8 @@ internal static class DemoSeedManifest
             $"demo.customer{i:00}@techstore.test",
             new DateOnly(1985 + i, 1 + i, 10 + i),
             AtDays(-40 - i),
-            (i % 4) switch
-            {
-                0 => CustomerTier.Gold,
-                1 => CustomerTier.Standard,
-                2 => CustomerTier.Silver,
-                _ => CustomerTier.Platinum
-            },
+            // Points are i * 100 (100..800), so the tier they earn is Standard below 500 and Silver from 500.
+            i * 100 >= 500 ? CustomerTier.Silver : CustomerTier.Standard,
             i * 100)))
         .ToArray();
 
@@ -186,6 +199,19 @@ internal sealed record CustomerSeed(
     DateTime CreatedAt,
     CustomerTier Tier,
     int LoyaltyPoints);
+
+internal sealed record VoucherSeed(
+    string Code,
+    string Description,
+    VoucherType DiscountType,
+    decimal DiscountValue,
+    decimal MinOrderAmount,
+    decimal? MaxDiscountAmount,
+    int UsageLimit,
+    int UsedCount,
+    DateTime CreatedAt,
+    DateTime ExpiresAt,
+    bool IsActive);
 
 internal sealed record SerialSeed(string ProductSku, string Imei, DateTime CreatedAt);
 

@@ -15,7 +15,7 @@ public class VoucherConfiguration : IEntityTypeConfiguration<Voucher>
             t.HasCheckConstraint("ck_vouchers_min_order_ge_zero", "min_order_amount >= 0");
             t.HasCheckConstraint("ck_vouchers_max_discount_ge_zero", "max_discount_amount IS NULL OR max_discount_amount >= 0");
             t.HasCheckConstraint("ck_vouchers_usage_limit_gt_zero", "usage_limit > 0");
-            t.HasCheckConstraint("ck_vouchers_used_count_valid", "used_count >= 0 AND used_count <= usage_limit");
+            t.HasCheckConstraint("ck_vouchers_used_count_valid", "used_count >= 0 AND reserved_count >= 0 AND used_count + reserved_count <= usage_limit");
             t.HasCheckConstraint("ck_vouchers_expires_after_created", "expires_at > created_at");
         });
 
@@ -29,6 +29,7 @@ public class VoucherConfiguration : IEntityTypeConfiguration<Voucher>
         builder.Property(x => x.MaxDiscountAmount).HasColumnName("max_discount_amount").HasPrecision(18, 2);
         builder.Property(x => x.UsageLimit).HasColumnName("usage_limit").HasDefaultValue(100);
         builder.Property(x => x.UsedCount).HasColumnName("used_count").HasDefaultValue(0);
+        builder.Property(x => x.ReservedCount).HasColumnName("reserved_count").HasDefaultValue(0);
         builder.Property(x => x.ExpiresAt).HasColumnName("expires_at").HasColumnType("timestamptz").IsRequired();
         builder.Property(x => x.IsActive).HasColumnName("is_active").HasDefaultValue(true);
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");

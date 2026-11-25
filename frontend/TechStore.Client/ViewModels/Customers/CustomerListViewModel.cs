@@ -16,6 +16,7 @@ public sealed partial class CustomerListViewModel : PageViewModel
     private static readonly bool?[] ActivityValues = [true, false, null];
     private readonly ICustomerRepository _customers;
     private readonly ISessionStore? _session;
+    private readonly INavigationService? _navigation;
     private CancellationTokenSource? _searchDebounce;
 
     [ObservableProperty] private string searchText = string.Empty;
@@ -34,6 +35,9 @@ public sealed partial class CustomerListViewModel : PageViewModel
     /// <summary>Edit, activity filter and history are Admin/Manager only; SalesStaff searches and creates.</summary>
     public bool CanManageCustomers => _session is null || (IsSessionActive && RoleAccess.CanManageCustomers(_session.Current.Role));
     public bool CanCreateCustomers => _session is null || (IsSessionActive && RoleAccess.CanCreateCustomers(_session.Current.Role));
+    /// <summary>The voucher page is Admin/Manager only; the server answers 403 to anyone else.</summary>
+    public bool CanOpenVouchers => _navigation is not null
+        && (_session is null || (IsSessionActive && RoleAccess.CanManageVouchers(_session.Current.Role)));
     private bool IsSessionActive => _session?.Current.Status == SessionStatus.Active;
     public int CurrentPage => Snapshot?.Page ?? AppliedCriteria.Page;
     public int TotalPages => Snapshot?.TotalPages ?? 0;
@@ -73,10 +77,11 @@ public sealed partial class CustomerListViewModel : PageViewModel
         NotifyPagingCommands();
     }
 
-    public CustomerListViewModel(ICustomerRepository customers, ISessionStore? session = null)
+    public CustomerListViewModel(ICustomerRepository customers, ISessionStore? session = null, INavigationService? navigation = null)
     {
         _customers = customers ?? throw new ArgumentNullException(nameof(customers));
         _session = session;
+        _navigation = navigation;
     }
 
     protected override Task<bool> LoadContentAsync(CancellationToken cancellationToken) => SearchAsync(AppliedCriteria);
@@ -98,6 +103,14 @@ public sealed partial class CustomerListViewModel : PageViewModel
 
     [RelayCommand(CanExecute = nameof(HasNextPage))]
     private Task NextPage() => MoveToPageAsync(CurrentPage + 1);
+
+    // Execute ignores CanExecute, so the role is checked again here.
+    [RelayCommand(CanExecute = nameof(CanOpenVouchers))]
+    private void OpenVouchers()
+    {
+        if (!CanOpenVouchers) return;
+        _navigation!.Navigate(AppRoute.Vouchers());
+    }
 
     [RelayCommand]
     private void OpenCreateDialog()

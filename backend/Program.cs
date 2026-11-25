@@ -77,6 +77,10 @@ builder.Services.AddScoped<IPurchaseReceiptService, PurchaseReceiptService>();
 // Customers Module repositories
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<ILoyaltyRepository, LoyaltyRepository>();
+builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
+builder.Services.AddScoped<ILoyaltyService, LoyaltyService>();
+builder.Services.AddScoped<IVoucherService, VoucherService>();
 builder.Services.AddScoped<ILoyaltyPointRepository, LoyaltyPointRepository>();
 builder.Services.AddScoped<IRefundLoyaltyService, RefundLoyaltyService>();
 

@@ -13,6 +13,8 @@ public class Voucher : BaseEntity
     public decimal? MaxDiscountAmount { get; set; }
     public int UsageLimit { get; set; } = 100;
     public int UsedCount { get; set; } = 0;
+    /// <summary>Uses held for a sale in payment, not yet consumed; <c>UsedCount + ReservedCount</c> never exceeds the limit.</summary>
+    public int ReservedCount { get; set; } = 0;
     public DateTime ExpiresAt { get; set; }
     public bool IsActive { get; set; } = true;
 }

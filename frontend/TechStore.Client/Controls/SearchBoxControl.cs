@@ -3,6 +3,10 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
+#if !WINDOWS
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
+#endif
 using TechStore.Client.Styles;
 using Uno.Extensions.Markup;
 
@@ -27,7 +31,11 @@ public sealed class SearchBoxControl : UserControl
             .Style(AppResources.GetStyle(AppTypography.BodyText))
             .Text(x => x.Binding(() => Self.Label));
 
+#if WINDOWS
         _query = new AutoSuggestBox()
+#else
+        _query = new SearchAutoSuggestBox()
+#endif
             .Style(AppResources.GetStyle(AppControlStyles.AutoSuggestBox))
             .QueryIcon(new SymbolIcon(Symbol.Find))
             .PlaceholderText(x => x.Binding(() => Self.PlaceholderText))
@@ -79,6 +87,36 @@ public sealed class SearchBoxControl : UserControl
         _label.Foreground(AppColors.Brushes.Text);
         _query.Foreground(AppColors.Brushes.Text);
     }
+
+#if !WINDOWS
+    private sealed class SearchAutoSuggestBox : AutoSuggestBox
+    {
+        protected override void OnApplyTemplate()
+        {
+            base.OnApplyTemplate();
+            if (GetTemplateChild("TextBox") is not TextBox input)
+                return;
+
+            input.ApplyTemplate();
+            if (VisualTreeHelper.GetChildrenCount(input) == 0 ||
+                VisualTreeHelper.GetChild(input, 0) is not FrameworkElement root)
+                return;
+
+            // Uno's focused search template forces the text presenter to Light, even on a dark background.
+            var focused = VisualStateManager.GetVisualStateGroups(root)
+                .SelectMany(group => group.States)
+                .FirstOrDefault(state => state.Name == "Focused");
+            if (focused?.Storyboard?.Children is not { } animations)
+                return;
+
+            var themeOverride = animations.FirstOrDefault(animation =>
+                Storyboard.GetTargetName(animation) == "ContentElement" &&
+                Storyboard.GetTargetProperty(animation) == "RequestedTheme");
+            if (themeOverride is not null)
+                animations.Remove(themeOverride);
+        }
+    }
+#endif
 
     private void OnQuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {

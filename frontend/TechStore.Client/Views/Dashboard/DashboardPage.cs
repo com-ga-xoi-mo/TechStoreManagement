@@ -41,9 +41,14 @@ public sealed class DashboardPage : Page, IRoutePage
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         var periodSelector = BuildPeriodSelector();
 
+        // Build the date form and empty state only when shown. Skia still walks a collapsed view's theme resources.
         var content = new StackPanel().Padding(new Thickness(20, 20, 20, 4)).Spacing(18).Children(
             BuildHeader(periodSelector),
-            BuildCustomRange(),
+            new ContentControl().HorizontalContentAlignment(HorizontalAlignment.Stretch)
+                .Visibility(x => x.Binding(() => viewModel.ShowCustomRange).Convert(ShowIf))
+                .Content(x => x.Binding(() => viewModel.ShowCustomRange).Convert((bool show) => show
+                    ? BuildCustomRange()
+                    : (object)DependencyProperty.UnsetValue)),
             new TextBlock().Style(AppResources.GetStyle(AppTypography.CaptionText)).Foreground(AppColors.Brushes.SecondaryText)
                 .TextWrapping(TextWrapping.Wrap).Text(x => x.Binding(() => _viewModel.ReferenceLabel))
                 .Visibility(x => x.Binding(() => _viewModel.ShowLiveReference).Convert(ShowIf)),
@@ -56,15 +61,31 @@ public sealed class DashboardPage : Page, IRoutePage
             new Button().Content("Thử lại").Command(x => x.Binding(() => viewModel.RetryCommand))
                 .Visibility(x => x.Binding(() => viewModel.IsError).Convert(ShowIf)),
             BuildMetrics(),
-            new EmptyStateControl().Title("Dashboard")
-                .Description(x => x.Binding(() => viewModel.EmptyDashboardMessage))
-                .IconSource(GetIcon(AppIcons.EmptyIcon)!)
-                .Visibility(x => x.Binding(() => viewModel.IsEmpty).Convert(ShowIf)),
+            new ContentControl().HorizontalContentAlignment(HorizontalAlignment.Stretch)
+                .Visibility(x => x.Binding(() => viewModel.IsEmpty).Convert(ShowIf))
+                .Content(x => x.Binding(() => viewModel.IsEmpty).Convert((bool isEmpty) => isEmpty
+                    ? new EmptyStateControl().Title("Dashboard")
+                        .Description(x => x.Binding(() => _viewModel.EmptyDashboardMessage))
+                        .IconSource(GetIcon(AppIcons.EmptyIcon)!)
+                    : (object)DependencyProperty.UnsetValue)),
             BuildAnalyticsPanels());
 
-        this.Background(AppColors.Brushes.Canvas)
-            .Content(new ScrollViewer().VerticalScrollBarVisibility(ScrollBarVisibility.Auto).Content(content));
+        var overview = new ScrollViewer().VerticalScrollBarVisibility(ScrollBarVisibility.Auto).Content(content)
+            .Visibility(x => x.Binding(() => viewModel.FinancialReport.ShowOverview).Convert(ShowIf));
+        var financialReport = new FinancialReportView(viewModel.FinancialReport);
+        var reportHost = new ContentControl().HorizontalContentAlignment(HorizontalAlignment.Stretch)
+            .VerticalContentAlignment(VerticalAlignment.Stretch)
+            .Visibility(x => x.Binding(() => viewModel.FinancialReport.IsOpen).Convert(ShowIf))
+            .Content(x => x.Binding(() => viewModel.FinancialReport.IsOpen)
+                .Convert((bool open) => open ? financialReport.BuildContent() : null!));
+        this.Background(AppColors.Brushes.Canvas).Content(new Grid().RowDefinitions("Auto, *").Children(
+            financialReport.BuildTabs().Grid(row: 0),
+            overview.Grid(row: 1),
+            reportHost.Grid(row: 1)));
         Loaded += (_, _) => DrawRevenueChart();
+        // Focus restore only: the report view moves focus when its ViewModel raises FocusRequested.
+        Loaded += (_, _) => financialReport.Attach();
+        Unloaded += (_, _) => financialReport.Detach();
         SizeChanged += (_, args) =>
         {
             UpdateMetricsLayout(args.NewSize.Width);
@@ -138,7 +159,6 @@ public sealed class DashboardPage : Page, IRoutePage
 
         return new Border().Background(AppColors.Brushes.Surface).BorderBrush(AppColors.Brushes.Stroke)
             .BorderThickness(new Thickness(1)).CornerRadius(AppMetrics.Values.CardRadius).Padding(12)
-            .Visibility(x => x.Binding(() => _viewModel.ShowCustomRange).Convert(ShowIf))
             .Child(new StackPanel().Spacing(8).Children(
                 new TextBlock().Style(AppResources.GetStyle(AppTypography.CaptionText))
                     .Foreground(AppColors.Brushes.SecondaryText).TextWrapping(TextWrapping.Wrap)

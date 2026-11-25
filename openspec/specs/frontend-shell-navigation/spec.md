@@ -22,11 +22,11 @@ Client SHALL open the Shell with valid configuration without requiring the backe
 - **THEN** the error is contained in Dashboard state and the user can navigate to the other supported Shell destinations
 
 ### Requirement: Six coherent admin destinations
-Shell SHALL have exactly six entry points: Overview, Products, Categories and Inventory, Orders, Customers, and Settings. They SHALL be structured with C# Markup Fluent API (`Uno.Extensions.Markup.WinUI` on `NavigationView`). Selected menu, title, and content SHALL reflect the successfully navigated route. Shell Pane Footer SHALL show the active account (FullName, Role) and Logout action through declarative C# Markup bindings. Products SHALL open live Catalog data and provide productId detail navigation; Overview SHALL show live Analytics by default or labeled preview only when enabled; unimplemented business pages SHALL clearly remain placeholders without fabricated data. At expanded desktop widths, the navigation pane SHALL visually follow the left-sidebar hierarchy in `docs/sample_dashboard.png`: brand and subtitle, menu section label, highlighted current destination, compact icon/label rows, Settings separated near the bottom, and account footer. Visual changes MUST preserve existing route, selection, session and logout behavior.
+Shell SHALL have exactly eight entry points: Overview, Products, Categories and Inventory, Orders, Return inspections, Warranty, Customers, and Settings. They SHALL be structured with C# Markup Fluent API (`Uno.Extensions.Markup.WinUI` on `NavigationView`). Selected menu, title, and content SHALL reflect the successfully navigated route. Shell Pane Footer SHALL show the active account (FullName, Role) and Logout action through declarative C# Markup bindings. Products SHALL open live Catalog data and provide productId detail navigation; Overview SHALL show live Analytics by default or labeled preview only when enabled; unimplemented business pages SHALL clearly remain placeholders without fabricated data. At expanded desktop widths, the navigation pane SHALL visually follow the left-sidebar hierarchy in `docs/sample_dashboard.png`: brand and subtitle, menu section label, highlighted current destination, compact icon/label rows, Settings separated near the bottom, and account footer. Visual changes MUST preserve existing route, selection, session and logout behavior.
 
 #### Scenario: Visit every destination
-- **WHEN** lần lượt chọn sáu điểm vào bằng chuột hoặc keyboard
-- **THEN** nội dung tương ứng hiển thị, Sản phẩm tải Catalog thật, selection/title đúng, Cài đặt chỉ xuất hiện một lần ở footer và không có mục POS/Identity bổ sung
+- **WHEN** lần lượt chọn tám điểm vào bằng chuột hoặc keyboard
+- **THEN** nội dung tương ứng hiển thị, Sản phẩm tải Catalog thật, Bảo hành tải hồ sơ thật, selection/title đúng, Cài đặt chỉ xuất hiện một lần ở footer và không có mục POS/Identity bổ sung
 
 #### Scenario: Same destination selected again
 - **WHEN** chọn lại route hiện hành với cùng tham số
@@ -38,11 +38,11 @@ Shell SHALL have exactly six entry points: Overview, Products, Categories and In
 
 #### Scenario: Read-only detail navigation
 - **WHEN** mở card A rồi chuyển tới detail B trong nhánh Sản phẩm
-- **THEN** truyền đúng id từng sản phẩm, tải chi tiết tương ứng, hủy activation trước và giữ Sản phẩm selected; detail không tạo mục menu thứ bảy
+- **THEN** truyền đúng id từng sản phẩm, tải chi tiết tương ứng, hủy activation trước và giữ Sản phẩm selected; detail không tạo mục menu thứ chín
 
 #### Scenario: Preview stays within dashboard
 - **WHEN** mở Dashboard demo rồi chọn Sản phẩm hoặc mục khác
-- **THEN** vẫn có đúng sáu mục, Catalog tiếp tục dùng API thật và các mục chưa triển khai giữ trạng thái khung
+- **THEN** vẫn có đúng tám mục, Catalog tiếp tục dùng API thật và các mục chưa triển khai giữ trạng thái khung
 
 #### Scenario: Shell reflects active user session
 - **WHEN** Quản trị viên đăng nhập thành công với tài khoản "admin"
@@ -51,6 +51,10 @@ Shell SHALL have exactly six entry points: Overview, Products, Categories and In
 #### Scenario: Expanded sidebar matches the reference hierarchy
 - **WHEN** Shell is shown with its navigation pane expanded at a wide desktop size
 - **THEN** brand, menu caption, selected Overview row, other destinations, separated Settings entry and account footer follow the reference's visual hierarchy without adding/removing destinations or changing navigation behavior
+
+#### Scenario: Warranty and return inspections use distinct icons
+- **WHEN** Admin opens the Shell with all destinations available
+- **THEN** Warranty and Return inspections show distinct icons
 
 ### Requirement: Cancellable page activation
 Trang SHALL bắt đầu load một lần mỗi activation, hủy load khi rời trang hoặc đóng cửa sổ và bỏ mọi kết quả thuộc activation cũ. Chuyển trang SHALL không phải đợi load cũ hoàn tất; cancellation dự kiến MUST NOT hiện thành lỗi người dùng.
@@ -190,24 +194,24 @@ Mục Sản phẩm trên Shell SHALL chứa thêm route tạo sản phẩm và r
 
 ### Requirement: Role based menu and landing page
 
-Shell SHALL show only the destinations the signed-in role may use, following the client role table that mirrors `docs/API_PERMISSIONS.md`. Each new session SHALL open the role's landing page, the first allowed destination in the order Overview, Orders, Categories and Inventory, Products. Settings SHALL be shown for every role. The previous session's route SHALL NOT be reused.
+Shell SHALL show only the destinations the signed-in role may use, following the client role table that mirrors `docs/API_PERMISSIONS.md`. Each new session SHALL open the role's landing page, the first allowed destination in the order Overview, Orders, Categories and Inventory, Products. Warranty SHALL be shown for every role but SHALL NOT be a landing page. Settings SHALL be shown for every role. The previous session's route SHALL NOT be reused.
 
 #### Scenario: Warehouse login
 - **WHEN** `warehouse1` signs in
-- **THEN** Shell opens Categories and Inventory and the menu shows Products, Categories and Inventory and Settings only
+- **THEN** Shell opens Categories and Inventory and the menu shows Products, Categories and Inventory, Return inspections, Warranty and Settings only
 
 #### Scenario: Sales login after Admin
 - **WHEN** Admin was on Customers, logs out, then `cashier1` signs in
-- **THEN** Shell opens Orders, not Customers; the menu shows Customers (search and create only) and no Overview item while the server keeps the dashboard closed to Sales
+- **THEN** Shell opens Orders, not Customers; the menu shows Customers (search and create only), Warranty and no Overview item while the server keeps the dashboard closed to Sales
 
 #### Scenario: Admin login
 - **WHEN** `admin` signs in
-- **THEN** Shell opens Overview and shows all six destinations
+- **THEN** Shell opens Overview and shows all eight destinations
 
 #### Scenario: Manager login
 
 - **WHEN** `manager1` signs in and preview is disabled
-- **THEN** Shell opens Overview and shows Overview, Products, Categories and Inventory, Orders, Customers, and Settings. Overview uses the live Dashboard source
+- **THEN** Shell opens Overview and shows Overview, Products, Categories and Inventory, Orders, Warranty, Customers, and Settings, without Return inspections. Overview uses the live Dashboard source
 
 ### Requirement: Restricted routes are blocked before loading
 
@@ -237,6 +241,13 @@ Write actions SHALL be visible only to roles the server allows: category add/edi
 - **WHEN** a SalesStaff opens Customers
 - **THEN** the add button is shown and edit, activity and history actions are not
 
+### Requirement: Warranty actions follow the role
+Warranty write actions SHALL be visible only to roles the server allows: intake and return to customer for Admin, Manager and SalesStaff; inspection and repair completion for Admin and WarehouseStaff; replacement approval and rejection for Admin and Manager.
+
+#### Scenario: Warehouse views warranty
+- **WHEN** a WarehouseStaff opens Warranty
+- **THEN** claims are listed without the intake button, and a `Received` claim shows the inspection actions
+
 ### Requirement: M3 role and HTTP verification record
 The repository SHALL contain `docs/M3_UI_API_VERIFICATION.md` recording, for a named build and OS, the HTTP status checks (200/201/204/400/401/403/404/409 and 500 when testable), the four-role Shell landing/menu/route results, network failure recovery and theme/resize/keyboard results, each marked Pass, Fail or Not checked with the command or evidence used.
 
@@ -249,7 +260,7 @@ Shell SHALL host a voucher list route under the Customers destination without ad
 
 #### Scenario: Route keeps the menu
 - **WHEN** a Manager navigates to the voucher route
-- **THEN** the menu still shows six entries and Customers is selected
+- **THEN** the menu still shows the same destinations and Customers is selected
 
 #### Scenario: Warehouse direct route
 - **WHEN** a WarehouseStaff session navigates to the voucher route

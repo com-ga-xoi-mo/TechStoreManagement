@@ -35,6 +35,7 @@ public sealed partial class CustomerPickerViewModel : ObservableObject
 
     /// <summary>The existing create form, reused for "Khách mới".</summary>
     public CustomerFormViewModel Form { get; }
+    public bool AllowCreate { get; set; } = true;
 
     public Guid? SelectedCustomerId => SelectedCustomer?.Id;
     public bool HasSelection => SelectedCustomer is not null;
@@ -89,6 +90,7 @@ public sealed partial class CustomerPickerViewModel : ObservableObject
     [RelayCommand]
     private void StartCreate()
     {
+        if (!AllowCreate) return;
         Form.Initialize(null);
         var text = SearchText.Trim();
         if (text.Length > 0 && text.All(char.IsDigit)) Form.Phone = text;
@@ -183,7 +185,9 @@ public sealed partial class CustomerPickerViewModel : ObservableObject
                 cancellationToken);
             if (version != Volatile.Read(ref _searchVersion)) return;
             Results = page.Items;
-            Message = page.Items.Count == 0 ? "Không tìm thấy khách hàng. Bấm \"Khách mới\" để tạo." : string.Empty;
+            Message = page.Items.Count == 0
+                ? (AllowCreate ? "Không tìm thấy khách hàng. Bấm \"Khách mới\" để tạo." : "Không tìm thấy khách hàng.")
+                : string.Empty;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

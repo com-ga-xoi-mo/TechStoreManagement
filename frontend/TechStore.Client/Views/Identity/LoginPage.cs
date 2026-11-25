@@ -19,7 +19,7 @@ public sealed class LoginPage : Page
         ViewModel = viewModel;
         DataContext = viewModel;
 
-        this.Background(new SolidColorBrush(StitchTokens.SurfaceCanvas))
+        this.Background(AppColors.Brushes.Canvas)
             .Content(
                 new Grid()
                     .ColumnDefinitions(
@@ -191,7 +191,7 @@ public sealed class LoginPage : Page
             }
         };
 
-        var passwordRevealBox = new TextBox()
+        var passwordRevealBox = new TextBox { Name = "RevealedPasswordInput" }
             .PlaceholderText("Nhập mật khẩu của bạn")
             .Height(40)
             .CornerRadius(new CornerRadius(8))
@@ -232,8 +232,8 @@ public sealed class LoginPage : Page
         };
 
         var errorBanner = new Border()
-            .Background(new SolidColorBrush(StitchTokens.ErrorBg))
-            .BorderBrush(new SolidColorBrush(StitchTokens.ErrorBorder))
+            .Background(AppColors.Brushes.DangerFill)
+            .BorderBrush(AppColors.Brushes.DangerStroke)
             .BorderThickness(new Thickness(1))
             .CornerRadius(new CornerRadius(8))
             .Padding(new Thickness(12, 10, 12, 10))
@@ -245,11 +245,11 @@ public sealed class LoginPage : Page
                     .Children(
                         new FontIcon()
                             .Glyph("\uE783")
-                            .Foreground(new SolidColorBrush(StitchTokens.ErrorRed))
+                            .Foreground(AppColors.Brushes.DangerText)
                             .FontSize(16),
                         new TextBlock()
                             .FontSize(13)
-                            .Foreground(new SolidColorBrush(StitchTokens.ErrorText))
+                            .Foreground(AppColors.Brushes.DangerText)
                             .VerticalAlignment(VerticalAlignment.Center)
                             .Text(x => x.Binding(() => ViewModel.ErrorMessage))
                     )
@@ -258,7 +258,7 @@ public sealed class LoginPage : Page
         var loginButton = new Button()
             .Height(44)
             .HorizontalAlignment(HorizontalAlignment.Stretch)
-            .Background(new SolidColorBrush(StitchTokens.Primary))
+            .Background(AppColors.Brushes.Primary)
             .CornerRadius(new CornerRadius(8))
             .IsEnabled(x => x.Binding(() => ViewModel.IsLoggingIn).Convert((bool loading) => !loading))
             .Command(x => x.Binding(() => ViewModel.LoginCommand))
@@ -271,13 +271,13 @@ public sealed class LoginPage : Page
                         new ProgressRing()
                             .Width(16)
                             .Height(16)
-                            .Foreground(new SolidColorBrush(Colors.White))
+                            .Foreground(AppColors.Brushes.OnPrimary)
                             .IsActive(x => x.Binding(() => ViewModel.IsLoggingIn))
                             .Visibility(x => x.Binding(() => ViewModel.IsLoggingIn).Convert((bool loading) => loading ? Visibility.Visible : Visibility.Collapsed)),
                         new TextBlock()
                             .FontSize(14)
                             .FontWeight(Microsoft.UI.Text.FontWeights.SemiBold)
-                            .Foreground(new SolidColorBrush(Colors.White))
+                            .Foreground(AppColors.Brushes.OnPrimary)
                             .Text(x => x.Binding(() => ViewModel.IsLoggingIn).Convert((bool loading) => loading ? "Đang xử lý..." : "Đăng nhập"))
                     )
             );
@@ -286,9 +286,9 @@ public sealed class LoginPage : Page
             .Width(440)
             .Spacing(16)
             .Padding(36)
-            .Background(new SolidColorBrush(StitchTokens.SurfaceWhite))
+            .Background(AppColors.Brushes.Surface)
             .CornerRadius(new CornerRadius(16))
-            .BorderBrush(new SolidColorBrush(StitchTokens.SurfaceBorder))
+            .BorderBrush(AppColors.Brushes.Stroke)
             .BorderThickness(new Thickness(1))
             .HorizontalAlignment(HorizontalAlignment.Center)
             .VerticalAlignment(VerticalAlignment.Center)
@@ -297,11 +297,11 @@ public sealed class LoginPage : Page
                     .Text("Đăng nhập")
                     .FontSize(26)
                     .FontWeight(Microsoft.UI.Text.FontWeights.Bold)
-                    .Foreground(new SolidColorBrush(StitchTokens.ContentTitle)),
+                    .Foreground(AppColors.Brushes.Text),
                 new TextBlock()
                     .Text("Chào mừng quay lại, vui lòng đăng nhập để tiếp tục")
                     .FontSize(13)
-                    .Foreground(new SolidColorBrush(StitchTokens.ContentMuted)),
+                    .Foreground(AppColors.Brushes.SecondaryText),
                 errorBanner,
                 new StackPanel()
                     .Spacing(6)
@@ -310,7 +310,7 @@ public sealed class LoginPage : Page
                             .Text("Tên đăng nhập")
                             .FontSize(13)
                             .FontWeight(Microsoft.UI.Text.FontWeights.Medium)
-                            .Foreground(new SolidColorBrush(StitchTokens.ContentBody)),
+                            .Foreground(AppColors.Brushes.Text),
                         new TextBox()
                             .PlaceholderText("Nhập tên đăng nhập hoặc mã nhân viên")
                             .Height(40)
@@ -318,7 +318,7 @@ public sealed class LoginPage : Page
                             .Text(x => x.Binding(() => ViewModel.Username).Mode(BindingMode.TwoWay)),
                         new TextBlock()
                             .FontSize(12)
-                            .Foreground(new SolidColorBrush(StitchTokens.ErrorRed))
+                            .Foreground(AppColors.Brushes.DangerText)
                             .Text(x => x.Binding(() => ViewModel.UsernameError))
                             .Visibility(x => x.Binding(() => ViewModel.UsernameError).Convert((string err) => string.IsNullOrEmpty(err) ? Visibility.Collapsed : Visibility.Visible))
                     ),
@@ -329,11 +329,11 @@ public sealed class LoginPage : Page
                             .Text("Mật khẩu")
                             .FontSize(13)
                             .FontWeight(Microsoft.UI.Text.FontWeights.Medium)
-                            .Foreground(new SolidColorBrush(StitchTokens.ContentBody)),
+                            .Foreground(AppColors.Brushes.Text),
                         pwdGrid,
                         new TextBlock()
                             .FontSize(12)
-                            .Foreground(new SolidColorBrush(StitchTokens.ErrorRed))
+                            .Foreground(AppColors.Brushes.DangerText)
                             .Text(x => x.Binding(() => ViewModel.PasswordError))
                             .Visibility(x => x.Binding(() => ViewModel.PasswordError).Convert((string err) => string.IsNullOrEmpty(err) ? Visibility.Collapsed : Visibility.Visible))
                     ),
@@ -344,13 +344,13 @@ public sealed class LoginPage : Page
                 new TextBlock()
                     .Text("TechStore Management System")
                     .FontSize(12)
-                    .Foreground(new SolidColorBrush(StitchTokens.ContentMuted))
+                    .Foreground(AppColors.Brushes.SecondaryText)
                     .HorizontalAlignment(HorizontalAlignment.Center)
                     .Margin(new Thickness(0, 12, 0, 0))
             );
 
         return new Grid()
-            .Background(new SolidColorBrush(StitchTokens.SurfaceCanvas))
+            .Background(AppColors.Brushes.Canvas)
             .Children(cardStack);
     }
 }

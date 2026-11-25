@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 using TechStore.Client.Models.Analytics;
 using TechStore.Client.Services.Api;
 using TechStore.Shared.DTOs;
@@ -7,7 +8,7 @@ using TechStore.Shared.Enums;
 namespace TechStore.Client.Repositories.Analytics;
 
 /// <summary>Reads and maps the server-computed store-wide dashboard snapshot.</summary>
-public sealed class AnalyticsApiRepository(IApiClient apiClient) : IAnalyticsRepository
+public sealed class AnalyticsApiRepository(IApiClient apiClient) : IAnalyticsRepository, IFinancialReportRepository
 {
     private const string TimeZone = "UTC+07:00";
     private const int MaxListRows = 5;
@@ -42,6 +43,55 @@ public sealed class AnalyticsApiRepository(IApiClient apiClient) : IAnalyticsRep
         var dto = await apiClient.GetAsync<AdminDashboardDto>(path, cancellationToken);
         return DashboardReadResult.Available(Map(dto, query, periodKey));
     }
+
+    public async Task<FinancialReportSnapshot> GetFinancialReportAsync(FinancialReportRange range,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var path = string.Create(CultureInfo.InvariantCulture,
+            $"api/analytics/financial-report?period=custom&from={range.From:yyyy-MM-dd}&to={range.To:yyyy-MM-dd}");
+        var report = await apiClient.GetAsync<FinancialReportResponse>(path, cancellationToken);
+
+        if (report is null || report.Period != "custom" || report.TimeZone != TimeZone
+            || report.StartDate != range.From || report.EndDate != range.To || range.From > range.To
+            || report.AsOf.Kind != DateTimeKind.Utc)
+            throw InvalidResponse("Financial report metadata does not match the requested range.");
+
+        var days = range.To.DayNumber - range.From.DayNumber + 1;
+        if (report.Summary is null || report.Daily is null || report.Daily.Count != days)
+            throw InvalidResponse("Financial report totals are missing.");
+
+        for (var index = 0; index < days; index++)
+        {
+            var day = report.Daily[index];
+            if (day?.Totals is null || day.Date != range.From.AddDays(index))
+                throw InvalidResponse("Financial report daily totals do not cover the requested range in order.");
+        }
+
+        if (report.TopProductsByQuantity is null || report.TopProductsByRevenue is null
+            || report.CashierPerformance is null
+            || report.TopProductsByQuantity.Any(row => string.IsNullOrWhiteSpace(row?.ProductName))
+            || report.TopProductsByRevenue.Any(row => string.IsNullOrWhiteSpace(row?.ProductName))
+            || report.CashierPerformance.Any(row => string.IsNullOrWhiteSpace(row?.CashierName))
+            || report.CashByShift?.Any(row => row is null || row.PosSessionId == Guid.Empty) == true)
+            throw InvalidResponse("Financial report contains an invalid breakdown.");
+
+        return new FinancialReportSnapshot(range, new DateTimeOffset(report.AsOf), report.Daily, report.Summary,
+            report.TopProductsByQuantity, report.TopProductsByRevenue, report.CashierPerformance, report.CashByShift);
+    }
+
+    private sealed record FinancialReportResponse(
+        [property: JsonRequired] string Period,
+        [property: JsonRequired] DateOnly StartDate,
+        [property: JsonRequired] DateOnly EndDate,
+        [property: JsonRequired] string TimeZone,
+        [property: JsonRequired] DateTime AsOf,
+        [property: JsonRequired] FinancialReportTotals Summary,
+        [property: JsonRequired] IReadOnlyList<FinancialReportDay> Daily,
+        [property: JsonRequired] IReadOnlyList<FinancialReportProductDto> TopProductsByQuantity,
+        [property: JsonRequired] IReadOnlyList<FinancialReportProductDto> TopProductsByRevenue,
+        [property: JsonRequired] IReadOnlyList<FinancialReportCashierDto> CashierPerformance,
+        IReadOnlyList<FinancialReportCashShift>? CashByShift = null);
 
     private static DashboardSnapshot Map(AdminDashboardDto dto, DashboardQuery query, string requestedPeriodKey)
     {

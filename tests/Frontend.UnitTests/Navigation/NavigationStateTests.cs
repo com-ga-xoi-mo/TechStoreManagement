@@ -6,12 +6,14 @@ namespace TechStore.Client.UnitTests.Navigation;
 public sealed class NavigationStateTests
 {
     [Fact]
-    public void InitialDestination_IsDashboard_AndRouteMapHasSevenDestinations()
+    public void InitialDestination_IsDashboard_AndRouteMapHasEightDestinations()
     {
         var state = new NavigationState();
 
         Assert.Equal(ShellDestination.Dashboard, state.CurrentDestination);
-        Assert.Equal(7, ShellDestinations.All.Count);
+        Assert.Equal(8, ShellDestinations.All.Count);
+        Assert.Equal(ShellDestinations.All.Count,
+            ShellDestinations.All.Select(destination => destination.Symbol).Distinct().Count());
         Assert.Equal("Cài đặt", ShellDestinations.Get(ShellDestination.Settings).Title);
         Assert.True(ShellDestinations.Get(ShellDestination.Settings).IsFooterItem);
         Assert.False(ShellDestinations.TryGet("POS", out _));

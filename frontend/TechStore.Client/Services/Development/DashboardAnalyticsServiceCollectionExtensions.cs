@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using TechStore.Client.Repositories.Analytics;
 
 namespace TechStore.Client.Services.Development;
@@ -13,7 +14,9 @@ public static class DashboardAnalyticsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(options);
 
         services.AddSingleton(options);
+        services.TryAddSingleton(TimeProvider.System);
         services.AddTransient<AnalyticsApiRepository>();
+        services.AddTransient<IFinancialReportRepository>(provider => provider.GetRequiredService<AnalyticsApiRepository>());
         services.AddTransient<FixtureAnalyticsRepository>();
         services.AddTransient<UnavailableAnalyticsRepository>();
         services.AddTransient<IAnalyticsRepository>(provider =>

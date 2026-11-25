@@ -47,6 +47,35 @@ Service khóa ca, đơn, các giao dịch QR của đơn, rồi gọi Inventory.
 
 ## Q. Vinh · API tiếp nhận và chốt phiếu bảo hành
 
-Admin và Manager tạo một UUID cho phiếu và giữ mã đó khi gửi lại. `POST /api/warranties/{caseId}/receive` nhận `orderId`, `orderItemId`, `deviceId`, `customerId`. Với khách lẻ dùng `customerId: null`. Dòng bán phải đã giao, còn quyền bảo hành, thuộc khách của đơn; IMEI phải đúng lần bán hoặc là máy thay đã liên kết với chính dòng bán. Thời điểm tiếp nhận theo đồng hồ server thỏa `WarrantyStartAt <= OpenedAt < WarrantyEndAt`. Cả hồ sơ và thao tác Sold → UnderRepair được ghi trong một transaction.
+Mọi route dưới đây có tiền tố `/api/warranties`. A là Admin, M là Manager, S là SalesStaff và W là WarehouseStaff.
 
-`POST /api/warranties/{caseId}/return` trả máy đã sửa cho khách. `POST /api/warranties/{caseId}/replace` nhận `replacementDeviceId` để duyệt xuất máy thay. Cùng quyết định và cùng thiết bị trả lại kết quả đã ghi. Quyết định khác trên phiếu đã đóng trả 409. Nếu quá hạn trong lúc sửa, hạn bảo hành trên phiếu vẫn là hạn gốc đã xác nhận khi nhận. `GET /api/warranties/{caseId}` tra kết quả, IMEI cũ/mới, ngày nhận/trả, mã movement. Bảng `warranty_cases` giữ thêm người thao tác, hai ID nghiệp vụ kho, và giá vốn thay thế nullable để đối chiếu nội bộ.
+| Method và route | Quyền | Dữ liệu gửi hoặc bộ lọc |
+|---|---|---|
+| GET `/lookup` | A M S W | `code`, `orderCode` hoặc `customerId` để chứng minh lần bán |
+| GET `/` | A M S W | `status`, `q`, `page`, `pageSize` |
+| GET `/{caseId}` | A M S W | Chi tiết hồ sơ và sự kiện theo thời gian |
+| POST `/{caseId}/receive` | A M S | `code`, `orderCode`, `customerId`, `issueDescription`, `contactName`, `contactPhone` |
+| POST `/{caseId}/inspect` | A W | `outcome` là `Repair`, `Replace` hoặc `Reject`. Bắt buộc `note`, thêm `rejectionReason` khi từ chối. |
+| POST `/{caseId}/repaired` | A W | `note` tùy chọn |
+| POST `/{caseId}/reject-replacement` | A M | `note` bắt buộc |
+| POST `/{caseId}/replace` | A M | `replacementDeviceId` |
+| POST `/{caseId}/return` | A M S | Không cần body |
+
+Ví dụ tra cứu rồi tiếp nhận máy của khách lẻ. Thiếu mã đơn khi tra cứu trả 200 với `eligible: false`, lý do `OrderCodeRequired` và thông tin lần bán để trống. Khi xác minh được lần bán, API trả `customerPhone` cho Admin, Manager và SalesStaff, còn WarehouseStaff nhận `null`.
+
+```json
+{
+  "code": "351234567890123",
+  "orderCode": "ORD-202611-0001",
+  "customerId": null,
+  "issueDescription": "Máy không lên nguồn",
+  "contactName": "Khách bảo hành",
+  "contactPhone": "0901234567"
+}
+```
+
+Client tạo một UUID `caseId` khi mở phiếu. Máy đủ điều kiện trả 201, có `Location` trỏ tới chi tiết, `status: "Received"`, mã `BH-yyyyMM-NNNN` và sự kiện tiếp nhận trong `events`. Gửi lại cùng UUID và cùng thiết bị trả 200 với hồ sơ đã ghi. Dữ liệu thiếu hoặc sai định dạng trả 400. Mã IMEI hoặc số sê-ri không tồn tại trả 404. Điều kiện bảo hành không đạt trả 409 kèm `reasons`. Xung đột khi thao tác kho trả 409 kèm `detail` bằng tiếng Việt. Thao tác sai trạng thái trả 409 kèm `currentStatus`.
+
+Kiểm định chuyển hồ sơ sang sửa, chờ duyệt đổi hoặc từ chối. Hồ sơ đã sửa hoặc từ chối có thể trả khách. Hồ sơ chờ duyệt có thể đổi sang máy `InStock` đồng biến thể hoặc chuyển lại sửa. Máy thay kế thừa cả số tháng và ngày bảo hành của máy cũ. Chi tiết đã đổi gồm `replacementDeviceId`, `replacementDeviceCode`, `movementId` và `replacementUnitCost`. Chi phí là `null` với SalesStaff hoặc khi kho thiếu giá vốn.
+
+Sau khi đổi máy, chi hoàn trên dòng bán cũ trả 409. Máy thay liên kết qua hồ sơ `Replaced` vẫn có thể bảo hành nếu còn hạn, kể cả khi yêu cầu `Pending` của máy cũ đang tồn tại. Các ca PostgreSQL kiểm chứng luồng và đối soát tồn trong `WarrantyWorkflowPostgresTests.cs`.

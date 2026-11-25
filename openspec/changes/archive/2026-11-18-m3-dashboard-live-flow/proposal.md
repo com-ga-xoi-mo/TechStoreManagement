@@ -2,29 +2,29 @@
 
 ## Why
 
-Bình cần chứng minh Dashboard Manager phản ánh một đơn POS Cash vừa phát sinh từ luồng nhập và bán thật trên PostgreSQL. Hai change trước đã kiểm chứng truy cập Dashboard và đối soát fixture cố định, nên lần này tập trung vào thay đổi số liệu sau commit và sau lỗi checkout.
+Binh needs to prove that the Manager Dashboard reflects a newly created POS Cash order from a real intake-and-sale flow on PostgreSQL. The two preceding changes verified Dashboard access and reconciled the fixed fixture, so this change focuses on metric updates after commit and after a failed checkout.
 
 ## What Changes
 
-- Chạy luồng nhận hàng có IMEI → mở ca → tìm hàng, chọn khách → checkout Cash → đóng ca → Manager đọc lại Dashboard. Kiểm tra số đơn tăng đúng 1, doanh thu tăng đúng `TotalAmount` đã lưu, đơn xuất hiện trong 5 đơn gần nhất và doanh thu vào đúng ngày UTC+07.
-- Chạy ca checkout IMEI đã Sold với khóa giao dịch mới và ca còn mở. Xác nhận HTTP 409 và đối chiếu kho, ca, đơn, lịch sử và Dashboard trước/sau.
-- Đối chiếu dữ liệu phiếu nhập, đơn, IMEI, hàng giữ chỗ, lịch sử kho, bảo hành, giá vốn và tiền ca theo contract hiện có. Ghi sai lệch theo owner để Đạt, Q. Vinh hoặc Vy xử lý phần phụ trách.
-- Chuẩn bị luồng POS/Dashboard có thể chạy với thiết bị `InStock` đã có trong fixture để kiểm chứng trong khi chờ receiving. Bằng chứng nhận hàng đầu-cuối chờ API và contract bàn giao của Q. Vinh có mặt trong build chạy test.
-- Lưu đầu vào, Expected/Actual, status, build SHA và log cho từng ca. Ghi riêng bằng chứng HTTP và thao tác desktop. Dùng bằng chứng phân quyền từ `m3-manager-dashboard-access`.
+- Run the end-to-end flow: receive IMEI-tracked stock -> open shift -> look up product, select customer -> Cash checkout -> close shift -> Manager reads the Dashboard again. Verify that the order count increases by exactly 1, revenue increases by the exact stored `TotalAmount`, the order appears among the 5 most recent orders, and revenue lands on the correct UTC+07 calendar date.
+- Run a checkout attempt for an already `Sold` IMEI using a new idempotency key (`CheckoutKey`) and an open shift. Confirm HTTP 409 and reconcile inventory, shift, order, movement ledger, and Dashboard before and after the attempt.
+- Reconcile purchase receipt, order, IMEI, reservation, inventory movement, warranty, unit cost, and shift cash figures against the existing contracts. Record any discrepancies by owner so Dat, Q. Vinh, or Vy can resolve their respective areas.
+- Prepare a POS/Dashboard flow that can run with an `InStock` device already present in the fixture to verify behavior while waiting for receiving. End-to-end receiving evidence waits for Q. Vinh's receiving API and handoff contract to be present in the tested build.
+- Record inputs, Expected/Actual, status, build SHA, and logs for each case. Record HTTP and desktop verification evidence separately. Reuse the role-authorization evidence from `m3-manager-dashboard-access`.
 
 ## Capabilities
 
 ### New Capabilities
 
-Không có. Đây là change kiểm thử và bàn giao.
+None. This is a verification and handoff change.
 
 ### Modified Capabilities
 
-Không có thay đổi contract. Tiêu chí kiểm chứng lấy từ `admin-analytics-api`, `pos-cash-checkout`, `pos-shift-management`, `inventory-fulfillment` và hợp đồng nhập hàng của Q. Vinh sau khi bàn giao. Change khai báo `skip_specs: true`.
+No contract changes. Verification criteria are taken from `admin-analytics-api`, `pos-cash-checkout`, `pos-shift-management`, `inventory-fulfillment`, and Q. Vinh's receiving contract once handed off. This change sets `skip_specs: true`.
 
 ## Impact
 
-- Thêm lớp test riêng của Bình `tests/Backend.UnitTests/DashboardLiveFlowPostgresHttpTests.cs` để đối chiếu Dashboard sau giao dịch POS, dùng database riêng và JWT từ login thật. Tổng hợp bằng chứng trong [`docs/M3_TEST_SUMMARY.md`](../../../../docs/M3_TEST_SUMMARY.md#đối-soát-giao-dịch-pos-live), liên kết từ [`docs/M3_TEST_SUMMARY.md`](../../../../docs/M3_TEST_SUMMARY.md#dashboard-manager).
-- Chỉ thêm hoặc sửa file thuộc phạm vi Bình: lớp test mới, helper test riêng nếu cần và hai tài liệu trên. Không sửa file của owner khác, gồm `PosCheckoutPostgresHttpTests` và code POS/ca của Đạt, receiving/kho của Q. Vinh, Customers/công thức tiền của Vy, Catalog search của T. Vinh và helper Identity/test của An như `IdentityPostgresApi`. Các file đó chỉ được gọi lại.
-- Build chạy đầu-cuối cần ghép Dashboard Manager đã apply, POS/ca của Đạt, receiving của Q. Vinh và API tìm khách của Vy. Kiểm chứng giảm cấp đơn trên POS còn phụ thuộc Đạt nối checkout với contract của Vy.
-- Phạm vi của Bình là test và bàn giao. Receiving, nghiệp vụ kho, checkout, công thức tiền và tính năng desktop của các owner được kiểm chứng qua các đường hiện có.
+- Add Binh's dedicated test class `tests/Backend.UnitTests/DashboardLiveFlowPostgresHttpTests.cs` to reconcile the Dashboard after a POS transaction, using a dedicated database and JWTs from real logins. Consolidate evidence in [`docs/M3_TEST_SUMMARY.md`](../../../../docs/M3_TEST_SUMMARY.md#đối-soát-giao-dịch-pos-live), linked from [`docs/M3_TEST_SUMMARY.md`](../../../../docs/M3_TEST_SUMMARY.md#dashboard-manager).
+- Only add or edit files within Binh's scope: the new test class, dedicated test helpers if needed, and the two documentation sections above. Do not modify files belonging to other owners, including `PosCheckoutPostgresHttpTests` and Dat's POS/shift code, Q. Vinh's receiving/inventory code, Vy's Customers/pricing formulas, T. Vinh's Catalog search, and An's Identity/test helpers such as `IdentityPostgresApi`. Those files may only be called.
+- An end-to-end build requires combining the applied Manager Dashboard, Dat's POS/shift, Q. Vinh's receiving, and Vy's customer lookup API. Verifying order-level discounts at POS also depends on Dat wiring checkout to Vy's contract.
+- Binh's scope is verification and handoff. Receiving, inventory operations, checkout, pricing formulas, and owners' desktop features are verified through existing paths.

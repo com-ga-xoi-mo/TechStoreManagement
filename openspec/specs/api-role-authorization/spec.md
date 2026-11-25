@@ -34,6 +34,7 @@ The server SHALL enforce the following authorization matrix. `A`, `M`, `S`, `W` 
 | GET `/api/customers/{id}/loyalty-points`, `/api/customers/{id}/orders`, `/api/customers/{id}/purchased-items` | A M | Existing customer history DTOs |
 | PUT `/api/customers/{id}`, PATCH `/api/customers/{id}/deactivate`, `/api/customers/{id}/activate` | A M | Existing customer management |
 | GET `/api/analytics/dashboard` | A M | Read-only store-wide dashboard |
+| GET `/api/analytics/financial-report` | A M | Read-only store-wide financial aggregates |
 | PUT `/api/settings/store` | A M | Existing store configuration fields |
 | GET `/api/auth/me`, POST `/api/auth/logout` | A M S W | Own identity and account-wide logout |
 | GET `/api/users`, `/api/users/{id}`, POST `/api/users`, PUT `/api/users/{id}`, PATCH `/api/users/{id}/status`, PUT `/api/users/{id}/role`, POST `/api/users/{id}/reset-password` | A | Account metadata and administrative mutations; never hashes/tokens |
@@ -68,6 +69,10 @@ The server SHALL enforce the following authorization matrix. `A`, `M`, `S`, `W` 
 - **WHEN** WarehouseStaff calls any customer endpoint
 - **THEN** the response is 403 and no customer data is returned
 
+#### Scenario: Financial report enforces store-wide read access
+- **WHEN** callers request the financial report with a valid period
+- **THEN** Admin and Manager receive 200 with the same store-wide scope, SalesStaff and WarehouseStaff receive 403, and a missing or invalid JWT receives 401
+
 ### Requirement: Identity and authorization failures have safe semantics
 A missing, expired, forged or revoked token, missing/malformed/empty user identifier, unknown/inactive user, missing token version, obsolete token version or inconsistent role SHALL result in 401. A currently valid identity without the required action role SHALL receive 403. Failure bodies SHALL use safe ProblemDetails with the actual HTTP status and SHALL NOT contain stack traces, password/hash/token values, connection strings or signing keys. Challenges SHALL retain the Bearer authentication header.
 
@@ -99,11 +104,31 @@ Admin, Manager and SalesStaff SHALL open and read their own current shift. Admin
 - **THEN** the order is cancelled and its reservation is released once. A different cashier receives 404. An unresolved payment or voucher hold returns 409 and keeps the reservation.
 
 ### Requirement: Warranty case authorization
-The API SHALL restrict warranty case intake, lookup, repair handback and replacement to Admin and Manager.
+The `/api/warranties` endpoints SHALL allow: `GET lookup`, `GET` (list) and `GET {caseId}` for A M S W; `POST {caseId}/receive` and `POST {caseId}/return` for A M S; `POST {caseId}/inspect` and `POST {caseId}/repaired` for A W; `POST {caseId}/replace` and `POST {caseId}/reject-replacement` for A M. Other roles SHALL receive 403 and a missing or invalid token 401. The actor SHALL come from the token.
 
 #### Scenario: Sales and Warehouse cannot authorize warranty operations
-- **WHEN** SalesStaff or WarehouseStaff calls a warranty case endpoint
-- **THEN** the API returns 403.
+- **WHEN** SalesStaff calls inspect, repaired, replace or reject-replacement, or WarehouseStaff calls receive, return, replace or reject-replacement
+- **THEN** the API returns 403 and nothing is changed
+
+#### Scenario: Warehouse cannot receive a case
+- **WHEN** WarehouseStaff posts `/api/warranties/{caseId}/receive`
+- **THEN** the API returns 403 and no case is created
+
+#### Scenario: Sales cannot approve a replacement
+- **WHEN** SalesStaff posts `/api/warranties/{caseId}/replace`
+- **THEN** the API returns 403 and the case stays `PendingReplacement`
+
+#### Scenario: Manager cannot inspect
+- **WHEN** Manager posts `/api/warranties/{caseId}/inspect`
+- **THEN** the API returns 403
+
+#### Scenario: Sales receives and hands back
+- **WHEN** SalesStaff receives an eligible device and later returns the repaired device
+- **THEN** both calls succeed
+
+#### Scenario: Anonymous
+- **WHEN** a request without a token calls `/api/warranties/lookup`
+- **THEN** the API returns 401
 
 ### Requirement: Voucher and loyalty summary roles
 Every `/api/vouchers` endpoint SHALL require Admin or Manager; a missing token returns 401 and any other role returns 403 with nothing read or changed. `GET /api/customers/{id}/loyalty-summary` SHALL allow Admin, Manager and SalesStaff and return 403 to WarehouseStaff.
@@ -135,3 +160,13 @@ The permission table SHALL list: `POST /api/pos/vietqr` for Admin and SalesStaff
 - **WHEN** a request without `X-Signature` calls the webhook
 - **THEN** the response is 401 and the fallback policy still protects every other endpoint
 
+### Requirement: Warranty replacement cost visibility
+`replacementUnitCost` in warranty case responses SHALL be returned to Admin, Manager and WarehouseStaff, matching the device `unitCost` rule of `GET /api/inventory/serials`. SalesStaff SHALL receive `null`.
+
+#### Scenario: Sales reads cases without cost
+- **WHEN** SalesStaff reads a `Replaced` case
+- **THEN** the response is 200 with `replacementUnitCost = null`
+
+#### Scenario: Warehouse reads replacement cost
+- **WHEN** WarehouseStaff reads a `Replaced` case whose replacement device has a unit cost
+- **THEN** the response is 200 with that `replacementUnitCost`

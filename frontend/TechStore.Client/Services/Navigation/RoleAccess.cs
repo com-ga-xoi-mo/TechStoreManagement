@@ -13,6 +13,10 @@ public static class RoleAccess
     public static bool CanManageVouchers(string? role) => role is "Admin" or "Manager";
     public static bool CanReconcileVietQr(string? role) => role is "Admin" or "Manager";
 
+    public static bool CanReceiveWarranty(string? role) => role is "Admin" or "Manager" or "SalesStaff";
+    public static bool CanInspectWarranty(string? role) => CanManageStock(role);
+    public static bool CanDecideWarrantyReplacement(string? role) => CanSettleReturns(role);
+
     public static IReadOnlyList<ShellDestinationInfo> Destinations(string? role) =>
         ShellDestinations.All.Where(item => CanOpen(AppRoute.Root(item.Id), role)).ToArray();
 
@@ -30,6 +34,7 @@ public static class RoleAccess
             ShellDestination.Products => role is "Admin" or "Manager" or "SalesStaff" or "WarehouseStaff",
             ShellDestination.Inventory => role is "Admin" or "Manager" or "WarehouseStaff",
             ShellDestination.ReturnInspections => CanManageStock(role),
+            ShellDestination.Warranty => role is "Admin" or "Manager" or "SalesStaff" or "WarehouseStaff",
             ShellDestination.Orders => role is "Admin" or "Manager" or "SalesStaff",
             _ => false
         },

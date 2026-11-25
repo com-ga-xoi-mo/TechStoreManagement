@@ -31,6 +31,31 @@ internal static class IdentityThemeProbe
         accounts.ViewModel.SelectedAccount = account;
         var presenter = provider.GetRequiredService<ContentDialogPresenter>();
         var reports = new List<ProbeReportItem>();
+        var login = provider.GetRequiredService<LoginPage>();
+        host.Content = login;
+        foreach (var theme in new[] { ElementTheme.Light, ElementTheme.Dark, ElementTheme.Light })
+        {
+            ct.ThrowIfCancellationRequested();
+            login.RequestedTheme = theme;
+            login.ViewModel.IsPasswordVisible = false;
+            await settle();
+            var username = Descendants<TextBox>(login).Single(box => box.PlaceholderText.Contains("mã nhân viên"));
+            var password = Descendants<PasswordBox>(login).Single();
+            var card = Descendants<StackPanel>(login).Single(panel => panel.Width == 440);
+            var usernameContrast = await CheckLoginHintAsync(username, username.PlaceholderText, card.Background, settle);
+            var passwordContrast = await CheckLoginHintAsync(password, password.PlaceholderText, card.Background, settle);
+            login.ViewModel.TogglePasswordVisibilityCommand.Execute(null);
+            await settle();
+            var reveal = Descendants<TextBox>(login).Distinct().Single(box => box.Name == "RevealedPasswordInput");
+            var revealContrast = await CheckLoginHintAsync(reveal, reveal.PlaceholderText, card.Background, settle);
+            var palette = theme == ElementTheme.Dark ? AppColors.Dark : AppColors.Light;
+            var actual = $"card={Hex(card.Background)}, contrast username={usernameContrast:F2}, masked={passwordContrast:F2}, revealed={revealContrast:F2}";
+            reports.Add(new($"Login placeholders in {theme}", "Mounted production login form",
+                "The form follows the current theme and each focused placeholder has at least 4.5:1 contrast", actual,
+                Hex(login.Background) == palette[AppColors.Canvas] && Hex(card.Background) == palette[AppColors.Surface]
+                    && usernameContrast >= 4.5 && passwordContrast >= 4.5 && revealContrast >= 4.5,
+                "Checks username and both masked and revealed password fields on the same page across theme changes."));
+        }
 
         foreach (var page in new Page[] { settings, accounts })
         {
@@ -108,4 +133,42 @@ internal static class IdentityThemeProbe
     }
 
     private static string? Hex(Brush? brush) => brush is SolidColorBrush b ? $"#{b.Color.R:X2}{b.Color.G:X2}{b.Color.B:X2}" : null;
+
+    private static async Task<double> CheckLoginHintAsync(Control input, string placeholder, Brush? card, Func<Task> settle)
+    {
+        if (!input.Focus(FocusState.Keyboard))
+            return 0;
+
+        await settle();
+        var hint = Descendants<TextBlock>(input).FirstOrDefault(text => text.Text == placeholder && text.ActualWidth > 0);
+        var border = Descendants<Border>(input).FirstOrDefault(part => part.Name == "BorderElement");
+        if (hint is not { Visibility: Visibility.Visible, Foreground: SolidColorBrush foreground } || card is not SolidColorBrush surface)
+            return 0;
+
+        var background = (border?.Background ?? input.Background) as SolidColorBrush;
+        var cardRgb = (R: (double)surface.Color.R, G: (double)surface.Color.G, B: (double)surface.Color.B);
+        var inputRgb = background is null ? cardRgb : Blend(background, cardRgb);
+        var inputLuminance = Luminance(inputRgb);
+        var textLuminance = Luminance(Blend(foreground, inputRgb));
+        return (Math.Max(inputLuminance, textLuminance) + 0.05) / (Math.Min(inputLuminance, textLuminance) + 0.05);
+    }
+
+    private static (double R, double G, double B) Blend(SolidColorBrush brush, (double R, double G, double B) backdrop)
+    {
+        var alpha = brush.Color.A / 255.0 * brush.Opacity;
+        return (brush.Color.R * alpha + backdrop.R * (1 - alpha),
+            brush.Color.G * alpha + backdrop.G * (1 - alpha),
+            brush.Color.B * alpha + backdrop.B * (1 - alpha));
+    }
+
+    private static double Luminance((double R, double G, double B) rgb)
+    {
+        static double Linear(double channel)
+        {
+            var srgb = channel / 255;
+            return srgb <= 0.04045 ? srgb / 12.92 : Math.Pow((srgb + 0.055) / 1.055, 2.4);
+        }
+
+        return 0.2126 * Linear(rgb.R) + 0.7152 * Linear(rgb.G) + 0.0722 * Linear(rgb.B);
+    }
 }

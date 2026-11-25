@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Api.Inventory.Entities;
 using TechStore.Api.Orders.Entities;
+using TechStore.Api.Warranty.Entities;
 using TechStore.Shared.DTOs;
 using TechStore.Shared.Enums;
 using TechStore.Shared.Requests;
@@ -11,6 +12,51 @@ namespace TechStore.UnitTests;
 
 public sealed partial class PosCheckoutPostgresHttpTests
 {
+    private static async Task<ReceiveWarrantyRequest> WarrantyIntakeAsync(PosWorld world, Guid deviceId,
+        string? orderCode = null, Guid? customerId = null)
+    {
+        await using var db = world.Database.CreateContext();
+        var code = await db.SerialImeis.Where(d => d.Id == deviceId).Select(d => d.Imei ?? d.SerialNumber).SingleAsync();
+        return new ReceiveWarrantyRequest(code, orderCode, customerId, "Máy không lên nguồn", "Khách bảo hành", "0901234567");
+    }
+
+    private static void AssertWarrantyReplay(WarrantyCaseDto expected, WarrantyCaseDto? replay)
+    {
+        Assert.NotNull(replay);
+        var emptyEvents = Array.Empty<WarrantyCaseEventDto>();
+        Assert.Equal(expected with { Events = emptyEvents }, replay with { Events = emptyEvents });
+        Assert.Equal(expected.Events.ToArray(), replay.Events.ToArray());
+    }
+
+    [PostgresFact]
+    public async Task WarrantyLookup_PhoneFollowsRoleAndUnknownIntakeLeavesNoWrites()
+    {
+        await using var world = await PosWorld.CreateAsync(1);
+        var shift = await world.OpenShiftAsync(world.SalesA, 0m);
+        await using var db = world.Database.CreateContext();
+        var customer = await db.Customers.FirstAsync();
+        var checkout = Checkout(world, shift.Id, world.DeviceIds[0], Total);
+        checkout.CustomerId = customer.Id;
+        await PostDto<OrderDto>(world.SalesA.Client, "/api/pos/checkout", checkout);
+        var request = await WarrantyIntakeAsync(world, world.DeviceIds[0], customerId: customer.Id);
+        var path = $"/api/warranties/lookup?code={request.Code}&customerId={customer.Id}";
+        var warehouse = (await world.Warehouse.GetFromJsonAsync<WarrantyLookupDto>(path))!;
+        var sales = (await world.SalesA.Client.GetFromJsonAsync<WarrantyLookupDto>(path))!;
+        Assert.True(warehouse.Eligible);
+        Assert.True(sales.Eligible);
+        Assert.Null(warehouse.CustomerPhone);
+        Assert.Equal(customer.Phone, sales.CustomerPhone);
+
+        var caseId = Guid.NewGuid();
+        var eventCount = await db.Set<WarrantyCaseEvent>().CountAsync();
+        using var response = await world.SalesA.Client.PostAsJsonAsync($"/api/warranties/{caseId}/receive",
+            request with { Code = "UNKNOWN-WARRANTY-DEVICE" });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.False(await db.Set<WarrantyCase>().AnyAsync(c => c.Id == caseId));
+        Assert.Equal(eventCount, await db.Set<WarrantyCaseEvent>().CountAsync());
+        Assert.Equal(SerialImeiStatus.Sold, await db.SerialImeis.Where(d => d.Id == world.DeviceIds[0]).Select(d => d.Status).SingleAsync());
+    }
+
     [PostgresFact]
     public async Task WarrantyCase_MemberRepair_RequiresCustomerAndActiveCoverageThenReturnsSameDevice()
     {
@@ -21,17 +67,15 @@ public sealed partial class PosCheckoutPostgresHttpTests
         var checkout = Checkout(world, shift.Id, world.DeviceIds[0], Total);
         checkout.CustomerId = customer;
         var sale = await PostDto<OrderDto>(world.SalesA.Client, "/api/pos/checkout", checkout);
-        var item = sale.Items.Single();
-        var request = new ReceiveWarrantyRequest(sale.Id, item.Id, world.DeviceIds[0], customer);
+        var request = await WarrantyIntakeAsync(world, world.DeviceIds[0], customerId: customer);
         var id = Guid.NewGuid();
         var path = $"/api/warranties/{id}";
         Assert.Equal(HttpStatusCode.NotFound, (await world.Manager.GetAsync(path)).StatusCode);
         using var anonymous = world.Api.Factory.NewClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync(path)).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, await PostStatus(world.SalesA.Client, path + "/receive", request));
         Assert.Equal(HttpStatusCode.Forbidden, await PostStatus(world.Warehouse, path + "/receive", request));
-        Assert.Equal(HttpStatusCode.NotFound, await PostStatus(world.Manager, path + "/receive", request with { CustomerId = null }));
-        Assert.Equal(HttpStatusCode.NotFound, await PostStatus(world.Manager, path + "/receive", request with { CustomerId = Guid.NewGuid() }));
+        Assert.Equal(HttpStatusCode.Conflict, await PostStatus(world.Manager, path + "/receive", request with { CustomerId = null }));
+        Assert.Equal(HttpStatusCode.Conflict, await PostStatus(world.Manager, path + "/receive", request with { CustomerId = Guid.NewGuid() }));
 
         var device = (await db.SerialImeis.FindAsync(world.DeviceIds[0]))!;
         var start = device.WarrantyStartAt;
@@ -49,18 +93,26 @@ public sealed partial class PosCheckoutPostgresHttpTests
         device.WarrantyEndAt = end;
         await db.SaveChangesAsync();
 
-        var received = await PostDto<WarrantyCaseDto>(world.Manager, path + "/receive", request);
-        Assert.Equal("UnderRepair", received.Status);
+        using var intake = await world.SalesA.Client.PostAsJsonAsync(path + "/receive", request);
+        Assert.Equal(HttpStatusCode.Created, intake.StatusCode);
+        Assert.EndsWith(path, intake.Headers.Location!.ToString());
+        var received = (await intake.Content.ReadFromJsonAsync<WarrantyCaseDto>())!;
+        Assert.Equal(sale.Id, received.OrderId);
+        Assert.Equal("Received", received.Status);
         Assert.Equal(start, received.WarrantyStartAt);
         Assert.Equal(end, received.WarrantyEndAt);
-        Assert.Equal(received, await PostDto<WarrantyCaseDto>(world.Manager, path + "/receive", request));
-        using var handback = await world.Manager.PostAsync(path + "/return", null);
+        using var intakeReplay = await world.SalesA.Client.PostAsJsonAsync(path + "/receive", request);
+        Assert.Equal(HttpStatusCode.OK, intakeReplay.StatusCode);
+        AssertWarrantyReplay(received, await intakeReplay.Content.ReadFromJsonAsync<WarrantyCaseDto>());
+        await PostDto<WarrantyCaseDto>(world.Warehouse, path + "/inspect", new InspectWarrantyRequest("Repair", "Cần sửa"));
+        await PostDto<WarrantyCaseDto>(world.Warehouse, path + "/repaired", new MarkWarrantyRepairedRequest());
+        using var handback = await world.SalesA.Client.PostAsync(path + "/return", null);
         handback.EnsureSuccessStatusCode();
         var closed = await handback.Content.ReadFromJsonAsync<WarrantyCaseDto>();
         Assert.Equal("ReturnedToCustomer", closed!.Status);
         using var replay = await world.Manager.PostAsync(path + "/return", null);
-        Assert.Equal(closed, await replay.Content.ReadFromJsonAsync<WarrantyCaseDto>());
-        Assert.Equal(closed, await world.Manager.GetFromJsonAsync<WarrantyCaseDto>(path));
+        AssertWarrantyReplay(closed, await replay.Content.ReadFromJsonAsync<WarrantyCaseDto>());
+        AssertWarrantyReplay(closed, await world.Manager.GetFromJsonAsync<WarrantyCaseDto>(path));
         Assert.Null(closed.MovementId);
         Assert.Equal(SerialImeiStatus.Sold, await db.SerialImeis.AsNoTracking().Where(i => i.Id == device.Id).Select(i => i.Status).SingleAsync());
         Assert.Equal(0, (await db.InventoryStocks.SingleAsync(s => s.ProductId == world.ProductId)).Quantity);
@@ -74,28 +126,30 @@ public sealed partial class PosCheckoutPostgresHttpTests
         var old = world.DeviceIds[0];
         var spare = world.DeviceIds[1];
         var sale = await PostDto<OrderDto>(world.SalesA.Client, "/api/pos/checkout", Checkout(world, shift.Id, old, Total));
-        var request = new ReceiveWarrantyRequest(sale.Id, sale.Items.Single().Id, old, null);
+        var request = await WarrantyIntakeAsync(world, old, sale.OrderCode);
+        var wrongDevice = await WarrantyIntakeAsync(world, spare, sale.OrderCode);
         var id = Guid.NewGuid();
         var path = $"/api/warranties/{id}";
         await PostDto<WarrantyCaseDto>(world.Manager, path + "/receive", request);
-        Assert.Equal(HttpStatusCode.Conflict, await PostStatus(world.Manager, path + "/receive", request with { DeviceId = spare }));
+        Assert.Equal(HttpStatusCode.Conflict, await PostStatus(world.Manager, path + "/receive", wrongDevice));
         Assert.Equal(HttpStatusCode.Conflict, await PostStatus(world.Manager, path + "/replace", new ReplaceWarrantyDeviceRequest(old)));
 
+        await PostDto<WarrantyCaseDto>(world.Warehouse, path + "/inspect", new InspectWarrantyRequest("Replace", "Không thể sửa"));
         var replace = new ReplaceWarrantyDeviceRequest(spare);
         var result = await PostDto<WarrantyCaseDto>(world.Manager, path + "/replace", replace);
         Assert.Equal("Replaced", result.Status);
         Assert.Equal(spare, result.ReplacementDeviceId);
         Assert.NotNull(result.MovementId);
-        Assert.Equal(result, await PostDto<WarrantyCaseDto>(world.Manager, path + "/replace", replace));
+        AssertWarrantyReplay(result, await PostDto<WarrantyCaseDto>(world.Manager, path + "/replace", replace));
         Assert.Equal(HttpStatusCode.Conflict, (await world.Manager.PostAsync(path + "/return", null)).StatusCode);
-        using var lookup = await world.Manager.GetAsync(path);
-        Assert.DoesNotContain("unitCost", await lookup.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(11_000_000m, (await world.Manager.GetFromJsonAsync<WarrantyCaseDto>(path))!.ReplacementUnitCost);
+        Assert.Null((await world.SalesA.Client.GetFromJsonAsync<WarrantyCaseDto>(path))!.ReplacementUnitCost);
 
         await using var db = world.Database.CreateContext();
         var claim = (await db.Set<WarrantyCase>().FindAsync(id))!;
         Assert.Equal((old, spare, world.ManagerUserId, 11_000_000m),
             (claim.DeviceId, claim.ReplacementDeviceId!.Value, claim.ClosedById!.Value, claim.ReplacementUnitCost!.Value));
-        var movement = await db.InventoryMovements.SingleAsync(m => m.OrderItemId == request.OrderItemId &&
+        var movement = await db.InventoryMovements.SingleAsync(m => m.OrderItemId == sale.Items.Single().Id &&
             m.MovementType == InventoryMovementType.WarrantyReplacement);
         Assert.Equal(result.MovementId, movement.Id);
         var replacement = (await db.SerialImeis.FindAsync(spare))!;
@@ -125,14 +179,16 @@ public sealed partial class PosCheckoutPostgresHttpTests
             ProcessedByUserId = world.ManagerUserId, Quantity = 1, Reason = "M3 settlement",
             RefundMethod = PaymentMethod.VietQr, RefundAmount = Total });
         await db.SaveChangesAsync();
+        await db.SerialImeis.Where(d => world.DeviceIds.Contains(d.Id))
+            .ExecuteUpdateAsync(row => row.SetProperty(device => device.SaleOrderItemId, (Guid?)null));
 
         var path = $"/api/warranties/{Guid.NewGuid()}/receive";
         Assert.Equal(HttpStatusCode.Conflict, await PostStatus(world.Manager, path,
-            new ReceiveWarrantyRequest(sale.Id, refunded.Id, refunded.SerialImeiId!.Value, null)));
+            await WarrantyIntakeAsync(world, refunded.SerialImeiId!.Value, sale.OrderCode)));
         var claim = await PostDto<WarrantyCaseDto>(world.Manager, path,
-            new ReceiveWarrantyRequest(sale.Id, retained.Id, retained.SerialImeiId!.Value, null));
+            await WarrantyIntakeAsync(world, retained.SerialImeiId!.Value, sale.OrderCode));
         Assert.Equal(retained.Id, claim.OrderItemId);
-        Assert.Equal("UnderRepair", claim.Status);
+        Assert.Equal("Received", claim.Status);
     }
 
     [PostgresFact]
@@ -145,12 +201,12 @@ public sealed partial class PosCheckoutPostgresHttpTests
         var requested = await PostDto<ReturnDto>(world.SalesA.Client, "/api/returns", ReturnFor(sale, 1));
         await PostDto<PosShiftDto>(world.Manager, "/api/pos/shifts", new OpenShiftRequest { OpeningBalance = 2 * Total });
         var caseId = Guid.NewGuid();
+        var request = await WarrantyIntakeAsync(world, old, sale.OrderCode);
         await using var locked = world.Database.CreateContext();
         await using var observing = world.Database.CreateContext();
         await using var transaction = await locked.Database.BeginTransactionAsync();
         await locked.Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM orders WHERE id = {sale.Id} FOR UPDATE");
-        var receive = PostStatus(world.Manager, $"/api/warranties/{caseId}/receive",
-            new ReceiveWarrantyRequest(sale.Id, sale.Items.Single().Id, old, null));
+        var receive = PostStatus(world.Manager, $"/api/warranties/{caseId}/receive", request);
         var refund = PostStatus(world.Manager, $"/api/returns/{requested.Id}/settle", new SettleReturnRequest("Cash"));
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         while (await observing.Database.SqlQueryRaw<int>("""
@@ -161,9 +217,9 @@ public sealed partial class PosCheckoutPostgresHttpTests
         await transaction.CommitAsync();
 
         var results = await Task.WhenAll(receive, refund);
-        Assert.Single(results, x => x == HttpStatusCode.OK);
+        Assert.Single(results, x => x is HttpStatusCode.Created or HttpStatusCode.OK);
         Assert.Single(results, x => x == HttpStatusCode.Conflict);
-        var warrantyWon = results[0] == HttpStatusCode.OK;
+        var warrantyWon = results[0] == HttpStatusCode.Created;
         await using var db = world.Database.CreateContext();
         Assert.Equal(warrantyWon, await db.Set<WarrantyCase>().AnyAsync(c => c.Id == caseId));
         Assert.Equal(!warrantyWon, await db.OrderReturns.AnyAsync(r => r.OrderId == sale.Id));

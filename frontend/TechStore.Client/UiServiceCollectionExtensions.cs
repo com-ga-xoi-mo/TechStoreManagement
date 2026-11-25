@@ -3,6 +3,9 @@ using TechStore.Client.ViewModels.Warranty;
 using TechStore.Client.Views.Warranty;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TechStore.Client.Repositories.Assistant;
+using TechStore.Client.ViewModels.Assistant;
+using TechStore.Client.Views.Assistant;
 using TechStore.Client.Views.Inventory;
 using TechStore.Client.Views.Inventory.Dialogs;
 using TechStore.Client.Services.Inventory;
@@ -67,6 +70,10 @@ public static class UiServiceCollectionExtensions
         services.AddTransient<ShellPage>();
 
         services.AddTransient<DashboardViewModel>();
+        services.AddSingleton<AssistantConversation>();
+        services.AddTransient<AssistantViewModel>();
+        services.AddTransient<AssistantPage>();
+        services.AddTransient<IAssistantRepository, AssistantRepository>();
         services.AddTransient<ProductListViewModel>();
         services.AddTransient<ProductDetailViewModel>();
         services.AddTransient<ProductEditorViewModel>();

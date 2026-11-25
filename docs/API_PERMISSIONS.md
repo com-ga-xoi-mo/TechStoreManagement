@@ -46,6 +46,7 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | POST `/api/pos/shifts/{id}/close` | A M S | S closes own shift only; A/M close any shift; closing records `closedByUserId` |
 | GET `/api/analytics/dashboard` | A M | Read-only store-wide dashboard |
 | GET `/api/analytics/financial-report` | A M | Báo cáo tài chính tổng hợp toàn cửa hàng, chỉ đọc |
+| POST `/api/assistant/chat` | A M S W | Chat chỉ đọc; server lấy role từ JWT, kiểm quyền từng tool và chỉ gửi trường whitelist cho model; không gửi giá vốn, mô tả sản phẩm, khách hàng hoặc mã đơn |
 | PUT `/api/settings/store` | A M | Existing store configuration fields |
 | GET `/api/auth/me`, POST `/api/auth/logout` | A M S W | Own identity and account-wide logout |
 | GET `/api/users`, `/api/users/{id}`, POST `/api/users`, PUT `/api/users/{id}`, PATCH `/api/users/{id}/status`, PUT `/api/users/{id}/role`, POST `/api/users/{id}/reset-password` | A | Account metadata and administrative mutations; never hashes/tokens |
@@ -59,6 +60,16 @@ Account password/hash/token/version và order cost snapshots không xuất trong
 Sprint 2 tiếp tục: kiểm tra trường giá vốn
 Inventory theo role, landing page/menu và tách settings cá nhân. Giá vốn sản phẩm đã được che tại server theo `FieldAccess`.
 Dashboard mở cho Admin/Manager (change `m3-manager-dashboard-access`). Customers theo bảng trên (change `m3-sales-customers`).
+
+## Tool của Trợ lý AI — M4
+
+| Tool | Allowed roles | Service / dữ liệu được phép |
+| --- | --- | --- |
+| `search_products` | A M S W | `IProductService.SearchAsync` + tối đa 10 `GetByIdAsync(includeCost: false)`; tên, SKU, brand, giá bán, specs và biến thể; không description/cost/image/id |
+| `get_stock` | A M S W | `IInventoryService.GetStocksAsync`; tên, SKU, tồn khả dụng/giữ chỗ, ngưỡng cảnh báo, giá bán |
+| `get_sales_report` | A M | `IAnalyticsService.GetDashboardAsync`; kỳ, thời điểm, doanh thu/số đơn tổng hợp, doanh thu ngày, tồn thấp; không recentOrders |
+
+Server chỉ gửi model các tool của role và kiểm lại quyền khi thực thi; lời chat tự nhận role không đổi quyền. Mỗi request tối đa 5 lần gọi tool, timeout mặc định 60 giây. Thiếu cấu hình model trả 503, lỗi model 502, quá giờ 504; không có thao tác ghi dữ liệu.
 
 ## Kiểm chứng và cập nhật khi tích hợp
 

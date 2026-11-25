@@ -1,4 +1,5 @@
 using TechStore.Client.Views.Identity;
+using TechStore.Client.Views.Assistant;
 using TechStore.Client.Services.Session;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -103,6 +104,7 @@ public sealed class ShellRoutePageFactory(
     private static Page ResolveRootPage(ShellDestination destination, IServiceProvider services) => destination switch
     {
         ShellDestination.Dashboard => services.GetRequiredService<DashboardPage>(),
+        ShellDestination.Assistant => services.GetRequiredService<AssistantPage>(),
         ShellDestination.Products => services.GetRequiredService<ProductListPage>(),
         ShellDestination.Inventory => services.GetRequiredService<CategoryManagementPage>(),
         ShellDestination.Warranty => services.GetRequiredService<WarrantyCaseListPage>(),

@@ -31,6 +31,7 @@ public static class RoleAccess
             ShellDestination.Settings => true,
             ShellDestination.Dashboard => role is "Admin" or "Manager",
             ShellDestination.Customers => CanCreateCustomers(role),
+            ShellDestination.Assistant => role is "Admin" or "Manager" or "SalesStaff" or "WarehouseStaff",
             ShellDestination.Products => role is "Admin" or "Manager" or "SalesStaff" or "WarehouseStaff",
             ShellDestination.Inventory => role is "Admin" or "Manager" or "WarehouseStaff",
             ShellDestination.ReturnInspections => CanManageStock(role),

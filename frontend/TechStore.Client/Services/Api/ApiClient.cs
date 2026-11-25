@@ -47,6 +47,14 @@ public sealed class ApiClient : IApiClient
             cancellationToken);
     }
 
+    public Task<TResponse> PostAsync<TRequest, TResponse>(
+        string relativePath, TRequest request, TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return SendForBodyAsync<TResponse>(HttpMethod.Post, relativePath,
+            JsonContent.Create(request, options: JsonOptions), cancellationToken, timeout);
+    }
+
     public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
         string relativePath,
         TRequest request,
@@ -174,13 +182,14 @@ public sealed class ApiClient : IApiClient
         HttpMethod method,
         string relativePath,
         HttpContent? content,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TimeSpan? requestTimeout = null)
     {
         var response = await SendForResponseWithStatusAsync<TResponse>(
             method,
             relativePath,
             content,
-            cancellationToken);
+            cancellationToken, requestTimeout);
         return response.Data;
     }
 
@@ -188,11 +197,12 @@ public sealed class ApiClient : IApiClient
         HttpMethod method,
         string relativePath,
         HttpContent? content,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TimeSpan? requestTimeout = null)
     {
         using (content)
         using (var request = CreateRequest(method, relativePath, content))
-        using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(_options.TimeoutSeconds)))
+        using (var timeout = new CancellationTokenSource(requestTimeout ?? TimeSpan.FromSeconds(_options.TimeoutSeconds)))
         using (var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token))
         using (var response = await SendAsync(request, linked.Token, cancellationToken, timeout.Token))
         {

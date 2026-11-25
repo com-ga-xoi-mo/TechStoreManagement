@@ -21,7 +21,7 @@ public sealed class ShellViewModelTests
         Assert.Equal(ShellDestination.Products, viewModel.SelectedDestination);
         Assert.Equal("Sản phẩm", viewModel.CurrentTitle);
         Assert.Empty(viewModel.NavigationError);
-        Assert.Equal(7, viewModel.MainDestinations.Count);
+        Assert.Equal(8, viewModel.MainDestinations.Count);
         Assert.Equal(ShellDestination.Settings, viewModel.SettingsDestination.Id);
     }
 

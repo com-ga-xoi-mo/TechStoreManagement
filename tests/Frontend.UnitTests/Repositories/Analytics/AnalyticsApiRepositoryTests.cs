@@ -159,6 +159,8 @@ public sealed class AnalyticsApiRepositoryTests
 
     private sealed class StubApiClient(Func<string, AdminDashboardDto> response) : IApiClient
     {
+        public Task<TResponse> PostAsync<TRequest, TResponse>(string path, TRequest request, TimeSpan timeout, CancellationToken cancellationToken = default) => PostAsync<TRequest, TResponse>(path, request, cancellationToken);
+
         public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(
             string relativePath,
             TRequest request,

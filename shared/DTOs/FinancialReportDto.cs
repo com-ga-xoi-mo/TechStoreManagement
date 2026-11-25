@@ -1,6 +1,11 @@
 namespace TechStore.Shared.DTOs;
 
-/// <summary>Store-wide financial aggregates for an inclusive Vietnam calendar range.</summary>
+/// <summary>
+/// Store-wide financial aggregates for an inclusive Vietnam calendar range, as published by the sales report
+/// change. The API now serializes the superset <c>TechStore.Api.Analytics.FinancialReportResponse</c> (refund tax,
+/// Cash/VietQR channels and <c>cashByShift</c>). This record intentionally stays the earlier subset so tests can
+/// prove an older client still reads the response; do not use it as the full wire contract.
+/// </summary>
 public sealed record FinancialReportDto(
     string Period,
     DateOnly StartDate,

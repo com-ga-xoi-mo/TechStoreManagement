@@ -2,67 +2,67 @@
 
 ## Context
 
-`DemoSeedRepository` đối chiếu theo khóa tự nhiên dưới advisory lock và `DataSeeder` lưu toàn bộ trong một transaction. Manifest hiện có 5 danh mục, 20 sản phẩm có giá vốn, 3 biến thể (`IP15PM-256-NT`, `S24U-256-GR`, `MBP14-M3-512-SG`), 10 khách, 20 đơn (12 Completed, 2 Processing, 3 Pending, 3 Cancelled) và 50 IMEI. Repository tạo bốn tài khoản demo. Các SKU, mã đơn, timestamps và chỉ số vị trí của manifest đang được dùng trong fixture. Thiếu sót dữ liệu đã xác định là chưa seed `ProductImage`. `backend/samples/pixel.png` là mẫu test nhỏ, phù hợp cho test upload nhưng không đủ để minh họa sản phẩm trong demo.
+`DemoSeedRepository` reconciles rows by natural keys under an advisory lock, and `DataSeeder` commits everything in a single transaction. The manifest currently defines 5 categories, 20 products with cost prices, 3 variants (`IP15PM-256-NT`, `S24U-256-GR`, `MBP14-M3-512-SG`), 10 customers, 20 orders (12 `Completed`, 2 `Processing`, 3 `Pending`, 3 `Cancelled`), and 50 IMEIs. The repository creates four demo accounts. Manifest SKUs, order codes, timestamps, and positional indices are already relied upon by fixtures. The identified data gap is missing `ProductImage` rows. `backend/samples/pixel.png` is a tiny test asset suited for upload tests, not for illustrating products during demos.
 
-`AssertAnalyticsReferenceAsync` trong bộ kiểm thử seed PostgreSQL hiện gọi repository và tự zero-fill. Sau change Dashboard Manager, endpoint thật đã hỗ trợ `custom`. Nó đọc thời điểm database hiện tại để tính ba kỳ tương đối và `asOf`.
+`AssertAnalyticsReferenceAsync` in the PostgreSQL seed integration suite currently calls the repository directly and zero-fills days itself. Following the Manager Dashboard change, the real endpoint supports `custom`. It reads current database time to compute the three relative periods and `asOf`.
 
 ## Goals / Non-Goals
 
-- Cho seed Development tạo bìa trên DB mới và bổ sung bìa thiếu theo khóa SKU trên DB cũ, đồng thời giữ ảnh, giá vốn và dữ liệu người dùng đã có.
-- Chạy kiểm chứng cố định qua pipeline HTTP thực với dữ liệu PostgreSQL. Ghi lại lần chạy live khi trình diễn bằng khoảng lịch sử.
-- Ngoài phạm vi có migration schema, chuyển ảnh giữa provider của DB có sẵn, thay đổi công thức tiền hoặc Analytics, và đối chiếu đơn POS đóng ca mới.
+- Allow Development seeding to generate covers on a fresh DB and backfill missing covers by SKU on existing DBs while preserving existing images, cost prices, and user data.
+- Run fixed reference verification through the real HTTP pipeline against PostgreSQL data. Record live demo runs using the historical custom range.
+- Out of scope: schema migrations, migrating images between providers for existing DBs, changing pricing formulas or Analytics logic, and reconciling new closed-shift POS orders.
 
 ## Decisions
 
-### D1. Chỉ bổ sung phần thiếu đã thấy trong seed
+### D1. Append only missing items to the existing seed
 
-Dùng nguyên `AnchorUtc=2026-10-18T05:00:00Z` và toàn bộ dữ liệu đã có. Mọi mapping ảnh mới được nối thành dữ liệu mới theo SKU hoặc slug danh mục, giữ nguyên các dòng đã tồn tại, thứ tự và chỉ số trong manifest. Không lên kế hoạch thêm đơn hoặc đổi số tiền. Nếu có thêm dòng seed hợp lệ, cập nhật đồng thời các assert số cố định trong `DemoSeedManifestTests`, `DemoSeedRepositoryTests` và `DataSeederPostgresIntegrationTests`, cùng bảng Expected liên quan. Đếm đúng 50 IMEI trong kiểm thử hồi quy của fixture hiện tại và kiểm tính duy nhất, định dạng, liên kết; tiêu chí M3 không đặt mức tối thiểu IMEI. Trên dữ liệu cũ, kiểm tra giá vốn và metadata đã chỉnh được bảo toàn, kể cả khi chúng khác manifest.
+Keep `AnchorUtc=2026-10-18T05:00:00Z` and all existing data intact. Any new image mappings attach as new data by SKU or category slug, preserving existing rows, ordering, and manifest indices. Do not add orders or alter amounts. If valid seed rows are added later, update fixed-count assertions in `DemoSeedManifestTests`, `DemoSeedRepositoryTests`, and `DataSeederPostgresIntegrationTests` together with related Expected tables. Assert exact count 50 IMEIs in regression tests for the current fixture and verify uniqueness, format, and links; M3 acceptance criteria do not mandate a minimum IMEI count. On legacy databases, verify that modified cost prices and metadata are preserved even when they differ from the manifest.
 
-### D2. Ảnh mẫu trong repo, URL do provider cung cấp
+### D2. Bundled sample images, provider-supplied URLs
 
-Nhóm tự tạo ảnh PNG placeholder bằng hình minh họa chung, mỗi nhóm danh mục có một mẫu và mỗi SKU nhận một ảnh bìa. Ảnh không chứa ảnh chụp sản phẩm thật, logo hay dấu hiệu nhận diện của hãng. Đưa file vào `backend/samples/demo-products/`, đóng gói dưới dạng embedded resources để seed dùng được khi chạy từ repo, chạy test hoặc publish từ thư mục khác. Dùng kiểm tra chữ ký nội dung và giới hạn ảnh hiện có của Catalog. Mỗi sản phẩm nhận object riêng để thao tác xóa một ảnh không ảnh hưởng sản phẩm khác.
+Generate placeholder PNG illustrations per category (no real product photos, logos, or brand marks), one sample per category group so every SKU receives a cover image. Place files under `backend/samples/demo-products/` and embed them as embedded resources so seeding works from the repo, test runners, or published artifacts in another directory. Use Catalog's existing content-signature validation and image limits. Give each product its own object so deleting one image does not affect other products.
 
-`DataSeeder` điều phối trong transaction seeding hiện có. Sau khi `DemoSeedRepository.ReconcileAsync` đối chiếu thành công, `DataSeeder` gọi repository để tìm SKU demo cần ảnh. Repository xét cả sản phẩm vừa stage, lấy khóa product theo quy ước Catalog cho sản phẩm đã lưu và bỏ qua sản phẩm đã có gallery hoặc cover. Với mỗi SKU còn thiếu ảnh, `DataSeeder` gọi trực tiếp `IObjectStorage.PutAsync`, rồi chuyển URL trả về cho repository để stage `ProductImage` và cover. Repository dùng variant rỗng, sort order 0, timestamp theo mốc seed và quy tắc `ProductCoverImage` để chọn cover. Khi đã stage xong mọi ảnh và cover, `DataSeeder` gọi `IUnitOfWork.SaveChangesAsync` rồi `CommitAsync`.
+`DataSeeder` orchestrates within the existing seeding transaction. After `DemoSeedRepository.ReconcileAsync` succeeds, `DataSeeder` calls the repository to find demo SKUs missing images. The repository checks newly staged products as well, acquires Catalog's product lock for existing products, and skips products that already have a gallery or cover URL. For each SKU still missing an image, `DataSeeder` calls `IObjectStorage.PutAsync` directly, passes the returned URL back to the repository to stage `ProductImage` and cover, then calls `IUnitOfWork.SaveChangesAsync` and `CommitAsync`. The repository sets null variant, sort order 0, the seed anchor timestamp, and `ProductCoverImage` rules for the cover URL.
 
-ID ảnh seed ổn định theo SKU, object key mới theo dạng hiện có `products/{productId:N}/{guid:N}.png`. Local dùng `CreateNew`, nên khả năng chạy lại dựa trên tham chiếu DB và advisory lock, tránh dựa vào ghi đè key.
+Image IDs are deterministic per SKU; object keys follow the existing `products/{productId:N}/{guid:N}.png` format. Local storage uses `CreateNew`, so idempotency relies on DB references and the advisory lock rather than overwriting keys.
 
-Trước commit, khi gặp xung đột, lỗi upload hoặc lỗi lưu, `DataSeeder` rollback và dọn best effort các key mới thuộc lần chạy đó qua `IObjectStorage`. Dọn với token độc lập khi yêu cầu bị hủy. Khi kết quả commit mơ hồ, bảo toàn object cho đến khi kiểm tra được nó không có tham chiếu DB, để tránh làm hỏng ảnh đã commit. Hướng dẫn khắc phục khi DB còn URL nhưng file bị xoá ngoài ứng dụng thay vì tự thay gallery đang tồn tại. Dùng cùng provider và storage qua các lần rerun.
+Before commit, on conflicts, upload errors, or save failures, `DataSeeder` rolls back and performs best-effort cleanup of newly created keys for that attempt via `IObjectStorage`. Cleanup uses an independent token if the request was canceled. When the commit outcome is ambiguous, preserve objects until verified unreferenced in DB to avoid breaking committed images. Document troubleshooting steps when DB holds a URL whose file was deleted externally rather than silently replacing existing galleries. Use the same provider and storage across reruns.
 
-### D3. Mở rộng fixture PostgreSQL hiện có
+### D3. Expand existing PostgreSQL fixtures
 
-Giữ các test case fresh/rerun, Sprint 1 baseline, partial/conflict của `DataSeederPostgresIntegrationTests` và fixture schema cô lập hiện có. Bổ sung dữ liệu sentinel nhỏ để đo trước/sau khi chạy lại: ID, timestamp, credential hash, các trường người dùng đã chỉnh và gallery/cover cũ. Khi kiểm tra mật khẩu/role của bốn tài khoản seed, phân biệt fresh seed với DB đã chỉnh. Giữ quy tắc ID cố định của admin và khóa SKU/slug tự nhiên cho baseline cũ.
+Keep the existing fresh/rerun, Sprint 1 baseline, and partial/conflict test cases in `DataSeederPostgresIntegrationTests` and its isolated schema fixture. Add small sentinel checks before/after reruns: IDs, timestamps, credential hashes, modified user fields, and existing galleries/covers. When testing passwords/roles of the four seeded accounts, distinguish a fresh seed from an already-modified DB. Keep the fixed admin ID rule and natural SKU/slug keys for legacy baselines.
 
-Đối chiếu đơn, item, ca và actor, các tổng tiền ca theo khoản đã ghi nhận, chứng từ VietQR, trạng thái serial và bảo hành, số lượng tồn/giữ và các dòng nhận hàng/xuất bán theo khóa nguồn. Mở rộng ca conflict hiện có để kiểm tra rollback bằng context mới và so sánh snapshots trước/sau. Thêm ca hỏng storage hoặc lỗi lưu sau upload để chứng minh không có tham chiếu dở dang và chỉ dọn object do lần chạy tạo ra. Tái dùng `DemoSeed*Tests` và `DataSeederTests` cho logic chạy lại, khóa và thứ tự save/rollback.
+Reconcile orders, items, shifts and actors, shift totals against recorded paid orders, VietQR records, serial/warranty state, stock/reserved counts, and receipt/sale ledger rows by source keys. Extend the existing conflict case to verify rollback via a fresh context and before/after snapshots. Add a storage failure or post-upload save failure case to prove no dangling DB references remain and only objects created by the failed attempt are cleaned up. Reuse `DemoSeed*Tests` and `DataSeederTests` for idempotency, locking, and save/rollback ordering.
 
-### D4. Đối soát HTTP ở hai thời điểm rõ ràng
+### D4. HTTP reconciliation at two clear points in time
 
-Lập bảng tay từ các dòng đơn và item trong fixture với mã đơn, timestamp UTC, ngày Việt Nam, trạng thái và tiền. Tính độc lập trước khi đọc API hoặc số assert hiện có. Tính doanh thu theo `CompletedAt` của đơn Completed và đếm đơn theo `CreatedAt` ở mọi trạng thái. Liệt kê các ngày zero và tối đa 5 mã đơn theo `CreatedAt DESC, id DESC`, kèm các dòng tồn thấp theo thứ tự contract. Sản phẩm hoạt động và tồn thấp được tính từ trạng thái DB seed lúc đọc. Mốc `2026-10-18T05:00:00Z` tương ứng 12:00 ngày 18/10 UTC+07.
+Build a manual table from the fixture's order and item rows with order codes, UTC timestamps, Vietnam dates, statuses, and amounts. Compute values independently before checking API output or existing assertions. Compute revenue from `CompletedAt` on `Completed` orders and order count from `CreatedAt` across all statuses. List zero days and up to 5 order codes ordered by `CreatedAt DESC, id DESC`, plus low-stock rows in contract order. Active products and low stock reflect the seeded DB state at read time. `2026-10-18T05:00:00Z` corresponds to 12:00 on 18/10 UTC+07.
 
-| Request tại mốc cố định | Ngày Việt Nam | Doanh thu tham chiếu hiện tại | Số đơn tham chiếu hiện tại |
+| Request at fixed anchor | Vietnam dates | Reference revenue | Reference order count |
 | --- | --- | ---: | ---: |
-| `today` | 18/10/2026 | 27.980.000 ₫ | 2 |
-| `last7Days` | 12–18/10/2026 | 136.080.000 ₫ | 20 |
-| `thisMonth` | 01–18/10/2026 | 136.080.000 ₫ | 20 |
-| `custom&from=2026-10-12&to=2026-10-18` | 12–18/10/2026 | 136.080.000 ₫ | 20 |
+| `today` | 18/10/2026 | 27,980,000 ₫ | 2 |
+| `last7Days` | 12–18/10/2026 | 136,080,000 ₫ | 20 |
+| `thisMonth` | 01–18/10/2026 | 136,080,000 ₫ | 20 |
+| `custom&from=2026-10-12&to=2026-10-18` | 12–18/10/2026 | 136,080,000 ₫ | 20 |
 
-Ví dụ kỳ 12–18/10 cộng theo từng ngày được 14.480.000, 35.980.000, 0, 14.980.000, 22.980.000, 19.680.000, 27.980.000 ₫. Các số trong thiết kế là mốc tham chiếu. Actual chỉ ghi sau khi chạy và xử lý chênh lệch trên DB cô lập.
+For example, the 12–18/10 daily series sums to 14,480,000, 35,980,000, 0, 14,980,000, 22,980,000, 19,680,000, 27,980,000 ₫. Numbers in this design are reference targets; record Actual only after running against an isolated DB and resolving any differences.
 
-Thêm `Microsoft.AspNetCore.Mvc.Testing` phiên bản `10.0.12` vào `tests/Backend.IntegrationTests/TechStore.Backend.IntegrationTests.csproj`, đồng bộ với Backend.UnitTests. Mở rộng ca reconciliation hiện có để dùng `WebApplicationFactory<Program>` trên schema và thư mục Local riêng của fixture. Dùng login thật và PostgreSQL thật. DI của test host bọc repository Analytics để chỉ cố định kết quả `GetSnapshotTimeUtcAsync` theo `AnchorUtc`. Tất cả truy vấn, controller, mapping, xác thực và serializer dùng đường production. Không thêm tham số API để đổi clock. Kiểm tra `AdminDashboardDto` trên HTTP, cả bốn kỳ, mỗi ngày zero, tổng tiền và top orders. Cách này dùng contract bảo vệ KPI thay vì lặp lại code của repository trong Expected. Đảm bảo `asOf` của chế độ cố định là mốc test, không mô tả là snapshot lịch sử của một DB đã bị sửa.
+Add `Microsoft.AspNetCore.Mvc.Testing` version `10.0.12` to `tests/Backend.IntegrationTests/TechStore.Backend.IntegrationTests.csproj`, matching `Backend.UnitTests`. Extend the existing reconciliation test to host `WebApplicationFactory<Program>` on the fixture's isolated schema and Local storage folder, using real login and real PostgreSQL. Test host DI wraps the Analytics repository only to pin `GetSnapshotTimeUtcAsync` to `AnchorUtc`; all queries, controllers, mappings, authentication, and serialization use production code paths. Do not add an API parameter to override the clock. Verify `AdminDashboardDto` over HTTP across all four periods, zero days, totals, and top orders. This uses the contract to verify KPIs rather than duplicating repository code in Expected calculations. Clarify that `asOf` in anchored mode is a test timestamp, not a historical snapshot of a modified DB.
 
-Khi trình diễn, chạy API chuẩn với clock database, tắt Dashboard preview, đăng nhập `manager1` và chọn 12–18/10/2026. Custom có thể đọc hết ngày 18/10 nếu ngày demo muộn hơn, trong khi test cố định cắt lúc 12:00 hôm đó. Tính Expected theo đúng biên của từng lần chạy và ghi riêng kết quả. Ba kỳ tương đối luôn đi theo thời điểm demo, có thể rỗng ngoài tháng seed.
+During live demos, run the standard API using the database clock with Dashboard preview disabled, log in as `manager1`, and select 12–18/10/2026. `custom` includes all of 18/10 if the demo runs on a later date, whereas the fixed test cuts off at 12:00 that day. Compute Expected per the exact bounds of each run and record results separately. The three relative periods always follow demo wall-clock time and may be empty outside the seed month.
 
-### D5. Phân ranh công thức tiền
+### D5. Pricing formula boundary
 
-`EnsureOrdersAsync` lưu `TotalAmount` từ giá sản phẩm/variant và gán thuế, giảm giá bằng 0, không gọi công thức checkout. Đối chiếu fixture kiểm số tiền đã lưu, các quan hệ thanh toán và phép tổng hợp. Công thức chính thức và phân bổ thuộc Vy. Cách tính thuế/giảm giá trên checkout và đơn POS thật được kiểm ở `m3-dashboard-live-flow`.
+`EnsureOrdersAsync` persists `TotalAmount` from product/variant prices and sets tax and discount to 0 without invoking checkout pricing. Fixture reconciliation verifies stored amounts, payment relations, and aggregations. Official pricing and allocations belong to Vy; tax/discount calculations during real checkout and POS orders are verified in `m3-dashboard-live-flow`.
 
 ## Risks / Trade-offs
 
-- [Object storage ngoài giao dịch DB] → Chỉ dọn key mới khi rollback đã xác nhận, bảo toàn tham chiếu và ghi trạng thái lỗi dọn để xử lý trong storage demo.
-- [Sai kỳ nếu dùng clock máy hoặc ngày chạy] → Giữ anchor riêng cho host test, chụp `asOf` thật cho lần demo live, ghi biên UTC+07 trong báo cáo.
-- [Đổi provider làm URL cũ không mở được] → Mỗi lần trình diễn dùng DB và storage demo phù hợp nhau. Với R2 dùng bucket demo và public base URL riêng, không đưa secrets vào log hoặc hướng dẫn có giá trị thật.
+- [Object storage sits outside DB transactions] -> Clean up newly uploaded keys only after confirmed rollback; preserve references and log cleanup failures for demo storage maintenance.
+- [Wrong period from machine clock or run date] -> Keep an isolated clock anchor for the test host, record real `asOf` for live demos, and document UTC+07 bounds in the report.
+- [Switching providers breaks old URLs] -> Pair each demo run with a matching demo DB and storage. For R2, use a dedicated demo bucket and public base URL, never logging or documenting real secret values.
 
 ## Migration Plan
 
-Dùng các migration hiện có. Bàn giao hướng dẫn Local bằng `ObjectStorage__Provider=Local`, `ObjectStorage__Local__RootPath` trỏ tới thư mục demo có quyền ghi, `ObjectStorage__Local__RequestPath=/uploads`, và `dotnet run --project backend/TechStore.Api.csproj --launch-profile http` với connection string của DB demo. Xác nhận log seed, đọc cover từ API rồi mở URL hoặc mở Catalog trong client.
+Use existing migrations. Provide Local demo instructions with `ObjectStorage__Provider=Local`, `ObjectStorage__Local__RootPath` pointing to a writable demo directory, `ObjectStorage__Local__RequestPath=/uploads`, and `dotnet run --project backend/TechStore.Api.csproj --launch-profile http` with the demo DB connection string. Verify seed logs, read cover URLs from the API, and open URLs or browse Catalog in the client.
 
-Để chạy R2, dùng DB/bucket demo mới và cấu hình `ObjectStorage__Provider=R2`, `ObjectStorage__R2__AccountId`, `ObjectStorage__R2__AccessKeyId`, `ObjectStorage__R2__SecretAccessKey`, `ObjectStorage__R2__BucketName`, `ObjectStorage__R2__PublicBaseUrl` bằng biến môi trường, user-secrets hoặc `backend/.env` nằm ngoài git. Theo dõi log seed, lấy URL tuyệt đối từ product detail và kiểm tra file public. Việc mở thử R2 được ghi là chưa kiểm nếu thiếu storage test.
+For R2, use a fresh demo DB/bucket and configure `ObjectStorage__Provider=R2`, `ObjectStorage__R2__AccountId`, `ObjectStorage__R2__AccessKeyId`, `ObjectStorage__R2__SecretAccessKey`, `ObjectStorage__R2__BucketName`, and `ObjectStorage__R2__PublicBaseUrl` via environment variables, user-secrets, or git-ignored `backend/.env`. Check seed logs, read absolute URLs from product details, and verify public access. Record R2 URL verification as not tested if no test bucket is available.

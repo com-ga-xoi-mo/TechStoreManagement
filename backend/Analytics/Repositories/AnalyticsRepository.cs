@@ -3,7 +3,7 @@ using TechStore.Api.Common.Data;
 
 namespace TechStore.Api.Analytics.Repositories;
 
-public sealed class AnalyticsRepository(AppDbContext dbContext) : IAnalyticsRepository
+public sealed partial class AnalyticsRepository(AppDbContext dbContext) : IAnalyticsRepository
 {
     private const int ListLimit = 5;
 

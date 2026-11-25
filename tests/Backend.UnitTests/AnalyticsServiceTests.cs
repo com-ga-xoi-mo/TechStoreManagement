@@ -125,6 +125,9 @@ public sealed class AnalyticsServiceTests
         public Exception? Failure { get; init; }
         public DashboardAnalyticsCriteria? Criteria { get; private set; }
 
+        public Task<FinancialReportReadModel> GetFinancialReportAsync(
+            FinancialReportCriteria criteria, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<DateTime> GetSnapshotTimeUtcAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(asOfUtc);
 

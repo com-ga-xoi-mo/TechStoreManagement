@@ -2,29 +2,29 @@
 
 ## Why
 
-Bộ seed phục vụ demo M3 đã có danh mục, đơn hàng và giá vốn nhưng chưa có ảnh sản phẩm mở được. Bình cần một bộ số liệu tính tay kiểm chứng qua Analytics API để phân biệt kết quả cố định của fixture với số liệu live tại ngày demo.
+The M3 demo seed already populates categories, orders, and unit costs, but lacks openable product images. Binh needs a hand-calculated reference dataset verified via the Analytics API to distinguish fixed fixture results from live data on the demo date.
 
 ## What Changes
 
-- Xác nhận tối thiểu 20 sản phẩm có giá vốn, 5 danh mục, 10 khách hàng, 20 đơn nhiều trạng thái và bốn tài khoản demo `admin`, `manager1`, `cashier1`, `warehouse1`. Giữ 50 IMEI trong fixture hiện tại như một mốc hồi quy.
-- Bổ sung ảnh bìa cho các SKU demo còn thiếu. Nhóm tự tạo ảnh placeholder theo danh mục và đưa file mẫu vào repo. `DataSeeder` tải ảnh lên qua provider `IObjectStorage` đang cấu hình và lưu tham chiếu qua `product_images`. Local là đường demo mặc định. Bàn giao hướng dẫn R2 riêng với database và storage demo cùng cấu hình.
-- Mở rộng các ca seeding PostgreSQL hiện có để kiểm tra DB mới, rerun, seed thiếu một phần và DB cũ. Kiểm tra dữ liệu người dùng, khóa tự nhiên, timestamp, rollback và liên kết đơn/VietQR/kho/IMEI/ca.
-- Đối chiếu bốn kỳ Analytics, gồm khoảng ngày tùy chọn đã có, với bảng Expected/Actual tính độc lập tại `2026-10-18T05:00:00Z`. Hướng dẫn demo thêm cách đọc snapshot live theo kỳ lịch sử trên DB seed.
-- Ghi rõ giá trị thuế/giảm giá bằng 0 là thuộc tính của fixture. Đối chiếu công thức tiền của Vy trên đơn POS thật thuộc `m3-dashboard-live-flow`.
+- Confirm at least 20 products with cost prices, 5 categories, 10 customers, 20 orders across lifecycle states, and four demo accounts (`admin`, `manager1`, `cashier1`, `warehouse1`). Keep 50 IMEIs in the current fixture as a regression benchmark.
+- Add cover images for seeded SKUs missing images. The team generates placeholder category images and bundles sample assets in the repository. `DataSeeder` uploads images via the configured `IObjectStorage` provider and stores references in `product_images`. Local storage is the default demo path; document R2 setup separately alongside matching demo database and storage configuration.
+- Expand existing PostgreSQL seeding tests to verify fresh DBs, reruns, partial seeds, and legacy DBs. Verify user records, natural keys, timestamps, rollbacks, and linkage across orders, VietQR, stock, IMEIs, and shifts.
+- Reconcile four Analytics periods, including the existing `custom` date range, against an independently calculated Expected/Actual table anchored at `2026-10-18T05:00:00Z`. Add demo instructions for reading the live snapshot for the historical period on the seeded DB.
+- Explicitly note that zero tax/discount values are properties of this fixture. Verify Vy's pricing formulas on real POS orders in `m3-dashboard-live-flow`.
 
 ## Capabilities
 
 ### New Capabilities
 
-Không có capability mới.
+No new capabilities.
 
 ### Modified Capabilities
 
-- `data-seeding`: Bổ sung ảnh demo qua storage, kiểm chứng giá vốn và dữ liệu seed, cập nhật vai trò của mốc 50 IMEI và kiểm chứng Analytics theo contract hiện có.
-- `frontend-dashboard-preview`: Đồng bộ mô tả chỉ tiêu seed trong bàn giao Dashboard với kế hoạch M3 và làm rõ 50 IMEI là số lượng fixture hiện tại.
+- `data-seeding`: Add seeded demo images via storage, verify cost prices and seeded data, update the role of the 50-IMEI benchmark, and reconcile Analytics against the existing contract.
+- `frontend-dashboard-preview`: Align seed target descriptions in the Dashboard handoff with the M3 plan and clarify that 50 IMEIs is the current fixture count.
 
 ## Impact
 
-- Code apply tập trung vào ảnh seed trong `backend/Common/Data`, các port Catalog/storage hiện có và asset mẫu trong backend. Giữ tệp manifest hiện có theo quy tắc chỉ nối thêm dòng.
-- Mở rộng `DemoSeed*Tests`, `DataSeederTests` và `DataSeederPostgresIntegrationTests`. Nghiệm thu dùng PostgreSQL và Local storage cô lập, kèm hướng dẫn kiểm tra R2 khi có cấu hình test.
-- Đầu ra bàn giao gồm bảng đối chiếu, lệnh chạy lại và hướng dẫn demo. Cách tính KPI và API/DTO đang chạy của Analytics được giữ nguyên.
+- Application changes focus on seed images in `backend/Common/Data`, existing Catalog/storage ports, and sample assets in `backend`. Keep the existing manifest append-only.
+- Expand `DemoSeed*Tests`, `DataSeederTests`, and `DataSeederPostgresIntegrationTests`. Acceptance uses isolated PostgreSQL and Local storage, with instructions for R2 testing when a test bucket is available.
+- Handoff outputs include the reconciliation table, rerun commands, and demo instructions. Existing Analytics KPI calculations and API/DTO contracts remain unchanged.

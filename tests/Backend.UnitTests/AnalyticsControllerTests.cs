@@ -152,6 +152,9 @@ public sealed class AnalyticsControllerTests
         public DashboardAnalyticsQuery? Query { get; private set; }
         public DashboardAnalyticsResult? Error { get; init; }
 
+        public Task<FinancialReportResult> GetFinancialReportAsync(
+            FinancialReportQuery query, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<DashboardAnalyticsResult> GetDashboardAsync(DashboardAnalyticsQuery query, CancellationToken cancellationToken = default)
         {
             Query = query;

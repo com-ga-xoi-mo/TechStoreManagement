@@ -36,6 +36,7 @@ The server SHALL enforce the following authorization matrix. `A`, `M`, `S`, `W` 
 | GET `/api/customers/{id}/loyalty-points`, `/api/customers/{id}/orders`, `/api/customers/{id}/purchased-items` | A M | Existing customer history DTOs |
 | PUT `/api/customers/{id}`, PATCH `/api/customers/{id}/deactivate`, `/api/customers/{id}/activate` | A M | Existing customer management |
 | GET `/api/analytics/dashboard` | A M | Read-only store-wide dashboard |
+| GET `/api/analytics/financial-report` | A M | Read-only store-wide financial aggregates |
 | PUT `/api/settings/store` | A M | Existing store configuration fields |
 | GET `/api/auth/me`, POST `/api/auth/logout` | A M S W | Own identity and account-wide logout |
 | GET `/api/users`, `/api/users/{id}`, POST `/api/users`, PUT `/api/users/{id}`, PATCH `/api/users/{id}/status`, PUT `/api/users/{id}/role`, POST `/api/users/{id}/reset-password` | A | Account metadata and administrative mutations; never hashes/tokens |
@@ -69,6 +70,10 @@ The server SHALL enforce the following authorization matrix. `A`, `M`, `S`, `W` 
 #### Scenario: Warehouse cannot read customers
 - **WHEN** WarehouseStaff calls any customer endpoint
 - **THEN** the response is 403 and no customer data is returned
+
+#### Scenario: Financial report enforces store-wide read access
+- **WHEN** callers request the financial report with a valid period
+- **THEN** Admin and Manager receive 200 with the same store-wide scope, SalesStaff and WarehouseStaff receive 403, and a missing or invalid JWT receives 401
 
 ### Requirement: Identity and authorization failures have safe semantics
 A missing, expired, forged or revoked token, missing/malformed/empty user identifier, unknown/inactive user, missing token version, obsolete token version or inconsistent role SHALL result in 401. A currently valid identity without the required action role SHALL receive 403. Failure bodies SHALL use safe ProblemDetails with the actual HTTP status and SHALL NOT contain stack traces, password/hash/token values, connection strings or signing keys. Challenges SHALL retain the Bearer authentication header.

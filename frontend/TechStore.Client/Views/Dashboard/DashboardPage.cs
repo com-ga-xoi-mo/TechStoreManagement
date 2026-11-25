@@ -70,9 +70,22 @@ public sealed class DashboardPage : Page, IRoutePage
                     : (object)DependencyProperty.UnsetValue)),
             BuildAnalyticsPanels());
 
-        this.Background(AppColors.Brushes.Canvas)
-            .Content(new ScrollViewer().VerticalScrollBarVisibility(ScrollBarVisibility.Auto).Content(content));
+        var overview = new ScrollViewer().VerticalScrollBarVisibility(ScrollBarVisibility.Auto).Content(content)
+            .Visibility(x => x.Binding(() => viewModel.FinancialReport.ShowOverview).Convert(ShowIf));
+        var financialReport = new FinancialReportView(viewModel.FinancialReport);
+        var reportHost = new ContentControl().HorizontalContentAlignment(HorizontalAlignment.Stretch)
+            .VerticalContentAlignment(VerticalAlignment.Stretch)
+            .Visibility(x => x.Binding(() => viewModel.FinancialReport.IsOpen).Convert(ShowIf))
+            .Content(x => x.Binding(() => viewModel.FinancialReport.IsOpen)
+                .Convert((bool open) => open ? financialReport.BuildContent() : null!));
+        this.Background(AppColors.Brushes.Canvas).Content(new Grid().RowDefinitions("Auto, *").Children(
+            financialReport.BuildTabs().Grid(row: 0),
+            overview.Grid(row: 1),
+            reportHost.Grid(row: 1)));
         Loaded += (_, _) => DrawRevenueChart();
+        // Focus restore only: the report view moves focus when its ViewModel raises FocusRequested.
+        Loaded += (_, _) => financialReport.Attach();
+        Unloaded += (_, _) => financialReport.Detach();
         SizeChanged += (_, args) =>
         {
             UpdateMetricsLayout(args.NewSize.Width);

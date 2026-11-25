@@ -327,7 +327,14 @@ public sealed class DashboardViewModelTests
     }
 
     private static DashboardViewModel Create(IAnalyticsRepository repository, bool demoEnabled = true, ISessionStore? sessionStore = null) =>
-        new(repository, new DashboardPreviewOptions(demoEnabled), sessionStore ?? new InMemorySessionStore());
+        new(repository, new DashboardPreviewOptions(demoEnabled), sessionStore ?? new InMemorySessionStore(),
+            new UnusedFinancialReportRepository(), TimeProvider.System);
+
+    private sealed class UnusedFinancialReportRepository : IFinancialReportRepository
+    {
+        public Task<FinancialReportSnapshot> GetFinancialReportAsync(FinancialReportRange range,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
 
     private static DashboardSnapshot MakeSnapshot(DashboardPeriod period, decimal revenue,
         DashboardSourceKind sourceKind = DashboardSourceKind.Preview)

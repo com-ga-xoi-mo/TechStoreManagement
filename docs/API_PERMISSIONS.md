@@ -40,6 +40,7 @@ Thiếu/xác thực sai: 401; đúng identity nhưng thiếu quyền: 403.
 | GET `/api/pos/shifts`, `/api/pos/shifts/{id}` | A M S | A/M see all shifts; S sees only own (other users' shifts return 404) |
 | POST `/api/pos/shifts/{id}/close` | A M S | S closes own shift only; A/M close any shift; closing records `closedByUserId` |
 | GET `/api/analytics/dashboard` | A M | Read-only store-wide dashboard |
+| GET `/api/analytics/financial-report` | A M | Báo cáo tài chính tổng hợp toàn cửa hàng, chỉ đọc |
 | PUT `/api/settings/store` | A M | Existing store configuration fields |
 | GET `/api/auth/me`, POST `/api/auth/logout` | A M S W | Own identity and account-wide logout |
 | GET `/api/users`, `/api/users/{id}`, POST `/api/users`, PUT `/api/users/{id}`, PATCH `/api/users/{id}/status`, PUT `/api/users/{id}/role`, POST `/api/users/{id}/reset-password` | A | Account metadata and administrative mutations; never hashes/tokens |

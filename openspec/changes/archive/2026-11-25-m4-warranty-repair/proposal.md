@@ -58,7 +58,8 @@ Bản này chưa đáp ứng kế hoạch M4 ở các điểm sau:
   - chi phí sửa chữa;
   - bảo hành của hãng;
   - in phiếu;
-  - bắt buộc nhập khách khi bán.
+  - bắt buộc nhập khách khi bán;
+  - bảo hành hàng không có Serial/IMEI (phụ kiện bán theo số lượng): không có hồ sơ bảo hành, xử lý qua đổi trả.
 
 ## Capabilities
 

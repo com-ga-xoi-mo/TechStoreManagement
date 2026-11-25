@@ -15,6 +15,8 @@ Tiếp nhận, đổi và trả máy khóa đơn trước, khóa hồ sơ sau, r
 
 Khi tiếp nhận, khách lẻ dùng mã đơn để chứng minh lần bán. Đơn có khách có thể dùng mã đơn hoặc mã khách. Máy phải còn hạn và dòng bán không có yêu cầu trả đang chờ. Bảo hành không tạo đơn hàng, khoản hoàn, điểm khách hoặc doanh thu. Chi phí sửa, hoàn tiền khi hết máy thay, bảo hành của hãng và in phiếu nằm ngoài phạm vi.
 
+Hàng không có Serial/IMEI (phụ kiện bán theo số lượng) không có hồ sơ bảo hành, vì hạn bảo hành và thao tác kho đều gắn với từng máy (`serial_imeis`). Hàng này xử lý qua đổi trả của module Orders.
+
 ## Chi phí máy thay
 
 Dùng ngày đóng hồ sơ theo múi giờ Việt Nam. Một máy thay chưa có giá vốn vẫn được tính vào số lượng máy thay và xuất hiện trong cột thiếu giá vốn. Tổng tiền chỉ cộng những máy đã có giá.

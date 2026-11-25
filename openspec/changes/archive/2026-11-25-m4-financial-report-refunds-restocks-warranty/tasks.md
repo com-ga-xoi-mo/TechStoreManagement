@@ -1,21 +1,21 @@
 # Tasks
 
-## 1. Xác nhận nguồn và baseline lúc apply
+## 1. Confirm the sources and implementation baseline
 
-- [x] 1.1 Đối chiếu `origin/dev` mới nhất, xác nhận nhánh triển khai có cả change phần bán và migration của các nguồn hậu mãi. Cập nhật kết quả bàn giao theo D1 và ghi SHA nguồn/build vào phần mới của `docs/M4_FINANCIAL_REPORT.md`.
+- [x] 1.1 Check the latest `origin/dev` and confirm the implementation branch contains both the sales change and the migrations for after-sales sources. Update the handoff status from D1 and record the source and build SHAs in the new section of `docs/M4_FINANCIAL_REPORT.md`.
 
-## 2. Hoàn, thực nhập và bảo hành trong Analytics
+## 2. Refunds, physical restocks, and warranty in Analytics
 
-- [x] 2.1 Tổng hợp các dòng thực chi theo `RefundedAt`, giữ tiền hàng/thuế/chi tách riêng và phân biệt hoàn trước giao. Đối chiếu HTTP/PostgreSQL các ca hoàn một phần rồi hết, `Processing` hoàn toàn bộ, phiếu chờ/thất bại, legacy thiếu phân bổ và một khoản chi bị tách dòng sau kiểm định. Ghi Expected/Actual vào tài liệu bằng chứng.
-- [x] 2.2 Tính `restockedCost` từ movement dương `CustomerReturn` liên kết dòng trả. Kiểm chứng thời điểm khác ngày hoàn ở hai phía biên 17:00Z, lượng thực nhập một phần, hàng lỗi/chờ sửa, cờ có mà thiếu movement, giá vốn 0/thiếu và lượt kiểm định lặp. Ghi kết quả vào tài liệu bằng chứng.
-- [x] 2.3 Tính riêng `warrantyCost` từ snapshot giá vốn máy thay và thời điểm movement xuất. Đọc API báo cáo sau khi gọi luồng bảo hành thật, kiểm chứng xuất lặp vẫn một khoản, nhận sửa/trả máy cũ trả 0 cho chi phí máy thay, vốn thiếu trả `null` và lãi gộp độc lập. Ghi kết quả hoặc điều kiện chạy lại với Q. Vinh.
+- [x] 2.1 Aggregate paid refund lines by `RefundedAt`. Report merchandise, tax, and payout amounts separately and distinguish refunds before delivery. Verify over HTTP on PostgreSQL for partial and subsequent full refunds, a full refund of a `Processing` order, pending and failed cases, missing legacy allocations, and a paid line split after inspection. Record expected and actual results in the verification document.
+- [x] 2.2 Calculate `restockedCost` from positive `CustomerReturn` movements linked to a return line. Verify a restock on a different Vietnam date from the refund across the 17:00Z boundary, partial restocking, defective or repair-pending items, a flag without a movement, known zero or missing costs, and replayed inspections. Record the results in the verification document.
+- [x] 2.3 Calculate `warrantyCost` separately from the replacement device cost snapshot and the issue movement timestamp. Read the report after using the real warranty flow. Verify that a replay produces one replacement charge, receiving a device for repair or returning the original device contributes zero replacement costs, missing cost returns `null`, and gross profit is independent. Record the results or the rerun conditions with Q. Vinh.
 
-## 3. Tiền theo kênh, ca và hợp đồng API
+## 3. Cash flow by channel and shift, and the API contract
 
-- [x] 3.1 Gom thu Cash theo ca bán, chi Cash theo payout/ca thực chi và tách QR xác nhận theo chứng từ. Kiểm tra hai ca khác nhau, ca trọn kỳ và ca cắt kỳ, số đầu ca + thu − chi đối chiếu số dự kiến, payout lặp, khoản thiếu chứng từ và QR hoàn thủ công/QR chờ. Kiểm chứng thu QR bằng fixture đã xác nhận. Nếu chưa có luồng thu/đối soát đầu cuối, ghi riêng **Chưa kiểm tra**, owner Đạt và tiêu chí chạy lại ở D1.
-- [x] 3.2 Ghép các tập đã gom trong cùng snapshot, map các trường cũ và mới theo D5. Kiểm tra qua JSON cũ và JSON mở rộng, số 0 khác `null`, tổng ngày = tổng kỳ với nguồn đầy đủ, số thuần âm, `asOf` loại trừ và ngày chỉ có hậu mãi. Lưu số đối chiếu qua HTTP/PostgreSQL vào tài liệu bằng chứng.
+- [x] 3.1 Group cash receipts by selling shift and cash refunds by payout and paying shift. Report confirmed QR transactions separately using their supporting records. Test different shifts, complete and partial shift coverage, opening cash plus receipts minus payouts against expected closing cash, replayed payouts, missing records, manually reconciled QR refunds, and pending QR transactions. Verify QR receipts with a confirmed fixture. If the end-to-end receipt or reconciliation flow is unavailable, record **Not tested**, name Đạt as owner, and list rerun criteria from D1.
+- [x] 3.2 Combine separately aggregated datasets in one snapshot and map old and new fields according to D5. Test legacy and extended JSON, zero versus `null`, daily reconciliation with period totals when data is complete, negative net figures, the exclusive `asOf` cutoff, and days with only after-sales activity. Record the HTTP and PostgreSQL reconciliation results in the verification document.
 
-## 4. Chốt nghiệm thu trong phạm vi Bình
+## 4. Complete verification within Bình’s scope
 
-- [x] 4.1 Chạy bộ tích hợp với các nguồn sẵn sàng và fixture Expected D6, đọc lại báo cáo sau thao tác lặp và đối chiếu từng số kể cả tổng kỳ. Chạy hồi quy quyền Admin/Manager, 401/403, kỳ 400, Dashboard hiện hành, top và hiệu suất phần bán. Ghi SHA build, Expected/Actual, trạng thái và giới hạn vào duy nhất `docs/M4_FINANCIAL_REPORT.md`. Mọi ca chưa chạy được qua nguồn thật ghi **Chưa kiểm tra**, owner và điều kiện chạy lại.
-- [x] 4.2 Rà diff để xác nhận phạm vi implementation chỉ gồm Analytics, test báo cáo của Bình và `docs/M4_FINANCIAL_REPORT.md`. Xác nhận không thêm script, log hay Markdown tạm. Nếu commit, kiểm tra message không có trailer `Co-Authored-By` của AI.
+- [x] 4.1 Run integration tests with available sources and the hand-calculated D6 fixture. Read the report again after replays and reconcile every figure, including period totals. Rerun regressions for Admin/Manager access, 401 and 403, invalid ranges returning 400, the current Dashboard, sales rankings, and cashier performance. Record build SHA, expected and actual results, status, and limitations in `docs/M4_FINANCIAL_REPORT.md` as the sole verification document. For each case that could not run through the real source, record **Not tested**, the owner, and the rerun conditions.
+- [x] 4.2 Review the diff to verify implementation covers only Analytics, Bình’s report tests, and `docs/M4_FINANCIAL_REPORT.md`. Check for temporary scripts, logs, and Markdown files. If committing, verify the message contains no AI `Co-Authored-By` trailer.

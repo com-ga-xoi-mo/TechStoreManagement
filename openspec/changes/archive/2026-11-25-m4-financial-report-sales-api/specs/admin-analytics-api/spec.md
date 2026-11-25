@@ -3,59 +3,59 @@
 ## ADDED Requirements
 
 ### Requirement: Financial report uses a validated Vietnam date range
-API SHALL cung cấp `GET /api/analytics/financial-report` với đúng một `period=custom`, một `from` và một `to` dạng `yyyy-MM-dd`. Kỳ bao gồm cả hai ngày, dài 1–31 ngày và kết thúc muộn nhất vào ngày UTC+07 tại `asOf`. Response SHALL trả `period`, `startDate`, `endDate`, `timeZone` và `asOf` UTC, với tất cả số liệu từ cùng snapshot.
+The API SHALL provide `GET /api/analytics/financial-report` and require exactly one `period=custom`, `from`, and `to`, with dates in `yyyy-MM-dd` format. The inclusive range SHALL span 1–31 days and end on or before the UTC+07 date at `asOf`. The response SHALL return `period`, `startDate`, `endDate`, `timeZone`, and UTC `asOf`. All figures SHALL come from one snapshot.
 
 #### Scenario: UTC+07 boundaries and current-day cutoff
-- **WHEN** caller đọc kỳ hợp lệ
-- **THEN** biên đầu là nửa đêm UTC+07 của `from`, được tính. Biên cuối là mốc sớm hơn giữa nửa đêm UTC+07 của ngày sau `to` và `asOf`, bị loại trừ
-- **AND** daily có đúng một điểm mỗi ngày theo thứ tự tăng dần
+- **WHEN** the caller requests a valid range
+- **THEN** the inclusive start is midnight UTC+07 on `from`. The exclusive end is the earlier of midnight UTC+07 on the day after `to` and `asOf`
+- **AND** the daily series contains exactly one entry per day in ascending order
 
 #### Scenario: Invalid report period
-- **WHEN** caller có quyền gửi tham số bắt buộc bị thiếu, rỗng, lặp, period khác `custom`, ngày sai định dạng hoặc không chuyển được thành biên UTC, kỳ đảo ngược, dài hơn 31 ngày hoặc kết thúc trong tương lai
-- **THEN** API trả 400 `ValidationProblemDetails` theo trường liên quan và không tổng hợp báo cáo
+- **WHEN** an authorized caller omits, repeats, or sends an empty required parameter, uses a period other than `custom`, sends a malformed date or one that cannot be converted to a UTC boundary, reverses the range, exceeds 31 days, or ends the range in the future
+- **THEN** the API returns HTTP 400 `ValidationProblemDetails` for the affected field and skips report aggregation
 
 ### Requirement: Financial report recognizes original delivered sales
-Theo `CompletedAt` trong kỳ, báo cáo SHALL tính đơn `Completed`, `PartiallyRefunded` hoặc `Refunded`. Tiền hàng chưa thuế của dòng là `TotalPrice − OrderDiscountAmount`, thuế là `TaxAmount` đã lưu trên dòng. Tổng kỳ và các nhóm theo ngày, sản phẩm, thu ngân SHALL dùng cùng tập dòng bán.
+The report SHALL include `Completed`, `PartiallyRefunded`, and `Refunded` orders whose `CompletedAt` falls in the range. Line sales excluding tax SHALL be `TotalPrice − OrderDiscountAmount`, and line tax SHALL be the stored `TaxAmount`. Period, daily, product, and cashier aggregates SHALL use the same set of sales lines.
 
 #### Scenario: Original sale survives a refund
-- **WHEN** một đơn được giao trong kỳ rồi hoàn một phần hoặc toàn bộ, hoặc đơn đã thu tiền vẫn ở `Processing`
-- **THEN** đơn đã giao vẫn đóng góp số bán gốc vào ngày giao, còn đơn `Processing` không đóng góp số bán dù đã có `PaidAt`
+- **WHEN** an order is delivered in the range and later partially or fully refunded, or a paid order is still `Processing`
+- **THEN** a delivered order contributes its original sales on the delivery date. A `Processing` order contributes no sales even when it has a `PaidAt` timestamp
 
 #### Scenario: Legacy line allocations remain as stored
-- **WHEN** phân bổ lưu trên dòng bằng 0
-- **THEN** báo cáo dùng đúng 0. Nếu tổng thuế dòng lệch `Order.TaxAmount` hoặc tổng tiền hàng chưa thuế dòng lệch `Order.TotalAmount − Order.TaxAmount`, đếm đơn đó một lần trong `allocationMismatchOrderCount` của ngày và kỳ
-- **AND** không phân bổ lại phần chênh, không tra giá/thuế/ưu đãi hiện tại
+- **WHEN** a stored line allocation is zero
+- **THEN** the report uses zero. If line tax totals differ from `Order.TaxAmount` or line sales excluding tax differ from `Order.TotalAmount − Order.TaxAmount`, the report counts that order once in `allocationMismatchOrderCount` for its day and period
+- **AND** the report uses the stored allocations without redistributing differences or looking up current prices, taxes, or promotions
 
 #### Scenario: The Dashboard keeps its own contract
-- **WHEN** caller dùng `GET /api/analytics/dashboard`
-- **THEN** endpoint, các kỳ và DTO Dashboard giữ nguyên, doanh thu Dashboard theo đúng quy tắc hiện hành của requirement KPI trong spec này (cộng `TotalAmount` gốc của đơn đã giao ở trạng thái `Completed`, `PartiallyRefunded` hoặc `Refunded`), và báo cáo tài chính không thay đổi số liệu Dashboard
+- **WHEN** the caller uses `GET /api/analytics/dashboard`
+- **THEN** the Dashboard endpoint, periods, and DTO stay the same. Dashboard revenue follows the existing KPI requirement in this spec and sums original `TotalAmount` for delivered orders in `Completed`, `PartiallyRefunded`, or `Refunded` status. The financial report does not affect Dashboard figures
 
 ### Requirement: Financial report separates receipts from sales
-`paymentReceivedAmount` SHALL là tổng `Order.TotalAmount` của đơn có `PaidAt` trong kỳ, đếm một lần mỗi đơn, gom ngày UTC+07 của `PaidAt`. Tiền thu gốc SHALL có trường riêng với doanh thu chưa thuế, thuế và hoàn tiền.
+`paymentReceivedAmount` SHALL sum `Order.TotalAmount` for orders whose `PaidAt` falls in the range, counting each order once and grouping by the UTC+07 date of `PaidAt`. The response SHALL report original receipts separately from sales excluding tax, tax, and refunds.
 
 #### Scenario: Payment and delivery fall on different days
-- **WHEN** đơn được thanh toán trước ngày giao, kể cả đơn còn `Processing`
-- **THEN** tiền thu gốc được ghi vào ngày thanh toán và chỉ lần giao đủ điều kiện mới đóng góp doanh thu vào ngày giao
+- **WHEN** an order is paid before its delivery date, including when the order is still `Processing`
+- **THEN** the report records original receipts on the payment date. Only a qualifying delivery contributes sales on the delivery date
 
 ### Requirement: Financial report distinguishes zero and unavailable amounts
-Giá vốn bán SHALL là tổng `UnitCost × Quantity`. Trong tổng kỳ, từng ngày và từng thu ngân, chỉ một dòng có `UnitCost=null` cũng làm giá vốn và lãi gộp phần bán của nhóm đó là `null`. Khi biết đủ giá vốn, lãi gộp phần bán SHALL bằng tiền hàng chưa thuế trừ giá vốn bán.
+Cost of goods sold SHALL sum `UnitCost × Quantity`. In each period, day, and cashier group, a single line with `UnitCost=null` SHALL set cost of goods sold and sales gross profit to `null`. When all costs are known, sales gross profit SHALL equal sales excluding tax minus cost of goods sold.
 
 #### Scenario: Empty, zero and missing costs
-- **WHEN** kỳ có một ngày trống, một ngày chỉ có giá vốn 0 đã biết và một ngày thiếu giá vốn
-- **THEN** ngày trống trả 0 cho các chỉ số phần bán và tiền thu, ngày có giá vốn 0 giữ số 0, ngày thiếu giá vốn và tổng kỳ trả `null` cho chỉ số phụ thuộc
-- **AND** mỗi chỉ số cộng được ở ngày khớp tổng kỳ, với cùng quy tắc lan truyền `null`
+- **WHEN** the range includes an empty day, a day with only known zero costs, and a day with missing costs
+- **THEN** the empty day returns zero sales figures and receipts, the day with known zero cost retains zero, and the day with missing costs and the period return `null` for dependent metrics
+- **AND** each additive metric reconciles from daily values to the period total under the same `null` propagation rules
 
 #### Scenario: Change 2 amounts are present but unavailable
-- **WHEN** caller đọc báo cáo Sprint 1
-- **THEN** tổng kỳ và mỗi ngày luôn có các trường `refundPaidAmount`, `refundedSalesExcludingTax`, `restockedCost`, `warrantyCost`, `netSalesExcludingTax`, `netCostOfGoodsSold` và `netGrossProfit` với giá trị JSON `null`, kể cả ngày không có dữ liệu
+- **WHEN** the caller reads the Sprint 1 report
+- **THEN** period totals and every daily total include `refundPaidAmount`, `refundedSalesExcludingTax`, `restockedCost`, `warrantyCost`, `netSalesExcludingTax`, `netCostOfGoodsSold`, and `netGrossProfit` as JSON `null`, including on empty days
 
 ### Requirement: Financial report ranks products and groups cashier performance
-Báo cáo SHALL trả tối đa 10 sản phẩm cho mỗi bảng xếp hạng, gom mọi biến thể theo `ProductId`. Bảng số lượng sắp theo số lượng giảm dần, rồi doanh thu chưa thuế giảm dần. Bảng doanh thu dùng thứ tự hai chỉ số ngược lại, đều giảm dần. Hòa cả hai chỉ số dùng `ProductId` tăng dần. Hiệu suất SHALL gom theo `CashierUserId` trên đơn bán đủ điều kiện.
+The report SHALL return at most 10 products per ranking and group all variants by `ProductId`. The quantity ranking SHALL sort by quantity descending, then sales excluding tax descending. The sales ranking SHALL reverse the priority of the two descending metrics. Both SHALL break ties by `ProductId` ascending. Cashier performance SHALL group qualifying delivered orders by `CashierUserId`.
 
 #### Scenario: Ties and historical cashier attribution
-- **WHEN** hai sản phẩm hòa cả hai chỉ số hoặc nhiều nhân viên có cùng tên hiển thị
-- **THEN** hai bảng dùng thứ tự ID ổn định và mỗi ID thu ngân giữ một dòng riêng, có số đơn giao đếm duy nhất theo ID đơn, số lượng, tiền hàng chưa thuế, giá vốn và lãi gộp phần bán
+- **WHEN** two products tie on both metrics or multiple cashiers share a display name
+- **THEN** both rankings use stable ID order, and each cashier ID has a separate row with a distinct count of delivered order IDs, quantity, sales excluding tax, cost of goods sold, and sales gross profit
 
 #### Scenario: No delivered sales
-- **WHEN** kỳ không có đơn giao đủ điều kiện
-- **THEN** hai bảng xếp hạng và danh sách hiệu suất là mảng rỗng
+- **WHEN** the range contains no qualifying delivered orders
+- **THEN** both rankings and the cashier performance list are empty arrays

@@ -2,30 +2,30 @@
 
 ## Why
 
-M3 Sprint 2 giao Bình mở Dashboard live cho Manager. API và Shell hiện chỉ cho Admin vào Tổng quan, còn các kỳ dựa trên ngày hiện tại khiến lịch sử đơn demo quanh 18/10/2026 có thể nằm ngoài kỳ khi trình diễn.
+M3 Sprint 2 assigns Binh to open the live Dashboard to Manager. Currently the API and Shell only allow Admin into Overview, and periods anchored to the current date mean demo order history around 18/10/2026 may fall outside the window during demos.
 
 ## What Changes
 
-- Cấp quyền đọc Dashboard toàn cửa hàng cho Admin và Manager. Đồng bộ API, bảng quyền, menu và route guard. Sau đăng nhập, Manager vào Tổng quan theo thứ tự điều hướng hiện có.
-- Thêm kỳ tùy chọn `period=custom` với hai ngày Việt Nam `from` và `to`, tối đa 31 ngày, trên endpoint và Dashboard live. Giữ ba kỳ hiện có và mặc định `last7Days`. Ví dụ nghiệm thu demo chọn 12–18/10/2026 trên database đã seed.
-- Dùng lại `AdminDashboardDto` và định nghĩa KPI. Kỳ tùy chọn lọc doanh thu và đơn hàng theo ngày báo cáo. KPI sản phẩm hoạt động và tồn thấp tiếp tục phản ánh thời điểm đọc. Preview tiếp tục được bật riêng bằng cấu hình.
-- Bàn giao bằng chứng đăng nhập `manager1`, đọc Dashboard live và kiểm tra HTTP của bốn role. Đối soát đầy đủ với bộ số liệu tính tay thuộc `m3-demo-data-reconciliation`.
+- Grant store-wide Dashboard read access to Admin and Manager. Synchronize the API, permissions matrix, navigation menu, and route guard. After sign-in, Manager lands on Overview following the existing navigation order.
+- Add an optional `period=custom` range with two Vietnam calendar dates `from` and `to` (up to 31 days) on the endpoint and live Dashboard. Preserve the three existing periods and the `last7Days` default. Demo acceptance selects 12–18/10/2026 against the seeded database.
+- Reuse `AdminDashboardDto` and existing KPI definitions. The custom period filters revenue and orders by report dates, while active products and low stock continue to reflect snapshot read time. Preview remains separately enabled via configuration.
+- Hand off evidence of `manager1` login, live Dashboard reading, and four-role HTTP checks. Reconcile fully against the hand-calculated dataset in `m3-demo-data-reconciliation`.
 
 ## Capabilities
 
 ### New Capabilities
 
-Không có capability mới.
+No new capabilities.
 
 ### Modified Capabilities
 
-- `admin-analytics-api`: Quyền truy cập, contract khoảng ngày và biên kỳ Việt Nam.
-- `api-role-authorization`: Quyền Dashboard trong ma trận API và kịch bản kiểm tra role.
-- `frontend-dashboard-preview`: Dashboard live cho Manager, chọn khoảng ngày, refresh/retry và nguồn dữ liệu preview.
-- `frontend-shell-navigation`: Menu, landing page và guard Tổng quan theo role.
+- `admin-analytics-api`: Access permissions, custom date-range contract, and Vietnam period boundaries.
+- `api-role-authorization`: Dashboard permission in the API matrix and role verification scenarios.
+- `frontend-dashboard-preview`: Live Dashboard for Manager, custom date-range selection, refresh/retry, and preview data source isolation.
+- `frontend-shell-navigation`: Role-based menu, landing page, and Overview route guard.
 
 ## Impact
 
-- Backend Analytics, bộ kiểm kê quyền API, `docs/API_PERMISSIONS.md` và mô tả Analytics trên Swagger.
-- Shared DTO giữ tên và JSON shape, mở rộng giá trị hợp lệ của `period`. Desktop cập nhật `RoleAccess`, các model/repository Analytics, `DashboardViewModel` và `DashboardPage`.
-- Phạm vi refactor màu biểu đồ `StitchTokens`, quyền Customers và dữ liệu seed nằm ngoài change. Apply dùng database test đã seed để kiểm chứng đường đọc live.
+- Backend Analytics, API authorization coverage suite, `docs/API_PERMISSIONS.md`, and Analytics Swagger/OpenAPI descriptions.
+- Shared DTO keeps its name and JSON shape while extending valid `period` values. Desktop updates `RoleAccess`, Analytics models/repository, `DashboardViewModel`, and `DashboardPage`.
+- Refactoring chart color `StitchTokens`, Customers permissions, and seed data are out of scope. Apply uses a seeded test database to verify the live read path.

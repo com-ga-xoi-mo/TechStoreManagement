@@ -2,57 +2,57 @@
 
 ## Context
 
-Xem [proposal.md](proposal.md). Hiện `AnalyticsService` mở transaction Repeatable Read, đọc timestamp database và truyền `AsOfUtc` vào repository làm biên cuối cho các truy vấn theo kỳ. `AdminDashboardDto` đã có `Period`, hai ngày báo cáo và `AsOf`. Client đã có đường `DashboardPage → DashboardViewModel → AnalyticsApiRepository → IApiClient` và cơ chế hủy request theo activation và phiên.
+See [proposal.md](proposal.md). Currently `AnalyticsService` opens a `RepeatableRead` transaction, reads the database timestamp, and passes `AsOfUtc` to the repository as the upper bound for period queries. `AdminDashboardDto` already contains `Period`, start/end dates, and `AsOf`. The client already uses the `DashboardPage -> DashboardViewModel -> AnalyticsApiRepository -> IApiClient` pipeline along with activation- and session-scoped request cancellation.
 
 ## Goals / Non-Goals
 
 **Goals**
 
-- Dùng một policy truy cập toàn cửa hàng và một contract Analytics cho Admin và Manager.
-- Hỗ trợ khoảng ngày lịch sử trên database thật qua cùng pipeline và giữ được hành vi của ba kỳ tương đối.
+- Use a single store-wide read policy and a single Analytics contract for Admin and Manager.
+- Support historical date ranges on the real database through the same pipeline while preserving the behavior of the three relative periods.
 
 **Non-Goals**
 
-- Công thức KPI mới, ảnh chụp tồn kho lịch sử, dữ liệu seed mới và quyền Customers.
-- Refactor màu biểu đồ cũ. `StitchTokens.Primary` hiện là fallback trong `DashboardPage.CreateRevenueBarBrush` và nằm ngoài phạm vi lần này. Các control ngày mới dùng token `AppColors`. Đối soát bộ số liệu tính tay thuộc `m3-demo-data-reconciliation`.
+- New KPI formulas, historical inventory snapshots, new seed data, or Customers permissions.
+- Refactoring legacy chart colors. `StitchTokens.Primary` currently remains as fallback in `DashboardPage.CreateRevenueBarBrush` and is out of scope here. New date controls use `AppColors` tokens. Hand-calculated dataset reconciliation belongs to `m3-demo-data-reconciliation`.
 
 ## Decisions
 
-### D1. Quyền server và điều hướng
+### D1. Server authorization and client navigation
 
-Cấp cả hai role tại `AnalyticsController` và giữ kiểm tra JWT của pipeline hiện tại. Khi cập nhật `docs/API_PERMISSIONS.md`, sửa cả dòng Analytics và các đoạn còn mô tả Manager nhận 403. `ApiAuthorizationCoverageTests` tiếp tục giữ expected role độc lập với metadata controller. Sửa `AnalyticsControllerTests` để xác nhận đủ bốn role, thêm SalesStaff/WarehouseStaff vào test auth handler hiện chỉ dựng được Admin và Manager.
+Authorize both roles on `AnalyticsController` and retain the current JWT pipeline checks. When updating `docs/API_PERMISSIONS.md`, update both the Analytics row and any sections that still state Manager receives 403. `ApiAuthorizationCoverageTests` continues maintaining expected roles independently from controller metadata. Update `AnalyticsControllerTests` to verify all four roles, adding `SalesStaff` and `WarehouseStaff` to the test auth handler that currently only constructs Admin and Manager.
 
-Tách hai nhánh Dashboard và Customers trong `RoleAccess.CanOpen`. `Destinations`, guard và `Landing` tiếp tục dùng cùng bảng. Thứ tự Tổng quan → Đơn hàng → Danh mục và Kho → Sản phẩm với Cài đặt làm fallback khiến Manager tự vào Tổng quan mà không cần điều hướng đặc biệt. Quyền Customers vẫn chỉ Admin. Sửa copy hướng dẫn đăng nhập trong Dashboard để phù hợp với cả Admin và Manager. Một endpoint chung giữ được cùng snapshot và cùng bộ kiểm thử cho hai role. Endpoint Manager riêng sẽ nhân đôi contract đọc đang giống nhau.
+Split Dashboard and Customers branches in `RoleAccess.CanOpen`. `Destinations`, the route guard, and `Landing` continue sharing the same table. The existing order Overview -> Orders -> Categories and Inventory -> Products with Settings as fallback automatically lands Manager on Overview without special-case routing. Customers remains Admin-only. Update Dashboard's sign-in guidance copy so it applies to both Admin and Manager. One shared endpoint keeps identical snapshots and test coverage for both roles, whereas a separate Manager endpoint would duplicate an identical read contract.
 
-### D2. Kỳ tùy chọn có giới hạn trên endpoint hiện có
+### D2. Bounded custom period on the existing endpoint
 
-Request ví dụ: `GET /api/analytics/dashboard?period=custom&from=2026-10-12&to=2026-10-18`. Hai đầu tính theo UTC+07 và đều được tính vào kỳ. Giới hạn 31 ngày tương đương độ dài tối đa của kỳ tháng hiện có, phù hợp với số điểm biểu đồ hiện tại.
+Example request: `GET /api/analytics/dashboard?period=custom&from=2026-10-12&to=2026-10-18`. Both endpoints are inclusive in UTC+07. The 31-day limit matches the maximum length of the existing month period and fits the current chart point density.
 
-Controller kiểm tra tổ hợp tham số, phân biệt thiếu và rỗng hoặc lặp, parse chính xác `yyyy-MM-dd` bằng `DateOnly` và invariant culture, rồi truyền tiêu chí typed vào service. Controller trả `ValidationProblemDetails` cho input sai. Service kiểm tra ngày cuối so với ngày Việt Nam tại timestamp của snapshot, kiểm tra các biên có thể biểu diễn an toàn và trả kết quả validation có thể map về HTTP 400, trước khi chạy aggregate. Giữ rollback khi đường đọc hoặc validation trong transaction kết thúc bất thường. Ví dụ, kỳ 32 ngày hoặc ngày cuối ở tương lai phải bị từ chối. Với `today`, `last7Days`, `thisMonth` và mặc định, request hợp lệ chỉ truyền kỳ như cũ.
+The controller validates parameter combinations, distinguishes missing from empty or repeated values, parses exact `yyyy-MM-dd` via `DateOnly` and invariant culture, and passes typed criteria into the service. The controller returns `ValidationProblemDetails` for invalid inputs. The service validates the end date against the Vietnam calendar date at the snapshot timestamp, validates safe UTC boundary conversion, and returns a validation result mappable to HTTP 400 before running aggregate queries. Ensure rollback if reads or validation inside the transaction exit abnormally. For example, a 32-day range or future end date must be rejected. For `today`, `last7Days`, `thisMonth`, and default, valid requests continue passing only `period`.
 
-Đã cân nhắc preset dành riêng cho dữ liệu demo và seed dịch ngày theo ngày chạy. Khoảng ngày dùng được với giao dịch thật bất kỳ và giữ tính tái lập của mốc seed. `from`/`to` được gắn rõ với `period=custom` để kỳ mặc định và kỳ tùy chọn có thể được nhận diện trong JSON, trên UI và trong bằng chứng HTTP.
+A dedicated demo preset and shifting seed dates relative to run date were considered and rejected. A custom range works with any real transaction history and preserves reproducible seed timestamps. `from`/`to` are tied explicitly to `period=custom` so default and custom ranges are clearly distinguishable in JSON, UI, and HTTP evidence.
 
-### D3. Tách biên lọc khỏi thời điểm snapshot
+### D3. Decoupling filter bounds from snapshot time
 
-Từ timestamp database hiện tại, service tính ngày Việt Nam, ngày đầu/cuối báo cáo, `FromUtc` và `ToExclusiveUtc`. `ToExclusiveUtc` là min giữa nửa đêm Việt Nam sau ngày cuối và `asOf`. Repository nhận khoảng UTC nửa mở và dùng cùng predicate cho tổng doanh thu, trend, số đơn và 5 đơn gần nhất theo trường thời gian của từng KPI. Giữ truy vấn có tham số và phép nhóm theo ngày UTC+07. Sản phẩm hoạt động và tồn thấp đọc tại snapshot trong cùng transaction, độc lập với biên kỳ.
+From the current database timestamp, the service derives the Vietnam date, report start/end dates, `FromUtc`, and `ToExclusiveUtc`. `ToExclusiveUtc` is the minimum of Vietnam midnight after the end date and `asOf`. The repository accepts the half-open UTC interval and applies the same bounds to total revenue, daily trend, order count, and up to 5 recent orders according to each KPI's timestamp column. Keep parameterized queries and PostgreSQL UTC+07 date grouping. Active products and low stock are read at the transaction snapshot independently of period bounds.
 
-Giữ JSON shape và tên `AdminDashboardDto`. Mở rộng tài liệu trường `Period` để nhận `custom` và mô tả riêng `StartDate`/`EndDate` và `AsOf`. Ngày không phát sinh vẫn zero-fill đủ khoảng, danh sách và tiêu chí KPI giữ contract hiện có. Không thêm trường mốc thời gian, vì hai ngày và `AsOf` đủ biểu diễn hành vi. Client kiểm tra hai ngày custom trả về đúng query trước khi map snapshot.
+Keep the JSON shape and name `AdminDashboardDto`. Expand `Period` documentation to cover `custom` and document `StartDate`/`EndDate` versus `AsOf`. Days with no events still zero-fill the full range, and lists and KPI rules keep the existing contract. Do not add extra timestamp fields because the two dates plus `AsOf` fully capture behavior. The client validates that returned custom dates match the query before mapping the snapshot.
 
-### D4. Nhập ngày tách biệt với request đang áp dụng
+### D4. Separating draft date inputs from the applied request
 
-Giữ ba nút chọn kỳ. Trong live mode thêm nút Khoảng ngày để mở cụm nhập Từ ngày và Đến ngày, định dạng hiển thị `dd/MM/yyyy`, và lệnh Áp dụng. Khi lần đầu mở cụm nhập, có thể điền từ ngày của snapshot đang hiển thị. Bố trí dưới các nút kỳ ở chiều rộng hẹp. Dùng label, thông báo lỗi theo field, binding và command, và giữ tab order rõ ràng.
+Keep the three preset period buttons. In live mode, add a custom-range toggle ("Khoảng ngày") opening start ("Từ ngày") and end ("Đến ngày") inputs formatted as `dd/MM/yyyy` and an Apply ("Áp dụng") command. When first opening the inputs, prefill from the currently displayed snapshot dates. Stack below the period buttons on narrow widths. Use accessible labels, field-level validation messages, declarative bindings/commands, and clear tab order.
 
-VM giữ riêng ngày đang nhập và `DashboardQuery` bất biến đã gửi, với `DashboardPeriod.Custom` và hai `DateOnly` ở client. Chỉ Áp dụng khoảng hợp lệ mới kích hoạt request. Refresh và Retry đọc query đã gửi. Preset tạo query chỉ có period. Mỗi lần kích hoạt trang mới mặc định 7 ngày qua. Tiếp tục dùng cơ chế hủy request và kiểm tra session generation hiện có. Client kiểm tra ngày hiện tại theo UTC+07 để phản hồi sớm. Service xác thực theo timestamp database, nên HTTP 400 vẫn được hiển thị an toàn nếu đồng hồ lệch.
+The ViewModel keeps draft input strings separate from the immutable committed `DashboardQuery` with `DashboardPeriod.Custom` and two `DateOnly` values on the client. Only applying a valid range triggers a request. Refresh and Retry reuse the committed query. Presets build a query with period only. Every new page activation defaults to the last 7 days (`Last7Days`). Continue using existing request cancellation and session generation guards. The client checks current UTC+07 date for immediate feedback; the service validates against database time, so HTTP 400 still surfaces safely under clock skew.
 
-Client repository format ngày bằng invariant culture và dùng cùng API/DTO. Trong preview, ẩn cụm Khoảng ngày và giữ fixture, banner và ba kỳ cũ. Hiển thị khoảng ngày live đã áp dụng và giờ cập nhật. Với khoảng qua tháng, dùng nhãn ngày có tháng và giảm mật độ nhãn trục khi cần, cùng bảng giá trị ngày đầy đủ như hiện tại. Cho thấy rõ các ô sản phẩm/tồn thấp là số tại thời điểm đọc. Danh sách đơn là 5 đơn tạo cuối cùng trong kỳ (D3), không phải đơn gần nhất tính tới hôm nay, nên tiêu đề danh sách nêu rõ phạm vi kỳ, ví dụ "Đơn mới nhất trong kỳ", cho cả preset và khoảng tùy chọn. Form áp dụng thủ công giúp người dùng hoàn chỉnh cả hai mốc trước khi gửi request, đồng thời tránh tải lại khi đang gõ.
+The client repository formats dates using invariant culture and shares the existing API/DTO. In preview mode, hide the custom-range controls and keep the fixture, banner, and three preset periods. Display the applied live date range and update timestamp. When a custom range spans months, include month in axis labels and thin axis ticks as needed, alongside the existing full daily-values table. Clearly label active-product and low-stock cards as snapshot-time metrics. Because the order list shows the 5 most recently created orders in the period (D3) rather than recent orders up to today, clarify its panel title (e.g., "Đơn mới nhất trong kỳ") for both presets and custom ranges. Explicit manual apply lets users finish editing both dates before sending a request and avoids firing requests while typing.
 
 ## Risks / Trade-offs
 
-- [Lệch ngày ở biên UTC hoặc nửa đêm Việt Nam] → Test hai biên, ngày kết thúc là hôm nay, ngày lịch sử và tháng chuyển tiếp với timestamp cố định. Dùng cùng một timestamp database cho giới hạn và metadata.
-- [Người dùng hiểu tồn thấp là số liệu lịch sử] → Ghi chú snapshot hiện tại cạnh các chỉ số này ngay khi xem khoảng ngày.
-- [Request từ account cũ hoặc kỳ cũ về muộn] → Giữ request/generation guard và test custom refresh, retry, logout và đổi phiên.
-- [API và client khác phiên bản] → Phát hành API trước desktop. Desktop hiện tại vẫn dùng được ba preset khi backend mới đã triển khai. Nghiệm thu Manager sau khi cả hai phía cùng cập nhật.
+- [Date mismatch at UTC or Vietnam midnight boundaries] -> Test both boundaries, ranges ending today, historical ranges, and month rollovers with a pinned timestamp. Use a single database timestamp for bounds and metadata.
+- [Users mistaking low stock for historical data] -> Display snapshot-time notes next to those metrics even when viewing a custom range.
+- [Late responses from a prior account or prior period] -> Retain request/generation guards and test custom refresh, retry, logout, and session replacement.
+- [API and client version skew] -> Ship the API before the desktop client. Existing desktop continues working with the three presets once the new backend is deployed. Verify Manager acceptance once both sides are updated.
 
 ## Migration Plan
 
-Không cần EF migration hay sửa seed. Khi apply, chạy backend và desktop cùng bản tích hợp trên PostgreSQL test riêng đã seed. Dùng `manager1` chọn 12–18/10/2026 và quan sát dữ liệu thật. Ghi `asOf` thực tế cùng điều kiện môi trường. Nếu cần rollback release, rollback desktop trước API để client ngừng gửi `period=custom` và menu không còn mở Dashboard cho Manager khi server đã rút quyền.
+No EF migration or seed changes needed. On apply, run backend and desktop from the integrated build against a dedicated seeded PostgreSQL test database. Log in as `manager1`, select 12–18/10/2026, and observe real data. Record actual `asOf` and environment details. If a release rollback is needed, roll back desktop before the API so the client stops sending `period=custom` and the menu stops exposing Dashboard to Manager once server access is revoked.

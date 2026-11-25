@@ -1,21 +1,21 @@
 # Tasks
 
-## 1. Đồng bộ baseline khi bắt đầu apply
+## 1. Establish the implementation baseline
 
-- [x] 1.1 Xác nhận nhánh `feat/m4-financial-reports`, chạy `git fetch origin dev` rồi `git merge origin/dev` trước khi sửa implementation. Xác minh bằng `git merge-base --is-ancestor origin/dev HEAD` và ghi SHA của `origin/dev` và HEAD sau merge trong `docs/M4_FINANCIAL_REPORT.md`.
+- [x] 1.1 Confirm the `feat/m4-financial-reports` branch, run `git fetch origin dev`, and merge with `git merge origin/dev` before implementing. Verify with `git merge-base --is-ancestor origin/dev HEAD` and record the SHAs for `origin/dev` and the post-merge HEAD in `docs/M4_FINANCIAL_REPORT.md`.
 
-## 2. Kỳ, contract và quyền API
+## 2. API range, contract, and authorization
 
-- [x] 2.1 Thêm action và kiểm tra query trong Analytics theo D1, DTO trong `shared/DTOs/FinancialReportDto.cs` theo D5. Thêm phương thức báo cáo vào `IAnalyticsService`/`IAnalyticsRepository` và cập nhật các test double của Bình theo D6. Kiểm tra HTTP với kỳ 1 và 31 ngày, tham số trùng/rỗng/thiếu, preset không hỗ trợ, ngày sai, ngày không thể đổi biên UTC, kỳ đảo ngược, 32 ngày và ngày cuối tương lai. Xác nhận 400 `ValidationProblemDetails` đánh dấu đúng trường và không tổng hợp số liệu.
-- [x] 2.2 Thêm route và A/M vào đúng một dòng mới của `docs/API_PERMISSIONS.md` và baseline độc lập của `ApiAuthorizationCoverageTests`. Chạy test coverage và kiểm tra HTTP kết nối PostgreSQL với JWT thật của bốn role. Assert Admin/Manager 200 cùng phạm vi, SalesStaff/WarehouseStaff 403, thiếu hoặc sai JWT 401. Ghi mã ca và Expected/Actual vào file bằng chứng.
+- [x] 2.1 Add the Analytics action and query validation from D1, and the DTO in `shared/DTOs/FinancialReportDto.cs` from D5. Add the report method to `IAnalyticsService` and `IAnalyticsRepository` and update Bình’s test doubles listed in D6. Test HTTP requests for 1-day and 31-day ranges, duplicate, empty or missing parameters, unsupported presets, invalid dates, unrepresentable UTC boundaries, reversed ranges, 32-day ranges, and future end dates. Verify that HTTP 400 `ValidationProblemDetails` identifies the affected field and that the API skips aggregation.
+- [x] 2.2 Add the route and A/M access as one new row in `docs/API_PERMISSIONS.md` and in the independent `ApiAuthorizationCoverageTests` baseline. Run the authorization coverage tests and make HTTP requests against PostgreSQL with real JWTs for all four roles. Verify 200 and identical scope for Admin/Manager, 403 for SalesStaff/WarehouseStaff, and 401 for a missing or invalid JWT. Record test case IDs and expected and actual results in the verification document.
 
-## 3. Số liệu bán, tiền thu và hiệu suất
+## 3. Sales, receipts, and performance
 
-- [x] 3.1 Thêm đọc bán theo `CompletedAt` và tiền thu theo `PaidAt` bằng hai tập riêng trong Analytics, gom theo ngày UTC+07 trong cùng snapshot. Kiểm tra PostgreSQL các mốc trước/đúng biên đầu, ngay trước/đúng biên cuối, ngày hiện tại bị chặn ở `asOf`, đơn thanh toán và giao khác ngày, đơn `Processing`, và cả hai trạng thái hoàn giữ nguyên số bán gốc.
-- [x] 3.2 Map tiền hàng, thuế, giá vốn, lãi gộp và bộ đếm lệch phân bổ từ dữ liệu đã lưu. Đối chiếu PostgreSQL với bảng Expected D7 và fixture đúng 0 riêng. Assert tổng ngày bằng tổng kỳ, ngày trống có dòng 0, phân bổ 0 hợp lệ và 0 có chênh lệch, giá vốn thiếu lan `null`, và bảy trường change 2 có mặt với JSON `null`.
-- [x] 3.3 Thêm hai bảng top 10 theo `ProductId` và hiệu suất theo `CashierUserId`. Kiểm tra PostgreSQL ca nhiều dòng/biến thể, thu ngân trùng tên, tie-break ID, thứ tự hai bảng, giới hạn và danh sách rỗng. Assert mỗi đơn và tiền thu chỉ tính một lần, tên sản phẩm lấy từ snapshot đã chốt, và giá vốn thiếu chỉ ảnh hưởng các nhóm liên quan.
+- [x] 3.1 Read sales by `CompletedAt` and receipts by `PaidAt` from separate Analytics datasets. Group each by UTC+07 date in the same snapshot. Test PostgreSQL events just before and exactly at the start, just before and exactly at the end, the `asOf` cutoff for the current day, payments and deliveries on separate days, `Processing` orders, and both refund statuses retaining original sales.
+- [x] 3.2 Map persisted sales amounts, tax, costs, gross profit, and the allocation mismatch count. Compare PostgreSQL results against the D7 expected values and a separate known-zero fixture. Verify that daily values match period totals, empty days have zero-value rows, valid zero allocations and mismatched zero allocations are distinguished, missing costs propagate `null`, and all seven change 2 fields appear as JSON `null`.
+- [x] 3.3 Add two top-10 rankings by `ProductId` and cashier performance by `CashierUserId`. Test PostgreSQL with multiple lines and variants, cashiers with identical names, ID tie-breaks, both ranking orders, the row limit, and empty lists. Verify that each order and its receipts count once, product names come from the finalized snapshot, and missing costs affect only the relevant groups.
 
-## 4. Nghiệm thu và bàn giao
+## 4. Verification and handoff
 
-- [x] 4.1 Build mã đem nghiệm thu, chạy HTTP + PostgreSQL trên database test riêng và chạy lại test Analytics/Dashboard M3. So sánh output với DTO/JSON mẫu trong `design.md` và bảng Expected tính tay độc lập. Ghi mã ca, dữ liệu/kỳ, expected, actual, Pass/Fail/Skipped, SHA build, trạng thái worktree khi build và giới hạn dữ liệu trong duy nhất `docs/M4_FINANCIAL_REPORT.md`.
-- [x] 4.2 Rà `git diff` để xác nhận implementation chỉ chạm Analytics, `shared/DTOs/FinancialReportDto.cs`, test báo cáo và test double Analytics của Bình, `ApiAuthorizationCoverageTests`, dòng API permissions mới và tài liệu bằng chứng. Kiểm tra không có script, log hoặc Markdown tạm. Nếu có commit, kiểm tra message không có trailer `Co-Authored-By` của AI.
+- [x] 4.1 Build the code under test, run HTTP tests against a dedicated PostgreSQL test database, and rerun the M3 Analytics and Dashboard tests. Compare the output with the DTO and sample JSON in `design.md` and independently calculated expected values. Record test case IDs, inputs and date ranges, expected and actual results, Pass/Fail/Skipped statuses, build SHA, worktree state at build time, and data limitations in `docs/M4_FINANCIAL_REPORT.md` as the sole verification document.
+- [x] 4.2 Review `git diff` to verify that implementation changes are limited to Analytics, `shared/DTOs/FinancialReportDto.cs`, Bình’s Analytics report tests and test doubles, `ApiAuthorizationCoverageTests`, the new API permissions row, and the verification document. Check for temporary scripts, logs, and Markdown files. If committing, verify the message contains no AI `Co-Authored-By` trailer.

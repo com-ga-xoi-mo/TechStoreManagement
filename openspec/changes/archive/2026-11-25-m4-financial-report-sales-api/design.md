@@ -2,73 +2,73 @@
 
 ## Context
 
-`AnalyticsController` đã áp dụng role Admin/Manager. Dashboard M3 đọc trong transaction `RepeatableRead`, dùng `statement_timestamp()` và gom ngày UTC+07 tại PostgreSQL. Sau PR #31 của An, doanh thu Dashboard cộng `Order.TotalAmount` gốc của đơn đã giao ở trạng thái `Completed`, `PartiallyRefunded` hoặc `Refunded`; báo cáo tài chính giữ nguyên quy tắc đó của Dashboard và không sửa code Dashboard.
+`AnalyticsController` already restricts access to Admin and Manager. The M3 Dashboard reads within a `RepeatableRead` transaction, uses `statement_timestamp()`, and groups by UTC+07 date in PostgreSQL. After An’s PR #31, Dashboard revenue sums original `Order.TotalAmount` values for delivered orders in `Completed`, `PartiallyRefunded`, or `Refunded` status. The financial report leaves that rule and the Dashboard code intact.
 
-`OrderService` lưu số đã định giá lên đơn và từng dòng. `PaidAt` có thể có trước `CompletedAt`. Cash checkout POS ghi hai mốc cùng lúc, lưu giá vốn theo dòng sau khi xuất kho và ghi tổng đơn vào ca. Migration `AddOrderPricingAllocation` thêm phân bổ thuế và giảm giá mặc định 0, không backfill. `OrderReturn` hiện có `RefundAmount`, `RefundedAt` và `IsRestocked`. Dữ liệu đó chưa mô tả đầy đủ tiền hàng chưa thuế hoàn, ngày nhập lại hay chi phí bảo hành theo yêu cầu M4.
+`OrderService` persists pricing on orders and their lines. `PaidAt` can precede `CompletedAt`. Cash checkout at the POS records both timestamps together, snapshots the cost of each line after stock is issued, and records the order total against the shift. The `AddOrderPricingAllocation` migration adds tax and discount allocations with a default of zero and no backfill. `OrderReturn` already has `RefundAmount`, `RefundedAt`, and `IsRestocked`. These fields do not fully capture the refunded sales excluding tax, restock date, or warranty costs required for M4.
 
 ## Goals / Non-Goals
 
-- **Goals** — API đọc có hợp đồng ổn định cho T. Vinh, đối chiếu được theo ngày, theo kỳ và với snapshot dòng bán. Biểu diễn rõ số 0, giá vốn thiếu và nguồn chưa tích hợp.
-- **Non-Goals** — UI, Gemini tool, sửa dữ liệu cũ, thay đổi định giá, triển khai nguồn hoàn/nhập lại/bảo hành và đối soát số dư ca. Dashboard M3 tiếp tục dùng hợp đồng và KPI hiện tại.
+- **Goals** — Provide a read API with a stable contract for T. Vinh. Reconcile values by day and period and against persisted sales lines. Distinguish zero, missing costs, and data sources that are not yet integrated.
+- **Non-Goals** — UI, the Gemini tool, legacy data repair, pricing changes, refund, restock or warranty source integration, and shift balance reconciliation. The M3 Dashboard retains its current contract and KPIs.
 
 ## Decisions
 
-### D1. Kỳ tùy chọn bắt buộc và quyền truy cập
+### D1. Required custom range and access control
 
-Ví dụ request: `GET /api/analytics/financial-report?period=custom&from=2024-10-12&to=2024-10-14`.
+Example request `GET /api/analytics/financial-report?period=custom&from=2024-10-12&to=2024-10-14`.
 
-- Sprint 1 chỉ nhận đúng một `period=custom`, một `from` và một `to`. Tái sử dụng quy tắc parse invariant `yyyy-MM-dd`, `AnalyticsLimits.MaxCustomRangeDays` (31 ngày bao gồm hai đầu) và UTC+07 của Dashboard. Các preset và mặc định của Dashboard tiếp tục thuộc Dashboard.
-- Từ chối 400 `ValidationProblemDetails` với lỗi theo `period`, `from` hoặc `to` cho giá trị rỗng/thiếu/lặp, kỳ không hỗ trợ, ngày không hợp lệ hoặc không biểu diễn được biên UTC, khoảng đảo ngược, quá dài hoặc ngày cuối ở tương lai theo UTC+07. Kiểm tra cú pháp trước khi đọc DB. Dùng giờ snapshot DB để kiểm tra ngày tương lai trước các truy vấn tổng hợp.
-- Dùng `[fromUtc, toExclusiveUtc)`. Hai mốc là nửa đêm UTC+07 đầu kỳ và nửa đêm sau ngày cuối, chặn mốc cuối tại `asOf`. Lấp đầy ngày thiếu theo lịch Việt Nam, gồm cả ngày hiện tại nếu trong kỳ.
-- Dùng `[Authorize(Roles = "Admin,Manager")]` sẵn có tại controller và pipeline JWT hiện hành. Admin/Manager cùng phạm vi đọc toàn cửa hàng. SalesStaff/WarehouseStaff nhận 403, thiếu hoặc sai JWT nhận 401, kể cả khi kỳ sai. Chỉ trả dữ liệu tổng hợp cho request thành công.
+- Sprint 1 accepts exactly one `period=custom`, one `from`, and one `to`. Reuse invariant `yyyy-MM-dd` parsing, `AnalyticsLimits.MaxCustomRangeDays` (31 days inclusive), and the Dashboard’s UTC+07 offset. The Dashboard retains its own presets and defaults.
+- Return HTTP 400 `ValidationProblemDetails` with errors under `period`, `from`, or `to` for empty, missing or repeated values, unsupported periods, invalid dates or dates without a representable UTC boundary, reversed ranges, excessive length, or an end date in the future in UTC+07. Validate syntax before reading the database. Use the database snapshot clock to validate future dates before running aggregate queries.
+- Use `[fromUtc, toExclusiveUtc)`. Start at midnight UTC+07 on the first day and end at midnight after the last day, capped at `asOf`. Fill missing dates on the Vietnam calendar, including the current day if it falls in the range.
+- Use the controller’s existing `[Authorize(Roles = "Admin,Manager")]` and JWT pipeline. Admin and Manager have the same store-wide read scope. SalesStaff and WarehouseStaff receive 403. Missing or invalid JWTs receive 401, even for invalid ranges. Return aggregate data on successful requests only.
 
-### D2. Ghi nhận bán và tiền thu theo hai mốc
+### D2. Separate sales and receipt dates
 
-| Chỉ số | Nguồn và phép tính |
+| Metric | Source and calculation |
 | --- | --- |
-| Đơn giao, số lượng | Đơn có `CompletedAt` trong kỳ và status thuộc `Completed`, `PartiallyRefunded`, `Refunded`. Đếm mỗi ID đơn một lần và cộng `Quantity` của dòng. |
-| Tiền hàng chưa thuế, thuế bán | Cộng `OrderItem.TotalPrice − OrderItem.OrderDiscountAmount` và `OrderItem.TaxAmount` thành hai trường riêng, theo ngày `CompletedAt`. `TotalPrice` đã gồm giảm giá dòng. |
-| Giá vốn bán, lãi gộp phần bán | Giá vốn dòng = `UnitCost × Quantity`. Nếu có dòng thiếu giá vốn, cả hai số của nhóm tương ứng là `null`. Nếu đủ giá vốn, lãi gộp phần bán = tiền hàng chưa thuế − giá vốn bán, có thể âm. |
-| Tiền thu gốc | Cộng `Order.TotalAmount` một lần theo `PaidAt` trong kỳ, độc lập với status giao và dòng hàng. Số thu gồm thuế theo tổng đã lưu. Cash POS lưu `CashTendered − ChangeGiven` bằng tổng đơn. |
+| Delivered orders and quantity | Orders whose `CompletedAt` falls in the range and whose status is `Completed`, `PartiallyRefunded`, or `Refunded`. Count distinct order IDs and sum line `Quantity`. |
+| Sales excluding tax and sales tax | Sum `OrderItem.TotalPrice − OrderItem.OrderDiscountAmount` and `OrderItem.TaxAmount` separately by the date of `CompletedAt`. `TotalPrice` already includes the line discount. |
+| Cost of goods sold and sales gross profit | Line cost equals `UnitCost × Quantity`. A missing line cost gives the affected group `null` for both metrics. When costs are complete, sales gross profit equals sales excluding tax minus cost of goods sold and may be negative. |
+| Original receipts | Sum `Order.TotalAmount` once per order whose `PaidAt` falls in the range, independently of delivery status and line items. Receipts include tax as recorded in the order total. The cash POS records `CashTendered − ChangeGiven` as the order total. |
 
-`Processing` có thể có tiền thu và chưa có doanh thu. Hoàn một phần/toàn bộ giữ số bán ở ngày giao và tiền thu gốc ở ngày thanh toán. Chỉ số tiền thu dựa vào mốc thanh toán của đơn, chưa phải đối soát ngân hàng hay sổ ca. Truy vấn bán và thu độc lập để tránh nhân bản tiền thu khi đơn có nhiều dòng hoặc nhiều lần hoàn. Dùng decimal/VND và số chụp đã lưu. Bình không gọi lại `OrderPricingHelper` hay áp dụng giá, thuế, voucher hiện tại.
+A `Processing` order can have receipts before it contributes sales. Partial and full refunds preserve original sales on the delivery date and original receipts on the payment date. Receipts use the order payment timestamp. Bank and shift ledger reconciliation are outside this measure. Query sales and receipts independently to prevent duplicate receipts for orders with multiple lines or refunds. Use decimal VND amounts from persisted snapshots. Bình’s report uses those snapshots without calling `OrderPricingHelper` or applying current prices, tax rates, or vouchers.
 
-### D3. Phân bổ 0 và dữ liệu thiếu
+### D3. Zero allocations and missing data
 
-Dùng đúng các giá trị dòng đã lưu, kể cả khi tất cả phân bổ bằng 0. Trường hợp 0 hợp lệ vẫn đối chiếu được với đầu đơn. Đếm một lần mỗi đơn giao trong `allocationMismatchOrderCount` nếu tổng thuế dòng khác `Order.TaxAmount` hoặc tổng tiền hàng chưa thuế dòng khác `Order.TotalAmount − Order.TaxAmount`. Kiểm tra trên từng đơn trước khi cộng theo ngày/kỳ để các chênh lệch không triệt tiêu nhau. Số theo dòng có thể lệch với đầu đơn cũ. Việc lấy đầu đơn thay dòng hoặc tái phân bổ sẽ làm mất cơ sở đối soát theo sản phẩm.
+Use stored line values, including when all allocations are zero. Valid zero allocations still reconcile with the order header. Count each delivered order once in `allocationMismatchOrderCount` if its line tax differs from `Order.TaxAmount` or its line sales excluding tax differ from `Order.TotalAmount − Order.TaxAmount`. Check each order before aggregating by day and period so discrepancies cannot cancel one another. Line amounts can differ from legacy order headers. Substituting header amounts or reallocating differences would remove the basis for product-level reconciliation.
 
-Khi PostgreSQL tổng hợp giá vốn, kiểm tra riêng số dòng `UnitCost IS NULL` vì `SUM` bỏ qua null. Ngày không có bán trả 0 cho các số phần bán, còn ngày không có thanh toán trả tiền thu 0. Tổng kỳ đối chiếu từng trường cộng được với tổng ngày. Với giá vốn và lãi gộp phần bán, nếu bất kỳ ngày nào mang `null` thì tổng kỳ tương ứng cũng là `null`. Quy tắc tương tự áp dụng theo thu ngân.
+When PostgreSQL aggregates costs, count lines with `UnitCost IS NULL` separately because `SUM` skips null values. Days with no sales return zero for sales metrics, and days with no payments return zero receipts. Reconcile each additive period field with its daily values. If any day returns `null` for cost of goods sold or sales gross profit, the corresponding period total is also `null`. Apply the same missing-cost rule per cashier.
 
-### D4. Sản phẩm và thu ngân
+### D4. Products and cashiers
 
-- Gom tất cả biến thể theo `ProductId`. Lấy tên snapshot của dòng có `CompletedAt` mới nhất, hòa thì dùng `OrderItem.Id` giảm dần. Hai bảng cùng tiêu chí dòng hợp lệ với tổng kỳ. Trả tối đa 10 dòng/bảng, theo thứ tự `quantity DESC, salesExcludingTax DESC, ProductId ASC` hoặc `salesExcludingTax DESC, quantity DESC, ProductId ASC`. Áp dụng thứ tự UUID của PostgreSQL. Xếp hạng trên số bán gốc, giữ dòng của đơn đã hoàn.
-- Gom toàn bộ đơn giao đủ điều kiện theo `CashierUserId`, kể cả tài khoản đã vô hiệu hóa hoặc trùng tên. Tên hiển thị lấy từ `User.FullName` trong snapshot và dùng ID nếu tên trống. Trả số đơn giao, số lượng, doanh thu chưa thuế, giá vốn và lãi gộp phần bán. Sắp doanh thu giảm dần, số đơn giao giảm dần rồi ID tăng dần. Mảng rỗng khi không có bán. Không đưa số theo `PaidAt` vào bảng hiệu suất giao hàng.
+- Group all variants by `ProductId`. Use the snapshot name of the line with the latest `CompletedAt` and break ties by `OrderItem.Id` descending. Both lists use the same eligible lines as the period totals. Return at most 10 rows per list, ordered by `quantity DESC, salesExcludingTax DESC, ProductId ASC` or `salesExcludingTax DESC, quantity DESC, ProductId ASC`. Use PostgreSQL UUID ordering. Rank by original sales, including lines from refunded orders.
+- Group all qualifying delivered orders by `CashierUserId`, including inactive accounts and distinct accounts with the same name. Use the snapshot’s `User.FullName` and fall back to the ID when the name is blank. Return delivered order count, quantity, sales excluding tax, cost of goods sold, and sales gross profit. Sort by sales descending, delivered order count descending, then ID ascending. Return an empty array when there are no sales. Delivery performance excludes figures based on `PaidAt`.
 
-### D5. DTO và JSON cho T. Vinh
+### D5. DTO and JSON for T. Vinh
 
-DTO đặt trong file mới `shared/DTOs/FinancialReportDto.cs` theo quy ước chung (như `AdminDashboardDto`), để API, desktop ở `m4-financial-report-desktop` và test dùng cùng một contract. Tên JSON camelCase. GUID là chuỗi, `DateOnly` là `yyyy-MM-dd`, `asOf` là UTC có hậu tố `Z`, số tiền là JSON number theo VND. Các trường nullable phải xuất hiện cả khi giá trị `null`.
+Define the DTO in the new `shared/DTOs/FinancialReportDto.cs` file following the shared convention used by `AdminDashboardDto`. This gives the API, the `m4-financial-report-desktop` change, and the tests the same contract. JSON property names are camelCase. GUIDs are strings, `DateOnly` uses `yyyy-MM-dd`, `asOf` is UTC with a `Z` suffix, and VND amounts are JSON numbers. Nullable fields must appear even when their value is `null`.
 
 | DTO | Shape |
 | --- | --- |
 | `FinancialReportDto` | `period: string`, `startDate/endDate: DateOnly`, `timeZone: string`, `asOf: DateTime`, `summary: FinancialReportTotalsDto`, `daily: FinancialReportDayDto[]`, `topProductsByQuantity/topProductsByRevenue: FinancialReportProductDto[]`, `cashierPerformance: FinancialReportCashierDto[]` |
-| `FinancialReportTotalsDto` | `completedOrderCount/quantity/allocationMismatchOrderCount: long`, `salesExcludingTax/salesTax/paymentReceivedAmount: decimal`, `costOfGoodsSold/salesGrossProfit: decimal?` và bảy trường change 2 kiểu `decimal?` bên dưới |
+| `FinancialReportTotalsDto` | `completedOrderCount/quantity/allocationMismatchOrderCount: long`, `salesExcludingTax/salesTax/paymentReceivedAmount: decimal`, `costOfGoodsSold/salesGrossProfit: decimal?`, and the seven `decimal?` fields for change 2 listed below |
 | `FinancialReportDayDto` | `date: DateOnly`, `totals: FinancialReportTotalsDto` |
 | `FinancialReportProductDto` | `productId: Guid`, `productName: string`, `quantity: long`, `salesExcludingTax: decimal` |
 | `FinancialReportCashierDto` | `cashierUserId: Guid`, `cashierName: string`, `completedOrderCount/quantity: long`, `salesExcludingTax: decimal`, `costOfGoodsSold/salesGrossProfit: decimal?` |
 
-Cả `summary` và `daily[].totals` có sẵn bảy trường luôn `null` ở change này.
+Both `summary` and `daily[].totals` already include seven fields whose values are always `null` in this change.
 
-| Trường change 2 | Ý nghĩa dự kiến |
+| Change 2 field | Intended meaning |
 | --- | --- |
-| `refundPaidAmount` | Tiền thực chi trả lại khách theo ngày `RefundedAt` |
-| `refundedSalesExcludingTax` | Tiền hàng chưa thuế hoàn theo ngày `RefundedAt` |
-| `restockedCost` | Giá vốn gốc được ghi giảm khi thực nhập lại, theo ngày nhập lại |
-| `warrantyCost` | Chi phí bảo hành trong kỳ, trình bày riêng |
-| `netSalesExcludingTax` | Tiền hàng bán chưa thuế trừ tiền hàng chưa thuế hoàn |
-| `netCostOfGoodsSold` | Giá vốn bán trừ giá vốn thực nhập lại |
-| `netGrossProfit` | Doanh thu thuần chưa thuế trừ giá vốn thuần |
+| `refundPaidAmount` | Amount actually paid back to the customer by the date of `RefundedAt` |
+| `refundedSalesExcludingTax` | Refunded sales excluding tax by the date of `RefundedAt` |
+| `restockedCost` | Original cost reversed on the date the item is physically restocked |
+| `warrantyCost` | Warranty costs in the range, reported separately |
+| `netSalesExcludingTax` | Sales excluding tax minus refunded sales excluding tax |
+| `netCostOfGoodsSold` | Cost of goods sold minus the cost of items actually restocked |
+| `netGrossProfit` | Net sales excluding tax minus net cost of goods sold |
 
-Mẫu 200 cho fixture ở D7. `salesGrossProfit` chỉ phản ánh bán trước các điều chỉnh của change 2.
+The HTTP 200 example below uses the D7 fixture. `salesGrossProfit` represents sales before the change 2 adjustments.
 
 ```json
 {
@@ -117,54 +117,54 @@ Mẫu 200 cho fixture ở D7. `salesGrossProfit` chỉ phản ánh bán trước
     }
   ],
   "topProductsByQuantity": [
-    { "productId": "00000000-0000-0000-0000-000000000001", "productName": "Mẫu A", "quantity": 2, "salesExcludingTax": 180 },
-    { "productId": "00000000-0000-0000-0000-000000000002", "productName": "Mẫu B", "quantity": 2, "salesExcludingTax": 180 },
-    { "productId": "00000000-0000-0000-0000-000000000003", "productName": "Mẫu C", "quantity": 1, "salesExcludingTax": 120 }
+    { "productId": "00000000-0000-0000-0000-000000000001", "productName": "Sample A", "quantity": 2, "salesExcludingTax": 180 },
+    { "productId": "00000000-0000-0000-0000-000000000002", "productName": "Sample B", "quantity": 2, "salesExcludingTax": 180 },
+    { "productId": "00000000-0000-0000-0000-000000000003", "productName": "Sample C", "quantity": 1, "salesExcludingTax": 120 }
   ],
   "topProductsByRevenue": [
-    { "productId": "00000000-0000-0000-0000-000000000001", "productName": "Mẫu A", "quantity": 2, "salesExcludingTax": 180 },
-    { "productId": "00000000-0000-0000-0000-000000000002", "productName": "Mẫu B", "quantity": 2, "salesExcludingTax": 180 },
-    { "productId": "00000000-0000-0000-0000-000000000003", "productName": "Mẫu C", "quantity": 1, "salesExcludingTax": 120 }
+    { "productId": "00000000-0000-0000-0000-000000000001", "productName": "Sample A", "quantity": 2, "salesExcludingTax": 180 },
+    { "productId": "00000000-0000-0000-0000-000000000002", "productName": "Sample B", "quantity": 2, "salesExcludingTax": 180 },
+    { "productId": "00000000-0000-0000-0000-000000000003", "productName": "Sample C", "quantity": 1, "salesExcludingTax": 120 }
   ],
   "cashierPerformance": [
-    { "cashierUserId": "10000000-0000-0000-0000-000000000001", "cashierName": "Thu ngân 1", "completedOrderCount": 2, "quantity": 3, "salesExcludingTax": 300, "costOfGoodsSold": 120, "salesGrossProfit": 180 },
-    { "cashierUserId": "10000000-0000-0000-0000-000000000002", "cashierName": "Thu ngân 2", "completedOrderCount": 1, "quantity": 2, "salesExcludingTax": 180, "costOfGoodsSold": null, "salesGrossProfit": null }
+    { "cashierUserId": "10000000-0000-0000-0000-000000000001", "cashierName": "Cashier 1", "completedOrderCount": 2, "quantity": 3, "salesExcludingTax": 300, "costOfGoodsSold": 120, "salesGrossProfit": 180 },
+    { "cashierUserId": "10000000-0000-0000-0000-000000000002", "cashierName": "Cashier 2", "completedOrderCount": 1, "quantity": 2, "salesExcludingTax": 180, "costOfGoodsSold": null, "salesGrossProfit": null }
   ]
 }
 ```
 
-### D6. Tích hợp trong Analytics
+### D6. Analytics integration
 
-Thêm action, query/result và read models riêng cho báo cáo trong Analytics. Dùng đăng ký DI hiện có. Các cổng `IAnalyticsService` và `IAnalyticsRepository` cung cấp phương thức báo cáo riêng, được triển khai trong hai lớp production hiện có. Thêm phương thức thường vào interface, không dùng default interface method. Mọi lớp hiện thực khác đều là test double của Bình (`AnalyticsControllerTests`, `AnalyticsServiceTests`, `DataSeederPostgresIntegrationTests`, `DashboardLiveFlowPostgresHttpTests`), nên cập nhật trực tiếp các lớp đó; lớp bọc chỉ cần chuyển tiếp lời gọi. Kiểm chứng HTTP 200 qua DI thật để route dùng triển khai production.
+Add a dedicated action, query, result, and read models in Analytics. Reuse existing DI registration. Declare the report method in `IAnalyticsService` and `IAnalyticsRepository` without a default implementation and implement it in the existing production classes. The other implementations are Bình’s test doubles in `AnalyticsControllerTests`, `AnalyticsServiceTests`, `DataSeederPostgresIntegrationTests`, and `DashboardLiveFlowPostgresHttpTests`. Update those classes directly. Wrappers only need to forward the call. Verify HTTP 200 with the real DI setup so the route exercises the production implementation.
 
-Service quản lý transaction `RepeatableRead` qua `IUnitOfWork`, lấy giờ DB trước mọi đọc tổng hợp, tạo criteria UTC đã kiểm tra, lấp ngày trống và map DTO. Repository truy vấn không tracking và gom trong PostgreSQL. Giữ điều kiện timestamp trên cột gốc và chỉ đổi múi giờ ở biểu thức nhóm. Khi LINQ không dịch được nhóm ngày, dùng SQL tham số hóa theo mẫu Dashboard. Tổng hợp hai tập bán/thu tách biệt, dùng chung snapshot, truyền cancellation token, rollback khi lỗi hoặc hủy. Giữ số dòng trả về gọn bằng nhóm tại DB và giới hạn riêng hai bảng xếp hạng. Không đọc toàn bộ entities vào bộ nhớ.
+The service manages a `RepeatableRead` transaction through `IUnitOfWork`, reads the database clock before any aggregate query, builds validated UTC criteria, fills missing dates, and maps the DTO. The repository uses no-tracking queries and groups data in PostgreSQL. Filter on original timestamp columns and convert time zones only in grouping expressions. When LINQ cannot translate grouping by date, use parameterized SQL following the Dashboard pattern. Aggregate sales and receipts separately in one snapshot, pass through the cancellation token, and roll back on failure or cancellation. Group in the database and limit each ranking separately to keep result sets small. Avoid loading entire entities into memory.
 
-### D7. Fixture PostgreSQL và Expected tính tay
+### D7. PostgreSQL fixture and hand-calculated expectations
 
-Kỳ 12–14/10/2024 theo UTC+07, tức `[2024-10-11T17:00:00Z, 2024-10-14T17:00:00Z)`. Các mốc dưới đây đều UTC. Các đơn A, B, C có ID sản phẩm theo đúng thứ tự A < B < C. Chèn thêm các đơn nằm ngay trước biên đầu và đúng biên cuối, với cả ngày thanh toán/giao bên ngoài để xác nhận bị loại.
+The October 12–14, 2024 range in UTC+07 corresponds to `[2024-10-11T17:00:00Z, 2024-10-14T17:00:00Z)`. All timestamps below are UTC. Orders A, B, and C have product IDs ordered A < B < C. Insert additional orders just before the start and exactly at the end, with both payment and delivery outside the range, to verify exclusion.
 
-| Đơn | Status | CompletedAt | PaidAt | Thu ngân | Qty | TotalPrice | Phân bổ giảm/thuế dòng | UnitCost | Đầu đơn TotalAmount / TaxAmount |
+| Order | Status | CompletedAt | PaidAt | Cashier | Qty | TotalPrice | Order discount allocation / line tax | UnitCost | Order TotalAmount / TaxAmount |
 | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | A | Refunded | 11/10 17:00 | 11/10 16:00 | 1 | 2 | 200 | 20 / 18 | 60 | 198 / 18 |
 | B | PartiallyRefunded | 13/10 18:00 | 12/10 01:00 | 2 | 2 | 200 | 20 / 18 | null | 198 / 18 |
 | C | Completed | 14/10 16:59:59 | 14/10 16:00 | 1 | 1 | 120 | 0 / 0 | 0 | 122 / 12 |
 | D | Processing | null | 12/10 02:00 | 2 | 1 | 50 | 0 / 0 | 0 | 50 / 0 |
 
-| Expected theo ngày Việt Nam | Đơn giao | Qty | Tiền hàng | Thuế | Tiền thu | Giá vốn | Lãi gộp phần bán | Đơn lệch phân bổ |
+| Expected by Vietnam date | Delivered orders | Qty | Sales excluding tax | Tax | Receipts | Cost of goods sold | Sales gross profit | Orders with allocation mismatches |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 12/10 | 1 | 2 | 180 | 18 | 248 | 120 | 60 | 0 |
 | 13/10 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | 14/10 | 2 | 3 | 300 | 18 | 122 | null | null | 1 |
-| Cả kỳ | 3 | 5 | 480 | 36 | 370 | null | null | 1 |
+| Full period | 3 | 5 | 480 | 36 | 370 | null | null | 1 |
 
-Bổ sung fixture riêng chỉ có đơn C để kiểm tra giá vốn 0 đã biết, và ca nhiều dòng/biến thể để kiểm tra đếm đơn, gom sản phẩm, tiền thu không nhân bản, hai thứ tự xếp hạng khác nhau và giới hạn top 10. Kiểm tra 1 ngày, đúng 31 ngày, các lỗi kỳ và mốc `asOf` ngày hiện tại. So khớp HTTP thực tế với Expected trên PostgreSQL, chạy lại test Dashboard hiện có và lưu kết quả vào tài liệu bằng chứng duy nhất.
+Add a separate fixture with only order C to verify known zero cost. Add a case with multiple lines and variants to verify order counts, product grouping, receipts counted once, the two ranking orders, and the top-10 limit. Check 1-day and exactly 31-day ranges, invalid ranges, and the current-day `asOf` cutoff. Compare live HTTP results with the expected PostgreSQL values, rerun the existing Dashboard tests, and record the results in the sole verification document.
 
 ## Risks / Trade-offs
 
-- Đơn cũ có thể lệch số thuế/tiền hàng ở đầu đơn → xuất bộ đếm lệch để người đọc biết giới hạn số liệu theo dòng.
-- Giá vốn thiếu làm mất khả năng tính lãi ở nhóm → trả `null` cho đúng nhóm, giữ các số bán độc lập và các nhóm đủ dữ liệu.
-- Dữ liệu bán và tiền thu thay đổi đồng thời → dùng cùng snapshot. Khoảng 31 ngày và top 10 giới hạn kỳ đọc và hai danh sách xếp hạng.
+- Legacy order headers can disagree with line tax or sales amounts. Report the mismatch count so readers can see the limits of line-level data.
+- Missing costs prevent profit calculation for a group. Return `null` for the affected group while preserving independent sales figures and groups with complete data.
+- Sales and receipts can change concurrently. Read both in one snapshot. The 31-day maximum and top-10 caps limit the range and the size of the two rankings.
 
 ## Migration Plan
 
-Apply bắt đầu bằng fetch và merge `origin/dev` vào `feat/m4-financial-reports`. Ghi SHA của cây mã đem build/test cùng trạng thái worktree nếu build trước commit. Bàn giao endpoint và quyền cùng bản build được kiểm chứng. Change không cần migration hoặc backfill. Khi cần rollback, hoàn nguyên thay đổi API, quyền và tài liệu đi kèm.
+Start implementation by fetching and merging `origin/dev` into `feat/m4-financial-reports`. Record the source SHA used to build and test, plus the worktree state when building before a commit. Hand off the endpoint and permissions with the verified build. This change requires no migration or backfill. Roll back by reverting the API, authorization, and accompanying documentation changes.

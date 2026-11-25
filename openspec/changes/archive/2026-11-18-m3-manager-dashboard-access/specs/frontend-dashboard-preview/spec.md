@@ -52,7 +52,7 @@ Dashboard SHALL distinguish Loading, Content, a successful zero/empty result, Er
 
 ### Requirement: Explicit analytics and seed readiness
 
-Bàn giao SHALL phân biệt tích hợp live Analytics client đã hoàn tất với hành vi preview và seeder độc lập. Preview MUST NOT được báo là tích hợp live API hoặc bằng chứng UC-SEED-01 hoàn tất; client MUST NOT tải toàn bộ đơn thật để tự tính analytics.
+Handoff documentation SHALL distinguish completed live Analytics client integration from preview behavior and standalone seeder readiness. Preview MUST NOT be reported as live API integration or completed UC-SEED-01 evidence; the client MUST NOT download all real orders to compute analytics locally.
 
 #### Scenario: Backend rules remain pending
 - **WHEN** the live Dashboard is handed off

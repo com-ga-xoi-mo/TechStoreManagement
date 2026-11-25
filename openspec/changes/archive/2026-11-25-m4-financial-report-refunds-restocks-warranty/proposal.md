@@ -2,14 +2,14 @@
 
 ## Why
 
-Báo cáo tài chính của Bình đã có số bán và các trường dành cho hậu mãi. M4 cần nối khoản thực chi, hàng thực nhập lại và giá vốn máy thay để đối chiếu doanh thu thuần, vốn thuần, lãi gộp và tiền két theo chứng từ đã lưu.
+Bình’s financial report already includes sales figures and fields reserved for after-sales data. M4 needs to include settled refund payouts, items actually restocked, and replacement device costs so net sales, net costs, gross profit, and cash drawer movements can be reconciled against stored records.
 
 ## What Changes
 
-- Điền các trường hoàn, nhập lại, bảo hành và số thuần của `GET /api/analytics/financial-report`. Tiền hoàn theo ngày chi thực tế. Đơn thanh toán rồi hoàn trước khi giao chỉ ảnh hưởng dòng tiền.
-- Ghi giảm giá vốn vào ngày hàng quay lại tồn bán được. Hiển thị giá vốn máy thay bảo hành riêng. Giữ số bán gốc, quyền truy cập, kỳ báo cáo và KPI Dashboard hiện hành.
-- Bổ sung thuế hoàn và số thu/chi Cash theo ca, tách dòng QR khỏi két. Giữ tương thích tên, kiểu và cấu trúc các trường hiện có.
-- Đối chiếu Expected tính tay với HTTP trên PostgreSQL. Ghi kết quả tiếp vào `docs/M4_FINANCIAL_REPORT.md`, gồm owner và điều kiện chạy lại cho phần chưa kiểm chứng.
+- Populate the refund, restock, warranty, and net amount fields in `GET /api/analytics/financial-report`. Date refunds by actual payout. Orders paid and refunded before delivery affect cash flow only.
+- Reverse costs on the date items return to sellable stock. Report warranty replacement device costs separately. Preserve original sales, access rules, report periods, and the current Dashboard KPIs.
+- Add refunded tax and cash receipts and payouts by shift. Keep QR flows separate from the cash drawer. Preserve existing field names, types, and structure.
+- Compare hand-calculated expectations with HTTP results on PostgreSQL. Append results to `docs/M4_FINANCIAL_REPORT.md`, including the owner and rerun conditions for unverified items.
 
 ## Capabilities
 
@@ -17,9 +17,9 @@ Báo cáo tài chính của Bình đã có số bán và các trường dành ch
 
 ### Modified Capabilities
 
-- `admin-analytics-api` — mở rộng báo cáo tài chính sang số liệu hậu mãi và dòng tiền theo kênh/ca, thay quy tắc các trường hậu mãi luôn rỗng.
+- `admin-analytics-api` extends financial reporting with after-sales figures and cash flow by channel and shift. It replaces the rule that after-sales fields are always unavailable.
 
 ## Impact
 
-- Khi apply, giới hạn thay đổi ở `backend/Analytics/`, test báo cáo của Bình và `docs/M4_FINANCIAL_REPORT.md`. Nguồn dữ liệu thuộc Orders, Inventory và Sales được đọc từ cùng snapshot.
-- Luồng hoàn, kho, bảo hành, ghi thu/chi, giá bán, điểm/voucher, migration, UI và Gemini nằm ngoài phạm vi. Việc đối soát QR đầu cuối phụ thuộc nguồn xác nhận của Đạt.
+- Implementation is limited to `backend/Analytics/`, Bình’s report tests, and `docs/M4_FINANCIAL_REPORT.md`. Read Orders, Inventory, and Sales data from the same snapshot.
+- Refund, inventory, warranty, and payment recording workflows, selling prices, points and vouchers, migrations, UI, and Gemini are out of scope. End-to-end QR reconciliation depends on Đạt’s payment confirmation flow.

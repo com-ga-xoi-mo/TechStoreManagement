@@ -2,14 +2,14 @@
 
 ## Why
 
-Sprint 1 M4 cần một API báo cáo quản trị để Bình đối soát số bán đã giao, giá vốn và hiệu suất từ giao dịch đã lưu. Hợp đồng API và JSON mẫu giúp T. Vinh chuẩn bị tích hợp trước khi dữ liệu hoàn, nhập lại và bảo hành được nối ở change 2.
+M4 Sprint 1 needs a management reporting API so Bình can reconcile delivered sales, cost of goods sold, and cashier performance against recorded transactions. The API contract and sample JSON let T. Vinh start integrating before change 2 adds refunds, restocks, and warranty costs.
 
 ## What Changes
 
-- Thêm `GET /api/analytics/financial-report` cho Admin và Manager, nhận kỳ `custom` theo ngày Việt Nam, trả tổng kỳ, số theo ngày, hai bảng sản phẩm bán chạy và hiệu suất theo thu ngân.
-- Tính doanh thu gốc theo `CompletedAt`, giữ phần bán khi đơn chuyển sang `PartiallyRefunded` hoặc `Refunded`. Tách tiền hàng chưa thuế, thuế và tiền thu theo `PaidAt`. Giá vốn thiếu lan sang các chỉ số phụ thuộc.
-- Công bố DTO với các trường nullable dành cho hoàn tiền, giá vốn nhập lại, lợi nhuận sau hoàn và chi phí bảo hành. Giữ nguyên contract và KPI của Dashboard M3.
-- Nghiệm thu trên PostgreSQL với bảng Expected tính tay và kiểm tra HTTP bằng JWT. Ghi kết quả, SHA build và giới hạn dữ liệu trong `docs/M4_FINANCIAL_REPORT.md`.
+- Add `GET /api/analytics/financial-report` for Admin and Manager. It accepts a `custom` range of Vietnam calendar dates and returns period totals, daily totals, two product rankings, and cashier performance.
+- Recognize original sales by `CompletedAt` and retain them when an order becomes `PartiallyRefunded` or `Refunded`. Report sales excluding tax, sales tax, and receipts based on `PaidAt` separately. Missing costs propagate to dependent metrics.
+- Publish a DTO with nullable fields for refunds, restocked costs, post-refund profit, and warranty costs. Preserve the M3 Dashboard contract and KPIs.
+- Verify against hand-calculated expectations on PostgreSQL and test HTTP authorization with JWTs. Record the results, build SHA, and data limitations in `docs/M4_FINANCIAL_REPORT.md`.
 
 ## Capabilities
 
@@ -17,10 +17,10 @@ Sprint 1 M4 cần một API báo cáo quản trị để Bình đối soát số
 
 ### Modified Capabilities
 
-- `admin-analytics-api`: Bổ sung contract và quy tắc tính báo cáo tài chính cho phần bán.
-- `api-role-authorization`: Thêm quyền đọc báo cáo tài chính toàn cửa hàng cho Admin và Manager.
+- `admin-analytics-api` adds the financial report contract and sales calculation rules.
+- `api-role-authorization` grants Admin and Manager store-wide financial report access.
 
 ## Impact
 
-- Khi apply, phạm vi sửa gồm `backend/Analytics/`, test báo cáo và `ApiAuthorizationCoverageTests`, dòng API mới trong `docs/API_PERMISSIONS.md` và tài liệu bằng chứng của Bình. DTO đặt trong file mới `shared/DTOs/FinancialReportDto.cs` để desktop dùng chung contract.
-- Dùng snapshot đơn/chi tiết đơn đã lưu. Công thức định giá, UI, Gemini, luồng bán/hoàn/bảo hành, đối soát sổ ca và DB schema nằm ngoài phạm vi change này.
+- Implementation covers `backend/Analytics/`, the report tests, `ApiAuthorizationCoverageTests`, the new route entry in `docs/API_PERMISSIONS.md`, and Bình’s verification document. The new `shared/DTOs/FinancialReportDto.cs` defines the shared desktop contract.
+- Use persisted order and line-item snapshots. Pricing formulas, UI, Gemini, sales, refund and warranty workflows, shift ledger reconciliation, and database schema changes are out of scope.

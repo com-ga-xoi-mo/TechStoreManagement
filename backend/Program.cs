@@ -1,3 +1,6 @@
+using TechStore.Api.Assistant;
+using TechStore.Api.Assistant.Tools;
+using TechStore.Api.Common.Ai;
 using TechStore.Api.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -122,6 +125,11 @@ builder.Services.AddScoped<IPosCheckoutService, PosCheckoutService>();
 // Analytics Module
 builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+
+builder.Services.Configure<AssistantOptions>(builder.Configuration.GetSection("Assistant"));
+builder.Services.AddHttpClient<IChatModelClient, OpenAiCompatibleChatClient>(client => client.Timeout = Timeout.InfiniteTimeSpan);
+builder.Services.AddScoped<AssistantTools>();
+builder.Services.AddScoped<IAssistantService, AssistantService>();
 
 // Identity Module repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();

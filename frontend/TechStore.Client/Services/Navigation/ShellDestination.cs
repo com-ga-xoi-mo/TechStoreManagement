@@ -9,7 +9,8 @@ public enum ShellDestination
     Customers,
     Settings,
     ReturnInspections,
-    Warranty
+    Warranty,
+    Assistant
 }
 
 public sealed record ShellDestinationInfo(
@@ -30,6 +31,7 @@ public static class ShellDestinations
         new(ShellDestination.ReturnInspections, "Kiểm định hàng trả", "Chính", "Repair"),
         new(ShellDestination.Warranty, "Bảo hành", "Chính", "Permissions"),
         new(ShellDestination.Customers, "Khách hàng", "Chính", "Contact"),
+        new(ShellDestination.Assistant, "Trợ lý AI", "Chính", "Help"),
         new(ShellDestination.Settings, "Cài đặt", "Footer", "Setting", IsFooterItem: true)
     ]);
 

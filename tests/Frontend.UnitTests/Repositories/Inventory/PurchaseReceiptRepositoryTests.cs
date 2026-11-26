@@ -37,6 +37,8 @@ public sealed class PurchaseReceiptRepositoryTests
             return Task.FromResult((TResponse)ResponseOrException!);
         }
 
+        public Task<TResponse> PostAsync<TRequest, TResponse>(string path, TRequest request, TimeSpan timeout, CancellationToken cancellationToken = default) => PostAsync<TRequest, TResponse>(path, request, cancellationToken);
+
         public Task<ApiResponse<TResponse>> PostWithStatusAsync<TRequest, TResponse>(string relativePath, TRequest request, CancellationToken cancellationToken = default)
         {
             LastPath = relativePath;

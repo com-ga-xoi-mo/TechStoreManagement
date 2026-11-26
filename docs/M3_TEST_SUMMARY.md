@@ -1,5 +1,16 @@
 # M3 — Kết quả kiểm thử Sprint 5
 
+## Nghiệm thu giao diện của T. Vinh ngày 25/11/2026
+
+**57/57 mục M3 đã đạt.** T. Vinh tự chạy trên `dev` tại `f5756b0` và báo Pass cả hai mục còn mở:
+
+| Mục kế hoạch | Phạm vi | Kết quả |
+| --- | --- | --- |
+| 161 (UI-WIN) | Windows native `net10.0-windows10.0.26100` và Skia `net10.0-desktop`: Light/Dark/System, resize, bàn phím, binding | Pass |
+| 192 | Hồi quy luồng M2 trên bản M3: không lỗi chặn bán hàng, sai tiền, sai tồn hoặc vượt quyền | Pass |
+
+Kết quả do T. Vinh xác nhận khi chạy tay. Chi tiết phiên bản hệ điều hành và ảnh chụp chưa đính kèm vào báo cáo này.
+
 ## Nhận hàng từng phần ngày 22/11/2026
 
 **55/57 mục M3 đã đạt.** Luồng nhận từng đợt và hủy phần chưa nhận đã được kiểm tra trên working tree `dev` dựa trên `d2f17bf`. Hai mục còn mở là nghiệm thu Windows native và chốt hồi quy M2 trên bản tích hợp. Lượt giao diện dưới đây chạy trên Skia/macOS.
@@ -168,12 +179,12 @@ Các lượt suite đã công bố trước Sprint 5 gồm 600 backend opt-in v�
 | CON-03 | Đạt | Hai transaction chuyển trạng thái cùng đơn, hoặc checkout trong lúc đóng ca, ca chỉ nhận tiền đã commit | Test checkout/đóng ca trên baseline Sprint 5 pass kết quả cuối. Gate trước request chưa chứng minh chồng transaction. Ca `OrdersApiIntegrationTests` ghi tuần tự | Bàn giao trace transaction của cả hai luồng, kết quả đơn/ca/ledger và SHA | Chưa kiểm tra |
 | POS-DISC | Đạt, Vy | Checkout POS với giảm cấp đơn khác 0, số lưu, VAT, tiền ca và Dashboard khớp | Baseline thiếu nối giảm cấp đơn từ POS. Ca Orders của Vy và ca VAT/giảm dòng fixture đã có bằng chứng riêng | Nối request POS theo hợp đồng Vy và chạy lại trên build tích hợp | Chưa kiểm tra |
 | POS-CUST | Đạt, Vy | Sales chọn khách trên màn POS, lưu cash order và thấy đúng khách | Lượt desktop của Bình chạy khách lẻ. API chọn khách đã được kiểm riêng | Nối bộ chọn vào POS desktop, bán thật và đối chiếu `customerId` trên đơn | Chưa kiểm tra |
-| UI-WIN | T. Vinh | Build và thao tác Windows native, theme/resize/Tab/binding và các quyền UI | Bằng chứng hiện có là Skia. Nguồn Vy từng báo build native lỗi `ProbeReportItem`, chưa có lượt kiểm chứng native mới | Ghi build, OS, testcase, ảnh/log. Đưa lỗi còn tồn tại và rerun vào báo cáo | Chưa kiểm tra |
+| UI-WIN | T. Vinh | Build và thao tác Windows native, theme/resize/Tab/binding và các quyền UI | Bằng chứng hiện có là Skia. Nguồn Vy từng báo build native lỗi `ProbeReportItem`, chưa có lượt kiểm chứng native mới | Ghi build, OS, testcase, ảnh/log. Đưa lỗi còn tồn tại và rerun vào báo cáo. T. Vinh chạy lại ngày 25/11 trên `f5756b0`, [Pass](#nghiệm-thu-giao-diện-của-t-vinh-ngày-25112026) | Pass |
 | UI-POS-THEME | Đạt | Mở màn POS theme Tối, ô quét đọc được | Owner ghi đã sửa màu nhưng chưa chạy lại UI | Xác nhận kết quả lúc chạy thật và ghi SHA/target | Chưa kiểm tra |
 
 ## Mẫu số nghiệm thu
 
-Ma trận trên có **32 mã duy nhất** gồm **23 Pass, 0 Fail, 0 Skipped, 9 Chưa kiểm tra**. Đây là số mục nghiệm thu trong ba bảng kết quả và bảng còn mở. Dòng lịch sử lỗi ADM-CAT01 được tính theo kết quả rerun cuối, còn lượt runner fail đầu tiên vẫn nằm trong bảng suite. Các kết quả suite ở những build khác không cộng vào 32 mã này.
+Ma trận trên có **32 mã duy nhất** gồm **24 Pass, 0 Fail, 0 Skipped, 8 Chưa kiểm tra**. Đây là số mục nghiệm thu trong ba bảng kết quả và bảng còn mở. Dòng lịch sử lỗi ADM-CAT01 được tính theo kết quả rerun cuối, còn lượt runner fail đầu tiên vẫn nằm trong bảng suite. Các kết quả suite ở những build khác không cộng vào 32 mã này.
 
 ## Dashboard Manager
 

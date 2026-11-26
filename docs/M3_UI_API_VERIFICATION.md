@@ -170,7 +170,7 @@ Frontend unit: 975 Pass.
 **Còn mở:**
 
 - **154 (lỗi 500): đã sửa.** `Program.cs` thêm `AddProblemDetails()` + `UseExceptionHandler()`. Test `UnhandledException_Returns500ProblemDetailsWithoutStackTrace` chạy pipeline thật của `Program`: 500, `application/problem+json`, không lộ message/stack trace. Cùng với 8 mã đã kiểm và phục hồi lỗi mạng, mục 154 đạt.
-- **155:** Windows native chưa chạy.
+- **155/161:** T. Vinh đã chạy Windows native và Skia ngày 25/11/2026, Pass ([kết quả](M3_TEST_SUMMARY.md#nghiệm-thu-giao-diện-của-t-vinh-ngày-25112026)).
 - **184:** cần chạy toàn luồng nhập hàng → ca → bán sau khi ghép phần của Đạt.
 
 **Ngoài phần T. Vinh:** `GET /api/inventory/serials` trả `unitCost` cho Sales (Q. Vinh).

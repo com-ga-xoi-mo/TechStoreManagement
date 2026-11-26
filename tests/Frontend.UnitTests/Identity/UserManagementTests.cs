@@ -55,7 +55,7 @@ public sealed class UserManagementTests
     }
 
     [Fact]
-    public async Task NonAdminDirectRoute_DoesNotLoadAccounts_AndKeepsEightDestinations()
+    public async Task NonAdminDirectRoute_DoesNotLoadAccounts_AndKeepsNineDestinations()
     {
         var repository = new Accounts();
         var session = new InMemorySessionStore();
@@ -66,7 +66,7 @@ public sealed class UserManagementTests
         Assert.True(vm.IsError);
         Assert.Empty(vm.Accounts);
         Assert.Equal(ShellDestination.Settings, AppRoute.UserManagement().Destination);
-        Assert.Equal(8, ShellDestinations.All.Count);
+        Assert.Equal(9, ShellDestinations.All.Count);
     }
 
     [Fact]

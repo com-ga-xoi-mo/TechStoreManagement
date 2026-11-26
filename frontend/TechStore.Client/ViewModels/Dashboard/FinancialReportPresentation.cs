@@ -1,4 +1,5 @@
 using System.Globalization;
+using TechStore.Client.Controls.Charts;
 using TechStore.Client.Models.Analytics;
 
 namespace TechStore.Client.ViewModels.Dashboard;
@@ -63,6 +64,103 @@ public sealed class FinancialReportPresentation
 
         AllocationNotice = snapshot.Summary.AllocationMismatchOrderCount == 0 ? string.Empty
             : $"{Count(snapshot.Summary.AllocationMismatchOrderCount)} đơn có chênh lệch phân bổ dòng hàng.";
+
+        BuildChartAndLayoutModels(snapshot);
+    }
+
+    private void BuildChartAndLayoutModels(FinancialReportSnapshot snapshot)
+    {
+        var totals = snapshot.Summary;
+        ChartDays = snapshot.Daily.Select(day =>
+        {
+            var t = day.Totals;
+            var date = day.Date.ToString("dd/MM/yyyy", Vietnamese);
+            return new FinancialChartDay(day.Date.ToString("dd/MM", Vietnamese), t.SalesExcludingTax, t.RefundedSalesExcludingTax,
+                t.NetGrossProfit, t.CashReceivedAmount, t.VietQrReceivedAmount, t.RefundPaidAmount,
+                $"{date}: Hàng bán {Money(t.SalesExcludingTax)}, hàng hoàn {Money(t.RefundedSalesExcludingTax)}, lãi gộp sau hoàn {Money(t.NetGrossProfit)}",
+                $"{date}: Thu tiền mặt {Money(t.CashReceivedAmount)}, thu VietQR {Money(t.VietQrReceivedAmount)}, tiền đã chi hoàn {Money(t.RefundPaidAmount)}");
+        }).ToArray();
+
+        GrossMarginPercent = totals.NetGrossProfit is { } profit && totals.NetSalesExcludingTax is { } net && net > 0m
+            ? Math.Round(profit / net * 100m, 1)
+            : null;
+        var margin = GrossMarginPercent is { } percent
+            ? $"Biên lãi gộp {percent.ToString("0.#", Vietnamese)}%"
+            : "Chưa tính được biên lãi gộp";
+        NetSalesHeadline = new("Doanh thu thuần chưa thuế", Money(totals.NetSalesExcludingTax),
+            $"{Count(totals.CompletedOrderCount)} đơn đã giao · {Count(totals.Quantity)} sản phẩm");
+        GrossProfitHeadline = new("Lãi gộp sau hoàn", Money(totals.NetGrossProfit), margin);
+        ReceivedHeadline = new("Tiền đã thu", Money(totals.PaymentReceivedAmount),
+            $"Tiền đã chi hoàn {Money(totals.RefundPaidAmount)}");
+        WarrantyHeadline = new("Chi phí máy thay bảo hành", Money(totals.WarrantyCost),
+            "Hiển thị riêng, tách khỏi lãi gộp"
+            + (totals.AllocationMismatchOrderCount > 0 ? $" · {Count(totals.AllocationMismatchOrderCount)} đơn lệch phân bổ" : string.Empty));
+
+        var donut = FinancialDonutLayout.Calculate(totals.CashReceivedAmount, totals.VietQrReceivedAmount,
+            totals.PaymentReceivedAmount, 0, 0, 1);
+        Channels = new FinancialReportChannels(totals.CashReceivedAmount, totals.VietQrReceivedAmount, totals.PaymentReceivedAmount,
+            "Tiền đã thu", Money(totals.PaymentReceivedAmount),
+            donut.IsNeutral ? "Tiền mặt —" : $"Tiền mặt {donut.CashPercent.ToString("0.#", Vietnamese)}%",
+            donut.IsNeutral ? "VietQR —" : $"VietQR {donut.QrPercent.ToString("0.#", Vietnamese)}%",
+            donut.UnassignedAmount is { } unassigned
+                ? $"Chưa phân loại kênh: {Money(unassigned)} (tiền đã thu lớn hơn tiền mặt cộng VietQR)"
+                : string.Empty,
+            [
+                MoneyValue("Thu tiền mặt", totals.CashReceivedAmount),
+                MoneyValue("Chi hoàn tiền mặt", totals.CashRefundPaidAmount),
+                MoneyValue("Thu VietQR", totals.VietQrReceivedAmount),
+                MoneyValue("Chi hoàn VietQR", totals.VietQrRefundPaidAmount),
+                MoneyValue("Tiền đã thu", totals.PaymentReceivedAmount),
+                MoneyValue("Tiền đã chi hoàn", totals.RefundPaidAmount)
+            ]);
+
+        SalesStep = Step("", "Tiền hàng bán chưa thuế", totals.SalesExcludingTax);
+        RefundStep = Step("−", "Tiền hàng hoàn chưa thuế", totals.RefundedSalesExcludingTax);
+        NetSalesStep = Step("=", "Doanh thu thuần chưa thuế", totals.NetSalesExcludingTax);
+        CostStep = Step("−", "Giá vốn thuần", totals.NetCostOfGoodsSold);
+        GrossProfitStep = Step("=", "Lãi gộp sau hoàn", totals.NetGrossProfit);
+        WarrantyStep = Step("", "Máy thay bảo hành", totals.WarrantyCost, "Tính riêng, không nằm trong chuỗi lãi gộp");
+        ProfitSteps = [SalesStep, RefundStep, NetSalesStep, CostStep, GrossProfitStep];
+
+        OrdersTaxSection = new("Đơn hàng & Thuế",
+        [
+            new("Đơn đã giao", totals.CompletedOrderCount, Count(totals.CompletedOrderCount)),
+            new("Số lượng bán", totals.Quantity, Count(totals.Quantity)),
+            MoneyValue("Thuế bán", totals.SalesTax),
+            MoneyValue("Thuế hoàn", totals.RefundTaxAmount)
+        ]);
+        CostSupportSection = new("Giá vốn bán, nhập lại & Lãi bán",
+        [
+            MoneyValue("Giá vốn bán", totals.CostOfGoodsSold),
+            MoneyValue("Giá vốn hàng nhập lại", totals.RestockedCost),
+            MoneyValue("Lãi gộp bán", totals.SalesGrossProfit),
+            MoneyValue("Chi phí máy thay bảo hành", totals.WarrantyCost)
+        ]);
+
+        RankedLists =
+        [
+            Ranked(Lists[0], snapshot.TopProductsByQuantity.Select(row => (decimal?)row.Quantity)),
+            Ranked(Lists[1], snapshot.TopProductsByRevenue.Select(row => (decimal?)row.SalesExcludingTax)),
+            Ranked(Lists[2], snapshot.CashierPerformance.Select(row => (decimal?)row.SalesExcludingTax)),
+            Ranked(Lists[3], snapshot.CashByShift?.Select(row => row.CashReceivedAmount) ?? [])
+        ];
+    }
+
+    private static FinancialReportStep Step(string connector, string label, decimal? amount, string note = "") =>
+        new(connector, label, Money(amount), amount, note);
+
+    // The bar of a row is its figure relative to the largest figure of the same list; the server's order is kept.
+    private static FinancialReportRankedList Ranked(FinancialReportList list, IEnumerable<decimal?> values)
+    {
+        var figures = values.ToArray();
+        var max = figures.Length == 0 ? 0m : figures.Max() ?? 0m;
+        var rows = list.Rows.Select((row, index) =>
+        {
+            var value = index < figures.Length ? figures[index] : null;
+            var ratio = max > 0m && value is { } amount && amount > 0m ? (double)Math.Min(1m, amount / max) : 0d;
+            return new FinancialReportRankedRow(row.Title, row.Figures, ratio);
+        }).ToArray();
+        return new FinancialReportRankedList(list.Title, rows, list.EmptyMessage);
     }
 
     public string Reference { get; }
@@ -83,6 +181,31 @@ public sealed class FinancialReportPresentation
     public FinancialReportList CashierList => Lists[2];
     public FinancialReportList ShiftList => Lists[3];
     public bool IsEmpty { get; }
+
+    /// <summary>Daily figures for the trend chart (every day of the range, zero days included, null kept as null).</summary>
+    public IReadOnlyList<FinancialChartDay> ChartDays { get; private set; } = [];
+    /// <summary>NetGrossProfit / NetSalesExcludingTax in percent, only when both are known and sales are above zero.</summary>
+    public decimal? GrossMarginPercent { get; private set; }
+    public FinancialReportHeadlineTile NetSalesHeadline { get; private set; } = null!;
+    public FinancialReportHeadlineTile GrossProfitHeadline { get; private set; } = null!;
+    public FinancialReportHeadlineTile ReceivedHeadline { get; private set; } = null!;
+    public FinancialReportHeadlineTile WarrantyHeadline { get; private set; } = null!;
+    public FinancialReportChannels Channels { get; private set; } = null!;
+    public IReadOnlyList<FinancialReportStep> ProfitSteps { get; private set; } = [];
+    public FinancialReportStep SalesStep { get; private set; } = null!;
+    public FinancialReportStep RefundStep { get; private set; } = null!;
+    public FinancialReportStep NetSalesStep { get; private set; } = null!;
+    public FinancialReportStep CostStep { get; private set; } = null!;
+    public FinancialReportStep GrossProfitStep { get; private set; } = null!;
+    /// <summary>Shown next to, not inside, the gross profit chain.</summary>
+    public FinancialReportStep WarrantyStep { get; private set; } = null!;
+    public FinancialReportSection OrdersTaxSection { get; private set; } = null!;
+    public FinancialReportSection CostSupportSection { get; private set; } = null!;
+    public IReadOnlyList<FinancialReportRankedList> RankedLists { get; private set; } = [];
+    public FinancialReportRankedList RankedQuantityList => RankedLists[0];
+    public FinancialReportRankedList RankedRevenueList => RankedLists[1];
+    public FinancialReportRankedList RankedCashierList => RankedLists[2];
+    public FinancialReportRankedList RankedShiftList => RankedLists[3];
 
     internal static string Money(decimal? amount) => amount is { } value
         ? $"{value.ToString("#,0.##", Vietnamese)} ₫"
@@ -141,3 +264,30 @@ public sealed record FinancialReportList(string Title, IReadOnlyList<FinancialRe
     public bool IsEmpty => Rows.Count == 0;
 }
 public sealed record FinancialReportListRow(string Title, string Figures);
+public sealed record FinancialReportHeadlineTile(string Title, string Value, string Detail);
+public sealed record FinancialReportStep(string Connector, string Label, string Text, decimal? Amount, string Note = "");
+public sealed record FinancialReportRankedRow(string Title, string Figures, double Ratio);
+public sealed record FinancialReportRankedList(string Title, IReadOnlyList<FinancialReportRankedRow> Rows, string EmptyMessage)
+{
+    public bool IsEmpty => Rows.Count == 0;
+}
+
+/// <summary>Cash / VietQR split of the money received; shares are display-only and never feed other figures.</summary>
+public sealed record FinancialReportChannels(
+    decimal? Cash,
+    decimal? Qr,
+    decimal? Total,
+    string CenterCaption,
+    string CenterValue,
+    string CashShareText,
+    string QrShareText,
+    string UnassignedNote,
+    IReadOnlyList<FinancialReportValue> Figures)
+{
+    public FinancialDonutLayout Donut(double centerX, double centerY, double radius) =>
+        FinancialDonutLayout.Calculate(Cash, Qr, Total, centerX, centerY, radius);
+
+    public string Description =>
+        $"{CenterCaption} {CenterValue}. {CashShareText}. {QrShareText}."
+        + (UnassignedNote.Length > 0 ? $" {UnassignedNote}." : string.Empty);
+}

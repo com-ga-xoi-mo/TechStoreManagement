@@ -1,4 +1,5 @@
 using System.Net;
+using TechStore.Client.Controls.Charts;
 using TechStore.Client.Models.Analytics;
 using TechStore.Client.Repositories.Analytics;
 using TechStore.Client.Services.Api;
@@ -493,6 +494,243 @@ public sealed class FinancialReportViewModelTests
         Assert.False(new FinancialReportPresentation(empty with { CashByShift = null }).IsEmpty);
         Assert.False(new FinancialReportPresentation(empty with { Summary = empty.Summary with { WarrantyCost = null } }).IsEmpty);
     }
+
+    [Theory]
+    [InlineData(-1, FinancialReportPreset.Today, "31/10/2024", "31/10/2024")]
+    [InlineData(0, FinancialReportPreset.Today, "01/11/2024", "01/11/2024")]
+    [InlineData(-1, FinancialReportPreset.Last7Days, "25/10/2024", "31/10/2024")]
+    [InlineData(0, FinancialReportPreset.Last7Days, "26/10/2024", "01/11/2024")]
+    [InlineData(-1, FinancialReportPreset.ThisMonth, "01/10/2024", "31/10/2024")]
+    [InlineData(0, FinancialReportPreset.ThisMonth, "01/11/2024", "01/11/2024")]
+    public async Task Preset_UsesVietnamMidnightAndLoadsImmediately(int minuteOffset, FinancialReportPreset preset, string from, string to)
+    {
+        // Arrange
+        var repository = new DeferredReports();
+        var dashboard = await ActivateAsync(repository, MakeSession("Admin"), AfterMidnight.AddMinutes(minuteOffset));
+        try
+        {
+            var report = dashboard.FinancialReport;
+            await OpenAsync(report, repository);
+
+            // Act
+            var pending = RunPreset(report, preset).ExecuteAsync(null);
+
+            // Assert
+            Assert.Equal(2, repository.Requests.Count);
+            Assert.True(report.IsLoading);
+            Assert.Equal(from, report.From);
+            Assert.Equal(to, report.To);
+            Assert.Equal(preset, report.SelectedPreset);
+            var range = repository.Requests[^1].Range;
+            Assert.Equal(from, range.From.ToString("dd/MM/yyyy"));
+            Assert.Equal(to, range.To.ToString("dd/MM/yyyy"));
+            Assert.InRange(range.To.DayNumber - range.From.DayNumber + 1, 1, 31);
+            repository.Requests[^1].Succeed();
+            await pending;
+            Assert.Equal(range, report.Snapshot!.Range);
+        }
+        finally { dashboard.Deactivate(); }
+    }
+
+    [Fact]
+    public async Task Preset_BecomesTheAppliedRangeSoReloadIgnoresDraftDates()
+    {
+        // Arrange
+        var repository = new DeferredReports();
+        var dashboard = await ActivateAsync(repository, MakeSession("Admin"));
+        try
+        {
+            var report = dashboard.FinancialReport;
+            await OpenAsync(report, repository);
+            Assert.Equal(FinancialReportPreset.Last7Days, report.SelectedPreset);
+
+            // Act
+            var preset = report.ThisMonthCommand.ExecuteAsync(null);
+            var presetRange = repository.Requests[^1].Range;
+            repository.Requests[^1].Succeed();
+            await preset;
+            report.From = "02/10/2024";
+            report.To = "03/10/2024";
+            var reload = report.ReloadCommand.ExecuteAsync(null);
+
+            // Assert
+            Assert.Equal(3, repository.Requests.Count);
+            Assert.Equal(presetRange, repository.Requests[^1].Range);
+            repository.Requests[^1].Succeed();
+            await reload;
+        }
+        finally { dashboard.Deactivate(); }
+    }
+
+    [Fact]
+    public async Task Preset_CancelsInFlightRequestAndIgnoresItsLateResponse()
+    {
+        // Arrange
+        var repository = new DeferredReports();
+        var dashboard = await ActivateAsync(repository, MakeSession("Admin"));
+        try
+        {
+            var report = dashboard.FinancialReport;
+            var open = report.OpenCommand.ExecuteAsync(null);
+
+            // Act
+            var today = report.TodayCommand.ExecuteAsync(null);
+            var older = repository.Requests[0];
+            var newer = repository.Requests[1];
+
+            // Assert
+            Assert.True(older.Token.IsCancellationRequested);
+            Assert.False(newer.Token.IsCancellationRequested);
+            older.Succeed();
+            await open;
+            Assert.True(report.IsLoading);
+            Assert.Null(report.Snapshot);
+            newer.Succeed();
+            await today;
+            Assert.Equal(newer.Range, report.Snapshot!.Range);
+            Assert.Equal(newer.Range.From, newer.Range.To);
+            Assert.False(report.IsLoading);
+        }
+        finally { dashboard.Deactivate(); }
+    }
+
+    [Fact]
+    public async Task Preset_ClearsFieldErrorsAndReplacesInvalidDraftDates()
+    {
+        // Arrange
+        var repository = new DeferredReports();
+        var dashboard = await ActivateAsync(repository, MakeSession("Admin"));
+        try
+        {
+            var report = dashboard.FinancialReport;
+            await OpenAsync(report, repository);
+            report.From = "lỗi";
+            report.To = "cũng lỗi";
+            await report.ApplyCommand.ExecuteAsync(null);
+            Assert.NotEmpty(report.FromError);
+            Assert.NotEmpty(report.ToError);
+
+            // Act
+            var pending = report.Last7DaysCommand.ExecuteAsync(null);
+            repository.Requests[^1].Succeed();
+            await pending;
+
+            // Assert
+            Assert.Empty(report.FromError);
+            Assert.Empty(report.ToError);
+            Assert.Equal("26/10/2024", report.From);
+            Assert.Equal("01/11/2024", report.To);
+        }
+        finally { dashboard.Deactivate(); }
+    }
+
+    [Fact]
+    public async Task SelectedPreset_FollowsAppliedDatesAndClearsForCustomRanges()
+    {
+        // Arrange
+        var repository = new DeferredReports();
+        var dashboard = await ActivateAsync(repository, MakeSession("Admin"));
+        try
+        {
+            var report = dashboard.FinancialReport;
+            Assert.Equal(FinancialReportPreset.None, report.SelectedPreset);
+            await OpenAsync(report, repository);
+            Assert.True(report.IsLast7DaysPreset);
+            Assert.False(report.IsTodayPreset);
+            Assert.False(report.IsThisMonthPreset);
+
+            // Act and assert
+            report.From = "12/10/2024";
+            report.To = "14/10/2024";
+            var custom = report.ApplyCommand.ExecuteAsync(null);
+            Assert.Equal(FinancialReportPreset.None, report.SelectedPreset);
+            repository.Requests[^1].Succeed();
+            await custom;
+
+            report.From = report.To = "01/11/2024";
+            var same = report.ApplyCommand.ExecuteAsync(null);
+            Assert.True(report.IsTodayPreset);
+            repository.Requests[^1].Succeed();
+            await same;
+            report.From = "lỗi";
+            await report.ApplyCommand.ExecuteAsync(null);
+            Assert.True(report.IsTodayPreset);
+        }
+        finally { dashboard.Deactivate(); }
+    }
+
+    [Fact]
+    public async Task PresetAndChartCommands_AreGuardedWhenReportIsClosed()
+    {
+        // Arrange
+        var repository = new DeferredReports();
+        var dashboard = await ActivateAsync(repository, MakeSession("Admin"));
+        try
+        {
+            var report = dashboard.FinancialReport;
+
+            // Act
+            await report.TodayCommand.ExecuteAsync(null);
+            await report.Last7DaysCommand.ExecuteAsync(null);
+            await report.ThisMonthCommand.ExecuteAsync(null);
+            report.ShowCashFlowChartCommand.Execute(null);
+
+            // Assert
+            Assert.Empty(repository.Requests);
+            Assert.Equal(FinancialReportPreset.None, report.SelectedPreset);
+            Assert.True(report.IsSalesChart);
+        }
+        finally { dashboard.Deactivate(); }
+    }
+
+    [Fact]
+    public async Task ChartMode_SwitchesBetweenSalesAndCashFlowAndResetsOnSessionChange()
+    {
+        // Arrange
+        var repository = new DeferredReports();
+        var store = MakeSession("Admin");
+        var dashboard = await ActivateAsync(repository, store);
+        try
+        {
+            var report = dashboard.FinancialReport;
+            await OpenAsync(report, repository);
+            var changed = new List<string?>();
+            report.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+
+            // Act
+            report.ShowCashFlowChartCommand.Execute(null);
+
+            // Assert
+            Assert.Equal(FinancialChartMode.CashFlow, report.ChartMode);
+            Assert.True(report.IsCashFlowChart);
+            Assert.False(report.IsSalesChart);
+            Assert.Contains(nameof(FinancialReportViewModel.IsSalesChart), changed);
+            Assert.Contains(nameof(FinancialReportViewModel.IsCashFlowChart), changed);
+            Assert.Single(repository.Requests);
+
+            report.ShowSalesChartCommand.Execute(null);
+            Assert.Equal(FinancialChartMode.Sales, report.ChartMode);
+
+            report.ShowCashFlowChartCommand.Execute(null);
+            var reset = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            report.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(FinancialReportViewModel.ShowOverview) && report.ShowOverview) reset.TrySetResult();
+            };
+            store.SetSession("replacement", "refresh", "second", "Second", "Manager");
+            await reset.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Equal(FinancialChartMode.Sales, report.ChartMode);
+            Assert.Equal(FinancialReportPreset.None, report.SelectedPreset);
+        }
+        finally { dashboard.Deactivate(); }
+    }
+
+    private static CommunityToolkit.Mvvm.Input.IAsyncRelayCommand RunPreset(FinancialReportViewModel report, FinancialReportPreset preset) => preset switch
+    {
+        FinancialReportPreset.Today => report.TodayCommand,
+        FinancialReportPreset.ThisMonth => report.ThisMonthCommand,
+        _ => report.Last7DaysCommand
+    };
 
     private static InMemorySessionStore MakeSession(string? role)
     {

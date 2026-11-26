@@ -1,6 +1,7 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TechStore.Client.Controls.Charts;
 using TechStore.Client.Models.Analytics;
 using TechStore.Client.Repositories.Analytics;
 using TechStore.Client.Services.Api;
@@ -45,6 +46,21 @@ public sealed partial class FinancialReportViewModel(
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSnapshot), nameof(Presentation), nameof(RangeLabel))]
     private FinancialReportSnapshot? snapshot;
+
+    /// <summary>The quick range that equals the applied range, or <see cref="FinancialReportPreset.None"/> for custom dates.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTodayPreset), nameof(IsLast7DaysPreset), nameof(IsThisMonthPreset))]
+    private FinancialReportPreset selectedPreset;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSalesChart), nameof(IsCashFlowChart))]
+    private FinancialChartMode chartMode = FinancialChartMode.Sales;
+
+    public bool IsTodayPreset => SelectedPreset == FinancialReportPreset.Today;
+    public bool IsLast7DaysPreset => SelectedPreset == FinancialReportPreset.Last7Days;
+    public bool IsThisMonthPreset => SelectedPreset == FinancialReportPreset.ThisMonth;
+    public bool IsSalesChart => ChartMode == FinancialChartMode.Sales;
+    public bool IsCashFlowChart => ChartMode == FinancialChartMode.CashFlow;
 
     public bool IsAvailable
     {
@@ -103,6 +119,7 @@ public sealed partial class FinancialReportViewModel(
         {
             var today = Today();
             _appliedRange = new(today.AddDays(-6), today);
+            SelectedPreset = FinancialReportPreset.Last7Days;
         }
 
         From = _appliedRange.Value.From.ToString(InputFormat, Vietnamese);
@@ -157,7 +174,63 @@ public sealed partial class FinancialReportViewModel(
 
         var range = new FinancialReportRange(start, end);
         _appliedRange = range;
+        SelectedPreset = PresetFor(range);
         return LoadAsync(range);
+    }
+
+    [RelayCommand(AllowConcurrentExecutions = true)]
+    private Task TodayAsync() => ApplyPresetAsync(FinancialReportPreset.Today);
+
+    [RelayCommand(AllowConcurrentExecutions = true)]
+    private Task Last7DaysAsync() => ApplyPresetAsync(FinancialReportPreset.Last7Days);
+
+    [RelayCommand(AllowConcurrentExecutions = true)]
+    private Task ThisMonthAsync() => ApplyPresetAsync(FinancialReportPreset.ThisMonth);
+
+    [RelayCommand]
+    private void ShowSalesChart()
+    {
+        if (IsOpen && IsAvailable) ChartMode = FinancialChartMode.Sales;
+    }
+
+    [RelayCommand]
+    private void ShowCashFlowChart()
+    {
+        if (IsOpen && IsAvailable) ChartMode = FinancialChartMode.CashFlow;
+    }
+
+    // A preset replaces the draft dates and any field error, becomes the applied range (so Reload repeats it) and
+    // loads at once; LoadAsync cancels the previous request, so a late answer of the old range is ignored.
+    private Task ApplyPresetAsync(FinancialReportPreset preset)
+    {
+        if (!IsOpen || !IsAvailable) return Task.CompletedTask;
+
+        var range = PresetRange(preset);
+        From = range.From.ToString(InputFormat, Vietnamese);
+        To = range.To.ToString(InputFormat, Vietnamese);
+        FromError = string.Empty;
+        ToError = string.Empty;
+        _appliedRange = range;
+        SelectedPreset = preset;
+        return LoadAsync(range);
+    }
+
+    private FinancialReportRange PresetRange(FinancialReportPreset preset)
+    {
+        var today = Today();
+        return preset switch
+        {
+            FinancialReportPreset.Today => new(today, today),
+            FinancialReportPreset.ThisMonth => new(new DateOnly(today.Year, today.Month, 1), today),
+            _ => new(today.AddDays(-6), today)
+        };
+    }
+
+    private FinancialReportPreset PresetFor(FinancialReportRange range)
+    {
+        foreach (var preset in new[] { FinancialReportPreset.Today, FinancialReportPreset.Last7Days, FinancialReportPreset.ThisMonth })
+            if (PresetRange(preset) == range) return preset;
+        return FinancialReportPreset.None;
     }
 
     [RelayCommand(AllowConcurrentExecutions = true)]
@@ -242,6 +315,8 @@ public sealed partial class FinancialReportViewModel(
     {
         CloseReport();
         _appliedRange = null;
+        SelectedPreset = FinancialReportPreset.None;
+        ChartMode = FinancialChartMode.Sales;
         From = To = FromError = ToError = string.Empty;
         OnPropertyChanged(nameof(IsAvailable));
     }
@@ -267,6 +342,15 @@ public sealed partial class FinancialReportViewModel(
         ApiException { Kind: ApiErrorKind.InvalidResponse } => "Máy chủ trả dữ liệu báo cáo không đúng định dạng.",
         _ => "Chưa tải được báo cáo tài chính. Hãy thử lại."
     };
+}
+
+public enum FinancialReportPreset
+{
+    /// <summary>Custom dates that match none of the quick ranges.</summary>
+    None,
+    Today,
+    Last7Days,
+    ThisMonth
 }
 
 public enum FinancialReportFocusTarget
